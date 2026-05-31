@@ -29,6 +29,8 @@ BR2_TARGET_ROOTFS_TAR_XZ=y
 BR2_PACKAGE_PYTHON3=y
 # Core Python stdlib modules required by klippy (zlib used by msgproto.py/json)
 BR2_PACKAGE_PYTHON3_ZLIB=y
+BR2_PACKAGE_PYTHON3_SSL=y
+BR2_PACKAGE_PYTHON3_SQLITE=y
 # Klipper host deps
 BR2_PACKAGE_PYTHON_NUMPY=y
 BR2_PACKAGE_PYTHON_CFFI=y
