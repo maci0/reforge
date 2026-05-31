@@ -115,12 +115,15 @@ echo "[build-tgz] generating outer md5sum.list ..."
 # ---------------------------------------------------------------------------
 # 5. Assemble the outer .tgz
 # ---------------------------------------------------------------------------
+# NOTE: despite the .tgz extension, the stock FlashForge OTA is a PLAIN (uncompressed)
+# tar of xz subpackages — verified: real stock .tgz is "POSIX tar archive", not gzip.
+# Use plain `tar -cf` so the stock USB updater accepts it. Do NOT gzip.
 OUTPUT="${DIST_DIR}/reforge-${VER}.tgz"
-echo "[build-tgz] assembling ${OUTPUT} ..."
+echo "[build-tgz] assembling ${OUTPUT} (plain tar, stock format) ..."
 
 (
     cd "${STAGING}"
-    tar -czf "${OUTPUT}" \
+    tar -cf "${OUTPUT}" \
         "software-${VER}.tar.xz" \
         "library-${VER}.tar.xz" \
         "control-${VER}.tar.xz" \
