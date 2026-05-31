@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PYTHON_PREPROCESS_CANCELLATION
+	bool "python-preprocess-cancellation"
+	help
+	  GCode preprocessor to add Klipper cancel-object markers.
+	  Used by Moonraker's file_manager (lazy/optional import).
+
+	  https://github.com/kageurufu/cancelobject-preprocessor

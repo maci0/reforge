@@ -40,3 +40,6 @@ BR2_PACKAGE_PYTHON_MARKUPSAFE=y
 BR2_TOOLCHAIN_BUILDROOT_FORTRAN=y
 # Klipper host (klippy) + pre-compiled NEON chelper
 BR2_PACKAGE_KLIPPER=y
+# Moonraker API server (system python3, no venv, trimmed deps)
+# Optional components disabled: update_manager, spoolman, notifier, ldap
+BR2_PACKAGE_MOONRAKER=y
