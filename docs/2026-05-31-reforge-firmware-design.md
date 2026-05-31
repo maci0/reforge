@@ -168,6 +168,17 @@ This is the defining risk of the project. Workstream:
 4. **Validate** on bench against a known image before trusting on-printer.
 5. **DVP camera = out of scope for v1** (later port; stock-mod patched ustreamer path may bridge in the interim).
 
+### Board-tailored kernel config (requirement)
+
+`reforge_t113_defconfig` is a **board-minimal** kernel config, not a generic sunxi defconfig — tuned for *this* board to minimize RAM/flash footprint (128 MB budget) and boot time:
+
+- Start board-minimal and enable only what the AD5M Pro actually uses; **cross-check against the captured stock `.config`** (`docs/board-notes/stock-kernel-config-5.4.61.txt.gz`, the exact `/proc/config.gz` from the live unit, 1017 `CONFIG_` lines) — it is the authoritative list of subsystems/drivers this hardware needs.
+- Drivers to keep: T113-S3 core, eMMC (`mmcblk`), the console + MCU UARTs (`ttyS3` console @ `0x05000000`, plus the two MCU serial links), USB, RGB-LCD/DRM (the ported panel above), RTL8821CU wifi via **mainline `CONFIG_RTW88_8821CU`** (`rtw88_8821cu`/`rtw_8821c`/`rtw_usb`/`rtw_core`) + BT via `btusb`+`btrtl` — **no out-of-tree module needed** (rtw88 8821cu is mainline since 6.2, solid by 6.12; station-mode only, which is all a printer needs), ethernet.
+- Strip: unrelated SoC/board support, unused buses/filesystems/netfilter, debug/tracing not needed in production, modules for absent peripherals. Target a small monolithic image (stock is essentially monolithic — one out-of-tree module).
+- Honor the board's boot/partition reality from `docs/board-notes/`: `cma=16M`, `dsp0@p5` (HiFi4 DSP firmware) preserved, `androidboot.dramsize=128`, display reserve. The full cmdline + partition map are recorded there.
+
+This is a Plan 5 (P4) deliverable; the reference data is already captured (P0).
+
 ### Fallback if the port stalls
 
 The full-image (P4) display port is decoupled from getting the Klipper stack working:
