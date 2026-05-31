@@ -6,6 +6,29 @@ on:
   schedule:
     - cron: '0 4 * * 0'   # weekly: catch reproducibility regressions
 jobs:
+  no-blobs:
+    # Guard: FAIL if any tracked file path looks like a FlashForge/Qt proprietary
+    # blob.  Matches on FILE PATHS only (git ls-files output), not file content —
+    # so REPORT.md / scripts that TEXT-mention "firmwareExe" are not caught.
+    #
+    # Heavy qemu jobs (make qemu-*) are NOT run here — they require sudo + a real
+    # ARM kernel + ~10 GB stock rootfs dump and are run locally / in a dedicated
+    # lab environment.  See validation/qemu-harness/README.md.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: no proprietary blobs tracked
+        run: |
+          if git ls-files | grep -iE \
+            'firmwareExe|libQt(Core|Gui|Network)|spike-stockui/extracted/|/opt/PROGRAM/'; then
+            echo "ERROR: proprietary blob(s) found in tracked files — see above"
+            exit 1
+          fi
+          echo "no proprietary blobs tracked"
+      - name: install deps
+        run: sudo apt-get update && sudo apt-get install -y build-essential xz-utils
+      - name: packaging smoke (make tgz)
+        run: make tgz
   rootfs:
     runs-on: ubuntu-latest
     steps:
