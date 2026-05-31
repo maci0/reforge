@@ -1,7 +1,7 @@
 BUILD := build_scripts/build.sh
 .PHONY: rootfs defconfig clean smoke repro integration guppy smoke-guppy tgz validate-loopback \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
-        qemu-stock-rootfs qemu-run qemu-update
+        qemu-stock-rootfs qemu-run qemu-update qemu-render
 rootfs:            ; $(BUILD) rootfs
 defconfig:         ; $(BUILD) defconfig
 clean:             ; $(BUILD) clean
@@ -34,3 +34,9 @@ qemu-run:          ; validation/qemu-harness/run-qemu.sh $(ROOT) $(QEMU_ARGS)
 # --- P3 Task 6: qemu update-process test (install → ReForge boots) ---
 # Needs sudo for loopback mount.  Timeout generous (qemu + python startup is slow).
 qemu-update:       ; sudo validation/qemu-harness/update-process-test.sh
+
+# --- P3 Task 7: GuppyScreen render test (800x480 fb, screendump non-blank) ---
+# Boots ReForge with SCREEN_MODE=GUPPY under --vnc (virtio-gpu /dev/fb0) and
+# asserts GuppyScreen draws a non-blank frame.  Needs sudo for loop mount.
+# Output: validation/qemu-harness/build/guppy-screenshot.ppm (gitignored)
+qemu-render:       ; sudo validation/qemu-harness/reforge-render-test.sh

@@ -193,6 +193,11 @@ if [[ "${VNC}" -eq 1 ]]; then
     QEMU_ARGS+=(
         -display vnc=:0
         -monitor "unix:${MONITOR_SOCK},server,nowait"
+        # With VNC display, qemu does not redirect the serial port to stdio by
+        # default (unlike -nographic which does both).  Add -serial stdio so the
+        # guest's ttyAMA0 console (console=ttyAMA0) still flows to our stdout
+        # and gets captured by --log tee.
+        -serial stdio
     )
     log "VNC mode: display on :5900  |  monitor socket: ${MONITOR_SOCK}"
     log "  Screendump: echo 'screendump /tmp/fb.ppm' | socat - UNIX-CONNECT:${MONITOR_SOCK}"
