@@ -85,7 +85,7 @@ git commit -m "P3: packaging — build stock-format reforge-<ver>.tgz from outpu
 
 **Reference:** `../fw-analysis/x-5.1.4/flashforge_init.sh` (stock install flow — the `update_*` functions + arch/PID checks). `../forge-x/.shell/` (how forge-x hooks the stock boot + chroots + screen modes + SKIP_MOD dual-boot). Read both; ReForge mirrors the forge-x overlay pattern.
 
-- [ ] **Step 1: Write `flashforge_init.sh`** (run by the stock USB updater, host-side). It must:
+- [ ] **Step 1: Write `flashforge_init.sh`** (runs **on the printer's stock OS** after the stock USB updater unpacks the `.tgz` — "host" here = the printer's stock environment, NOT the dev workstation; the loopback/qemu tests just point its `/data` at a fake one). It must:
   1. arch check (`uname -m` == `armv7l`) + machine/PID check (`Adventurer5MPro`/`Adventurer5M`, PID 0023/0024) — exit 1 on mismatch (model on the stock script's checks).
   2. extract `software-<ver>.tar.xz` into **`/data/.reforge`** (the overlay root). NEVER write to `/opt`, the stock rootfs, kernel, or partitions.
   3. install the boot hook: place `reforge-boot` where the stock boot sequence will run it (model on how forge-x injects its init — e.g. via the stock `/opt/config` startup or an init.d hook). Persist a default screen mode = `HEADLESS`.
@@ -154,7 +154,7 @@ git commit -m "P3: loopback install validation (ext4 /data, no device)"
 
 **This is the highest-risk task (spec §7 risk 1).** Build a test-only kernel that boots under `qemu-system-arm -M virt` with virtio + a framebuffer pinned to the printer panel.
 
-- [ ] **Step 1: Attempt the Tina-vendor path.** Configure `modules/zram-bsp/tina-bsp-kernel` (the in-repo vendor source) for `qemu virt`: enable `ARCH_MULTI_V7` + `ARCH_VIRT` + `VIRTIO_{BLK,NET,GPU,INPUT,MMIO,PCI}` + `DRM_VIRTIO_GPU` + `DRM_SIMPLEDRM`/`FB_SIMPLE` + `FB`/`FRAMEBUFFER_CONSOLE` + ext4 + `DEVTMPFS`. Build a `zImage` + the `virt` DTB (qemu can generate the DT, or use `-machine virt,dumpdtb`). Build into `validation/qemu-harness/build/`.
+- [ ] **Step 1: Attempt the Tina-vendor path.** The vendor source ships `arch/arm/configs/multi_v7_defconfig` — **start from that** (it already has ARCH_MULTI_V7 + virt + virtio), then add/confirm `VIRTIO_{BLK,NET,GPU,INPUT,MMIO,PCI}` + `DRM_VIRTIO_GPU` + `DRM_SIMPLEDRM`/`FB_SIMPLE` + `FB`/`FRAMEBUFFER_CONSOLE` + ext4 + `DEVTMPFS`. (This is the middle path — vendor ABI fidelity AND virt support — try it before the generic fallback.) Build a `zImage` (qemu generates the virt DT, or use `-machine virt,dumpdtb`). Build into `validation/qemu-harness/build/`. Use the kernel.org crosstool GCC 9.5 already at `modules/zram-bsp/gcc-9.5.0-nolibc/` (proven on this source).
 
 - [ ] **Step 2: If the vendor kernel won't configure/boot for virt, FALL BACK** to a generic Buildroot armv7 virt kernel: add a tiny `BR2_EXTERNAL` defconfig `reforge_qemuvirt_defconfig` (or use Buildroot's `qemu_arm_vexpress`/virt sample) that builds a mainline armv7 kernel with the same virtio + fb options. Document which path you used + why. Either kernel is TEST-ONLY (never shipped).
 
