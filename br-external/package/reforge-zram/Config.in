@@ -1,0 +1,16 @@
+config BR2_PACKAGE_REFORGE_ZRAM
+	bool "reforge-zram"
+	help
+	  Ships the prebuilt zsmalloc.ko and zram.ko kernel modules built from
+	  the Allwinner T113 vendor BSP, vermagic 5.4.61 SMP preempt mod_unload
+	  ARMv7 p2v8.  Also installs swapon_prio, a static armv7 helper that
+	  calls swapon(2) with SWAP_FLAG_PREFER|priority (busybox swapon lacks
+	  -p).
+
+	  These modules are for P1-P3 devices that ride the stock 5.4.61 kernel.
+	  P4 builds zram into its own kernel and does not need this package.
+
+	  The S35zram init script loads the modules at boot, configures the
+	  compression algorithm (default: zstd) and swap device size (default:
+	  256M), and activates the swap at priority 100 so zram is preferred
+	  over any eMMC overflow swapfile.
