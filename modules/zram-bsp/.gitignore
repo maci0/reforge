@@ -5,3 +5,5 @@ gcc-9.5.0-arm.tar.xz
 gcc-9.5.0-nolibc/
 *.tar.xz
 build/
+tina-bsp-kernel/
+build-tina/

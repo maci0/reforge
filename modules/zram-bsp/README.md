@@ -51,7 +51,24 @@ are all unset — so the drivers must come as out-of-tree modules.
    compare effective swap headroom vs the uncompressed eMMC swapfile.
 5. Revert: `swapoff /dev/zram0 ; rmmod zram zbud zpool zsmalloc` (or reboot).
 
-## RESULT (2026-05-31): upstream source FAILS — Tina source required
+## RESULT (2026-05-31): ✅ WORKS with vendor BSP source — 4.02× compression
+
+**Final outcome:** zram + zstd compressed swap is **working on the stock 5.4.61 kernel.**
+Modules built from the **Allwinner T113 vendor BSP** source (`iLotusK9/linux_kernel_aw_t113`,
+branch `5.4.61` — sun8iw20p1, same BSP base as FlashForge) load cleanly; on the live
+unit, real klippy/moonraker cold pages compress **4.02×** (orig 3.8MB → 0.9MB stored).
+Deployables in `dist/` (`zsmalloc.ko`, `zram.ko`); bring-up via `zram-setup.sh`, revert
+via `zram-teardown.sh`. Applies to **forge-x AND ReForge P1–P3** (both ride the stock kernel).
+
+Two gotchas solved along the way:
+1. **Upstream `linux-5.4.61` source → Oops** (vendor `struct page` layout differs). Use vendor BSP source.
+2. **`5.4.61+` vermagic** (trailing `+` from a dirty git tree) → suppress with an empty `.scmversion`; final vermagic is exactly `5.4.61 SMP preempt mod_unload ARMv7 p2v8`.
+
+Deploy steps: `scp dist/*.ko` (or `cat`-over-ssh — device has no sftp-server) to the
+printer, run `zram-setup.sh`. Note busybox `insmod`/`mkswap`/`swapon` live at `/sbin/`
+and busybox `swapon` has **no `-p`** (priority handled by swapoff/re-add order instead).
+
+### Upstream attempt (kept as the negative result)
 
 Built all 4 modules from **upstream linux-5.4.61** + the stock `.config` with GCC 9.5.
 **Vermagic matched exactly** (`5.4.61 SMP preempt mod_unload ARMv7 p2v8`). On the live
