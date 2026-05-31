@@ -10,6 +10,22 @@ also testable on the current **forge-x** install immediately. The stock kernel s
 `CONFIG_CRYPTO_ZSTD=y` (compressor present) but `CONFIG_ZSMALLOC`/`ZRAM`/`ZPOOL`/`ZBUD`
 are all unset — so the drivers must come as out-of-tree modules.
 
+## Measured (live AD5M, dual Cortex-A7, 128 MB)
+Before: 64 MB **eMMC swapfile**, uncompressed (1.0×), flash wear, slow.
+After: 256 MB **zram zstd** primary + eMMC overflow — ~36 MB cold pages → ~9 MB RAM.
+
+| algo | ratio (real heap) | ratio (code) | compress\* | decompress\* | A7 CPU |
+|---|---|---|---|---|---|
+| eMMC swapfile | 1.0× | 1.0× | flash-bound | flash-bound | — (wear) |
+| **zstd** *(default)* | **4.02–4.18×** | 3.54× | ~6.3 MB/s | ~37.5 MB/s | moderate |
+| lzo-rle | — | 2.74× | ~7.4 MB/s | ~30 MB/s | low |
+| lzo | — | 2.74× | ~8.6–9.6 MB/s | ~82.8 MB/s | lowest |
+
+\* block-I/O-bound (timed `dd` through the zram block dev) → **relative**, not absolute.
+Full method + before/after in `../../docs/research/2026-05-31-memory-and-testing.md` §0b.
+lz4 unavailable (stock kernel lacks `CONFIG_CRYPTO_LZ4`). Default **zstd**; `lzo-rle`
+is the low-CPU escape hatch (`ZRAM_ALGO=lzo-rle`).
+
 ## Hard constraints (from the running stock kernel)
 - **Target vermagic (must match exactly):** `5.4.61 SMP preempt mod_unload ARMv7 p2v8`
   (read from the stock `8821cu.ko`).

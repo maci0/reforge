@@ -6,8 +6,52 @@ the live unit (`root@192.168.0.158`, forge-x, idle).
 
 ## 0. The one-sentence truth
 Transparent memory **compression lives in the kernel** (zram/zswap); userspace
-allocators only reduce **fragmentation**. The stock 5.4.61 kernel has **no zram**,
-so forge-x is structurally capped — the real wins require ReForge's own kernel.
+allocators only reduce **fragmentation**. The stock 5.4.61 kernel has **no zram**
+built in, but loadable modules built from the vendor BSP add it (see §4) — so
+compressed swap is available even on the stock kernel, with ReForge's own kernel
+building it in for P4.
+
+---
+
+## 0b. Measured zram results (live AD5M, stock 5.4.61, dual Cortex-A7, 128 MB)
+
+### Before / after (the headline)
+| | swap target | compression | flash wear | swap speed |
+|---|---|---|---|---|
+| **Before** (forge-x stock) | 64 MB **eMMC swapfile** | **none** (1.0×) | **yes** — wears eMMC | flash I/O (slow, stalls under pressure) |
+| **After** (zram zstd) | 256 MB **zram** (primary) + eMMC overflow | **~4×** | **none** (it's RAM) | RAM speed |
+
+Concrete: ~36 MB of cold klippy/moonraker pages that sat **uncompressed on eMMC
+flash** compress to **~9 MB in RAM** under zstd — same data, ¼ the footprint, zero
+flash wear, RAM-speed paging.
+
+### Algorithm comparison (measured on-device)
+| algo | ratio — real heap pages | ratio — code/binary payload | compress* | decompress* | A7 CPU |
+|---|---|---|---|---|---|
+| eMMC swapfile (baseline) | 1.0× (uncompressed) | 1.0× | flash-bound | flash-bound | — (but flash wear) |
+| **zstd** *(default)* | **4.02–4.18×** | 3.54× | ~6.3 MB/s | ~37.5 MB/s | moderate |
+| lzo-rle | — | 2.74× | ~7.4 MB/s | ~30 MB/s | low |
+| lzo | — | 2.74× | ~8.6–9.6 MB/s | ~82.8 MB/s | lowest |
+
+\* **Throughput is block-I/O-bound** (timed `dd` through the zram *block device*),
+so treat the MB/s as **relative**, not absolute — real per-page (de)compression is
+much faster. The relative ordering is the takeaway: zstd costs ~50% more time than
+lzo to compress and ~2× longer to decompress, for ~30% better ratio.
+
+### Method
+- Ratios read from `/sys/block/zram0/mm_stat` (orig vs compr).
+- **Real-heap ratio**: brought zram up as primary swap, then `swapoff` the eMMC file
+  so live klippy/moonraker cold pages migrated into zram → measured the actual ratio.
+- **Code/binary payload**: 12 MB tar of `/opt/klipper` + python libs, written 60 MB
+  with a per-algorithm warmup; `/proc/uptime` timing around `dd`.
+- lz4 is **not** an option (stock kernel lacks `CONFIG_CRYPTO_LZ4`); available algos
+  are `lzo`, `lzo-rle`, `zstd`. `MALLOC_ARENA_MAX=2` (orthogonal) measured ~1–2 MB.
+
+### Recommendation
+**zstd by default** — on 128 MB the extra ~30% ratio (more effective RAM) outweighs
+the CPU cost, and swap is intermittent on a printer. **lzo-rle** is the escape hatch
+(`ZRAM_ALGO=lzo-rle` / the `zram_algo` setting) if swap-time CPU ever contends with
+klippy during a print.
 
 ---
 
