@@ -192,10 +192,10 @@ echo "      OK: $(head -1 "$NTMP/klippy-help.txt")"
 
 # (d) klippy --import-test (validates all Python module imports including chelper)
 echo "  (d) klippy --import-test..."
+# capture rc WITHOUT letting set -e abort first (else the FAIL branch is dead code)
+_klippy_import_rc=0
 qrun "$ROOT/usr/bin/python3" "$ROOT/opt/klipper/klippy/klippy.py" --import-test \
-    > "$NTMP/klippy-import.txt" 2>&1
-# exit 0 means success; non-zero or "error" in output means failure
-_klippy_import_rc=$?
+    > "$NTMP/klippy-import.txt" 2>&1 || _klippy_import_rc=$?
 if [ "$_klippy_import_rc" != "0" ]; then
     echo "FAIL: klippy --import-test exited $_klippy_import_rc"
     cat "$NTMP/klippy-import.txt"
