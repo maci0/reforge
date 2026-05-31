@@ -1,0 +1,39 @@
+# ReForge QEMU virt test kernel config fragment
+# Applied on top of multi_v7_defconfig
+# Enables virtio-gpu + FB_SIMPLE + 800x480 framebuffer support for qemu -M virt
+
+# --- Framebuffer ---
+CONFIG_FB=y
+CONFIG_FB_SIMPLE=y
+CONFIG_FRAMEBUFFER_CONSOLE=y
+CONFIG_FRAMEBUFFER_CONSOLE_ROTATION=y
+
+# --- DRM + virtio-gpu ---
+CONFIG_DRM=y
+CONFIG_DRM_VIRTIO_GPU=y
+CONFIG_DRM_KMS_HELPER=y
+CONFIG_DRM_TTM=y
+
+# --- VirtIO transport + devices ---
+CONFIG_VIRTIO=y
+CONFIG_VIRTIO_PCI=y
+CONFIG_VIRTIO_MMIO=y
+CONFIG_VIRTIO_BLK=y
+CONFIG_VIRTIO_NET=y
+CONFIG_VIRTIO_CONSOLE=y
+CONFIG_VIRTIO_INPUT=y
+
+# --- Block + filesystems ---
+CONFIG_EXT4_FS=y
+CONFIG_BLK_DEV_INITRD=y
+
+# --- Device management ---
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+
+# --- Serial console for -nographic ---
+CONFIG_SERIAL_AMBA_PL011=y
+CONFIG_SERIAL_AMBA_PL011_CONSOLE=y
+
+# --- RAM framebuffer device (alternative fixed-geometry fb) ---
+CONFIG_DRM_PANEL_SIMPLE=y
