@@ -17,7 +17,11 @@
 #   /data is already mounted when S01 runs.
 #
 # NEVER writes outside /data (or $DATA if REFORGE_DATA_ROOT is set).
-# REFORGE_DATA_ROOT override is required for Task 3 loopback tests.
+# Env overrides for loopback/CI tests on non-armv7 hosts:
+#   REFORGE_DATA_ROOT=<dir>    — redirect /data to a temp dir (loopback mount)
+#   REFORGE_SKIP_ARCH_CHECK=1  — skip armv7l uname check on x86 test hosts
+#   REFORGE_INITD_DIR=<dir>    — redirect /etc/init.d symlink to a temp dir
+#                                (prevents writes to host /etc/init.d)
 set -e
 
 # ---------------------------------------------------------------------------
@@ -26,7 +30,10 @@ set -e
 DATA="${REFORGE_DATA_ROOT:-/data}"
 REFORGE_DIR="${DATA}/.reforge"
 BOOT_HOOK_DEST="${REFORGE_DIR}/.shell/reforge-boot"
-INITD_LINK="/etc/init.d/S01reforge"
+# REFORGE_INITD_DIR overrides the init.d path so loopback/CI tests can
+# redirect the boot-hook symlink to a temp dir instead of the host /etc/init.d.
+INITD_DIR="${REFORGE_INITD_DIR:-/etc/init.d}"
+INITD_LINK="${INITD_DIR}/S01reforge"
 
 MACHINE_A="Adventurer5MPro"
 MACHINE_B="Adventurer5M"
@@ -58,11 +65,12 @@ info() {
 info "ReForge installer starting"
 
 # Architecture check — must be armv7l (the AD5M Pro SoC)
+# Set REFORGE_SKIP_ARCH_CHECK=1 to bypass (loopback/CI tests on x86 hosts).
 ARCH="$(uname -m)"
-if [ "${ARCH}" != "armv7l" ]; then
+if [ -z "${REFORGE_SKIP_ARCH_CHECK:-}" ] && [ "${ARCH}" != "armv7l" ]; then
     die "Architecture mismatch: expected armv7l, got ${ARCH}"
 fi
-info "Architecture: ${ARCH} OK"
+info "Architecture: ${ARCH} (check $( [ -n "${REFORGE_SKIP_ARCH_CHECK:-}" ] && echo 'SKIPPED' || echo 'OK' ))"
 
 # Machine / PID guard — mirrors the stock script logic:
 #   - If $1 and $2 are both non-empty, validate them.
@@ -105,10 +113,11 @@ if [ -d "${REFORGE_DIR}" ]; then
     info "  Removing prior install at ${REFORGE_DIR}"
     rm -rf "${REFORGE_DIR}"
 fi
-mkdir -p "${REFORGE_DIR}"
+# NOTE: do NOT mkdir REFORGE_DIR here — mv renames TEMP_DIR → REFORGE_DIR
+# atomically only when the destination does not yet exist.
 
 # ---------------------------------------------------------------------------
-# Extract to a temp dir first, verify md5sum, then move
+# Extract to a temp dir first, verify md5sum, then rename into place
 # ---------------------------------------------------------------------------
 TEMP_DIR="${DATA}/.reforge_tmp_$$"
 rm -rf "${TEMP_DIR}"
@@ -132,7 +141,9 @@ fi
 }
 info "Checksum OK"
 
-# Move verified contents into place
+# Rename temp dir to final location (atomic when dest does not exist).
+# Ensure parent exists (in case DATA was just created by mkfs/mount).
+mkdir -p "${DATA}"
 mv "${TEMP_DIR}" "${REFORGE_DIR}"
 sync
 
@@ -151,6 +162,7 @@ fi
 chmod 755 "${BOOT_HOOK_DEST}"
 
 # Remove any stale symlink / file from a previous install
+mkdir -p "${INITD_DIR}"
 rm -f "${INITD_LINK}"
 ln -s "${BOOT_HOOK_DEST}" "${INITD_LINK}"
 info "  Symlinked ${INITD_LINK} -> ${BOOT_HOOK_DEST}"
