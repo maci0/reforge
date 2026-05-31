@@ -1,7 +1,7 @@
 BUILD := build_scripts/build.sh
 .PHONY: rootfs defconfig clean smoke repro integration guppy smoke-guppy tgz validate-loopback \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
-        qemu-stock-rootfs qemu-run
+        qemu-stock-rootfs qemu-run qemu-update
 rootfs:            ; $(BUILD) rootfs
 defconfig:         ; $(BUILD) defconfig
 clean:             ; $(BUILD) clean
@@ -30,3 +30,7 @@ qemu-stock-rootfs: ; sudo validation/qemu-harness/extract-stock-rootfs.sh
 # Example: make qemu-run ROOT=validation/qemu-harness/build/initramfs.cpio.gz --vnc
 ROOT ?= validation/qemu-harness/build/initramfs.cpio.gz
 qemu-run:          ; validation/qemu-harness/run-qemu.sh $(ROOT) $(QEMU_ARGS)
+
+# --- P3 Task 6: qemu update-process test (install → ReForge boots) ---
+# Needs sudo for loopback mount.  Timeout generous (qemu + python startup is slow).
+qemu-update:       ; sudo validation/qemu-harness/update-process-test.sh
