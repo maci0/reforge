@@ -313,7 +313,7 @@ Measured on the live unit (forge-x): MemTotal **108 MB**, ~**30 MB swap already 
 - **Trim Moonraker components** (§10.7).
 
 ### P4+ (our own mainline-LTS kernel — unlocks compressed memory)
-- **zram + zstd**: replace the eMMC swapfile with compressed-RAM swap (~2–3× on anon pages, no flash wear, far faster than eMMC swap) + high `vm.swappiness`. **The headline win the stock kernel cannot provide.** Enable `CONFIG_ZRAM`, `CONFIG_ZSMALLOC`, `CONFIG_CRYPTO_ZSTD` in `reforge_t113_defconfig`.
+- **zram + zstd**: replace the eMMC swapfile with compressed-RAM swap + high `vm.swappiness`. In P4 it's built in (`CONFIG_ZRAM`/`ZSMALLOC`/`CRYPTO_ZSTD`). **UPDATE — TESTED ✅: also available in P1–P3 via loadable modules** built from the Allwinner T113 vendor BSP source (`modules/zram-bsp/`), `insmod`'d on the stock kernel — **measured 4.02× compression on real cold pages**. So compressed swap is not P4-exclusive; the stock kernel CAN provide it via out-of-tree modules. (Upstream-source modules Oops — must use vendor BSP source; see §10b / `modules/zram-bsp/`.)
 - **squashfs + zstd read-only rootfs**: clean, reclaimable file pages + smaller flash. Enable `CONFIG_SQUASHFS` (+zstd).
 - **KSM**: option, but marginal (COW already shares the Python pages) and costs A7 CPU — **likely skip**; revisit only if measured.
 - **jemalloc `LD_PRELOAD`** for long-running Moonraker (fragmentation) — optional, measure first.
