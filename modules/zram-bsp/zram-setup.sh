@@ -1,18 +1,21 @@
 #!/bin/sh
-# Load vendor-BSP-built zram+zsmalloc and bring up a zstd-compressed swap on the
-# STOCK 5.4.61 kernel. Works on forge-x and ReForge P1-P3 (both ride the stock kernel).
+# Bring up zstd-compressed zram swap on the STOCK 5.4.61 kernel as the PRIMARY swap.
+# Works on forge-x and ReForge P1-P3 (both ride the stock kernel).
 # Modules must match vermagic: 5.4.61 SMP preempt mod_unload ARMv7 p2v8
 set -e
 DIR=$(dirname "$0")/dist
 SIZE=${ZRAM_SIZE:-256M}
-ALGO=${ZRAM_ALGO:-zstd}
+ALGO=${ZRAM_ALGO:-zstd}          # zstd (best ratio ~4x) | lzo-rle (cheaper CPU ~2.7x)
+PRIO=${ZRAM_PRIO:-100}
 /sbin/insmod "$DIR/zsmalloc.ko" 2>/dev/null || true   # idempotent
 /sbin/insmod "$DIR/zram.ko"     2>/dev/null || true
+/sbin/swapoff /dev/zram0 2>/dev/null || true
+echo 1 > /sys/block/zram0/reset 2>/dev/null || true
 echo "$ALGO" > /sys/block/zram0/comp_algorithm
 echo "$SIZE" > /sys/block/zram0/disksize
 /sbin/mkswap /dev/zram0 >/dev/null
-/sbin/swapon /dev/zram0
-# make zram the preferred swap over any eMMC swapfile: re-add the file at lower prio
-EMMC=$(grep -E '/swap( |$)' /proc/swaps | awk '{print $1}' | grep -v zram | head -1)
-if [ -n "$EMMC" ]; then /sbin/swapoff "$EMMC" 2>/dev/null; /sbin/swapon "$EMMC" 2>/dev/null || true; fi
-echo "zram active:"; cat /proc/swaps
+# CRITICAL: swap on at HIGH priority so zram is preferred over any eMMC swapfile.
+# busybox swapon has no -p, so use the static helper (SWAP_FLAG_PREFER|prio).
+"$DIR/swapon_prio" /dev/zram0 "$PRIO"
+echo "zram active (algo=$ALGO, prio=$PRIO); eMMC swapfile (if any) stays as low-prio overflow:"
+cat /proc/swaps
