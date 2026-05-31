@@ -16,3 +16,8 @@ output/
 *.swp
 .DS_Store
 output-guppy/
+
+# Packaging build artifacts
+packaging/dist/
+*.img
+spike-stockui/extracted/
