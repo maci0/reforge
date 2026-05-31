@@ -298,6 +298,28 @@ The live printer is held back from flashing until the image is mature and recove
 
 ---
 
+## 10b. RAM budget & memory optimization (128 MB is the binding constraint)
+
+Measured on the live unit (forge-x): MemTotal **108 MB**, ~**30 MB swap already in use**. Swap is a plain **64 MB eMMC swapfile** (`/data/.mod/.forge-x/root/swap`) — *uncompressed, flash-backed*. klippy RSS 21 MB (Python 3.7), Moonraker 17 MB (Python 3.11, a *different* interpreter), stock Qt `firmwareExe` 10.5 MB. No `MALLOC_*` tuning; swappiness 60; ext4 rw rootfs.
+
+**The stock 5.4.61 kernel has NO `CONFIG_ZRAM`/`ZSMALLOC`/`ZSWAP`/`KSM`/`SQUASHFS`** (verified against the captured `/proc/config.gz`) — only the zstd/lzo crypto compressors. That is *why* forge-x uses an eMMC swapfile: on the stock kernel it has no compressed-swap option. This splits ReForge's memory work by phase:
+
+### P1–P3 (riding the stock kernel — available now)
+- **Single shared `python3`** for klippy + Moonraker (one `libpython`, COW-shared read-only pages) — biggest available win (Plan 2, §10.7).
+- **`MALLOC_ARENA_MAX=2`** (or 1) in the klippy + Moonraker init env — glibc otherwise spawns up to `8×CPU` per-thread arenas, bloating RSS. Free RSS cut. (Plan 2 init scripts.)
+- **Lazy numpy** — only loaded for shaper calibration, kept out of steady-state RSS (already Klipper's behavior).
+- **Strip + precompile Python** (`.pyc`, drop unused stdlib modules).
+- **Drop the stock Qt UI** (10.5 MB; ReForge doesn't run it) + **GuppyScreen** (C++/LVGL, no Python).
+- **Trim Moonraker components** (§10.7).
+
+### P4+ (our own mainline-LTS kernel — unlocks compressed memory)
+- **zram + zstd**: replace the eMMC swapfile with compressed-RAM swap (~2–3× on anon pages, no flash wear, far faster than eMMC swap) + high `vm.swappiness`. **The headline win the stock kernel cannot provide.** Enable `CONFIG_ZRAM`, `CONFIG_ZSMALLOC`, `CONFIG_CRYPTO_ZSTD` in `reforge_t113_defconfig`.
+- **squashfs + zstd read-only rootfs**: clean, reclaimable file pages + smaller flash. Enable `CONFIG_SQUASHFS` (+zstd).
+- **KSM**: option, but marginal (COW already shares the Python pages) and costs A7 CPU — **likely skip**; revisit only if measured.
+- **jemalloc `LD_PRELOAD`** for long-running Moonraker (fragmentation) — optional, measure first.
+
+Discipline throughout: **measure RSS on-device under load before optimizing** — the binding cost may not be where intuition says (cf. §10.6, §10.7).
+
 ## 11. Provenance
 
 - `forge-x/docs/FIRMWARE_5x_COMPAT.md` — stock 5.x analysis, OTA format, cloud host list, MCU v11 bug→fix table.
