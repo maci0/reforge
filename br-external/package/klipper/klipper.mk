@@ -68,7 +68,8 @@ define KLIPPER_BUILD_CMDS
 endef
 
 define KLIPPER_INSTALL_TARGET_CMDS
-	# Install the klippy tree
+	# Install the klippy tree (rm first so cp -r does not nest on reinstall)
+	rm -rf $(TARGET_DIR)/opt/klipper/klippy
 	mkdir -p $(TARGET_DIR)/opt/klipper
 	cp -r $(@D)/klippy $(TARGET_DIR)/opt/klipper/klippy
 
@@ -80,6 +81,11 @@ define KLIPPER_INSTALL_TARGET_CMDS
 	# returns something meaningful instead of "?" when git is unavailable.
 	printf '%s\n' "$(KLIPPER_VERSION)" \
 		> $(TARGET_DIR)/opt/klipper/klippy/.version
+
+	# Install AD5M-specific klippy extension plugins into extras/
+	$(INSTALL) -d $(TARGET_DIR)/opt/klipper/klippy/extras
+	$(INSTALL) -m 0644 $(KLIPPER_PKGDIR)/extensions/*.py \
+		$(TARGET_DIR)/opt/klipper/klippy/extras/
 endef
 
 $(eval $(generic-package))
