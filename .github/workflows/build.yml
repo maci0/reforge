@@ -1,0 +1,14 @@
+name: build
+on: [push, pull_request]
+jobs:
+  rootfs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - name: install deps
+        run: sudo apt-get update && sudo apt-get install -y build-essential qemu-user-static file xz-utils unzip bc cpio rsync
+      - name: build rootfs
+        run: make rootfs
+      - name: smoke test
+        run: make smoke
