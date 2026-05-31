@@ -99,14 +99,18 @@ Each unit is independently testable: packaging → a `.tgz`; validation → pass
 A real emulation platform so we can test install, boot, GUI render, and GUI↔klippy without the printer.
 
 **4a. Test kernel** (`validation/qemu-harness/kernel/`, **never shipped**):
-- Built from the **Tina vendor `sun8iw20` 5.4 source** (already cloned for the zram work), reconfigured for **qemu `-M virt`**: `ARCH_MULTI_V7` + virt machine + **virtio-blk/net/gpu** + **DRM/fbdev** (`/dev/fb0` for firmwareExe/GuppyScreen) + virtio-input/evdev. Vendor source ⇒ closest ABI match to the stock 5.4 userland.
-- **Risk + fallback:** a sunxi BSP kernel may resist `virt` (same class of issue as the failed stock-`uImage` boot). If so, fall back to a **generic Buildroot armv7 virt kernel** — glibc userland is largely kernel-agnostic; we lose only vendor-driver fidelity (irrelevant under virt). The harness must work on the fallback if the vendor path stalls.
+- Built from the **Tina vendor `sun8iw20` 5.4 source** (already cloned for the zram work, in-repo at `modules/zram-bsp/tina-bsp-kernel`), reconfigured for **qemu `-M virt`**: `ARCH_MULTI_V7` + virt machine + **virtio-blk/net/gpu** + **DRM/fbdev** + virtio-input/evdev. Vendor source ⇒ closest ABI match to the stock 5.4 userland.
+- **`/dev/fb0` pinned to the printer's exact panel** (measured on the live unit): **800×480 visible, 32 bpp (xRGB8888), virtual 800×960 (double-buffered), mode 800x480p-67**. Implement via a fixed `simple-framebuffer` DT node at 800×480×32 (deterministic), or virtio-gpu forced with kernel `video=800x480-32` + `fbcon`/panning `virtual_y=960`. This makes firmwareExe/GuppyScreen render **pixel-identical to the real screen** (screenshots match the printer).
+- **Backend note:** GuppyScreen (LVGL) drives the **fbdev** path; firmwareExe is **Qt-embedded** (qws/EGLFS-style) and may want a slightly different fb/input config. Provide both a plain fbdev `/dev/fb0` and a virtio-input/evdev touch device; expect per-app tuning in §4d/§4e.
+- **Risk + fallback:** a sunxi BSP kernel may resist `virt` (same class of issue as the failed stock-`uImage` boot). If so, fall back to a **generic Buildroot armv7 virt kernel** — glibc userland is largely kernel-agnostic; we lose only vendor-driver fidelity (irrelevant under virt). The harness must work on the fallback if the vendor path stalls. The 800×480×32 fb spec applies to either kernel.
 
 **4b. Stock-FW image** (`qemu-harness/stock-rootfs/`):
 - Extract the **stock rootfs (`mmcblk0p6`) from the golden eMMC dump** → a bootable ext4 image. Stub absent hardware (MCU serials → host PTYs).
 
 **4c. Update-process test:**
-- Boot stock rootfs in qemu → present `reforge-<ver>.tgz` as a virtio drive → run the stock updater path (`flashforge_init.sh`) → assert ReForge lands in `/data/.reforge` + boot hook installed → reboot → **ReForge boots**. Also test uninstall / stock reflash.
+- **Minimum bar (gating):** the *filesystem-ops* update test — run the installer (`flashforge_init.sh`) against the stock rootfs's `/data` (in a chroot or a booted minimal harness rootfs under qemu) → assert ReForge lands in `/data/.reforge` + boot hook installed → boot the **ReForge** rootfs under the test kernel and confirm it comes up. This proves the install logic + ReForge boot **without** needing a full stock-firmware boot under virt.
+- **Stretch:** full stock-firmware boot under qemu, then run the install end-to-end as the stock updater does (USB `.tgz` → updater → install → reboot → ReForge). Attempt it; if stock-boot-under-virt stalls (§7 risk 2), the minimum bar above is the accepted pass and full-stock-boot is deferred.
+- Also test uninstall / stock reflash (filesystem-level).
 
 **4d. Stock-UI live spike** (turns §6 from static→live):
 - In the qemu stock env (virtio-gpu `/dev/fb0`), run **firmwareExe against ReForge's upstream klippy** → observe render / connect / temps-move-status / breakage. Screenshot-able evidence.
@@ -148,8 +152,8 @@ So the harness proves: install flow, boot, web stack, GUI render, and GUI↔klip
 
 **Done criteria:**
 - `reforge-<ver>.tgz` builds reproducibly from `output-guppy`.
-- Install validated in **loopback AND qemu**; ReForge boots emulated; web stack live; GuppyScreen renders.
-- qemu update process (stock → ReForge install → boot) passes.
+- Install validated in **loopback AND qemu**; ReForge boots emulated; web stack live; GuppyScreen renders at the pinned **800×480×32** fb.
+- Update process passes at the **minimum bar** (filesystem-ops install → ReForge boots under the test kernel); full stock-boot-driven update is a stretch goal (§4c).
 - Stock-UI spike `REPORT.md` delivered with a go/no-go decision (live evidence from §4d).
 - **No device flashed**; forge-x + recovery posture intact.
 - No proprietary blobs committed; cloud-block verified; uninstall path works.
@@ -167,6 +171,11 @@ So the harness proves: install flow, boot, web stack, GUI render, and GUI↔klip
 
 ---
 
-## 8. Provenance
-- Parent spec §7 (install/recovery), `fw-analysis/x-5.1.4/flashforge_init.sh` (stock installer flow), `forge-x` (overlay/chroot/screen-mode/dual-boot/SKIP_MOD patterns), `fw-analysis/*/software-*.tar.xz` (firmwareExe source for the spike), the golden eMMC dump (`recovery/`, stock rootfs source), `modules/zram-bsp/tina-bsp-kernel` (Tina vendor kernel source for the virt test kernel).
+## 8. Provenance & path bases
+
+**In-repo** (under `reforge/`): the golden eMMC dump (`recovery/golden-kunos-*.img.gz` — stock rootfs source for §4b), the Tina vendor kernel source (`modules/zram-bsp/tina-bsp-kernel` — virt test kernel base for §4a), the full-stack rootfs (`output-guppy/` — software-subpackage source), Plan-2 init scripts.
+
+**External sibling working dirs** (one level *up*, beside `reforge/` — NOT in-repo; scripts must use the `../` base or an absolute path): `../fw-analysis/x-5.1.4/flashforge_init.sh` (stock installer-flow reference), `../fw-analysis/*/software-*.tar.xz` (firmwareExe source for the spike), `../forge-x/` (overlay/chroot/screen-mode/dual-boot/SKIP_MOD patterns). The proprietary `firmwareExe` lives only in `../fw-analysis/` and is **never** copied into the repo (§5 legal).
+
+Measured-from-device fact baked into §4a: panel `800×480×32`, virtual `800×960`, mode `800x480p-67`.
 </content>
