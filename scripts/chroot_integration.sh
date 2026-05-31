@@ -22,7 +22,11 @@ QEMU="${QEMU_ARM:-/usr/bin/qemu-arm-static}"
 # ── work dir + trap cleanup ──────────────────────────────────────────────────
 WORK="$(mktemp -d)"
 NTMP="$(mktemp -d)"   # host-writable temp (nginx logs, pid, etc.)
-trap 'set +e; kill "$KLIPPY_PID" 2>/dev/null; kill "$MOONRAKER_PID" 2>/dev/null; rm -rf "$WORK" "$NTMP"' EXIT
+# init PIDs BEFORE the trap so cleanup never hits an unbound var (set -u) and
+# never leaks a daemon, regardless of which branch (FULL_API 0/1) we exit from.
+KLIPPY_PID=""
+MOONRAKER_PID=""
+trap 'set +e; [ -n "$KLIPPY_PID" ] && kill "$KLIPPY_PID" 2>/dev/null; [ -n "$MOONRAKER_PID" ] && kill "$MOONRAKER_PID" 2>/dev/null; rm -rf "$WORK" "$NTMP"' EXIT
 
 echo "=== ReForge chroot integration test ==="
 echo "    rootfs : $TARBALL"
@@ -123,9 +127,13 @@ if [ "$FULL_API" = "1" ]; then
     NGINX_CONF="$NTMP/nginx-live.conf"
     sed "s|pid /run/nginx.pid;|pid $NTMP/nginx.pid;|; \
          s|listen 80 |listen 18080 |; \
+         s|include mime.types;|include $ROOT/etc/nginx/mime.types;|; \
+         s|root /var/www/mainsail;|root $ROOT/var/www/mainsail;|; \
          s|sendfile      on;|sendfile      on;\n    client_body_temp_path $NTMP/nginx-cache;\n    proxy_temp_path $NTMP/nginx-cache;\n    fastcgi_temp_path $NTMP/nginx-cache;\n    uwsgi_temp_path $NTMP/nginx-cache;\n    scgi_temp_path $NTMP/nginx-cache;\n    access_log $NTMP/nginx-access.log;|" \
         "$ROOT/etc/nginx/nginx.conf" > "$NGINX_CONF"
     mkdir -p "$NTMP/nginx-cache"
+    # nginx resolves a relative `include mime.types;` against the conf's dir ($NTMP)
+    cp "$ROOT/etc/nginx/mime.types" "$NTMP/mime.types" 2>/dev/null || true
 
     QEMU_LD_PREFIX="$ROOT" \
         "$QEMU" "$ROOT/usr/sbin/nginx" -c "$NGINX_CONF" -e "$NTMP/nginx-err.log" &
