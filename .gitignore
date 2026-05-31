@@ -15,3 +15,4 @@ output/
 # Editor / OS
 *.swp
 .DS_Store
+output-guppy/
