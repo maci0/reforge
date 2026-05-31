@@ -1,0 +1,16 @@
+config BR2_PACKAGE_GUPPYSCREEN
+	bool "guppyscreen"
+	depends on BR2_INSTALL_LIBSTDCPP
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	select BR2_PACKAGE_LIBEVDEV
+	select BR2_PACKAGE_WPA_SUPPLICANT
+	help
+	  GuppyScreen is a native touch UI for 3D printers running
+	  Klipper/Moonraker.  Rendered directly to the Linux framebuffer
+	  using LVGL; talks to Moonraker over WebSocket via libhv.
+	  Chosen over KlipperScreen for its lower RAM footprint.
+
+	  Vendored submodules: lvgl, libhv, spdlog, wpa_supplicant,
+	  lv_touch_calibration.
+
+	  https://github.com/consp/guppyscreen
