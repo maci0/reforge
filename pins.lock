@@ -1,6 +1,7 @@
 # ReForge component pins — authoritative source of truth for reproducible builds.
 # Format: <component> <kind> <ref> <sha>
 buildroot   tag    2026.02.2            71d1dddae12e7cbf322d96864d7757f459801f47
-# kernel / u-boot / mainsail / guppyscreen added in later plans
+# kernel / u-boot / guppyscreen added in later plans
+mainsail   tag     v2.17.0  d010f4df25557d520ccdbb8e42fc381df2288e6a5c72d3838a5a2433c7a31d4e
 klipper    commit  master  b7c0329f1dcc159bb20148afa65b113a34c51efa
 moonraker  commit  master  9008485843740c93e0154ccbdac1fc2b02b03aaa

@@ -43,3 +43,11 @@ BR2_PACKAGE_KLIPPER=y
 # Moonraker API server (system python3, no venv, trimmed deps)
 # Optional components disabled: update_manager, spoolman, notifier, ldap
 BR2_PACKAGE_MOONRAKER=y
+# Mainsail web UI (prebuilt static SPA bundle) + nginx reverse proxy
+# nginx is selected automatically by BR2_PACKAGE_MAINSAIL but listed
+# explicitly here so that the http + proxy modules are clearly documented.
+BR2_PACKAGE_MAINSAIL=y
+BR2_PACKAGE_NGINX=y
+BR2_PACKAGE_NGINX_HTTP=y
+BR2_PACKAGE_NGINX_HTTP_PROXY_MODULE=y
+BR2_PACKAGE_NGINX_HTTP_REWRITE_MODULE=y
