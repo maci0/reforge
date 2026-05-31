@@ -60,7 +60,7 @@ BR2_PACKAGE_PYTHON3=y
 # Klipper host deps
 BR2_PACKAGE_PYTHON_NUMPY=y
 BR2_PACKAGE_PYTHON_CFFI=y
-BR2_PACKAGE_PYTHON_PYSERIAL=y
+BR2_PACKAGE_PYTHON_SERIAL=y   # package is python-serial (NOT ..._PYSERIAL)
 BR2_PACKAGE_PYTHON_GREENLET=y
 BR2_PACKAGE_PYTHON_JINJA2=y
 BR2_PACKAGE_PYTHON_MARKUPSAFE=y
@@ -185,7 +185,12 @@ git commit -m "P2: Klipper AD5M patches (E0011/E0017/unicode) + klippy extension
 
 - [ ] **Step 1: Pin Moonraker** — record `moonraker  commit  master  <SHA>` in `pins.lock`.
 
-- [ ] **Step 2: Write `Config.in`** selecting Moonraker's deps available in Buildroot (python3, python-tornado, python-lmdb, python-jinja2, python-libnacl/pynacl, python-distro, python-dbus-fast or similar, python-streaming-form-data, python-pillow for thumbnails) and **`select BR2_PACKAGE_IPROUTE2`** (Moonraker needs real `ip`). For deps NOT packaged in Buildroot, add them as pip-installed into the target site-packages in the `.mk` (cross-pip is fragile — prefer Buildroot packages; for the few missing, document them). Model on `xblax/.../package/moonraker`.
+- [ ] **Step 2a: Enumerate Moonraker deps up front and classify each** (do this BEFORE writing Config.in — it's the most likely place to stall). For the pinned Moonraker commit, read its `scripts/moonraker-requirements.txt` and split into three buckets:
+  - **(A) In Buildroot** (select these): `python-tornado`, `python-lmdb`, `python-jinja2`, `python-distro`, `python-pillow` (thumbnails), `python-zeroconf`, `python-pip`. Verify each symbol via `grep -ri "<pkgname>" buildroot/package/*/Config.in`.
+  - **(B) NOT in Buildroot, NOT in xblax** — known missing: `inotify-simple`, `streaming-form-data`, `preprocess-cancellation`, `libnacl`, and (component-dependent) `apprise`, `ldap3`, `importlib-metadata`. For EACH, choose: write a small `BR2_EXTERNAL` `python-<name>` package (preferred, reproducible), OR — only if the component that needs it is being **trimmed/disabled** anyway (`apprise`→notifier, `ldap3`→ldap auth) — drop it. Cross-pip into the target is the last resort (fragile under cross-compile; document if used).
+  - **(C) Provided by stdlib / not needed.**
+  Record the bucket decision for each dep in a comment block at the top of `moonraker.mk` so the next maintainer sees it. (xblax pins older Moonraker `v0.9.3`; recent `master` may add deps — re-derive from the actual pinned requirements file, don't trust this list blindly.)
+- [ ] **Step 2b: Write `Config.in`** — `select BR2_PACKAGE_PYTHON3` + all bucket-(A) packages + **`select BR2_PACKAGE_IPROUTE2`** (Moonraker needs real `ip` with JSON). Model on `xblax/.../package/moonraker`.
 
 - [ ] **Step 3: Write `moonraker.mk`** — install `moonraker/` to `$(TARGET_DIR)/opt/moonraker` (or `/usr/share/moonraker`), using the **system python3** (no venv). Install the default `moonraker.conf` (Task 7) that **disables unused components**.
 
@@ -306,9 +311,11 @@ This is the proof the stack self-integrates without a device: start klippy again
   2. copies `qemu-arm-static` into it and (with `sudo`) bind-mounts `/proc`,`/sys`,`/dev` OR runs binaries via `QEMU_LD_PREFIX` without chroot where possible;
   3. starts klippy in **batch/simulation**: Klipper ships `klippy/console.py` and supports a virtual MCU via `scripts/avrsim`/`simulavr`, but the lightest check is to run klippy pointed at a PTY pair with a simulated MCU, OR assert klippy reaches the "Loading config"/"MCU 'mcu' is_shutdown waiting" state (i.e. it parses config + starts its reactor). Accept "klippy started and is waiting for MCU" as success for this plan (full MCU sim is optional).
   4. starts Moonraker on the system python3 against a temp `printer_data`;
-  5. `curl -s http://127.0.0.1:7125/server/info` and assert HTTP 200 + JSON with a `klippy_state` field;
-  6. `curl -s http://127.0.0.1/` (nginx) and assert the Mainsail `index.html` is served;
-  7. tears everything down; prints `PASS: core stack integrates (moonraker API up, mainsail served)` or a specific FAIL.
+  5. **branch on a `FULL_API` flag** (set based on whether Moonraker actually started under qemu — decided in step 4):
+     - **FULL_API=1:** `curl -s http://127.0.0.1:7125/server/info` → assert HTTP 200 + JSON `klippy_state`; `curl -s http://127.0.0.1/` (nginx) → assert Mainsail `index.html` served; print `PASS: core stack integrates (live moonraker API + mainsail)`.
+     - **FULL_API=0 (documented fallback floor):** assert (a) `moonraker.py` imports + its config validates (config-check entrypoint or `--help` + a python `import moonraker` smoke), (b) nginx serves the static bundle (`curl http://127.0.0.1/` → index.html), (c) klippy parses config + reaches its reactor/"waiting for MCU". Print `PASS: core stack builds+self-checks (live API deferred to P3 on-device)`.
+  The two paths must be coded as explicit branches so the script never half-runs a curl against a daemon that isn't up. Record in the commit which floor was achieved.
+  6. tears everything down on exit (trap); a specific `FAIL: <what>` + exit 1 on any failed assertion.
 
 - [ ] **Step 2: Run it BEFORE the stack is wired to confirm it fails clean** (e.g. against a Plan-1 minimal rootfs or with services absent) — expect a clear FAIL, exit 1.
 
