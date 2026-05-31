@@ -82,7 +82,7 @@ All upstream components are carried as **pristine source + numbered `.mk` patche
 | Buildroot | release tag (≥ **2025.02**) submodule | buildroot/buildroot | Never forked. ≥6.12 DTS-dir support needed (§6). |
 | Linux kernel | **latest mainline LTS** (6.12.x line at time of writing), pinned | torvalds / stable | Built via `BR2_LINUX_KERNEL_CUSTOM_VERSION` or `CUSTOM_REPO`. **Requires our display-driver port (§6).** |
 | U-Boot | **upstream mainline**, pinned (≥ 2024.01) | u-boot/u-boot | T113 supported upstream. Board DRAM/DDR + eMMC/SPL params in `board/reforge` (§6). No vendor BSP bootloader. |
-| Klipper (host klippy) | pinned recent `master` commit | klipper3d/klipper | AD5M fixes as `.mk` patches. |
+| Klipper (host klippy) | pinned recent `master` commit | klipper3d/klipper | AD5M fixes as `.mk` patches. Build `chelper` with Cortex-A7/NEON flags (§10.6). |
 | Klipper (MCU fw) | **same commit as host** | klipper3d/klipper | Host↔MCU protocol must match → one tree. |
 | Moonraker | pinned commit | Arksine/moonraker | Port 7125. |
 | Mainsail | pinned release tag | mainsail-crew/mainsail | **Single network web UI** (§4). |
@@ -167,6 +167,17 @@ This is the defining risk of the project. Workstream:
 3. **Provide `/dev/fb0`** (DRM fbdev emulation) so GuppyScreen's framebuffer path works unchanged.
 4. **Validate** on bench against a known image before trusting on-printer.
 5. **DVP camera = out of scope for v1** (later port; stock-mod patched ustreamer path may bridge in the interim).
+
+### Board-tailored kernel config (requirement)
+
+`reforge_t113_defconfig` is a **board-minimal** kernel config, not a generic sunxi defconfig — tuned for *this* board to minimize RAM/flash footprint (128 MB budget) and boot time:
+
+- Start board-minimal and enable only what the AD5M Pro actually uses; **cross-check against the captured stock `.config`** (`docs/board-notes/stock-kernel-config-5.4.61.txt.gz`, the exact `/proc/config.gz` from the live unit, 1017 `CONFIG_` lines) — it is the authoritative list of subsystems/drivers this hardware needs.
+- Drivers to keep: T113-S3 core, eMMC (`mmcblk`), the console + MCU UARTs (`ttyS3` console @ `0x05000000`, plus the two MCU serial links), USB, RGB-LCD/DRM (the ported panel above), RTL8821CU wifi via **mainline `CONFIG_RTW88_8821CU`** (`rtw88_8821cu`/`rtw_8821c`/`rtw_usb`/`rtw_core`) + BT via `btusb`+`btrtl` — **no out-of-tree module needed** (rtw88 8821cu is mainline since 6.2, solid by 6.12; station-mode only, which is all a printer needs), ethernet.
+- Strip: unrelated SoC/board support, unused buses/filesystems/netfilter, debug/tracing not needed in production, modules for absent peripherals. Target a small monolithic image (stock is essentially monolithic — one out-of-tree module).
+- Honor the board's boot/partition reality from `docs/board-notes/`: `cma=16M`, `dsp0@p5` (HiFi4 DSP firmware) preserved, `androidboot.dramsize=128`, display reserve. The full cmdline + partition map are recorded there.
+
+This is a Plan 5 (P4) deliverable; the reference data is already captured (P0).
 
 ### Fallback if the port stalls
 
@@ -278,6 +289,11 @@ The live printer is held back from flashing until the image is mature and recove
 3. **MCU board configs** — mainboard/eboard pin maps must be reverse-engineered/confirmed against the RE'd configs in xblax `mcu_configs` before trusting a latest-fw flash.
 4. **Upstream U-Boot for P4** — mainline U-Boot (≥2024.01) supports T113, but the board's SPL/DRAM init (DDR3 timings, rank/size) and eMMC boot path must be matched to *this* board before it will boot. A wrong SPL = dead unit recoverable only via the eMMC reader, so U-Boot is bench-validated against the golden dump and rehearsed before it ever touches the printer. The stock vendor bootloader is kept in the golden image as the restore baseline.
 5. **Golden dump is forge-x state, not stock** — fine as a booting restore point; if a pristine-stock baseline is also wanted, capture a stock `.tgz` separately.
+6. **klippy CPU / Python interpreter overhead** — open investigation, low priority. klippy's real-time hot path is **already native C** (`klippy/chelper/*.c` → shared lib via ctypes; stepcompress, iterative solver, `trapq`), with the MCU firmware doing the rest; Python is glue (config, gcode parse, reactor). Therefore:
+   - **First lever (do it, Plan 2):** build `chelper` with Cortex-A7/NEON-tuned flags (`-O2 -mcpu=cortex-a7 -mfpu=neon-vfpv4`) via the Buildroot toolchain. Free, targets the actual hot path.
+   - **PyPy:** rejected — JIT would speed the Python glue but its RAM footprint is too large for 128 MB (OOM risk). CPython stays (lowest RAM; RAM is the binding constraint, not raw Python speed).
+   - **AOT-compile klippy (Nuitka/Cython/mypyc):** deferred. High effort + fragile (Klipper relies on dynamic `importlib` of `extras/` and the runtime reactor) for a marginal steady-state gain, since the hot path is already C. Revisit only if gcode-parse CPU is *measured* as a real bottleneck.
+   - Note: the AD5M `Timer too close` / `Move queue overflow` errors are scheduling/RAM-pressure issues fixed by the forge-x patches already in §3 (TRSYNC_TIMEOUT, lookahead flush), **not** interpreter-speed issues — compiling Python would not address them.
 
 ---
 

@@ -1,0 +1,27 @@
+BR2_arm=y
+BR2_cortex_a7=y
+BR2_ARM_FPU_VFPV4=y
+# glibc pinned EXPLICITLY (not relying on the Buildroot default toolchain) so a
+# future Buildroot bump cannot silently switch libc — reproducibility (spec §3/§4).
+# Note: `make savedefconfig` will strip this as redundant-vs-default; do not run it
+# against this file, or re-add this line afterward.
+BR2_TOOLCHAIN_BUILDROOT_GLIBC=y
+BR2_TOOLCHAIN_BUILDROOT_CXX=y
+# Kernel headers pinned to EXACTLY match the stock kernel the rootfs runs on in
+# P1-P3 (stock 5.4.61). glibc bakes in a min-kernel ELF note at build time; if
+# userspace is built against newer headers than the runtime kernel, the dynamic
+# loader aborts "FATAL: kernel too old" ON THE DEVICE (qemu-user hides this).
+# The BR2_KERNEL_HEADERS_5_4 menu choice aged out of Buildroot 2026.02, so we pin
+# a custom version. Bumps to the 6.x LTS when P4 ships our own mainline kernel.
+BR2_KERNEL_HEADERS_VERSION=y
+BR2_DEFAULT_KERNEL_VERSION="5.4.61"
+BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_5_4=y
+BR2_REPRODUCIBLE=y
+BR2_TARGET_GENERIC_HOSTNAME="reforge"
+BR2_TARGET_GENERIC_ISSUE="Welcome to ReForge"
+BR2_SYSTEM_DHCP="eth0"
+BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_REFORGE_PATH)/board/reforge/rootfs-overlay"
+BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_REFORGE_PATH)/board/reforge/post-build.sh"
+BR2_TARGET_ROOTFS_TAR_XZ=y
+# Foundation plan is userspace-only — intentionally NO kernel, NO bootloader.
+# (BR2_LINUX_KERNEL and BR2_TARGET_UBOOT deliberately unset; added in Plan 5/P4.)

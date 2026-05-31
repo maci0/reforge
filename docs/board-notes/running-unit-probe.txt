@@ -1,0 +1,8 @@
+### config.gz present?
+-r--r--r--    1 root     root         26144 May 31 07:46 /proc/config.gz
+### uname
+Linux kunos 5.4.61 #52 SMP PREEMPT Wed Aug 23 15:33:33 CST 2023 armv7l GNU/Linux
+### cmdline
+earlycon=uart8250,mmio32,0x05000000 clk_ignore_unused initcall_debug=0 console=ttyS3,115200 loglevel=4 root=/dev/mmcblk0p6 init=/init partitions=boot-resource@mmcblk0p1:env@mmcblk0p2:env-redund@mmcblk0p3:boot@mmcblk0p4:dsp0@mmcblk0p5:rootfs@mmcblk0p6:UDISK@mmcblk0p7 cma=16M snum= mac_addr= wifi_mac= bt_mac= specialstr= gpt=1 androidboot.hardware=sun8iw20p1 boot_type=1 androidboot.boot_type=1 gpt=1 uboot_message=2018.05-g2a24076-dirty(04/18/2025-11:25:23) disp_reserve=1536000,0x448ee000 androidboot.dramsize=128
+### lsmod
+8821cu 2019328 0 - Live 0xbf000000 (C)

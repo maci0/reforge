@@ -2,6 +2,7 @@
 recovery/*.img
 recovery/*.img.gz
 recovery/*.img.gz.sha256
+recovery/*.size
 recovery/.current_dump_name
 
 # Buildroot / build output

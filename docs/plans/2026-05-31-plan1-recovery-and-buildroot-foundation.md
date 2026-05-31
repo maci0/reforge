@@ -240,6 +240,12 @@ BR2_cortex_a7=y
 BR2_ARM_FPU_VFPV4=y
 BR2_TOOLCHAIN_BUILDROOT_GLIBC=y
 BR2_TOOLCHAIN_BUILDROOT_CXX=y
+# Kernel headers pinned to 5.4.61 = the stock runtime kernel (P1-P3). Without this,
+# glibc builds against newer default headers and aborts "kernel too old" on-device.
+# (BR2_KERNEL_HEADERS_5_4 menu choice no longer exists in BR 2026.02 → use custom.)
+BR2_KERNEL_HEADERS_VERSION=y
+BR2_DEFAULT_KERNEL_VERSION="5.4.61"
+BR2_PACKAGE_HOST_LINUX_HEADERS_CUSTOM_5_4=y
 BR2_SYSTEM_DHCP="eth0"
 BR2_TARGET_GENERIC_HOSTNAME="reforge"
 BR2_TARGET_GENERIC_ISSUE="Welcome to ReForge"
