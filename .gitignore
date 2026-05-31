@@ -1,0 +1,16 @@
+# Recovery dumps — large binaries, never commit
+recovery/*.img
+recovery/*.img.gz
+recovery/*.img.gz.sha256
+recovery/.current_dump_name
+
+# Buildroot / build output
+buildroot/
+output/
+*.tar
+*.tar.xz
+*.tgz
+
+# Editor / OS
+*.swp
+.DS_Store

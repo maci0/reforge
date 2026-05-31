@@ -1,0 +1,15 @@
+major minor  #blocks  name
+
+ 179        0    7634944 mmcblk0
+ 179        1      34438 mmcblk0p1
+ 179        2       1024 mmcblk0p2
+ 179        3       1024 mmcblk0p3
+ 179        4      35200 mmcblk0p4
+ 179        5       1024 mmcblk0p5
+ 179        6    1310720 mmcblk0p6
+ 179        7    6214633 mmcblk0p7
+---SIZE---
+7818182656
+---MOUNTS---
+/dev/mmcblk0p7 on /data type ext4 (rw,relatime)
+/dev/mmcblk0p7 on /data/.mod/.forge-x/data type ext4 (rw,relatime)
