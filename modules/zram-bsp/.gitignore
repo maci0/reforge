@@ -1,0 +1,7 @@
+linux-5.4.61/
+linux-5.4.61.tar.xz
+gcc-9.5.0-arm/
+gcc-9.5.0-arm.tar.xz
+gcc-9.5.0-nolibc/
+*.tar.xz
+build/

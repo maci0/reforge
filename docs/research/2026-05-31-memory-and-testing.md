@@ -96,7 +96,10 @@ property, not retrofittable to forge-x.
 
 **Tina SDK is also ReForge REFERENCE (not shipped) for the hard P5 parts:** its sun8iw20 **DE2.0/TCON-LCD/RGB-panel driver source + board DTS/`sys_config.fex` panel timings** are the implementation we translate to mainline DRM (the data g992/xblax lacked), and its **boot0/SPL DRAM params** seed mainline U-Boot. Consistent with the spec's "vendor BSP = parameter-extraction reference only" rule.
 
-**Risks:** (a) `zsmalloc`/`zram` reference mm symbols — if the running kernel didn't `EXPORT_SYMBOL` one they need (built without zsmalloc), insmod fails "Unknown symbol" (main uncertainty); (b) exact toolchain/vermagic match. **insmod failure is graceful (no brick)** → safe to try. If it works, forge-x gets compressed-RAM swap on the stock kernel — the one big win otherwise reserved for ReForge's kernel.
+**Risks:** (a) `zsmalloc`/`zram` reference mm symbols — if the running kernel didn't `EXPORT_SYMBOL` one they need, insmod fails "Unknown symbol"; (b) **ABI/struct-layout mismatch** — the real killer (see TESTED below); (c) toolchain/vermagic match.
+
+### TESTED 2026-05-31 (upstream source) → FAILED, Tina source required
+Built all 4 modules from **upstream linux-5.4.61** + stock `.config` (GCC 9.5, kernel.org crosstool). **Vermagic matched exactly.** On live forge-x: `zsmalloc` loaded, then `zbud` caused a **kernel Oops (data abort)** — not a panic; printer recovered via `/sbin/reboot -f`. **Lesson: vermagic match is necessary but NOT sufficient.** The vendor kernel's `struct page`/mm layout differs from upstream (Allwinner patches); zsmalloc/zbud store metadata in `struct page` → corruption. **Must build from the Tina sun8iw20 5.4 BSP source** (layout-exact). insmod-failure is graceful but an ABI-mismatch Oops requires a reboot (no brick). Build workspace + full writeup: `modules/zram-bsp/`. If the Tina-source build loads, forge-x **and ReForge P1–P3** (which ride the stock kernel) get compressed-RAM swap without a kernel replacement.
 
 ---
 
