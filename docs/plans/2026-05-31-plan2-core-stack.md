@@ -357,6 +357,26 @@ git commit -m "P2: build wrapper + smoke + CI for the full-stack variant"
 
 ---
 
+## Task 10: zram compressed swap (P1–P3, stock kernel)
+
+**Files:** Create `br-external/package/reforge-zram/{Config.in,reforge-zram.mk}` (ships the prebuilt modules + helper + setup into the rootfs); `br-external/board/reforge/rootfs-overlay/etc/init.d/S35zram`; reference artifacts in `modules/zram-bsp/dist/`.
+
+**Already proven** (see `modules/zram-bsp/` + `docs/research/2026-05-31-memory-and-testing.md` §4): loadable `zram.ko`+`zsmalloc.ko` built from the **Allwinner T113 vendor BSP** source (`iLotusK9/linux_kernel_aw_t113@5.4.61`) load on the stock 5.4.61 kernel and give **~4× zstd** compressed swap. Because P1–P3 ride the stock kernel, ReForge ships these as prebuilt modules now (P4's own kernel builds zram in — `CONFIG_ZRAM`/`ZSMALLOC` — and drops this package). This mirrors the forge-x contribution (`maci0/ff5m` branch `add-zram-swap`).
+
+- [ ] **Step 1: Vendor the artifacts.** Copy `modules/zram-bsp/dist/{zsmalloc.ko,zram.ko,swapon_prio}` into the package. **Provenance + rebuild steps are `modules/zram-bsp/README.md` + `build.sh`** (vendor BSP source — NOT upstream, which Oopses; vermagic must be exactly `5.4.61 SMP preempt mod_unload ARMv7 p2v8`). Commit the `.ko` as binary artifacts with the build doc (GPL: source + instructions referenced).
+
+- [ ] **Step 2: Package** — `reforge-zram.mk` installs the two `.ko` + `swapon_prio` to `$(TARGET_DIR)/opt/reforge/zram/`. `Config.in` `BR2_PACKAGE_REFORGE_ZRAM`, enabled in the variant defconfig.
+
+- [ ] **Step 3: `S35zram` init** (runs before `S60klipper`) — load modules; if `/dev/zram0` appears, configure `comp_algorithm` (from a config var, default `zstd`; `lzo-rle` is the low-CPU alt), set `disksize` (256M), `mkswap`, and `swapon_prio /dev/zram0 100` (primary). **Do NOT `swapoff -a`** (fails under memory pressure on 128MB — see the forge-x bug). Optionally add a small eMMC/UDISK swapfile as low-priority overflow without disturbing existing swaps. If the module fails to load, log + continue (no swap rather than a boot failure).
+
+- [ ] **Step 4: Make the algorithm configurable** — read `zram_algo` from the ReForge config (default `zstd`); document `zstd` (~4× best ratio) vs `lzo-rle` (~2.7×, cheaper A7 CPU) per `docs/research/2026-05-31-memory-and-testing.md` §6.
+
+- [ ] **Step 5: Verify** — build the variant; confirm the `.ko` + `swapon_prio` land in the rootfs and vermagic matches; assert in the smoke test that `/opt/reforge/zram/zram.ko` exists with the exact vermagic string. (Live insmod is an on-device P3 check — qemu-user can't load kernel modules.)
+
+- [ ] **Step 6: Commit** — `git add br-external/package/reforge-zram/ br-external/board/reforge/rootfs-overlay/etc/init.d/S35zram modules/zram-bsp/dist/ ; git commit -m "P2: zram compressed swap (prebuilt modules, configurable algo) for P1-P3"`
+
+---
+
 ## Done criteria for Plan 2
 
 - [ ] One shared `python3` builds with numpy/cffi/pyserial/greenlet/jinja2 and imports under qemu-user.
@@ -365,6 +385,7 @@ git commit -m "P2: build wrapper + smoke + CI for the full-stack variant"
 - [ ] Mainsail static bundle + nginx present.
 - [ ] GuppyScreen binary built (ARM).
 - [ ] Init scripts + `/etc/hosts` cloud-block present.
+- [ ] zram package present: `zram.ko`+`zsmalloc.ko`+`swapon_prio` in the rootfs with exact vermagic; `S35zram` init brings up zstd compressed swap as primary (configurable algo); no `swapoff -a`.
 - [ ] `make integration` PASSES (or the documented fallback level, with exactly-what-was-verified recorded).
 - [ ] Full-stack smoke PASSES; Plan-1 minimal variant still PASSES; CI green; Buildroot submodule still unmodified; no large artifacts tracked.
 
