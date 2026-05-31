@@ -134,3 +134,57 @@ echo "[build-tgz] assembling ${OUTPUT} (plain tar, stock format) ..."
 echo ""
 echo "[build-tgz] Done: ${OUTPUT}"
 ls -lh "${OUTPUT}"
+
+# ---------------------------------------------------------------------------
+# 6. Uninstall package — same stock format, stub subpackages + uninstaller
+# ---------------------------------------------------------------------------
+echo ""
+echo "[build-tgz] building uninstall package ..."
+
+UNSTAGE="$(mktemp -d /tmp/reforge-unpkg-XXXXXX)"
+# clean up on exit alongside the main STAGING dir
+trap 'rm -rf "${STAGING}" "${UNSTAGE}"' EXIT
+
+# Stub library for uninstall pkg
+LIB_UNSTAGE="${UNSTAGE}/library"
+mkdir -p "${LIB_UNSTAGE}"
+cat > "${LIB_UNSTAGE}/README" <<'EOF'
+uninstall package — no software payload
+EOF
+( cd "${LIB_UNSTAGE}" && tar -cf - . | xz -T0 > "${UNSTAGE}/library-${VER}.tar.xz" )
+
+# Stub control for uninstall pkg
+CTRL_UNSTAGE="${UNSTAGE}/control"
+mkdir -p "${CTRL_UNSTAGE}"
+cp "${PACKAGING_DIR}/control-stub/RESERVED-FOR-MCU-PLAN4" "${CTRL_UNSTAGE}/"
+( cd "${CTRL_UNSTAGE}" && tar -cf - . | xz -T0 > "${UNSTAGE}/control-${VER}.tar.xz" )
+
+# Stub software for uninstall pkg (no rootfs — uninstaller needs nothing to extract)
+SW_UNSTAGE="${UNSTAGE}/software"
+mkdir -p "${SW_UNSTAGE}"
+cat > "${SW_UNSTAGE}/README" <<'EOF'
+uninstall package — no software payload
+EOF
+( cd "${SW_UNSTAGE}" && tar -cf - . | xz -T0 > "${UNSTAGE}/software-${VER}.tar.xz" )
+
+# Outer md5sum.list for uninstall pkg
+( cd "${UNSTAGE}" && md5sum \
+    "software-${VER}.tar.xz" \
+    "library-${VER}.tar.xz" \
+    "control-${VER}.tar.xz" \
+    > md5sum.list )
+
+UNINSTALL_OUTPUT="${DIST_DIR}/reforge-uninstall-${VER}.tgz"
+echo "[build-tgz] assembling ${UNINSTALL_OUTPUT} ..."
+(
+    cd "${UNSTAGE}"
+    tar -cf "${UNINSTALL_OUTPUT}" \
+        "software-${VER}.tar.xz" \
+        "library-${VER}.tar.xz" \
+        "control-${VER}.tar.xz" \
+        md5sum.list \
+        -C "${PACKAGING_DIR}/uninstall" flashforge_init.sh
+)
+
+echo "[build-tgz] Done: ${UNINSTALL_OUTPUT}"
+ls -lh "${UNINSTALL_OUTPUT}"
