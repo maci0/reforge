@@ -27,6 +27,8 @@ BR2_TARGET_ROOTFS_TAR_XZ=y
 # (BR2_LINUX_KERNEL and BR2_TARGET_UBOOT deliberately unset; added in Plan 5/P4.)
 # Single shared interpreter for klippy + moonraker (COW page sharing)
 BR2_PACKAGE_PYTHON3=y
+# Core Python stdlib modules required by klippy (zlib used by msgproto.py/json)
+BR2_PACKAGE_PYTHON3_ZLIB=y
 # Klipper host deps
 BR2_PACKAGE_PYTHON_NUMPY=y
 BR2_PACKAGE_PYTHON_CFFI=y
@@ -36,3 +38,5 @@ BR2_PACKAGE_PYTHON_JINJA2=y
 BR2_PACKAGE_PYTHON_MARKUPSAFE=y
 # Fortran needed to build numpy from source
 BR2_TOOLCHAIN_BUILDROOT_FORTRAN=y
+# Klipper host (klippy) + pre-compiled NEON chelper
+BR2_PACKAGE_KLIPPER=y

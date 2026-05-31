@@ -1,0 +1,1 @@
+source "$BR2_EXTERNAL_REFORGE_PATH/package/klipper/Config.in"

@@ -1,0 +1,9 @@
+config BR2_PACKAGE_KLIPPER
+	bool "klipper"
+	select BR2_PACKAGE_PYTHON3
+	select BR2_PACKAGE_PYTHON_CFFI
+	select BR2_PACKAGE_PYTHON_SERIAL
+	select BR2_PACKAGE_PYTHON_GREENLET
+	select BR2_PACKAGE_PYTHON_NUMPY
+	help
+	  Klipper 3D printer host (klippy) for the FlashForge AD5M.
