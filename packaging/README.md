@@ -175,3 +175,12 @@ libraries, `/opt/PROGRAM/` contents).  The spike extracts them only to
 
 A CI job (`no-blobs` in `.github/workflows/build.yml`) fails if any tracked file path
 matches these patterns — providing an automated guard against accidental commits.
+
+## Known follow-ups (Plan 4)
+- **`reforge-boot` mount-unwind on failure:** the boot hook runs under `set -e`; a
+  failed chroot bind-mount aborts mid-sequence, leaving partial mounts. Harmless today
+  (mounts are read-through; uninstaller lazy-unmounts), but add a `trap` that unwinds
+  partial mounts on failure before Plan 4 puts real print services behind it.
+- The canonical `reforge-boot` lives in the rootfs overlay
+  (`br-external/board/reforge/rootfs-overlay/.shell/reforge-boot`) — it ships inside the
+  rootfs; there is intentionally no copy under `packaging/`.
