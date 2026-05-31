@@ -1,0 +1,8 @@
+config BR2_PACKAGE_PYTHON_STREAMING_FORM_DATA
+	bool "python-streaming-form-data"
+	select BR2_PACKAGE_PYTHON_SMART_OPEN
+	help
+	  Streaming parser for multipart/form-data (Cython C extension).
+	  Required by Moonraker's application component for file uploads.
+
+	  https://github.com/siddhantgoel/streaming-form-data

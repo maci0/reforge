@@ -1,0 +1,9 @@
+config BR2_PACKAGE_PYTHON_INOTIFY_SIMPLE
+	bool "python-inotify-simple"
+	help
+	  A simple wrapper around inotify. No fancy bells and whistles,
+	  just a literal wrapper with ctypes.
+
+	  Used by Moonraker's file_manager component for filesystem monitoring.
+
+	  https://github.com/chrisjbillington/inotify_simple

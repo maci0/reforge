@@ -1,0 +1,67 @@
+#!/bin/sh
+#
+# S35zram — load zram kernel modules and activate compressed swap
+#
+# Targets P1-P3 devices running the stock 5.4.61 kernel.  The modules
+# (zsmalloc.ko, zram.ko) are prebuilt against that exact vermagic.
+# P4 has zram built into its own kernel and does not use this script.
+#
+# Configuration: /etc/reforge/zram.conf (sourced if present)
+#   ZRAM_ALGO  — compression algorithm: zstd (default) | lzo-rle | lzo
+#   ZRAM_SIZE  — virtual swap disk size (default: 256M)
+#
+# IMPORTANT: do NOT swapoff -a — it fails under memory pressure on 128 MB
+# boards and would kill the eMMC overflow swapfile needlessly.
+#
+
+ZRAM_ALGO=zstd
+ZRAM_SIZE=256M
+MODULES_DIR=/opt/reforge/zram
+CONF=/etc/reforge/zram.conf
+
+# Source user config if present (overrides defaults above)
+[ -f "$CONF" ] && . "$CONF"
+
+case "$1" in
+	start)
+		echo "Starting zram swap (algo=$ZRAM_ALGO, size=$ZRAM_SIZE)..."
+
+		# Load modules — idempotent (ignore "File exists" from already-loaded)
+		/sbin/insmod "$MODULES_DIR/zsmalloc.ko" 2>/dev/null || true
+		/sbin/insmod "$MODULES_DIR/zram.ko"     2>/dev/null || true
+
+		# Verify zram0 appeared
+		if [ ! -b /dev/zram0 ]; then
+			echo "S35zram: /dev/zram0 not present — kernel mismatch? skipping zram swap."
+			exit 0
+		fi
+
+		# Configure algorithm and size, then activate swap at high priority.
+		# swapon_prio uses swapon(2) with SWAP_FLAG_PREFER|100 — busybox
+		# swapon has no -p flag.
+		printf '%s' "$ZRAM_ALGO" > /sys/block/zram0/comp_algorithm
+		printf '%s' "$ZRAM_SIZE" > /sys/block/zram0/disksize
+		/sbin/mkswap /dev/zram0 >/dev/null
+		"$MODULES_DIR/swapon_prio" /dev/zram0 100
+
+		echo "zram swap active."
+		;;
+
+	stop)
+		echo "Stopping zram swap..."
+		/sbin/swapoff /dev/zram0 2>/dev/null || true
+		/sbin/rmmod zram      2>/dev/null || true
+		/sbin/rmmod zsmalloc  2>/dev/null || true
+		echo "zram swap stopped."
+		;;
+
+	restart)
+		"$0" stop
+		"$0" start
+		;;
+
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+		;;
+esac

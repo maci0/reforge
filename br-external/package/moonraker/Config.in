@@ -1,0 +1,37 @@
+config BR2_PACKAGE_MOONRAKER
+	bool "moonraker"
+	select BR2_PACKAGE_PYTHON3
+	# -------------------------------------------------------------------------
+	# Bucket A — available in upstream Buildroot
+	# -------------------------------------------------------------------------
+	select BR2_PACKAGE_PYTHON_TORNADO          # HTTP/WebSocket server (CORE)
+	select BR2_PACKAGE_PYTHON_SERIAL           # Klipper connection (already in klipper)
+	select BR2_PACKAGE_PYTHON_PILLOW           # thumbnail extraction (file_manager, CORE)
+	select BR2_PACKAGE_PYTHON_DISTRO           # OS info (machine.py, CORE)
+	select BR2_PACKAGE_PYTHON_DBUS_FAST        # dbus_manager (CORE)
+	select BR2_PACKAGE_PYTHON_ZEROCONF         # mDNS announcements (optional)
+	select BR2_PACKAGE_PYTHON_PAHO_MQTT        # MQTT bridge (optional)
+	select BR2_PACKAGE_PYTHON_PERIPHERY        # GPIO access (optional)
+	select BR2_PACKAGE_PYTHON_WRAPT            # transitive dep of smart-open
+	# -------------------------------------------------------------------------
+	# Bucket B — packaged in br-external
+	# -------------------------------------------------------------------------
+	select BR2_PACKAGE_PYTHON_INOTIFY_SIMPLE          # inotify fs watch (file_manager, CORE)
+	select BR2_PACKAGE_PYTHON_LIBNACL                 # API key signing (authorization, CORE)
+	select BR2_PACKAGE_PYTHON_STREAMING_FORM_DATA     # multipart uploads (application, CORE)
+	select BR2_PACKAGE_PYTHON_IMPORTLIB_METADATA      # package metadata (source_info, CORE)
+	select BR2_PACKAGE_PYTHON_PREPROCESS_CANCELLATION # G-code cancel objects (lazy optional)
+	# -------------------------------------------------------------------------
+	# iproute2 — real 'ip' with JSON output (not busybox stub)
+	# Required by Moonraker machine.py to enumerate network interfaces
+	# -------------------------------------------------------------------------
+	select BR2_PACKAGE_IPROUTE2
+	help
+	  Moonraker is a Python-based API server for Klipper 3D printer firmware.
+	  Installed to /opt/moonraker/ and configured via /etc/reforge/moonraker.conf.
+	  Runs on the shared system python3 (no virtualenv).
+
+	  Disabled optional components: update_manager, spoolman, announcements
+	  push, notifier (apprise), ldap auth (ldap3).
+
+	  https://github.com/Arksine/moonraker

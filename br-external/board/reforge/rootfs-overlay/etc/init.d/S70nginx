@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# S70nginx — start/stop nginx
+#
+# Nginx is started after Moonraker (S65) so its upstream proxy is ready.
+# Config is at /etc/nginx/nginx.conf (installed by rootfs overlay).
+#
+
+NGINX=/usr/sbin/nginx
+NGINX_CONF=/etc/nginx/nginx.conf
+PIDFILE=/var/run/nginx.pid
+NAME=nginx
+
+case "$1" in
+	start)
+		echo "Starting $NAME..."
+		mkdir -p /var/log/nginx /var/cache/nginx
+		"$NGINX" -c "$NGINX_CONF"
+		;;
+	stop)
+		echo "Stopping $NAME..."
+		"$NGINX" -s stop 2>/dev/null || true
+		;;
+	reload|force-reload)
+		echo "Reloading $NAME configuration..."
+		"$NGINX" -s reload
+		;;
+	restart)
+		"$0" stop
+		sleep 1
+		"$0" start
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart|reload|force-reload}"
+		exit 1
+		;;
+esac

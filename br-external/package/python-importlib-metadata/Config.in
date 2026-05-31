@@ -1,0 +1,8 @@
+config BR2_PACKAGE_PYTHON_IMPORTLIB_METADATA
+	bool "python-importlib-metadata"
+	select BR2_PACKAGE_PYTHON_ZIPP
+	help
+	  Read metadata from Python packages (backport of importlib.metadata).
+	  Required by Moonraker's source_info utility.
+
+	  https://github.com/python/importlib_metadata

@@ -1,0 +1,8 @@
+config BR2_PACKAGE_PYTHON_SMART_OPEN
+	bool "python-smart-open"
+	select BR2_PACKAGE_PYTHON_WRAPT
+	help
+	  Utils for streaming large files (S3, HDFS, GCS, local files).
+	  Required by python-streaming-form-data.
+
+	  https://github.com/piskvorky/smart_open

@@ -1,4 +1,11 @@
 # ReForge component pins — authoritative source of truth for reproducible builds.
 # Format: <component> <kind> <ref> <sha>
 buildroot   tag    2026.02.2            71d1dddae12e7cbf322d96864d7757f459801f47
-# kernel / u-boot / klipper / moonraker / mainsail / guppyscreen added in later plans
+# kernel / u-boot / guppyscreen added in later plans
+mainsail   tag     v2.17.0  d010f4df25557d520ccdbb8e42fc381df2288e6a5c72d3838a5a2433c7a31d4e
+klipper    commit  master  b7c0329f1dcc159bb20148afa65b113a34c51efa
+moonraker  commit  master  9008485843740c93e0154ccbdac1fc2b02b03aaa
+# consp/guppyscreen fork (FF5M-specific): flashforge_ad5m branch HEAD 2025-07
+# NOTE: task spec says ballaswag/guppyscreen; using consp fork because xblax's
+# proven patches target this fork's flashforge_ad5m branch directly.
+guppyscreen  commit  flashforge_ad5m  fdca5728001f7a6f6ce774dcfa3998f8b96e6878

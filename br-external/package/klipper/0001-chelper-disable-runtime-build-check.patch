@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000001 Mon Sep 17 00:00:00 2001
+From: ReForge <reforge@flashforge>
+Date: Sat, 31 May 2026 00:00:00 +0000
+Subject: [PATCH] chelper: disable runtime build check
+
+Embedded target has no gcc; chelper is pre-compiled by the cross
+toolchain at Buildroot build time. Skip the timestamp-based rebuild
+check so klippy does not attempt to invoke gcc at runtime.
+
+Signed-off-by: ReForge <reforge@flashforge>
+---
+ klippy/chelper/__init__.py | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/klippy/chelper/__init__.py b/klippy/chelper/__init__.py
+index 60ba91e..abcd123 100644
+--- a/klippy/chelper/__init__.py
++++ b/klippy/chelper/__init__.py
+@@ -285,6 +285,9 @@ def check_build_c_library():
+     srcfiles = get_abs_files(srcdir, SOURCE_FILES)
+     ofiles = get_abs_files(srcdir, OTHER_FILES)
+     destlib = get_abs_files(srcdir, [DEST_LIB])[0]
++    # Pre-compiled by cross toolchain; skip runtime rebuild (no gcc on target).
++    return destlib
++
+     if not check_build_code(srcfiles+ofiles+[__file__], destlib):
+         # Code already built
+         return destlib
+--
+2.47.0

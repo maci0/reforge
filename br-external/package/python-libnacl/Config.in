@@ -1,0 +1,8 @@
+config BR2_PACKAGE_PYTHON_LIBNACL
+	bool "python-libnacl"
+	select BR2_PACKAGE_LIBSODIUM
+	help
+	  Python bindings for libsodium based on ctypes.
+	  Used by Moonraker's authorization component for API key signing.
+
+	  https://libnacl.readthedocs.org
