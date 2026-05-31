@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+# S65moonraker — start/stop Moonraker
+#
+# Uses the system python3 at /usr/bin/python3.
+# MALLOC_ARENA_MAX=2 limits glibc per-thread arena RSS growth (§10b spec).
+# Data directory /var/lib/moonraker is created if absent.
+# Config is at /etc/reforge/moonraker.conf (installed by rootfs overlay).
+#
+
+DAEMON=/usr/bin/python3
+DAEMON_ARGS="/opt/moonraker/moonraker/moonraker.py \
+    -d /var/lib/moonraker \
+    -c /etc/reforge/moonraker.conf"
+PIDFILE=/run/moonraker.pid
+NAME=moonraker
+
+case "$1" in
+	start)
+		echo "Starting $NAME..."
+		export MALLOC_ARENA_MAX=2
+		mkdir -p /var/lib/moonraker /run
+		start-stop-daemon -S -b -m -p "$PIDFILE" \
+			-x "$DAEMON" -- $DAEMON_ARGS
+		;;
+	stop)
+		echo "Stopping $NAME..."
+		start-stop-daemon -K -p "$PIDFILE" -x "$DAEMON" -o
+		rm -f "$PIDFILE"
+		;;
+	restart)
+		"$0" stop
+		"$0" start
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+		;;
+esac

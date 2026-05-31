@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# S75guppyscreen — start/stop GuppyScreen (LVGL touch UI for Klipper/Moonraker)
+#
+# GuppyScreen is only launched when a framebuffer device is present (/dev/fb0).
+# Without a framebuffer (chroot, QEMU, headless CI) the script exits cleanly
+# without starting the binary, preventing crash-loops in non-display environments.
+#
+# guppyscreen reads guppyconfig.json from the same directory as the binary,
+# so the working directory must be /opt/guppyscreen.
+#
+
+GUPPY_DIR=/opt/guppyscreen
+DAEMON="$GUPPY_DIR/guppyscreen"
+PIDFILE=/run/guppyscreen.pid
+NAME=guppyscreen
+
+case "$1" in
+	start)
+		if [ ! -e /dev/fb0 ]; then
+			echo "$NAME: no framebuffer (/dev/fb0 absent) — skipping."
+			exit 0
+		fi
+		echo "Starting $NAME..."
+		cd "$GUPPY_DIR" || exit 1
+		start-stop-daemon -S -b -m -p "$PIDFILE" \
+			-x "$DAEMON"
+		;;
+	stop)
+		echo "Stopping $NAME..."
+		start-stop-daemon -K -p "$PIDFILE" -x "$DAEMON" -o
+		rm -f "$PIDFILE"
+		;;
+	restart)
+		"$0" stop
+		"$0" start
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+		;;
+esac
