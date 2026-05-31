@@ -17,6 +17,20 @@ jobs:
         run: make rootfs
       - name: smoke test
         run: make smoke
+  rootfs-guppy:
+    # Full-stack variant: python3+SSL+SQLite, Klipper, Moonraker, Mainsail+nginx,
+    # GuppyScreen. Build is heavy (numpy/python/nginx/guppyscreen from source);
+    # that is expected and intentional.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - name: install deps
+        run: sudo apt-get update && sudo apt-get install -y build-essential qemu-user-static file xz-utils unzip bc cpio rsync
+      - name: build guppy rootfs
+        run: make guppy
+      - name: smoke-guppy test
+        run: make smoke-guppy
   reproducibility:
     # twin-build reproducibility check — heavy (2 full builds), so only on
     # the weekly schedule or manual dispatch, not every push.
