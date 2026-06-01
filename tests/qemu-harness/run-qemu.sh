@@ -179,6 +179,7 @@ fi
 # Monitor socket path (used for screendump in VNC mode)
 MONITOR_SOCK="${BUILD_DIR}/qemu-monitor-$$.sock"
 
+# shellcheck disable=SC2054  # commas are QEMU option syntax (virt,highmem=off), not array separators
 QEMU_ARGS=(
     qemu-system-arm
     -M   virt,highmem=off
@@ -206,6 +207,7 @@ else
 fi
 
 # --- virtio GPU (800×480×32 fb) ---
+# shellcheck disable=SC2054  # commas are QEMU device-option syntax, not array separators
 QEMU_ARGS+=(
     -device virtio-gpu-pci,xres=800,yres=480
 )

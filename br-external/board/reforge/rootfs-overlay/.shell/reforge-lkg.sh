@@ -33,6 +33,7 @@ STATE="${DATA}/.reforge/state"
 CNT="${STATE}/trial.count"
 LKG="${DATA}/.reforge/lkg"
 MOD="${DATA}/.reforge/mod"
+# shellcheck disable=SC2034  # N is read by reforge-boot after it sources this file
 N=3
 
 # Atomic write: stage to a temp file in the SAME dir, then rename over the

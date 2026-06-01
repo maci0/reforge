@@ -20,6 +20,7 @@ MODULES_DIR=/mod/modules
 CONF=/etc/reforge/zram.conf
 
 # Source user config if present (overrides defaults above)
+# shellcheck source=/dev/null  # runtime config, not present at lint time
 [ -f "$CONF" ] && . "$CONF"
 
 case "$1" in

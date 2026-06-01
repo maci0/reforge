@@ -79,6 +79,7 @@ warn() { echo "[update-test] WARN: $*" >&2; }
 if [ -n "${REFORGE_TGZ:-}" ]; then
     TGZ="${REFORGE_TGZ}"
 else
+    # shellcheck disable=SC2010  # ls -1t gives newest-first; release tarball names are controlled (no odd chars)
     TGZ="$(ls -1t "${DIST_DIR}"/reforge-[0-9]*.tgz "${DIST_DIR}"/reforge-*-dev.tgz 2>/dev/null \
            | grep -v uninstall | head -n 1 || true)"
 fi

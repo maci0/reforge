@@ -22,6 +22,7 @@ DIST_DIR="${REPO_ROOT}/packaging/dist"
 # ---------------------------------------------------------------------------
 # Locate the installer .tgz
 # ---------------------------------------------------------------------------
+# shellcheck disable=SC2010  # ls -1t gives newest-first; release tarball names are controlled (no odd chars)
 TGZ="$(ls -1t "${DIST_DIR}"/reforge-[0-9]*.tgz "${DIST_DIR}"/reforge-*-dev.tgz 2>/dev/null | grep -v uninstall | head -n 1 || true)"
 if [ -z "${TGZ}" ]; then
     echo "FAIL: no reforge-*.tgz found in ${DIST_DIR} — run 'make tgz' first" >&2

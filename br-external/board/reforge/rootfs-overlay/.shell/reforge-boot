@@ -124,6 +124,7 @@ if [ -f "${LKG_HELPERS}" ]; then
     # export so the sourced script's DATA resolves to this DATA in test mode;
     # in production REFORGE_DATA_ROOT is unset and DATA defaults to /data.
     [ "${DATA}" = "/data" ] || export REFORGE_DATA_ROOT="${DATA}"
+    # shellcheck source=/dev/null  # path resolved at runtime from the installed mod
     . "${LKG_HELPERS}"
     if is_trial; then
         _cnt="$(lkg_counter_get)"

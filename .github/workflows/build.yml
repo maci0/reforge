@@ -6,6 +6,16 @@ on:
   schedule:
     - cron: '0 4 * * 0'   # weekly: catch reproducibility regressions
 jobs:
+  lint:
+    # ShellCheck our own shell scripts. No submodules: the linter selects from
+    # `git ls-files`, so vendor submodules/gitignored trees are excluded anyway.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: shellcheck
+        run: make lint
   no-blobs:
     # Guard: FAIL if any tracked file path looks like a FlashForge/Qt proprietary
     # blob.  Matches on FILE PATHS only (git ls-files output), not file content —

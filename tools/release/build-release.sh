@@ -21,8 +21,6 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 PACKAGING_DIR="${REPO_ROOT}/packaging"
 TARGET_OPT="${REPO_ROOT}/build/output/target/opt"
-OVERLAY="${REPO_ROOT}/br-external/board/reforge/rootfs-overlay"
-ZRAM_DIST="${REPO_ROOT}/modules/zram-bsp/dist"
 ROOTFS_TAR="${REPO_ROOT}/build/output/images/rootfs.tar"
 
 VER="${VER:-$(cat "${PACKAGING_DIR}/VERSION")}"

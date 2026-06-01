@@ -57,7 +57,7 @@ log "Confirmed: lab/spike-stockui/extracted/ is gitignored."
 # ---------------------------------------------------------------------------
 mkdir -p "${EXTRACTED}/qt-libs"
 mkdir -p "${EXTRACTED}/tslib-libs"
-> "${EXTRACTED}/manifest.txt"
+: > "${EXTRACTED}/manifest.txt"
 
 record() {
     local file="$1" src="$2"
@@ -141,6 +141,7 @@ else
         log "Extracting Qt4 libs from rootfs ..."
         for soname in libQtCore.so.4 libQtGui.so.4 libQtNetwork.so.4; do
             # Copy the versioned file that the symlink points to
+            # shellcheck disable=SC2010  # grep filters out the bare .so.4 symlink; stock Qt filenames are controlled
             found="$(ls "${QT_LIB_DIR}/${soname}"* 2>/dev/null | grep -v '\.so\.4$' | head -1 || true)"
             if [ -n "${found}" ]; then
                 cp "${found}" "${EXTRACTED}/qt-libs/"
@@ -160,7 +161,9 @@ else
     TSLIB_DIR="${MNT_DIR}/opt/tslib-1.12/lib"
     if [ -d "${TSLIB_DIR}" ]; then
         log "Extracting tslib from rootfs ..."
+        # shellcheck disable=SC2043  # single soname today; loop mirrors the Qt block for easy extension
         for soname in libts.so.0; do
+            # shellcheck disable=SC2010  # grep filters out the bare .so.0 symlink; stock tslib filenames are controlled
             found="$(ls "${TSLIB_DIR}/${soname}"* 2>/dev/null | grep -v '\.so\.0$' | head -1 || true)"
             if [ -n "${found}" ]; then
                 cp "${found}" "${EXTRACTED}/tslib-libs/"

@@ -40,8 +40,6 @@ tar -C "$WORK" -xf "$TARBALL" 2>/dev/null
 echo "      done."
 
 ROOT="$WORK"
-PYTHON="$ROOT/usr/bin/python3"
-QPYTHON="QEMU_LD_PREFIX=$ROOT PYTHONDONTWRITEBYTECODE=1 HOME=$ROOT/root"
 
 # Validate the rootfs looks right
 [ -f "$ROOT/usr/bin/python3" ] || { echo "FAIL: /usr/bin/python3 not found in rootfs"; exit 1; }

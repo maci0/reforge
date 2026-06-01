@@ -1,8 +1,10 @@
 BUILD := tools/build/build.sh
-.PHONY: rootfs defconfig clean smoke repro integration smoke-guppy tgz validate-loopback \
+.PHONY: lint rootfs defconfig clean smoke repro integration smoke-guppy tgz validate-loopback \
         run-from-mod \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
         qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-mem
+# lint: shellcheck our own shell scripts (skips cleanly if shellcheck absent)
+lint:              ; tools/lint/shellcheck.sh
 # Single image: `make rootfs` builds the full ReForge stack (klipper + moonraker
 # + mainsail + guppyscreen + zram). SCREEN_MODE gates the GUI at runtime.
 rootfs:            ; $(BUILD) rootfs
