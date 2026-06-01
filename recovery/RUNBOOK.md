@@ -68,12 +68,19 @@ connect it to a host machine, and write the golden image directly.
    Confirm the device node (e.g., `/dev/sdX` or `/dev/mmcblkN`) belongs to the
    eMMC reader and not to any internal disk or important drive.
 
-5. Write the golden image:
+5. Write the golden image. Use the **stock-clean** golden for a pure-stock
+   recovery baseline (preferred), or the original golden if you need to restore
+   the forge-x state exactly as it was captured:
 
    ```sh
    # DANGER: confirm <reader-dev> is the eMMC reader, NOT your system disk,
    # before running. This command will irrecoverably overwrite the target device.
-   gzip -dc golden-kunos-20260531-152104.img.gz | sudo dd of=/dev/<reader-dev> bs=4M conv=fsync status=progress
+
+   # Preferred: pure stock (forge-x removed)
+   gzip -dc recovery/golden-stock-clean.img.gz | sudo dd of=/dev/<reader-dev> bs=4M conv=fsync status=progress
+
+   # Alternative: exact capture state (forge-x installed)
+   # gzip -dc recovery/golden-kunos-20260531-152104.img.gz | sudo dd of=/dev/<reader-dev> bs=4M conv=fsync status=progress
    ```
 
    Replace `<reader-dev>` with the confirmed device node from step 4.
@@ -85,26 +92,71 @@ connect it to a host machine, and write the golden image directly.
 
 ---
 
+## Two goldens — which one to use
+
+There are now two golden images on disk. They are **both gitignored** (large
+binaries) and live only on local disk / external backup.
+
+| Image | State | Use for |
+|---|---|---|
+| `recovery/golden-kunos-20260531-152104.img.gz` (~886 MB gz) | Captured live, **forge-x installed** | Exact snapshot of the printer as it was; reference only |
+| `recovery/golden-stock-clean.img.gz` (~877 MB gz) | Derived offline, **pure stock — forge-x removed** | **Preferred recovery baseline and qemu rootfs source** |
+
+The `golden-stock-clean.img.gz` is the preferred pristine recovery baseline.
+It was derived from the original dump using `recovery/make-clean-golden.sh`
+(offline, loop-mounted, no live printer access). The forge-x removal was guided
+by forge-x's own `uninstall.sh` + `S00init` + `boot/boot.sh` install record;
+it removes exactly what those scripts add and nothing more.
+
+**To regenerate the stock-clean golden** (if it is lost or the original golden is
+refreshed):
+
+```sh
+# From the repo root (needs sudo for loop-mount):
+sudo ./recovery/make-clean-golden.sh
+```
+
+This decompresses the original golden into a scratch raw, mounts p6/p7,
+removes all forge-x artifacts, verifies the cleaned state (15 checks PASS/FAIL),
+recompresses → `recovery/golden-stock-clean.img.gz`, extracts p6 →
+`validation/qemu-harness/build/stock-clean-rootfs.ext4`, then deletes the
+scratch raw. The original golden is **never touched**.
+
+**Boot-verify result (2026-06-01):** The cleaned p6 was booted under the
+qemu virt harness (`run-qemu.sh ... --timeout 75`). The stock `ffstartup-arm`
+launched and started `firmwareExe` (stock Qt app, firmware 5.1.4). No forge-x
+chroot, no Moonraker, no Klipper boot messages were observed — clean stock
+userspace confirmed. The stock app could not fully initialize without T113 MCU /
+display hardware (expected in qemu), but the boot sequence reached stock
+userspace successfully.
+
+---
+
 ## Where things live
 
 | Item | Location | In git? |
 |---|---|---|
-| Golden image | `recovery/golden-kunos-20260531-152104.img.gz` | **NO** |
-| Image checksum | `recovery/golden-kunos-20260531-152104.img.gz.sha256` | **NO** |
-| Image size sidecar | `recovery/golden-kunos-20260531-152104.size` | **NO** |
+| Original golden (forge-x state) | `recovery/golden-kunos-20260531-152104.img.gz` | **NO** |
+| Original checksum | `recovery/golden-kunos-20260531-152104.img.gz.sha256` | **NO** |
+| Original size sidecar | `recovery/golden-kunos-20260531-152104.size` | **NO** |
+| **Stock-clean golden (preferred)** | `recovery/golden-stock-clean.img.gz` | **NO** |
+| Clean-golden derivation script | `recovery/make-clean-golden.sh` | YES |
+| Cleaned p6 rootfs for qemu | `validation/qemu-harness/build/stock-clean-rootfs.ext4` | **NO** |
 | Partition map | `recovery/partitions-20260531-152104.txt` | YES |
 | Dump script | `recovery/dump_golden.sh` | YES |
 | Verify script | `recovery/verify_dump.sh` | YES |
 | This runbook | `recovery/RUNBOOK.md` | YES |
 
-**The large `.img.gz` file is gitignored and is NOT committed to the repository.**
-It lives only on local disk (and wherever you back it up). A future operator
-cloning this repo will NOT have the golden image — they must either:
-- Obtain it from an external backup (e.g., an external drive, NAS, or cloud
-  storage where you archived it), or
+**All `.img.gz` and `.ext4` files are gitignored and are NOT committed.**
+They live only on local disk (and wherever you back them up). A future operator
+cloning this repo will NOT have the golden images — they must either:
+- Obtain them from an external backup (e.g., an external drive, NAS, or cloud
+  storage where you archived them), or
+- Re-derive the stock-clean golden from the original golden using
+  `make-clean-golden.sh` (if the original golden is available), or
 - Make a fresh dump from a known-good device using the procedure below.
 
-**Back up the golden image to at least one external location before doing any
+**Back up both golden images to at least one external location before doing any
 work that could brick the device.**
 
 ---

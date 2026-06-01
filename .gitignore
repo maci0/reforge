@@ -4,6 +4,7 @@ recovery/*.img.gz
 recovery/*.img.gz.sha256
 recovery/*.size
 recovery/.current_dump_name
+recovery/.work/
 
 # Buildroot / build output
 buildroot/
