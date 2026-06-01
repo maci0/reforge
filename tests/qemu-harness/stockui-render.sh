@@ -91,6 +91,20 @@ robust_inject "${SIM_DIR}/fake-klippy.py" /opt/fake-klippy.py
 : > "${BUILD_DIR}/.stocksim-marker"
 robust_inject "${BUILD_DIR}/.stocksim-marker" /etc/reforge-stocksim
 
+# Clean the captured device state so the render is generic + privacy-safe:
+#  * /opt/config/PowerOff is a power-loss-recovery flag (PowerFlag:ON) left from
+#    the dumped device's interrupted print — it makes firmwareExe pop a
+#    "recovery print?" modal. Remove it for a clean home screen.
+#  * Adventurer5M.json carries the dumped device's REAL serial (printerName /
+#    printerSerialNumber). Replace with a demo SN so we don't ship it.
+log "scrubbing captured device state (PowerOff flag + real serial)"
+debugfs -w -R "rm /opt/config/PowerOff" "${IMG}" >/dev/null 2>&1 || true
+A5M="${BUILD_DIR}/.Adventurer5M.json"
+if debugfs -R "cat /opt/config/Adventurer5M.json" "${IMG}" 2>/dev/null > "${A5M}" && [ -s "${A5M}" ]; then
+    sed -i 's/"SN[A-Z0-9]\{6,\}"/"REFORGE-DEMO"/g' "${A5M}"
+    robust_inject "${A5M}" /opt/config/Adventurer5M.json
+fi
+
 # patch /opt/auto_run.sh to launch the sims right before ffstartup (so udev
 # coldplug, which runs earlier, can't remove /dev/ttyS1 before firmwareExe opens it)
 log "patching /opt/auto_run.sh to start the sims before ffstartup"

@@ -40,9 +40,14 @@ path works (LVGL → DRM/virtio-gpu fbdev → `/dev/fb0`). Regenerate with `make
 
 The stock FlashForge UI booted all the way to its **home screen** in qemu: nav rail
 (home / print / settings / info), live nozzle + bed temperature panels, light/network/camera
-tiles, and a normal *"Do you want to recovery print?"* prompt — 901 distinct colors, fully
-interactive. ReForge overlays the stock base, so the stock UI binary (`/opt/PROGRAM/.../firmwareExe`,
-soft-float Qt4/QWS) and its Qt + tslib libs run straight from that base — no extraction, no recompile.
+tiles — fully interactive. ReForge overlays the stock base, so the stock UI binary
+(`/opt/PROGRAM/.../firmwareExe`, soft-float Qt4/QWS) and its Qt + tslib libs run straight from
+that base — no extraction, no recompile.
+
+The render scrubs two bits of captured device state from the dump: `/opt/config/PowerOff` (a
+power-loss-recovery flag that otherwise pops a *"recovery print?"* modal) is removed, and the
+real serial in `/opt/config/Adventurer5M.json` is replaced with `REFORGE-DEMO` (shown top-left).
+The remaining centred dialog is a benign stock slicer-version nag.
 
 Getting past startup needs **two gates satisfied** (firmwareExe checks them independently):
 1. an **eboard MCU serial handshake** on `/dev/ttyS1` (+`/dev/ttyS5`) @230400 — qemu virt has no
