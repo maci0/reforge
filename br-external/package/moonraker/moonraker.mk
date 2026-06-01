@@ -86,10 +86,12 @@ define MOONRAKER_INSTALL_TARGET_CMDS
 	printf '%s\n' "$(MOONRAKER_VERSION)" \
 		> $(TARGET_DIR)/opt/moonraker/moonraker/.version
 
-	# Install default moonraker.conf (disabled non-essential components)
-	$(INSTALL) -d $(TARGET_DIR)/etc/reforge
-	$(INSTALL) -m 0644 $(MOONRAKER_PKGDIR)/moonraker.conf \
-		$(TARGET_DIR)/etc/reforge/moonraker.conf
+	# NOTE: moonraker.conf ships via the board rootfs-overlay
+	# (board/reforge/rootfs-overlay/etc/reforge/moonraker.conf), NOT here.
+	# post-build.sh does `rm -rf $(TARGET_DIR)/etc/reforge`, which would delete a
+	# package-installed conf and — because this package is cached on incremental
+	# builds — never regenerate it. The overlay is re-applied every build, so the
+	# OTA [update_manager] config is always present.
 endef
 
 $(eval $(generic-package))
