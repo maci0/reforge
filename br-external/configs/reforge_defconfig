@@ -69,4 +69,6 @@ BR2_PACKAGE_GUPPYSCREEN=y
 BR2_PACKAGE_LIBEVDEV=y
 BR2_PACKAGE_WPA_SUPPLICANT=y
 # zram compressed swap — prebuilt modules for stock 5.4.61 kernel (P1-P3)
+BR2_PACKAGE_JEMALLOC=y
+# tuned for low RSS via MALLOC_CONF in the init scripts (-6.5MB measured)
 BR2_PACKAGE_REFORGE_ZRAM=y

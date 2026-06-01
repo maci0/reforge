@@ -12,7 +12,7 @@ kernel at **`-m 128`** (real device RAM), lets Python settle, and dumps per-proc
 ## Already in the baseline
 
 - zram compressed swap (zstd) on the stock kernel
-- `MALLOC_ARENA_MAX=2` for both klippy + moonraker (caps glibc per-thread arenas)
+- ~~`MALLOC_ARENA_MAX=2`~~ **superseded by jemalloc tuned (-6.5MB)** — see docs/optimizations.md
 - nginx → busybox httpd (−~3 MB RSS)
 - Moonraker components trimmed (no update_manager/spoolman/notifier/ldap)
 - single shared python3 interpreter (COW page sharing); GUI idle unless SCREEN_MODE=GUPPY

@@ -56,6 +56,7 @@ third-party trees at exactly those pins. Build paths are driven by the `Makefile
 | [Build process](docs/build-process.md) | pins → vendor fetch → Buildroot → image → `.tgz` |
 | [Boot flow](docs/boot-flow.md) | power-on → `reforge-boot` → service chain → up (with `SKIP_MOD`) |
 | [Updates / OTA](docs/ota.md) | git-free in-place updates + the last-known-good rollback (designed) |
+| [Optimizations](docs/optimizations.md) | every tuning lever + its measured RAM/size impact |
 
 ![ReForge boot console](docs/screenshots/reforge-boot-console.png)
 
