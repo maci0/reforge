@@ -141,7 +141,7 @@ qemu-system-arm -M virt,highmem=off -cpu cortex-a7 -m "${MEM}" \
     -kernel "${ZIMAGE}" \
     -append "console=ttyAMA0,115200 loglevel=4 root=/dev/vda rw rootwait" \
     -display none -monitor "unix:${MON},server,nowait" -serial file:"${SER}" \
-    -device virtio-gpu-pci,xres=800,yres=480 \
+    -device virtio-gpu-pci,xres=800,yres=480 -device virtio-keyboard-pci \
     -drive "file=${IMG},if=virtio,format=raw,cache=writeback" \
     -netdev user,id=net0 -device virtio-net-pci,netdev=net0 >/dev/null 2>&1 &
 QP=$!
@@ -149,6 +149,14 @@ trap 'kill -9 "${QP}" 2>/dev/null || true' EXIT
 for _ in $(seq 1 20); do [ -S "${MON}" ] && break; sleep 1; done
 [ -S "${MON}" ] || die "qemu monitor socket never appeared"
 sleep "${SETTLE}"
+
+# Dismiss firmwareExe's transient one-time-in-qemu restart modal (E0120). The Ok
+# button is focused, so synthesising Enter/Space via the virtio keyboard closes
+# it, leaving the clean home screen. (Harmless if no modal is present.)
+for k in ret kp_enter spc; do
+    printf 'sendkey %s\n' "$k" | socat - "UNIX-CONNECT:${MON}" 2>/dev/null || true
+    sleep 2
+done
 
 printf 'screendump %s\n' "${SHOT}" | socat - "UNIX-CONNECT:${MON}" 2>/dev/null || true
 sleep 3

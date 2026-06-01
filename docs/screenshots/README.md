@@ -25,14 +25,26 @@ zram swap → klipper → moonraker → busybox httpd (Mainsail) → guppyscreen
 > `PREEMPT`, so the stock-built `zram.ko` vermagic mismatches. On the **real stock 5.4.61
 > kernel** the module matches and zram swap activates (see `modules/zram-bsp/`).
 
-## GuppyScreen (ReForge's on-screen UI)
+## GuppyScreen (ReForge's on-screen UI) — PARKED (renders blank in qemu)
 
 ![GuppyScreen in qemu, 800×480](guppyscreen-qemu-800x480.png)
 
-ReForge booted in qemu with `SCREEN_MODE=GUPPY`. GuppyScreen (native LVGL) renders to
-the pinned 800×480 framebuffer. No MCU in qemu → klippy is in `error`/waiting, so
-GuppyScreen shows its connecting/offline state — which still proves the full render
-path works (LVGL → DRM/virtio-gpu fbdev → `/dev/fb0`). Regenerate with `make qemu-render`.
+**Status: not captured — known limitation, parked.** The committed shot is blank (2 colours).
+
+The full stack *does* come up: `tests/qemu-harness/guppy/fake-klippy.py` is a Moonraker-grade
+Klipper API stand-in that completes Moonraker's handshake as **ready** with no MCU. Verified —
+Moonraker reports `klippy_connected:true, klippy_state:"ready", missing_klippy_requirements:[]`
+and GuppyScreen connects, subscribes to the full object set, and logs `done init`. Yet
+GuppyScreen never paints `/dev/fb0` — confirmed by dumping the framebuffer **in-guest** to a
+second disk (genuinely black, so it is *not* a scanout-flush issue; the fb geometry is a correct
+800×480×32). Pushing `process_status_update` events (so Moonraker emits `notify_status_update`)
+did not change it either.
+
+So this is a GuppyScreen **LVGL display-backend** issue under qemu's virtio-gpu, independent of
+the printer-ready simulation. It likely needs real panel hardware or a guppy/LVGL-driver rebuild.
+`make qemu-guppy` is still useful as a **full-stack "ready" rig** for Moonraker/OTA/API testing
+even though the on-screen capture is blank. The reforge-render path (`make qemu-render`) is the
+older non-blank attempt (also blank without a ready klippy).
 
 ## Stock UI boot phases (`firmwareExe`) under simulated hardware
 
@@ -63,16 +75,20 @@ recovery notice; here it's the in-qemu restart on the way up.)
 
 ![Stock FlashForge home screen in qemu, 800×480](stockui-home-qemu-800x480.png)
 
-The stock FlashForge UI booted all the way to its **home screen** in qemu: nav rail
-(home / print / settings / info), live nozzle + bed temperature panels, light/network/camera
-tiles — fully interactive. ReForge overlays the stock base, so the stock UI binary
-(`/opt/PROGRAM/.../firmwareExe`, soft-float Qt4/QWS) and its Qt + tslib libs run straight from
-that base — no extraction, no recompile.
+The stock FlashForge UI booted all the way to its **clean home screen** in qemu: nav rail
+(home / print / settings / info), the Adventurer 5M Pro printer art, live nozzle + bed
+temperature panels, light/network/camera tiles — fully interactive, no overlay dialogs. ReForge
+overlays the stock base, so the stock UI binary (`/opt/PROGRAM/.../firmwareExe`, soft-float
+Qt4/QWS) and its Qt + tslib libs run straight from that base — no extraction, no recompile.
 
-The render scrubs two bits of captured device state from the dump: `/opt/config/PowerOff` (a
-power-loss-recovery flag that otherwise pops a *"recovery print?"* modal) is removed, and the
-real serial in `/opt/config/Adventurer5M.json` is replaced with `REFORGE-DEMO` (shown top-left).
-The remaining centred dialog is a benign stock slicer-version nag.
+The render scrubs captured device state from the dump and clears the boot dialogs:
+- `/opt/config/PowerOff` (a power-loss-recovery flag) is removed — else a *"recovery print?"* modal;
+- the real serial in `/opt/config/Adventurer5M.json` → `REFORGE-DEMO` (top-left);
+- `general.CheckAppFrist` → `false` in the same JSON — clears the *"upgrade the slicer to V1.7.3"*
+  nag (root-caused to firmwareExe's `checkAppTip()`; the same one-line fix ships to forge-x);
+- firmwareExe still does **one** self-restart in qemu (a watchdog artifact → the *E0120: Restarted*
+  modal); the harness synthesises an **Enter** keypress via a virtio keyboard to dismiss it,
+  leaving the clean home screen above.
 
 Getting past startup needs **two gates satisfied** (firmwareExe checks them independently):
 1. an **eboard MCU serial handshake** on `/dev/ttyS1` (+`/dev/ttyS5`) @230400 — qemu virt has no
