@@ -1,7 +1,7 @@
 BUILD := tools/build/build.sh
 .PHONY: rootfs defconfig clean smoke repro integration smoke-guppy tgz validate-loopback \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
-        qemu-stock-rootfs qemu-run qemu-update qemu-render
+        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-mem
 # Single image: `make rootfs` builds the full ReForge stack (klipper + moonraker
 # + mainsail + guppyscreen + zram). SCREEN_MODE gates the GUI at runtime.
 rootfs:            ; $(BUILD) rootfs
@@ -42,3 +42,11 @@ qemu-update:       ; sudo tests/qemu-harness/update-process-test.sh
 # asserts GuppyScreen draws a non-blank frame.  Needs sudo for loop mount.
 # Output: tests/qemu-harness/build/guppy-screenshot.ppm (gitignored)
 qemu-render:       ; sudo tests/qemu-harness/reforge-render-test.sh
+
+# --- memory probe: boot the full stack at -m 128, dump per-process Pss ---
+# A/B runtime levers without rebuilding, e.g.:
+#   sudo make qemu-mem
+#   sudo make qemu-mem TWEAKS=oo
+#   sudo make qemu-mem TWEAKS=oo,arena1
+ROOTFS_TAR ?=
+qemu-mem:          ; sudo TWEAKS="$(TWEAKS)" tests/qemu-harness/mem-probe.sh $(ROOTFS_TAR)
