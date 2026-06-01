@@ -33,7 +33,7 @@ if [ ! -f "${ROOTFS_TAR}" ]; then
     echo "ERROR: rootfs not found at:"
     echo "  ${ROOTFS_TAR}"
     echo ""
-    echo "Run 'make guppy' first to build the ReForge rootfs."
+    echo "Run 'make rootfs' first to build the ReForge rootfs."
     exit 1
 fi
 
