@@ -74,6 +74,15 @@ case ",${TWEAKS:-}," in *,noarena,*)
     log "tweak: remove arena cap (glibc default = 8*ncpu) — simulates forge-x"
     sed -i '/export MALLOC_ARENA_MAX=/d' "$K" "$M" 2>/dev/null || true
 ;; esac
+case ",${TWEAKS:-}," in *,jemalloc,*)
+    # Requires a jemalloc-enabled rootfs (build/output-jemalloc). LD_PRELOAD it into
+    # klippy + moonraker; MALLOC_CONF from JEMALLOC_CONF env (jemalloc reads it).
+    log "tweak: LD_PRELOAD jemalloc (MALLOC_CONF='${JEMALLOC_CONF:-defaults}')"
+    [ -e "${MNT}/usr/lib/libjemalloc.so.2" ] || log "  WARN: libjemalloc.so.2 not in rootfs — build with build-jemalloc-variant.sh"
+    for f in "$K" "$M"; do
+        sed -i "s#export MALLOC_ARENA_MAX=2#export LD_PRELOAD=/usr/lib/libjemalloc.so.2\n        export MALLOC_CONF='${JEMALLOC_CONF:-}'#" "$f" 2>/dev/null || true
+    done
+;; esac
 case ",${TWEAKS:-}," in *,updmgr,*)
     log "tweak: enable Moonraker [update_manager] + web updaters (measure its cost)"
     cat >> "${MNT}/etc/reforge/moonraker.conf" <<'UMG'
