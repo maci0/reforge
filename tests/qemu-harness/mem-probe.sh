@@ -70,6 +70,10 @@ case ",${TWEAKS:-}," in *,arena1,*)
     log "tweak: MALLOC_ARENA_MAX=1"
     sed -i 's/MALLOC_ARENA_MAX=2/MALLOC_ARENA_MAX=1/' "$K" "$M" 2>/dev/null || true
 ;; esac
+case ",${TWEAKS:-}," in *,noarena,*)
+    log "tweak: remove arena cap (glibc default = 8*ncpu) — simulates forge-x"
+    sed -i '/export MALLOC_ARENA_MAX=/d' "$K" "$M" 2>/dev/null || true
+;; esac
 
 # Probe init: runs last (S98), after klipper/moonraker/httpd/guppyscreen.
 cat > "${MNT}/etc/init.d/S98memprobe" <<PROBE
@@ -111,7 +115,7 @@ log "ext4 ready: ${IMG}"
 # --- boot under the virt kernel at -m MEM ------------------------------------
 log "Booting (MEM=${MEM} MiB, settle=${SETTLE}s) ..."
 timeout "${TIMEOUT}" qemu-system-arm \
-    -M virt,highmem=off -cpu cortex-a7 -m "${MEM}" \
+    -M virt,highmem=off -cpu cortex-a7 -smp "${SMP:-1}" -m "${MEM}" \
     -kernel "${ZIMAGE}" \
     -drive "file=${IMG},if=virtio,format=raw" \
     -append "root=/dev/vda rw console=ttyAMA0 panic=1 loglevel=4" \

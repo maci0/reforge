@@ -45,7 +45,18 @@ kernel at **`-m 128`** (real device RAM), lets Python settle, and dumps per-proc
 | baseline | +arena1 | 46312 | 59741 | **no change** (≈noise) |
 | baseline | +oo | 46064 | 59734 | **no change** (≈noise) |
 | baseline | +oo,arena1 | 46120 | 59946 | **no change** (≈noise) |
-| size-opt | Thumb2+-Os+purge | _TBD_ | _TBD_ | rebuild; also compare rootfs.tar.xz size |
+| size-opt | Thumb2+-Os+purge | 46256 | **54862** | **−4.9 MB Pss (−8.2 %)**; rootfs 25.74→24.66 MB |
+
+### Arena: glibc-default vs cap=2 (the value the cap actually provides), `-smp 2`, idle
+| config | klippy Rss | moonraker Rss | Σ Pss |
+|---|---|---|---|
+| `MALLOC_ARENA_MAX=2` (shipped) | 23.5 MB | 41.0 MB | 57.3 MB |
+| glibc default (no cap, = forge-x) | 26.2 MB | 43.7 MB | 59.7 MB |
+| **win from cap** | **−2.7 MB** | **−2.7 MB** | **−2.4 MB** |
+
+The cap is worth ~5.4 MB RSS / 2.4 MB Pss **at idle** — a floor; under load (Moonraker
+threadpool active → more uncapped arenas) it grows. forge-x ships **no** cap → submitted as
+`moonraker-malloc-arena` (MALLOC_ARENA_MAX=2 in its S65moonraker), mirroring the zram PR.
 
 **Per-process baseline (Pss / Rss kB):** klippy 21093 / 26200 · moonraker 38465 / 43636 ·
 busybox httpd **188 / 692**.
@@ -60,6 +71,15 @@ busybox httpd **188 / 692**.
   (Thumb-2/-Os), which shrinks the shared libc/libpython/.so pages all three processes map.
   Heap-side Moonraker savings would need a lighter rewrite (out of scope) or feature trims.
 - Reproduce the size build: `lab/mem-experiment/build-size-variant.sh` → `build/output-mem`.
+
+### Conclusions
+- **Thumb-2 + -Os + locale purge is the win: −4.9 MB Pss (−8.2 %), −1.08 MB rootfs**, zero
+  runtime downside. Built clean; klippy + busybox + python run Thumb-2. **Recommend folding
+  into the product `reforge_defconfig`** after a guppyscreen render check under Thumb-2.
+- Runtime levers (arena=1, -OO) are exhausted on top of the shipped arena=2.
+- The arena cap itself is worth ~2.4 MB Pss; **forge-x lacks it → PR `moonraker-malloc-arena`**.
+- Ranked remaining ideas (untested): jemalloc tuned (`narenas:1,dirty_decay_ms:0`) vs glibc;
+  trimming Moonraker further; these chase the 35 MB Moonraker heap, which dominates.
 
 ## Caveats
 
