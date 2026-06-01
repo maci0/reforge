@@ -16,3 +16,11 @@ output/
 *.swp
 .DS_Store
 output-guppy/
+
+# Packaging build artifacts
+packaging/dist/
+*.img
+spike-stockui/extracted/
+
+# qemu-harness build artifacts (zImage, initramfs, build logs — never commit)
+validation/qemu-harness/build/

@@ -1,0 +1,59 @@
+# ReForge QEMU virt test kernel config fragment
+# Applied on top of multi_v7_defconfig via scripts/config --enable/--disable
+#
+# KEY FIX: ARCH_SUNXI=n
+#   The vendor Tina BSP clk-mod0.c / clk-factors infrastructure is incompatible
+#   with the legacy sun4i/sun9i clock drivers compiled by ARCH_SUNXI.
+#   A qemu -M virt kernel needs ZERO sunxi drivers, so we disable ARCH_SUNXI
+#   and all derived sunxi clock config symbols.
+#
+# FB pinning: CONFIG_FB_SIMPLE + -device ramfb,xres=800,yres=480,format=xrgb8888
+#   ramfb is a QEMU firmware-level framebuffer that exposes /dev/fb0 at a fixed
+#   resolution (800x480, xRGB8888=32bpp) via the DT simple-framebuffer binding.
+#   No virtio-gpu negotiation or display backend needed for the headless test.
+
+# --- DISABLE: Allwinner/sunxi drivers (broken in vendor BSP for virt) ---
+# CONFIG_ARCH_SUNXI is not set
+# CONFIG_CLK_SUNXI is not set
+# CONFIG_CLK_SUNXI_CLOCKS is not set
+# CONFIG_CLK_SUNXI_DDR is not set
+# CONFIG_CLK_SUNXI_PRCM_SUN6I is not set
+# CONFIG_CLK_SUNXI_PRCM_SUN8I is not set
+# CONFIG_CLK_SUNXI_PRCM_SUN9I is not set
+# CONFIG_SUNXI_CCU is not set
+# CONFIG_COMMON_CLK_SUNXI is not set
+
+# --- ENABLE: virt platform ---
+CONFIG_ARCH_VIRT=y
+
+# --- ENABLE: VirtIO transport + devices ---
+CONFIG_VIRTIO=y
+CONFIG_VIRTIO_PCI=y
+CONFIG_VIRTIO_MMIO=y
+CONFIG_VIRTIO_BLK=y
+CONFIG_VIRTIO_NET=y
+CONFIG_VIRTIO_CONSOLE=y
+CONFIG_VIRTIO_INPUT=y
+
+# --- ENABLE: DRM + virtio-gpu ---
+CONFIG_DRM=y
+CONFIG_DRM_KMS_HELPER=y
+CONFIG_DRM_TTM=y
+CONFIG_DRM_VIRTIO_GPU=y
+
+# --- ENABLE: framebuffer (FB_SIMPLE for ramfb/simple-framebuffer) ---
+CONFIG_FB=y
+CONFIG_FB_SIMPLE=y
+CONFIG_FRAMEBUFFER_CONSOLE=y
+
+# --- ENABLE: filesystems + initramfs ---
+CONFIG_EXT4_FS=y
+CONFIG_BLK_DEV_INITRD=y
+
+# --- ENABLE: device management ---
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+
+# --- ENABLE: PL011 UART serial console (qemu -M virt) ---
+CONFIG_SERIAL_AMBA_PL011=y
+CONFIG_SERIAL_AMBA_PL011_CONSOLE=y

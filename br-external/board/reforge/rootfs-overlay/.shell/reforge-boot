@@ -1,0 +1,113 @@
+#!/bin/sh
+# ReForge boot hook — installed at /etc/init.d/S01reforge
+# Called by the stock /etc/rcS with argument "start".
+#
+# POSIX sh / BusyBox compatible.
+#
+# Design mirrors forge-x's S00init + S99root pattern:
+#   - SKIP_MOD guard   → exit 0 (pure stock boot)
+#   - bind-mount proc/sys/dev into the chroot rootfs
+#   - chroot into $DATA/.reforge and exec the init chain
+#
+# REFORGE_DATA_ROOT env override (default /data) lets Task 3 loopback
+# tests point DATA at a scratch directory without modifying this script.
+
+set -e
+
+DATA="${REFORGE_DATA_ROOT:-/data}"
+REFORGE_DIR="${DATA}/.reforge"
+CONF="${REFORGE_DIR}/config/screen.conf"
+
+# ---------------------------------------------------------------------------
+# SKIP_MOD dual-boot guard (mirrors forge-x S99root:11-15)
+# Presence of any of these markers means: skip ReForge, boot stock.
+#   /tmp/SKIP_MOD              — set by forge-x or user tool (USB flag)
+#   $DATA/.reforge/SKIP_MOD    — persistent per-boot skip flag on /data
+# ---------------------------------------------------------------------------
+if [ -f /tmp/SKIP_MOD ] || \
+   [ -f /tmp/SKIP_MOD_SOFT ] || \
+   [ -f /tmp/SKIP_MOD_HARD ] || \
+   [ -f "${REFORGE_DIR}/SKIP_MOD" ]; then
+    echo "[reforge-boot] SKIP_MOD active — booting stock firmware"
+    exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# Sanity: make sure the overlay is installed
+# ---------------------------------------------------------------------------
+if [ ! -d "${REFORGE_DIR}" ]; then
+    echo "[reforge-boot] WARN: ${REFORGE_DIR} not found — skipping ReForge boot"
+    exit 0
+fi
+
+if [ ! -f "${REFORGE_DIR}/.installed" ]; then
+    echo "[reforge-boot] WARN: .installed stamp missing — skipping ReForge boot"
+    exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# Read persisted screen mode
+# ---------------------------------------------------------------------------
+SCREEN_MODE="HEADLESS"
+if [ -f "${CONF}" ]; then
+    # Source only the SCREEN_MODE line — safer than a full source
+    _sm="$(grep '^SCREEN_MODE=' "${CONF}" | head -n 1 | cut -d= -f2)"
+    [ -n "${_sm}" ] && SCREEN_MODE="${_sm}"
+fi
+echo "[reforge-boot] screen mode: ${SCREEN_MODE}"
+
+# ---------------------------------------------------------------------------
+# Mount /data if not already mounted (mirrors forge-x common.sh:47-64)
+# The stock auto_run.sh mounts mmcblk0p7 → /data before calling rcS, but
+# we guard here in case we run in a test env without that.
+# ---------------------------------------------------------------------------
+if [ "${DATA}" = "/data" ] && ! mount | grep -q '/dev/mmcblk0p7'; then
+    echo "[reforge-boot] /data not mounted — attempting mount"
+    fsck -y /dev/mmcblk0p7 2>/dev/null || true
+    mount /dev/mmcblk0p7 /data || {
+        echo "[reforge-boot] ERROR: cannot mount /data — aborting"
+        exit 1
+    }
+fi
+
+# ---------------------------------------------------------------------------
+# Set up chroot mounts (mirrors forge-x common.sh init_chroot())
+# ---------------------------------------------------------------------------
+echo "[reforge-boot] mounting chroot filesystems ..."
+
+mount -t proc  /proc          "${REFORGE_DIR}/proc"
+mount --rbind  /sys            "${REFORGE_DIR}/sys"
+mount --rbind  /dev            "${REFORGE_DIR}/dev"
+mount --bind   /run            "${REFORGE_DIR}/run"
+mount --bind   /tmp            "${REFORGE_DIR}/tmp"
+
+# Expose /data inside the chroot so Klipper/Moonraker can reach gcodes etc.
+mkdir -p "${REFORGE_DIR}/data"
+mount --bind   "${DATA}"       "${REFORGE_DIR}/data"
+
+# Expose stock /opt/config (klipper printer config) inside chroot
+mkdir -p "${REFORGE_DIR}/opt/config"
+mount --bind   /opt/config     "${REFORGE_DIR}/opt/config"
+
+sync
+
+# ---------------------------------------------------------------------------
+# Determine which init-chain entry point to exec
+# The rootfs ships an rcS-compatible /etc/init.d structure plus an
+# explicit /etc/init.d/rcS wrapper.  The S-scripts it calls:
+#   S00cloudblock  S35zram  S60klipper  S65moonraker  S70nginx
+#   S75guppyscreen (only when SCREEN_MODE=GUPPY)
+# We exec the rootfs's /etc/init.d/rcS and pass SCREEN_MODE so it can
+# decide whether to launch GuppyScreen.
+# ---------------------------------------------------------------------------
+CHROOT_RCS="${REFORGE_DIR}/etc/init.d/rcS"
+
+if [ ! -x "${CHROOT_RCS}" ]; then
+    # Fallback: exec a login shell (useful during development / qemu tests)
+    echo "[reforge-boot] WARN: ${CHROOT_RCS} not executable — falling back to /bin/sh"
+    exec chroot "${REFORGE_DIR}" /bin/sh
+fi
+
+echo "[reforge-boot] launching ReForge via chroot ..."
+export SCREEN_MODE
+exec chroot "${REFORGE_DIR}" /etc/init.d/rcS start

@@ -1,6 +1,6 @@
 # ReForge Plan 3 — `.tgz` Installer, qemu Test Harness & Stock-UI Spike
 
-**Status:** Design / brainstorming output
+**Status:** Implemented (branch plan3-installer) — installer + qemu harness + stock-UI spike (GO/Option-A)
 **Date:** 2026-06-01
 **Depends on:** Plan 1 (Buildroot foundation, merged), Plan 2 (core stack, merged — `output-guppy` full-stack rootfs).
 **Parent spec:** `docs/2026-05-31-reforge-firmware-design.md` (§7 install/recovery).
