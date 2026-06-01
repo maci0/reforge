@@ -48,6 +48,17 @@ make tgz                 # -> packaging/dist/reforge-<ver>.tgz
 third-party trees at exactly those pins. Build paths are driven by the `Makefile`
 (`make help` lists targets).
 
+## How it works (diagrams)
+
+| doc | what |
+|---|---|
+| [Architecture](docs/architecture.md) | the overlay-on-stock chroot model + the runtime stack + data flow |
+| [Build process](docs/build-process.md) | pins → vendor fetch → Buildroot → image → `.tgz` |
+| [Boot flow](docs/boot-flow.md) | power-on → `reforge-boot` → service chain → up (with `SKIP_MOD`) |
+| [Updates / OTA](docs/ota.md) | git-free in-place updates + the last-known-good rollback (designed) |
+
+![ReForge boot console](docs/screenshots/reforge-boot-console.png)
+
 ## Test without a printer
 
 The qemu harness boots a virt-machine kernel (built from the same BSP source) with the
