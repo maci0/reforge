@@ -4,8 +4,12 @@
 # sun8iw20 BSP source for the layout-exact build.
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
-KSRC=${KSRC:-$HERE/linux-5.4.61}            # <- point at Tina BSP source for the real build
-CROSS=$HERE/gcc-9.5.0-nolibc/arm-linux-gnueabi/bin/arm-linux-gnueabi-
+REPO_ROOT=$(cd "$HERE/../.." && pwd)
+# Vendored third-party trees live under vendor/ (see docs/REPO-LAYOUT.md).
+# Default = the Tina sun8iw20 BSP submodule (layout-exact; upstream linux-5.4.61
+# Oopsed — see README). Override KSRC only to diff against a fetched mainline tree.
+KSRC=${KSRC:-$REPO_ROOT/vendor/kernels/tina-bsp-kernel}
+CROSS=$REPO_ROOT/vendor/toolchains/gcc-9.5.0-nolibc/arm-linux-gnueabi/bin/arm-linux-gnueabi-
 STOCKCFG=$HERE/../../docs/board-notes/stock-kernel-config-5.4.61.txt.gz
 cd "$KSRC"
 zcat "$STOCKCFG" > .config

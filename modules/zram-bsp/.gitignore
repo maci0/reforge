@@ -1,9 +1,4 @@
-linux-5.4.61/
-linux-5.4.61.tar.xz
-gcc-9.5.0-arm/
-gcc-9.5.0-arm.tar.xz
-gcc-9.5.0-nolibc/
-*.tar.xz
+# Local build output (the .ko land in dist/, which IS tracked).
+# Vendored kernel sources + toolchains now live under ../../vendor/ (gitignored there).
 build/
-tina-bsp-kernel/
 build-tina/

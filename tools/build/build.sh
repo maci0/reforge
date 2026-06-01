@@ -8,7 +8,7 @@ variant="${2:-}"   # optional: "guppyscreen" selects the full-stack variant
 # Select defconfig + output dir based on variant
 if [ "$variant" = "guppyscreen" ]; then
   DEFCONFIG="reforge_guppyscreen_defconfig"
-  OUTPUT_DIR="$REFORGE_ROOT/output-guppy"
+  OUTPUT_DIR="$REFORGE_ROOT/build/output-guppy"
 else
   DEFCONFIG="reforge_defconfig"
   # OUTPUT_DIR already set by env.sh

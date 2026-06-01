@@ -9,7 +9,7 @@ manifest() { # $1 = extract dir -> sorted "mode size sha path"
 hashtree() {
   EXTRACT="$TMPDIR_REPRO/repro-$1"
   rm -rf "$EXTRACT"; mkdir -p "$EXTRACT"
-  tar -C "$EXTRACT" -xf "$ROOT/output/images/rootfs.tar.xz"
+  tar -C "$EXTRACT" -xf "$ROOT/build/output/images/rootfs.tar.xz"
   manifest "$EXTRACT" > "$TMPDIR_REPRO/repro-$1.manifest"
   cd "$ROOT"
 }

@@ -6,9 +6,13 @@ tools/recovery/*.size
 tools/recovery/.current_dump_name
 tools/recovery/.work/
 
-# Buildroot / build output
-buildroot/
-output/
+# Vendored third-party (downloaded, never commit; buildroot is a submodule and stays tracked)
+/vendor/kernels/linux-5.4.61/
+/vendor/kernels/*.tar.xz
+/vendor/toolchains/
+
+# Transient build output (top-level, gitignored whole)
+/build/
 *.tar
 *.tar.xz
 *.tgz
@@ -16,7 +20,6 @@ output/
 # Editor / OS
 *.swp
 .DS_Store
-output-guppy/
 
 # Packaging build artifacts
 packaging/dist/

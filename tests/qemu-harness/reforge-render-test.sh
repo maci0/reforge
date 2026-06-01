@@ -73,7 +73,7 @@ log "installer tgz : ${TGZ}"
 # ---------------------------------------------------------------------------
 # Locate artefacts
 # ---------------------------------------------------------------------------
-ROOTFS_TAR="${REPO_ROOT}/output-guppy/images/rootfs.tar"
+ROOTFS_TAR="${REPO_ROOT}/build/output-guppy/images/rootfs.tar"
 [ -f "${ROOTFS_TAR}" ] || die "Guppy rootfs not found: ${ROOTFS_TAR} — run 'make guppy' first"
 
 ZIMAGE="${BUILD_DIR}/zImage"

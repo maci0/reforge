@@ -19,9 +19,9 @@ matches the stock 5.4 userland (important for the firmwareExe spike).
 
 ## Building the test kernel — `make qemu-kernel`
 
-Source: the in-repo vendor tree `modules/zram-bsp/tina-bsp-kernel` (Allwinner sun8iw20,
+Source: the in-repo vendor tree `vendor/kernels/tina-bsp-kernel` (Allwinner sun8iw20,
 **Linux 5.4.61** — same version as stock). Toolchain: the kernel.org crosstool
-**GCC 9.5** at `modules/zram-bsp/gcc-9.5.0-nolibc/arm-linux-gnueabi/bin/arm-linux-gnueabi-`.
+**GCC 9.5** at `vendor/toolchains/gcc-9.5.0-nolibc/arm-linux-gnueabi/bin/arm-linux-gnueabi-`.
 Built **out-of-tree** (`O=tests/qemu-harness/build/kbuild`) so the source stays clean.
 
 Config = `multi_v7_defconfig` + the fragment in `configs/virt.fragment`:
@@ -45,7 +45,7 @@ Config = `multi_v7_defconfig` + the fragment in `configs/virt.fragment`:
 Output: `tests/qemu-harness/build/zImage` (gitignored). Build ≈ 25 min.
 
 If the vendor source is ever truly unbuildable for virt, the script falls back to
-**mainline `linux-5.4.61`** (`modules/zram-bsp/linux-5.4.61`) — same version, clean.
+**mainline `linux-5.4.61`** (`vendor/kernels/linux-5.4.61`) — same version, clean.
 **Never** mainline 6.x (wrong ABI for the spike).
 
 ## Framebuffer — pinned to the real panel (800×480×32)

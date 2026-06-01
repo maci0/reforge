@@ -10,7 +10,7 @@
 # Root approach chosen: Option (a) — guppy rootfs as outer ext4 root
 # ---------------------------------------------------------------------------
 # Why option (a)?
-#   The guppy rootfs (output-guppy/images/rootfs.tar) already contains:
+#   The guppy rootfs (build/output-guppy/images/rootfs.tar) already contains:
 #     - BusyBox + inittab + rcS (a complete boot environment)
 #     - python3, nginx, all ReForge services
 #   Using it as the outer root means the qemu VM boots into a real Linux
@@ -89,7 +89,7 @@ log "installer tgz : ${TGZ}"
 # ---------------------------------------------------------------------------
 # Locate artefacts
 # ---------------------------------------------------------------------------
-ROOTFS_TAR="${REPO_ROOT}/output-guppy/images/rootfs.tar"
+ROOTFS_TAR="${REPO_ROOT}/build/output-guppy/images/rootfs.tar"
 [ -f "${ROOTFS_TAR}" ] || die "Guppy rootfs not found: ${ROOTFS_TAR} — run 'make guppy' first"
 
 ZIMAGE="${BUILD_DIR}/zImage"

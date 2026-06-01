@@ -17,7 +17,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PACKAGING_DIR="${REPO_ROOT}/packaging"
 DIST_DIR="${PACKAGING_DIR}/dist"
-ROOTFS_TAR="${REPO_ROOT}/output-guppy/images/rootfs.tar"
+ROOTFS_TAR="${REPO_ROOT}/build/output-guppy/images/rootfs.tar"
 VER="$(cat "${PACKAGING_DIR}/VERSION")"
 
 # Staging dir — cleaned on exit
