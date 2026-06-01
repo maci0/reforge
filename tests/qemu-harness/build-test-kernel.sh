@@ -143,6 +143,25 @@ build_vendor_kernel() {
         --enable SERIAL_AMBA_PL011 \
         --enable SERIAL_AMBA_PL011_CONSOLE
 
+    # -- Apply the rest from configs/virt.fragment (the source of truth) --
+    #    Lets us add symbols (e.g. ZRAM/ZSMALLOC) by editing the fragment only.
+    #    Handles `CONFIG_X=y` -> --enable X and `# CONFIG_X is not set` -> --disable X.
+    local FRAG="${HARNESS_DIR}/configs/virt.fragment"
+    if [ -f "${FRAG}" ]; then
+        log "Step 2b: applying ${FRAG} ..."
+        local line sym
+        while IFS= read -r line; do
+            case "${line}" in
+                CONFIG_*=y)
+                    sym="${line#CONFIG_}"; sym="${sym%=y}"
+                    sc "${KSRC}" "${KBUILD}" --enable "${sym}" ;;
+                "# CONFIG_"*" is not set")
+                    sym="${line#\# CONFIG_}"; sym="${sym% is not set}"
+                    sc "${KSRC}" "${KBUILD}" --disable "${sym}" ;;
+            esac
+        done < "${FRAG}"
+    fi
+
     # -------------------------------------------------------------------
     # 3. Resolve dependencies, filling in any new defaults
     # -------------------------------------------------------------------

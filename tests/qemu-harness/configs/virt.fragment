@@ -46,6 +46,18 @@ CONFIG_FB=y
 CONFIG_FB_SIMPLE=y
 CONFIG_FRAMEBUFFER_CONSOLE=y
 
+# --- ENABLE: zram compressed swap, BUILTIN ---
+#   The device ships zram as loadable .ko built against the STOCK kernel
+#   (vermagic "5.4.61 SMP preempt ..."). This virt kernel is built WITHOUT
+#   PREEMPT, so those .ko can't load here (vermagic mismatch) and qemu mem
+#   measurements miss zram. Build zram in so /dev/zram0 exists at boot:
+#   S35zram's insmod fails gracefully, then it uses the builtin device (reset,
+#   comp_algorithm=zstd, disksize, mkswap, swapon). CRYPTO_ZSTD = the algo.
+CONFIG_SWAP=y
+CONFIG_ZSMALLOC=y
+CONFIG_ZRAM=y
+CONFIG_CRYPTO_ZSTD=y
+
 # --- ENABLE: filesystems + initramfs ---
 CONFIG_EXT4_FS=y
 CONFIG_BLK_DEV_INITRD=y

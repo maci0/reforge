@@ -108,6 +108,9 @@ UMG
 cat > "${MNT}/etc/init.d/S98memprobe" <<PROBE
 #!/bin/sh
 [ "\$1" = start ] || exit 0
+# Task 3 moved the ReForge init chain to /mod (run via /mod/start.sh on-device).
+# This standalone boot must invoke it to bring up zram/klippy/moonraker/httpd.
+[ -x /mod/start.sh ] && /mod/start.sh > /dev/console 2>&1
 (
   sleep ${SETTLE}
   echo "===MEMPROBE-BEGIN==="
@@ -120,6 +123,8 @@ cat > "${MNT}/etc/init.d/S98memprobe" <<PROBE
   else
     echo "zram0: not present"
   fi
+  echo "--- swaps (real device: zram primary + eMMC overflow) ---"
+  cat /proc/swaps 2>/dev/null
   echo "--- per-process Pss/Rss (kB) ---"
   for p in /proc/[0-9]*; do
     [ -r "\$p/smaps_rollup" ] || continue
@@ -138,9 +143,32 @@ cat > "${MNT}/etc/init.d/S98memprobe" <<PROBE
 ) > /dev/console 2>&1 &
 PROBE
 chmod +x "${MNT}/etc/init.d/S98memprobe"
+
+# eMMC overflow swapfile (S36, after S35zram brings up zram as primary). Mirrors
+# the real printer: zram = primary (prio 100), an eMMC swapfile = low-prio overflow.
+# /dev/vdb is the emulated eMMC disk (a 2nd virtio-blk, built below).
+cat > "${MNT}/etc/init.d/S36emmcswap" <<'EMMCSWAP'
+#!/bin/sh
+[ "$1" = start ] || exit 0
+mkdir -p /data
+mount /dev/vdb /data 2>/dev/null || exit 0
+fallocate -l 64M /data/swap 2>/dev/null || dd if=/dev/zero of=/data/swap bs=1M count=64 2>/dev/null
+chmod 600 /data/swap
+mkswap /data/swap >/dev/null 2>&1
+swapon /data/swap 2>/dev/null   # default (low) priority = overflow under zram(prio 100)
+EMMCSWAP
+chmod +x "${MNT}/etc/init.d/S36emmcswap"
+
 sync
 umount "${MNT}"
 log "ext4 ready: ${IMG}"
+
+# eMMC disk (the printer's /data, where the overflow swapfile lives)
+EMMC="${BUILD_DIR}/mem-probe-emmc.ext4"
+rm -f "${EMMC}"
+truncate -s 512M "${EMMC}"
+mkfs.ext4 -q -F "${EMMC}"
+log "eMMC (overflow swap) ready: ${EMMC}"
 
 # --- boot under the virt kernel at -m MEM ------------------------------------
 log "Booting (MEM=${MEM} MiB, settle=${SETTLE}s) ..."
@@ -148,6 +176,7 @@ timeout "${TIMEOUT}" qemu-system-arm \
     -M virt,highmem=off -cpu cortex-a7 -smp "${SMP:-1}" -m "${MEM}" \
     -kernel "${ZIMAGE}" \
     -drive "file=${IMG},if=virtio,format=raw" \
+    -drive "file=${EMMC},if=virtio,format=raw" \
     -append "root=/dev/vda rw console=ttyAMA0 panic=1 loglevel=4" \
     -netdev user,id=n0 -device virtio-net-device,netdev=n0 \
     -nographic > "${SERIAL}" 2>&1 || true
