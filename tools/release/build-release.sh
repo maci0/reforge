@@ -90,35 +90,19 @@ for c in klipper moonraker guppyscreen; do
 done
 
 # ---------------------------------------------------------------------------
-# reforge component: the reforge-authored mod files available today.
-#   (The full self-contained mod layout — start.sh/services/.shell — lands in a
-#    later task; here we bundle exactly what exists in the overlay + zram dist.)
+# reforge component: the self-contained mod tree that post-build.sh assembles at
+# build/output/target/mod (init.d/, services/, start.sh/stop.sh, etc/reforge,
+# modules/, usr/bin, .shell). reforge.zip = the mod CONTENTS, so the device's
+# `[update_manager reforge] path: /mod` extract reproduces /mod exactly.
 # ---------------------------------------------------------------------------
-echo "[build-release] staging reforge ..."
+echo "[build-release] staging reforge (from the built /mod tree) ..."
+TARGET_MOD="${REPO_ROOT}/build/output/target/mod"
+[ -d "${TARGET_MOD}" ] || die "build/output/target/mod missing — run 'make rootfs' (post-build assembles it)"
+cp -a "${TARGET_MOD}" "${STAGE}/reforge"
 RF="${STAGE}/reforge"
-mkdir -p "${RF}/etc/init.d" "${RF}/etc/reforge" "${RF}/modules" "${RF}/usr/bin"
-
-# init scripts
-[ -d "${OVERLAY}/etc/init.d" ] || die "overlay etc/init.d missing"
-cp -a "${OVERLAY}/etc/init.d/." "${RF}/etc/init.d/"
-
-# /etc/reforge defaults
-[ -d "${OVERLAY}/etc/reforge" ] || die "overlay etc/reforge missing"
-cp -a "${OVERLAY}/etc/reforge/." "${RF}/etc/reforge/"
-
-# zram loadable modules + swapon_prio helper (under modules/)
-[ -d "${ZRAM_DIST}" ] || die "modules/zram-bsp/dist missing — build the zram bsp first"
-for f in "${ZRAM_DIST}"/*.ko; do
-    [ -e "${f}" ] || die "no .ko in modules/zram-bsp/dist"
-    cp -a "${f}" "${RF}/modules/"
-done
-[ -f "${ZRAM_DIST}/swapon_prio" ] || die "modules/zram-bsp/dist/swapon_prio missing"
-cp -a "${ZRAM_DIST}/swapon_prio" "${RF}/modules/"
-
-# banner
-[ -f "${OVERLAY}/usr/bin/reforge-banner" ] || die "overlay usr/bin/reforge-banner missing"
-cp -a "${OVERLAY}/usr/bin/reforge-banner" "${RF}/usr/bin/"
-
+# sanity: the mod tree must be self-contained (Task 3 layout), not the old flat overlay
+{ [ -d "${RF}/init.d" ] && [ -f "${RF}/start.sh" ] && [ -d "${RF}/services" ]; } \
+    || die "built mod/ missing init.d/ + start.sh + services/ — bad layout"
 zip_component "reforge" "${RF}"
 
 # ---------------------------------------------------------------------------

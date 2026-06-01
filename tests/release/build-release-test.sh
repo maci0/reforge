@@ -45,8 +45,14 @@ klist="$(unzip -l "$OUT/klipper.zip")"
 rlist="$(unzip -l "$OUT/reforge.zip")"
 printf '%s\n' "$klist" | grep -q 'klippy/chelper/c_helper.so' \
     || { echo "FAIL: klipper.zip missing prebuilt c_helper.so"; exit 1; }
-printf '%s\n' "$rlist" | grep -qE 'etc/init\.d/S60klipper' \
-    || { echo "FAIL: reforge.zip missing init scripts (S60klipper)"; exit 1; }
+# reforge.zip = the self-contained /mod tree (Task 3): init.d/ (not etc/init.d),
+# start.sh, services/, modules/, banner.
+printf '%s\n' "$rlist" | grep -qE '(^| )init\.d/S60klipper' \
+    || { echo "FAIL: reforge.zip missing init.d/S60klipper (mod layout)"; exit 1; }
+printf '%s\n' "$rlist" | grep -qE '(^| )start\.sh' \
+    || { echo "FAIL: reforge.zip missing start.sh (mod layout)"; exit 1; }
+printf '%s\n' "$rlist" | grep -qE 'services/klipper' \
+    || { echo "FAIL: reforge.zip missing services/klipper (SimpleProvider wrapper)"; exit 1; }
 printf '%s\n' "$rlist" | grep -qE 'modules/zram\.ko' \
     || { echo "FAIL: reforge.zip missing modules/zram.ko"; exit 1; }
 printf '%s\n' "$rlist" | grep -qE 'modules/swapon_prio' \
