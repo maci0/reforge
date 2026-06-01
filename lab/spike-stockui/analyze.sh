@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# ReForge P3 Task 8: spike-stockui/analyze.sh
+# ReForge P3 Task 8: lab/spike-stockui/analyze.sh
 #
 # Static analysis of firmwareExe — extracts:
 #   - ELF metadata (file type, NEEDED libs, interpreter)
@@ -13,8 +13,8 @@
 # Output: prints findings to stdout (pipe to REPORT.md or review interactively)
 #
 # Usage:
-#   spike-stockui/analyze.sh
-#   spike-stockui/analyze.sh 2>&1 | tee analyze-output.txt
+#   lab/spike-stockui/analyze.sh
+#   lab/spike-stockui/analyze.sh 2>&1 | tee analyze-output.txt
 #
 # Requires: file, readelf, strings (binutils)
 # =============================================================================
