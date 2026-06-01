@@ -135,6 +135,27 @@ def reply(req):
     return {"id": rid, "result": res} if rid is not None else {"params": res}
 
 
+def pusher(conn, want):
+    # Klippy pushes subscription updates unsolicited as the response_template
+    # method Moonraker registered ("process_status_update") with params
+    # [eventtime, status]. Without these, Moonraker never emits
+    # notify_status_update and GuppyScreen, though connected, never REPAINTS.
+    # Push periodically (varying a temp) so guppy keeps redrawing the home screen.
+    et = 1000.0
+    while True:
+        time.sleep(0.5)
+        et += 0.5
+        st = status_for({"objects": want})["status"]
+        if "extruder" in st and "temperature" in st["extruder"]:
+            st["extruder"] = dict(st["extruder"])
+            st["extruder"]["temperature"] = 25.0 + (int(et) % 3)
+        msg = {"method": "process_status_update", "params": [et, st]}
+        try:
+            conn.sendall(json.dumps(msg).encode() + ETX)
+        except OSError:
+            return
+
+
 def handle(conn):
     buf = b""
     while True:
@@ -157,6 +178,10 @@ def handle(conn):
                 conn.sendall(json.dumps(reply(req)).encode() + ETX)
             except OSError:
                 return
+            if req.get("method") == "objects/subscribe":
+                want = (req.get("params", {}) or {}).get("objects", {}) or {}
+                threading.Thread(target=pusher, args=(conn, want),
+                                 daemon=True).start()
 
 
 def main():

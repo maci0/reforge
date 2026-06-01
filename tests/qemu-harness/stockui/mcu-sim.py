@@ -61,9 +61,10 @@ log("bound -> %s, TX start" % sname)
 
 buf = b""
 while True:
-    if ensure_link():
-        os.write(master, b"start\n")
-        log("relink, TX start")
+    # Keep the symlink healthy (udev churn), but do NOT re-emit "start" on relink:
+    # the host opens the port once and holds it; repeated "start" lines spam its
+    # boot handshake and make firmwareExe restart (E0120). "start" is sent once above.
+    ensure_link()
     r, _, _ = select.select([master], [], [], 1.0)
     if master not in r:
         continue
@@ -76,6 +77,13 @@ while True:
         time.sleep(0.2)
         continue
     log("RX %r" % data[:32])
+    # firmwareExe's eboard boot handshake is byte-oriented, not gcode: after the
+    # "start" banner it streams "A" ACK bytes and expects the MCU to echo each "A"
+    # back. Un-echoed ACKs leave the handshake incomplete and firmwareExe restarts
+    # (the E0120 modal). Echo one "A" per received "A".
+    na = data.count(b"A")
+    if na:
+        os.write(master, b"A" * na)
     buf += data
     while b"\n" in buf:
         line, buf = buf.split(b"\n", 1)

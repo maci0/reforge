@@ -121,7 +121,9 @@ if ! grep -q reforge-stocksim "${AR}"; then
         print "  \"$P\" /opt/mcu-sim.py /dev/ttyS1 &";
         print "  \"$P\" /opt/mcu-sim.py /dev/ttyS5 &";
         print "  \"$P\" /opt/fake-klippy.py &";
-        print "  touch /tmp/printer; sleep 3";
+        print "  touch /tmp/printer";
+        print "  i=0; while [ ! -e /dev/ttyS1 ] || [ ! -e /dev/ttyS5 ]; do i=$((i+1)); [ \"$i\" -ge 60 ] && break; sleep 0.5; done";
+        print "  sleep 1";
         print "fi";
         done=1
     } {print}' "${AR}" > "${AR}.new"

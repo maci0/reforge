@@ -38,12 +38,15 @@ BUILD_DIR="${HARNESS_DIR}/build"
 ZIMAGE="${BUILD_DIR}/zImage"
 SIM="${HARNESS_DIR}/guppy/fake-klippy.py"
 IMG="${BUILD_DIR}/guppy-root.ext4"
+FBCAP="${BUILD_DIR}/guppy-fb.raw"   # 2nd disk: guest dumps /dev/fb0 here
+FBPNG="${BUILD_DIR}/guppy-home.png" # host-converted real framebuffer
 MON="${BUILD_DIR}/qemu-guppy-mon.sock"
 SHOT="${BUILD_DIR}/guppy-home.ppm"
 SER="${BUILD_DIR}/guppy-home-serial.log"
+FBDUMP_AT="${FBDUMP_AT:-110}"       # seconds before dumping fb0 (after guppy paints)
 
 MEM="${MEM:-256}"
-SETTLE="${SETTLE:-75}"
+SETTLE="${SETTLE:-125}"   # must exceed FBDUMP_AT so the fb dump completes first
 
 log() { echo "[guppy-render] $*"; }
 die() { echo "[guppy-render] ERROR: $*" >&2; exit 1; }
@@ -83,6 +86,13 @@ cat > "${MNT}/etc/init.d/S98guppy" <<'EOF'
 #!/bin/sh
 [ "$1" = start ] || exit 0
 [ -x /mod/start.sh ] && SCREEN_MODE=GUPPY /mod/start.sh > /dev/console 2>&1
+# Capture the REAL guppy pixels: screendump reads the virtio-gpu host scanout
+# (which LVGL never flushes -> black), but the pixels guppy drew live in the
+# /dev/fb0 mmap. Dump fb0 to the 2nd disk (/dev/vdb) once guppy has painted; the
+# host converts that raw framebuffer to PNG, bypassing the scanout-flush quirk.
+( sleep "__FBDUMP_AT__"
+  dd if=/dev/fb0 of=/dev/vdb bs=1M 2>/dev/null; sync
+  echo "===FBDUMPED===" > /dev/console ) &
 # Diagnostics: after the stack settles, dump whether Moonraker accepted the fake
 # klippy ("Klippy ready") + guppy's own state, to the serial console.
 ( sleep 55
@@ -98,16 +108,20 @@ cat > "${MNT}/etc/init.d/S98guppy" <<'EOF'
   echo "--- guppyconfig.json ---"; cat /opt/guppyscreen/guppyconfig.json 2>/dev/null | head -20
   echo "--- guppyscreen log ---"
   GL=$(find / -name 'guppyscreen.log' -o -name 'guppy*.log' 2>/dev/null | head -1)
-  echo "log: ${GL:-none}"; [ -n "$GL" ] && tail -25 "$GL" 2>/dev/null
+  echo "log: ${GL:-none}"; [ -n "$GL" ] && { echo "[HEAD]"; head -45 "$GL"; echo "[TAIL]"; tail -8 "$GL"; } 2>/dev/null
   echo "--- /dev/fb0 + fbset ---"; ls -la /dev/fb0 2>&1; fbset 2>/dev/null | head -6
   echo "--- guppy proc ---"; ps 2>/dev/null | grep -iE 'guppy|moonrak|fake-klippy' | grep -v grep
   echo "===/GUPPYDIAG===" ) > /dev/console 2>&1 &
 EOF
+sed -i "s/__FBDUMP_AT__/${FBDUMP_AT}/" "${MNT}/etc/init.d/S98guppy"
 chmod +x "${MNT}/etc/init.d/S98guppy"
 
 log "baking ext4 (mke2fs -d, rootless) ..."
 rm -f "${IMG}"
 mke2fs -q -F -t ext4 -L "guppy-root" -d "${MNT}" "${IMG}" 1843M
+
+# Framebuffer capture disk (/dev/vdb): 800x480x4 = 1.5 MB; round up to 4 MB.
+rm -f "${FBCAP}"; truncate -s 4M "${FBCAP}"
 
 # --- 2. boot unprivileged with a virtio-gpu fb (so /dev/fb0 exists) -----------
 rm -f "${MON}" "${SHOT}" "${SER}"
@@ -118,6 +132,7 @@ qemu-system-arm -M virt,highmem=off -cpu cortex-a7 -m "${MEM}" \
     -display none -monitor "unix:${MON},server,nowait" -serial file:"${SER}" \
     -device virtio-gpu-pci,xres=800,yres=480 \
     -drive "file=${IMG},if=virtio,format=raw,cache=writeback" \
+    -drive "file=${FBCAP},if=virtio,format=raw" \
     -netdev user,id=net0 -device virtio-net-pci,netdev=net0 >/dev/null 2>&1 &
 QP=$!
 trap 'kill -9 "${QP}" 2>/dev/null || true; rm -rf "${WORK}"' EXIT
@@ -130,12 +145,21 @@ sleep 3
 kill -9 "${QP}" 2>/dev/null || true
 trap 'rm -rf "${WORK}"' EXIT
 
-# --- 3. verdict ---------------------------------------------------------------
-if grep -q 'Klippy ready' "${SER}" 2>/dev/null; then
-    log "moonraker reached 'Klippy ready' (fake klippy accepted)"
+# --- 3. convert the captured framebuffer (the REAL guppy pixels) to PNG -------
+# virtio_gpudrmfb is XRGB8888 (32bpp, little-endian -> bytes B,G,R,X). magick
+# reads the raw fb as bgra. Only the first 800*480*4 bytes are the visible frame.
+if command -v magick >/dev/null 2>&1 && grep -q '===FBDUMPED===' "${SER}" 2>/dev/null; then
+    head -c $((800 * 480 * 4)) "${FBCAP}" > "${FBCAP}.frame"
+    magick -size 800x480 -depth 8 "bgra:${FBCAP}.frame" "${FBPNG}" 2>/dev/null \
+        && log "captured real framebuffer -> ${FBPNG} ($(identify -format '%k colors' "${FBPNG}" 2>/dev/null))" \
+        || log "WARN: fb raw->PNG convert failed (try rgba/argb pixel order)"
 else
-    log "WARN: 'Klippy ready' not seen in serial — guppy may be offline (see ${SER})"
+    log "WARN: no ===FBDUMPED=== marker — fb dump did not run (see ${SER})"
 fi
-[ -s "${SHOT}" ] || die "no screendump produced (see ${SER})"
-log "PASS: rendered ${SHOT}"
-log "  to view: magick ${SHOT} guppy-home.png"
+
+# --- 4. verdict ---------------------------------------------------------------
+grep -q 'klippy_state":"ready"' "${SER}" 2>/dev/null \
+    && log "moonraker reports klippy_state:ready (fake klippy accepted, full stack up)" \
+    || log "WARN: moonraker klippy_state:ready not seen — check ${SER}"
+[ -s "${SHOT}" ] || log "WARN: no host-scanout screendump (expected blank anyway)"
+log "done. real frame: ${FBPNG} ; serial: ${SER}"
