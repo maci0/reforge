@@ -14,7 +14,7 @@
 #     LABEL      : tag printed in the summary (default: basename of the tar)
 #   MEM=128 SETTLE=25  override RAM (MiB) / settle seconds.
 #
-# Needs sudo (loop mount to build + inject into the ext4). Reuses build/zImage.
+# Builds the ext4 rootless via mke2fs -d (no loop mount, no sudo). Reuses build/zImage.
 # =============================================================================
 set -euo pipefail
 
@@ -34,27 +34,24 @@ die() { echo "[mem-probe] ERROR: $*" >&2; exit 1; }
 
 [ -f "${ZIMAGE}" ]     || die "virt kernel missing: ${ZIMAGE} (run: make qemu-kernel)"
 [ -f "${ROOTFS_TAR}" ] || die "rootfs not found: ${ROOTFS_TAR} (run: make rootfs)"
-[ "$(id -u)" -eq 0 ]   || die "needs sudo (loop mount)"
 command -v qemu-system-arm >/dev/null || die "qemu-system-arm not installed"
+command -v mke2fs >/dev/null || die "mke2fs not installed (e2fsprogs)"
 
 WORK="$(mktemp -d)"
 IMG="${BUILD_DIR}/mem-probe-rootfs.ext4"
 SERIAL="${BUILD_DIR}/mem-probe-${LABEL//[^a-zA-Z0-9._-]/_}.log"
+# Rootless build: assemble the tree in a staging dir, then bake it into an ext4
+# with `mke2fs -d` (no loop mount, no sudo). MNT is just a staging directory.
 MNT="${WORK}/mnt"
 cleanup() {
-    mountpoint -q "${MNT}" 2>/dev/null && umount "${MNT}" 2>/dev/null || true
     rm -rf "${WORK}"
 }
 trap cleanup EXIT
 
 # --- build an ext4 from the rootfs tar, inject the probe init ----------------
-log "Building ext4 from ${ROOTFS_TAR} ..."
+log "Staging rootfs from ${ROOTFS_TAR} ..."
 rm -f "${IMG}"
-# 768 MiB is ample for the full stack; sparse so it costs little.
-truncate -s 768M "${IMG}"
-mkfs.ext4 -q -F "${IMG}"
 mkdir -p "${MNT}"
-mount -o loop "${IMG}" "${MNT}"
 tar -C "${MNT}" -xf "${ROOTFS_TAR}"
 
 # Optional runtime tweaks applied in-place (A/B against the same baseline rootfs).
@@ -159,8 +156,8 @@ swapon /data/swap 2>/dev/null   # default (low) priority = overflow under zram(p
 EMMCSWAP
 chmod +x "${MNT}/etc/init.d/S36emmcswap"
 
-sync
-umount "${MNT}"
+# Bake the staging tree into an ext4 image (rootless, no loop mount).
+mke2fs -q -F -t ext4 -d "${MNT}" "${IMG}" 768M
 log "ext4 ready: ${IMG}"
 
 # eMMC disk (the printer's /data, where the overflow swapfile lives)

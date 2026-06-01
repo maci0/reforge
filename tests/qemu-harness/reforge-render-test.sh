@@ -21,7 +21,7 @@
 # qemu-compatibility patches (P2–P4 plus the screen-mode write).
 #
 # Usage:
-#   sudo tests/qemu-harness/reforge-render-test.sh
+#   tests/qemu-harness/reforge-render-test.sh
 #   make qemu-render
 #
 # Env overrides:
@@ -36,7 +36,7 @@
 #   tests/qemu-harness/build/reforge-render-qemu.log  (preserved for debug)
 #
 # Exit codes: 0 = PASS, 1 = FAIL
-# Needs: sudo (loop mount), qemu-system-arm, socat
+# Needs: qemu-system-arm, socat, mke2fs (e2fsprogs) — fully rootless, NO sudo
 # =============================================================================
 set -euo pipefail
 
@@ -90,7 +90,6 @@ command -v socat >/dev/null 2>&1 || die "socat not found — install socat (need
 # Temp state + cleanup
 # ---------------------------------------------------------------------------
 EXT4_IMG=""
-LOOP_DEV=""
 MNT_DIR=""
 UNPACK_DIR=""
 QEMU_PID=""
@@ -106,19 +105,7 @@ cleanup() {
         wait "${QEMU_PID}" 2>/dev/null || true
     fi
 
-    # Unmount image if mounted
-    if [ -n "${MNT_DIR}" ] && mountpoint -q "${MNT_DIR}" 2>/dev/null; then
-        log "  unmounting ${MNT_DIR}"
-        umount -R "${MNT_DIR}" 2>/dev/null || umount "${MNT_DIR}" 2>/dev/null || true
-    fi
-
-    # Detach loop device
-    if [ -n "${LOOP_DEV}" ] && losetup "${LOOP_DEV}" &>/dev/null 2>&1; then
-        log "  detaching ${LOOP_DEV}"
-        losetup -d "${LOOP_DEV}" 2>/dev/null || true
-    fi
-
-    # Remove scratch dirs
+    # Remove scratch dirs (rootless build: plain staging dir, no mount/loop)
     [ -n "${MNT_DIR}"    ] && rm -rf "${MNT_DIR}"    2>/dev/null || true
     [ -n "${UNPACK_DIR}" ] && rm -rf "${UNPACK_DIR}" 2>/dev/null || true
 
@@ -152,18 +139,13 @@ if [ -n "${RENDER_ROOT_IMG:-}" ] && [ -f "${RENDER_ROOT_IMG}" ]; then
 else
     EXT4_IMG="${BUILD_DIR}/reforge-render-root-$$.ext4"
 
-    log "=== STEP 1: Building ext4 root image (SCREEN_MODE=GUPPY) ==="
+    log "=== STEP 1: Building ext4 root image (SCREEN_MODE=GUPPY, rootless) ==="
     log "  rootfs.tar : ${ROOTFS_TAR} ($(du -sh "${ROOTFS_TAR}" | cut -f1))"
 
-    # Create a 1.8 GB ext4 image
-    log "  creating 1.8 GB ext4 image ..."
-    dd if=/dev/zero of="${EXT4_IMG}" bs=1M count=1843 status=progress 2>&1 | tail -1
-    mkfs.ext4 -F -q -L "reforge-render" "${EXT4_IMG}"
-
-    MNT_DIR="$(mktemp -d /tmp/reforge-render-mnt-XXXXXX)"
-    LOOP_DEV="$(losetup --find --show "${EXT4_IMG}")"
-    log "  loop device : ${LOOP_DEV}   mount : ${MNT_DIR}"
-    mount "${LOOP_DEV}" "${MNT_DIR}"
+    # Rootless build: assemble the tree in a plain staging dir, then bake it into
+    # an ext4 with `mke2fs -d` (no loop mount, no sudo). MNT_DIR is just a dir.
+    MNT_DIR="$(mktemp -d /tmp/reforge-render-stage-XXXXXX)"
+    log "  staging dir : ${MNT_DIR}"
 
     # --- 1a. Extract guppy rootfs as the outer root ---
     log "  extracting guppy rootfs into outer root ..."
@@ -272,12 +254,11 @@ EOF
         fi
     done
 
-    # --- 1g. Sync and unmount ---
-    log "  syncing and unmounting ..."
-    sync
-    umount -R "${MNT_DIR}" 2>/dev/null || umount "${MNT_DIR}" 2>/dev/null || true
-    losetup -d "${LOOP_DEV}" 2>/dev/null || true
-    LOOP_DEV=""
+    # --- 1g. Bake the staging dir into an ext4 (rootless, no loop mount) ---
+    log "  baking ext4 from staging dir via mke2fs -d (no sudo) ..."
+    rm -f "${EXT4_IMG}"
+    mke2fs -q -F -t ext4 -L "reforge-render" -d "${MNT_DIR}" "${EXT4_IMG}" 1843M
+    rm -rf "${MNT_DIR}" "${UNPACK_DIR}" 2>/dev/null || true
     MNT_DIR=""
     UNPACK_DIR=""
 
