@@ -66,7 +66,11 @@ echo "[2/5] Probing Moonraker (FULL_API check, up to 60s timeout)..."
 MOONRAKER_DATA="$NTMP/moonraker-data"
 MOONRAKER_PID=""
 mkdir -p "$MOONRAKER_DATA/config" "$MOONRAKER_DATA/logs" "$MOONRAKER_DATA/comms"
-cp "$ROOT/etc/reforge/moonraker.conf" "$MOONRAKER_DATA/config/moonraker.conf"
+# Configs ship inside the self-contained mod dir (/mod/etc/reforge); on-device
+# start.sh symlinks /etc/reforge -> /mod/etc/reforge. Read from mod/ here.
+REFORGE_ETC="$ROOT/mod/etc/reforge"
+[ -d "$REFORGE_ETC" ] || REFORGE_ETC="$ROOT/etc/reforge"   # pre-mod fallback
+cp "$REFORGE_ETC/moonraker.conf" "$MOONRAKER_DATA/config/moonraker.conf"
 
 FULL_API=0
 
@@ -199,7 +203,7 @@ echo "  (e) klippy config-parse smoke (expect 'waiting for MCU' or config-parse,
 KLIPPY_PID=""
 qrun "$ROOT/usr/bin/python3" \
     "$ROOT/opt/klipper/klippy/klippy.py" \
-    "$ROOT/etc/reforge/printer.cfg" \
+    "$REFORGE_ETC/printer.cfg" \
     -a "$NTMP/klippy_uds" \
     -l "$NTMP/klippy.log" \
     > "$NTMP/klippy-stdout.txt" 2>&1 &

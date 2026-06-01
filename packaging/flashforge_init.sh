@@ -148,6 +148,18 @@ mv "${TEMP_DIR}" "${REFORGE_DIR}"
 sync
 
 # ---------------------------------------------------------------------------
+# Seed the last-known-good (LKG) baseline for the trial/rollback safety net.
+# The shipped rootfs carries the OTA-updatable /mod; a fresh install has no
+# lkg yet, so copy mod -> lkg once.  (The trial/LKG logic itself lands in a
+# later task; this just guarantees a baseline exists from first boot.)
+# ---------------------------------------------------------------------------
+if [ -d "${REFORGE_DIR}/mod" ] && [ ! -d "${REFORGE_DIR}/lkg" ]; then
+    info "Seeding last-known-good baseline (mod -> lkg) ..."
+    cp -a "${REFORGE_DIR}/mod" "${REFORGE_DIR}/lkg"
+    sync
+fi
+
+# ---------------------------------------------------------------------------
 # Install the boot hook (HOOK POINT — see top-of-file comment)
 # ---------------------------------------------------------------------------
 # reforge-boot is shipped inside the rootfs at /.shell/reforge-boot

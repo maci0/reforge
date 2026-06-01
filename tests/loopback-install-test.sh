@@ -208,6 +208,14 @@ fi
 assert_exists "config/screen.conf" "${REFORGE_DIR}/config/screen.conf"
 assert_contains "SCREEN_MODE=HEADLESS" "${REFORGE_DIR}/config/screen.conf" "^SCREEN_MODE=HEADLESS"
 
+# 6b. Self-contained mod/ + LKG seed (run-from-mod model)
+assert_executable "mod/start.sh" "${REFORGE_DIR}/mod/start.sh"
+assert_exists "mod/init.d/S60klipper" "${REFORGE_DIR}/mod/init.d/S60klipper"
+assert_exists "mod/release_info.json" "${REFORGE_DIR}/mod/release_info.json"
+assert_exists "lkg seed (release_info.json)" "${REFORGE_DIR}/lkg/release_info.json"
+# No /etc/init.d mirror of the reforge S-scripts inside the installed chroot.
+assert_not_written_outside_data "no /etc/init.d S-script mirror" "${REFORGE_DIR}/etc/init.d/S60klipper"
+
 # 7. Installer did NOT write outside $DATA
 #    - host /etc/init.d should NOT have S01reforge (we used FAKE_INITD)
 assert_not_written_outside_data "host /etc/init.d clean" "/etc/init.d/S01reforge"

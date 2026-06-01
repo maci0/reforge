@@ -104,22 +104,25 @@ mount --bind   "${DATA}"       "${REFORGE_DIR}/data"
 sync
 
 # ---------------------------------------------------------------------------
-# Determine which init-chain entry point to exec
-# The rootfs ships an rcS-compatible /etc/init.d structure plus an
-# explicit /etc/init.d/rcS wrapper.  The S-scripts it calls:
-#   S00cloudblock  S35zram  S60klipper  S65moonraker  S70httpd
-#   S75guppyscreen (only when SCREEN_MODE=GUPPY)
-# We exec the rootfs's /etc/init.d/rcS and pass SCREEN_MODE so it can
-# decide whether to launch GuppyScreen.
+# Run the ReForge init chain IN PLACE from the self-contained mod dir.
+#
+# The reforge-authored init lives in the OTA-updatable /mod (chroot-internal):
+#   /mod/start.sh runs /mod/init.d/S* in sorted order — no /etc/init.d mirror.
+#   The S-scripts it calls:
+#     S00cloudblock  S35zram  S60klipper  S65moonraker  S70httpd
+#     S75guppyscreen (only when SCREEN_MODE=GUPPY)
+# A zip update of /mod is therefore live on the next boot with no copy step.
+# We exec /mod/start.sh and pass SCREEN_MODE so it can decide whether to
+# launch GuppyScreen.
 # ---------------------------------------------------------------------------
-CHROOT_RCS="${REFORGE_DIR}/etc/init.d/rcS"
+CHROOT_START="${REFORGE_DIR}/mod/start.sh"
 
-if [ ! -x "${CHROOT_RCS}" ]; then
+if [ ! -x "${CHROOT_START}" ]; then
     # Fallback: exec a login shell (useful during development / qemu tests)
-    echo "[reforge-boot] WARN: ${CHROOT_RCS} not executable — falling back to /bin/sh"
+    echo "[reforge-boot] WARN: ${CHROOT_START} not executable — falling back to /bin/sh"
     exec chroot "${REFORGE_DIR}" /bin/sh
 fi
 
-echo "[reforge-boot] launching ReForge via chroot ..."
+echo "[reforge-boot] launching ReForge via chroot (run-from-mod) ..."
 export SCREEN_MODE
-exec chroot "${REFORGE_DIR}" /etc/init.d/rcS start
+exec chroot "${REFORGE_DIR}" /mod/start.sh

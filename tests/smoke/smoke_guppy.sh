@@ -73,15 +73,33 @@ file "$CHELPER_SO" | grep -q "ARM" \
 file "$EXTRACT/opt/guppyscreen/guppyscreen" | grep -q "ARM" \
   || fail "guppyscreen binary not ARM"
 
-# 10) The 5 real init scripts exist and are executable
+# 10) The 5 real init scripts live in the self-contained mod dir (run-in-place,
+#     no /etc/init.d mirror) and are executable.
 for svc in S00cloudblock S60klipper S65moonraker S70httpd S75guppyscreen; do
-  SCRIPT="$EXTRACT/etc/init.d/$svc"
-  [ -f "$SCRIPT" ] || fail "init script $svc missing"
-  [ -x "$SCRIPT" ] || fail "init script $svc not executable"
+  SCRIPT="$EXTRACT/mod/init.d/$svc"
+  [ -f "$SCRIPT" ] || fail "mod init script $svc missing"
+  [ -x "$SCRIPT" ] || fail "mod init script $svc not executable"
 done
+# There must be NO /etc/init.d mirror of the ReForge S-scripts.
+[ -e "$EXTRACT/etc/init.d/S60klipper" ] \
+  && fail "stale /etc/init.d/S60klipper mirror present (should run from /mod)"
 
-# 11) printer.cfg exists
-[ -f "$EXTRACT/etc/reforge/printer.cfg" ] \
-  || fail "/etc/reforge/printer.cfg missing"
+# 10b) mod/ is self-contained: start.sh/stop.sh + service wrappers + release_info
+[ -x "$EXTRACT/mod/start.sh" ] || fail "/mod/start.sh missing or not executable"
+[ -x "$EXTRACT/mod/stop.sh" ]  || fail "/mod/stop.sh missing or not executable"
+for svc in klipper moonraker guppyscreen reforge; do
+  [ -x "$EXTRACT/mod/services/$svc" ] || fail "/mod/services/$svc missing/not executable"
+done
+[ -f "$EXTRACT/mod/release_info.json" ] || fail "/mod/release_info.json missing"
+grep -q '"project_owner": "maci0"' "$EXTRACT/mod/release_info.json" \
+  || fail "/mod/release_info.json missing project_owner key"
+# zram modules relocated into mod/
+[ -f "$EXTRACT/mod/modules/zram.ko" ] || fail "/mod/modules/zram.ko missing"
+# LKG baseline seeded by post-build
+[ -f "$EXTRACT/lkg/release_info.json" ] || fail "/lkg seed missing (cp -a mod lkg)"
+
+# 11) printer.cfg ships inside the mod dir (start.sh symlinks /etc/reforge -> /mod/etc/reforge)
+[ -f "$EXTRACT/mod/etc/reforge/printer.cfg" ] \
+  || fail "/mod/etc/reforge/printer.cfg missing"
 
 echo "PASS: full-stack rootfs verified"

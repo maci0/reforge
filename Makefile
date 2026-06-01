@@ -1,5 +1,6 @@
 BUILD := tools/build/build.sh
 .PHONY: rootfs defconfig clean smoke repro integration smoke-guppy tgz validate-loopback \
+        run-from-mod \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
         qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-mem
 # Single image: `make rootfs` builds the full ReForge stack (klipper + moonraker
@@ -14,6 +15,8 @@ integration:       ; tests/smoke/chroot_integration.sh
 smoke-guppy:       ; tests/smoke/smoke_guppy.sh
 tgz:               ; packaging/build-tgz.sh
 validate-loopback: ; sudo tests/loopback-install-test.sh
+# run-from-mod: structural test of the self-contained mod/ + run-in-place model
+run-from-mod:      ; tests/release/run-from-mod-test.sh
 
 # --- P3 Task 4: qemu virt test kernel (vendor 5.4.61, ARCH_SUNXI=n, 800x480x32 fb) ---
 # build zImage + initramfs + run smoke test

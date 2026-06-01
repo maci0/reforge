@@ -16,7 +16,7 @@
 
 ZRAM_ALGO=zstd
 ZRAM_SIZE=256M
-MODULES_DIR=/opt/reforge/zram
+MODULES_DIR=/mod/modules
 CONF=/etc/reforge/zram.conf
 
 # Source user config if present (overrides defaults above)
