@@ -15,7 +15,7 @@
 #   mod/
 #     release_info.json
 #     start.sh stop.sh
-#     init.d/{S00cloudblock,S35zram,S60klipper,S65moonraker,S70httpd,S75guppyscreen}
+#     init.d/{S00cloudblock,S35zram,S60klipper,S65moonraker,S70httpd,S75guppyscreen,S99ok}
 #     etc/reforge/{printer.cfg,printer.base.cfg,moonraker.conf,zram.conf}
 #     modules/{zram.ko,zsmalloc.ko,swapon_prio}
 #     usr/bin/reforge-banner
@@ -51,7 +51,7 @@ mkdir -p "${MOD}/init.d" "${MOD}/etc/reforge" "${MOD}/modules" \
 # They were staged into ${TARGET_DIR}/etc/init.d by the rootfs overlay; move
 # them into mod/ and remove the originals so there is NO /etc/init.d mirror.
 # ---------------------------------------------------------------------------
-for s in S00cloudblock S35zram S60klipper S65moonraker S70httpd S75guppyscreen; do
+for s in S00cloudblock S35zram S60klipper S65moonraker S70httpd S75guppyscreen S99ok; do
     if [ -f "${TARGET_DIR}/etc/init.d/${s}" ]; then
         cp -a "${TARGET_DIR}/etc/init.d/${s}" "${MOD}/init.d/${s}"
         rm -f "${TARGET_DIR}/etc/init.d/${s}"
@@ -106,9 +106,9 @@ fi
 chmod 0755 "${MOD}/usr/bin/reforge-banner" 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
-# .shell — reforge-boot copy (for self-update) + reforge-lkg.sh.
-# reforge-lkg.sh is authored in Task 4; ship a stub so start.sh/services can
-# source it harmlessly until then.
+# .shell — reforge-boot copy (for self-update) + reforge-lkg.sh (trial/LKG
+# helpers, sourced by both reforge-boot on the stock side and S99ok inside the
+# chroot).  Both are authored in the rootfs overlay; copy them into mod/.
 # ---------------------------------------------------------------------------
 if [ -f "${OVERLAY}/.shell/reforge-boot" ]; then
     cp -a "${OVERLAY}/.shell/reforge-boot" "${MOD}/.shell/reforge-boot"
@@ -116,20 +116,10 @@ if [ -f "${OVERLAY}/.shell/reforge-boot" ]; then
 fi
 if [ -f "${OVERLAY}/.shell/reforge-lkg.sh" ]; then
     cp -a "${OVERLAY}/.shell/reforge-lkg.sh" "${MOD}/.shell/reforge-lkg.sh"
-else
-    # Task-4 stub: harmless no-op helpers so sourcing never errors.
-    cat > "${MOD}/.shell/reforge-lkg.sh" <<'EOF'
-#!/bin/sh
-# reforge-lkg.sh — STUB (real trial/LKG logic lands in Task 4).
-# Provides no-op helpers so start.sh / S99ok can source it unconditionally.
-lkg_counter_get()   { echo 0; }
-lkg_counter_inc()   { :; }
-lkg_counter_reset() { :; }
-is_trial()          { return 1; }
-lkg_promote()       { :; }
-lkg_restore()       { :; }
-EOF
     chmod 0755 "${MOD}/.shell/reforge-lkg.sh"
+else
+    echo "[post-build] ERROR: reforge-lkg.sh not found in overlay" >&2
+    exit 1
 fi
 
 # ---------------------------------------------------------------------------

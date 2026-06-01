@@ -1,0 +1,25 @@
+#!/bin/sh
+# S99ok — services-up sentinel (the LAST script /mod/start.sh runs).
+#
+# Reaching this script means every prior S-script in the chain started without
+# wedging the boot, i.e. "services are up".  It runs UNCONDITIONALLY — it is NOT
+# tied to GuppyScreen (S75guppyscreen exits 0 whether or not it launches the GUI,
+# so S99ok always follows it).
+#
+# On services-up we promote the current mod -> lkg (last-known-good) and reset
+# the trial counter, so the next boot of this same mod is no longer a trial and
+# a later bad update can roll back to THIS known-good mod.
+#
+# Runs INSIDE the chroot (root = /data/.reforge).  reforge-lkg.sh is reachable
+# both as /mod/.shell/reforge-lkg.sh and /data/.reforge/.shell/... ; we source
+# the /mod copy since /mod is this script's own self-contained tree.  It uses
+# absolute /data/.reforge/{mod,lkg,state} paths, which resolve to the same inodes
+# inside the chroot (via the /data bind-mount) as on the stock side.
+[ "$1" = start ] || exit 0
+
+. /mod/.shell/reforge-lkg.sh
+
+is_trial && echo "[S99ok] services up — promoting mod -> LKG"
+lkg_promote
+
+touch /tmp/reforge-ok

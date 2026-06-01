@@ -191,6 +191,49 @@ else
     fail "stop.sh did not run in reverse order"; cat "${SCRATCH}/stop.out"
 fi
 
+# ---------------------------------------------------------------------------
+# Trial / LKG cycle (Task 4): with a mod whose version differs from the seeded
+# lkg, a trial boot increments the counter; after a simulated S99ok promote the
+# counter resets and the boot is no longer a trial.  Exercises reforge-lkg.sh in
+# the run-from-mod tree assembled above.  (Full brick/restore is the Task 6 qemu
+# test; here we only confirm the counter wiring end-to-end.)
+# ---------------------------------------------------------------------------
+LKG_SH="${MOD}/.shell/reforge-lkg.sh"
+[ -f "${LKG_SH}" ] && pass "mod/.shell/reforge-lkg.sh present (non-stub)" \
+    || fail "mod/.shell/reforge-lkg.sh missing"
+if grep -q 'STUB' "${LKG_SH}"; then
+    fail "reforge-lkg.sh is still the stub"
+else
+    pass "reforge-lkg.sh is the real trial/LKG implementation"
+fi
+[ -x "${MOD}/init.d/S99ok" ] && pass "mod/init.d/S99ok present (sentinel)" \
+    || fail "mod/init.d/S99ok missing"
+
+# Build a scratch DATA root with mod(2.0.0) + lkg(1.0.0) to drive the helpers.
+TRIAL_DATA="${SCRATCH}/trialdata"
+mkdir -p "${TRIAL_DATA}/.reforge/mod" "${TRIAL_DATA}/.reforge/lkg"
+printf '{\n  "version": "2.0.0"\n}\n' > "${TRIAL_DATA}/.reforge/mod/release_info.json"
+printf '{\n  "version": "1.0.0"\n}\n' > "${TRIAL_DATA}/.reforge/lkg/release_info.json"
+
+run_trial() { REFORGE_DATA_ROOT="${TRIAL_DATA}" sh -c ". '${LKG_SH}'; $1"; }
+
+# Trial detected + counter increments (mirrors reforge-boot's pre-exec step).
+run_trial 'is_trial && lkg_counter_inc'
+T1="$(run_trial 'lkg_counter_get')"
+[ "${T1}" = "1" ] && pass "trial boot incremented counter (mod!=lkg)" \
+    || fail "trial counter = '${T1}' (expected 1)"
+
+# Simulated S99ok promote: versions equalize, counter resets, no longer a trial.
+run_trial 'lkg_promote'
+T2="$(run_trial 'lkg_counter_get')"
+[ "${T2}" = "0" ] && pass "S99ok promote reset trial counter" \
+    || fail "post-promote counter = '${T2}' (expected 0)"
+if run_trial 'is_trial'; then
+    fail "still a trial after promote"
+else
+    pass "no longer a trial after promote (mod==lkg)"
+fi
+
 echo ""
 if [ "${FAILS}" -eq 0 ]; then
     echo "PASS: run-from-mod model verified"

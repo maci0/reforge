@@ -104,6 +104,40 @@ mount --bind   "${DATA}"       "${REFORGE_DIR}/data"
 sync
 
 # ---------------------------------------------------------------------------
+# Trial / last-known-good (LKG) guard — runs on the STOCK side BEFORE we chroot
+# into the mod dir, so a brick during the mod's own boot is still counted.
+#
+# reforge-lkg.sh resolves /data/.reforge/{mod,lkg,state} (via REFORGE_DATA_ROOT
+# -> DATA), the SAME inodes that S99ok sees inside the chroot.  We source the mod
+# copy.  The helpers may return non-zero (is_trial returns 1 on a non-trial /
+# fresh boot), so guard each call under `set -e`.
+#
+# Flow:
+#   - A SKIP_MOD marker already exited above => trial state is never touched.
+#   - Not a trial (versions match, or lkg absent on a fresh device) => no-op.
+#   - Trial + counter >= N (3 failed boots) => the new mod is bad: restore LKG.
+#   - Trial + counter <  N => count this attempt BEFORE exec'ing the mod init.
+# On a successful boot, S99ok promotes mod -> lkg and resets the counter.
+# ---------------------------------------------------------------------------
+LKG_HELPERS="${REFORGE_DIR}/mod/.shell/reforge-lkg.sh"
+if [ -f "${LKG_HELPERS}" ]; then
+    # export so the sourced script's DATA resolves to this DATA in test mode;
+    # in production REFORGE_DATA_ROOT is unset and DATA defaults to /data.
+    [ "${DATA}" = "/data" ] || export REFORGE_DATA_ROOT="${DATA}"
+    . "${LKG_HELPERS}"
+    if is_trial; then
+        _cnt="$(lkg_counter_get)"
+        if [ "${_cnt}" -ge "${N}" ]; then
+            echo "[reforge-boot] trial failed ${N}x (count=${_cnt}) — restoring LKG"
+            lkg_restore
+        else
+            echo "[reforge-boot] trial boot (count=${_cnt}) — incrementing trial counter"
+            lkg_counter_inc
+        fi
+    fi
+fi
+
+# ---------------------------------------------------------------------------
 # Run the ReForge init chain IN PLACE from the self-contained mod dir.
 #
 # The reforge-authored init lives in the OTA-updatable /mod (chroot-internal):
