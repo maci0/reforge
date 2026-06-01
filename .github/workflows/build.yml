@@ -16,6 +16,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: shellcheck
         run: make lint
+      - name: actionlint (workflow files)
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) >/dev/null 2>&1 || true
+          if [ -x ./actionlint ]; then ./actionlint -color || exit 1; else echo "actionlint unavailable — skipping"; fi
   no-blobs:
     # Guard: FAIL if any tracked file path looks like a FlashForge/Qt proprietary
     # blob.  Matches on FILE PATHS only (git ls-files output), not file content —
@@ -55,6 +59,13 @@ jobs:
         run: make smoke
       - name: smoke test (full stack — guppyscreen/httpd present)
         run: make smoke-guppy
+      - name: release slicer dry-run (per-component zips, no publish)
+        # Keeps the OTA release builder green on every PR/push without publishing:
+        # slices build/output into klipper/moonraker/guppyscreen/reforge zips +
+        # the USB .tgz, then asserts the 4-key release_info.json layout.
+        run: |
+          tools/release/build-release.sh --no-publish
+          tests/release/build-release-test.sh
   reproducibility:
     # twin-build reproducibility check — heavy (2 full builds), so only on
     # the weekly schedule or manual dispatch, not every push.

@@ -1,0 +1,55 @@
+name: release
+# Tag-triggered OTA release: build the rootfs, slice it into per-component zips
+# (klipper/moonraker/guppyscreen/reforge, each with a 4-key release_info.json) +
+# the USB .tgz, and publish them as a single multi-asset GitHub Release. The
+# device's Moonraker update_manager fetches these (zip/web updaters) — no git on
+# the printer. build-release.sh does the draft -> upload -> un-draft dance so
+# consumers never see a half-uploaded release.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (e.g. v0.3.0)'
+        required: true
+
+permissions:
+  contents: write   # gh release create/upload/edit
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      # tag push -> github.ref_name; manual dispatch -> the typed input. Bound to
+      # an env var (never interpolated into a run: line) to avoid script injection.
+      TAG: ${{ github.event.inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+
+      - name: install deps
+        run: sudo apt-get update && sudo apt-get install -y
+             build-essential qemu-user-static file xz-utils unzip zip bc cpio rsync
+
+      - name: fetch vendored sources
+        run: ./vendor/fetch.sh
+
+      # Cache the buildroot download dir + ccache to cut the ~30-60 min build.
+      - name: cache buildroot dl + ccache
+        uses: actions/cache@v4
+        with:
+          path: |
+            vendor/buildroot/dl
+            build/ccache
+          key: br-${{ runner.os }}-${{ hashFiles('br-external/configs/reforge_defconfig') }}
+          restore-keys: |
+            br-${{ runner.os }}-
+
+      - name: build rootfs
+        run: make rootfs
+
+      - name: publish release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: tools/release/build-release.sh --publish "${TAG}"
