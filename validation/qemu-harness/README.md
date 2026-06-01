@@ -123,3 +123,6 @@ default NIC causes routing conflicts where TCP connects but HTTP hangs.)
 - Stock-firmware *full* boot under qemu is out of scope (needs the T113 machine model);
   the update test installs via filesystem ops + boots the ReForge stack instead.
 </content>
+
+## Screenshots
+Captured GUI renders (GuppyScreen; firmwareExe result) are in [`docs/screenshots/`](../../docs/screenshots/README.md) — all at the pinned 800x480, pixel-identical to the real panel.
