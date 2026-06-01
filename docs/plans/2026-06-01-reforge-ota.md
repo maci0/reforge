@@ -174,9 +174,18 @@ repo: mainsail-crew/mainsail
 path: /var/www/mainsail
 ```
 
-`script_path` for the `simple` provider defaults under `printer_data`/config; point it (in
-`[machine]` or the provider) at the mod-dir service-control scripts dir created in Task 3.
-`asset_name` is read from each path's `release_info.json` (not set here).
+Set `[machine] script_path: /mod/services` (the wrappers from Task 3). `asset_name` is read
+from each path's `release_info.json` (not set here).
+
+- [ ] **Step 3b: Seed `moonraker.asvc` (REQUIRED — else guppyscreen/reforge never restart).**
+  `managed_services` only takes effect for services Moonraker *allows*: `is_service_allowed`
+  auto-matches `klipper*`/`moonraker*` (regex) but **clears** any other name unless it's listed in
+  `<data>/moonraker.asvc`. So `managed_services: klipper`/`moonraker` work, but `guppyscreen` and
+  `reforge` would silently update-without-restart. Ship
+  `br-external/board/reforge/rootfs-overlay/var/lib/moonraker/moonraker.asvc` (Moonraker's data dir
+  is `-d /var/lib/moonraker`) containing one name per line: `klipper`, `moonraker`, `guppyscreen`,
+  `reforge`. Verify on-device: `GET /machine/system_info` / the update flow restarts guppyscreen
+  + reforge (covered by the Task 6 e2e).
 
 - [ ] **Step 4: Validate it parses + paths resolve.** `Run: make integration` → Expected: still
   `PASS`. The `[update_manager]` paths are **chroot-relative** (Moonraker runs inside the
@@ -266,11 +275,12 @@ exec /mod/init.d/S60klipper "$1"
 
 `Run: sudo make validate-loopback` (or the focused test) → Expected: PASS; init ran from `mod/`.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add br-external/board/reforge/post-build.sh \
-        br-external/board/reforge/rootfs-overlay/.shell/reforge-boot
+        br-external/board/reforge/rootfs-overlay/.shell/reforge-boot \
+        br-external/board/reforge/rootfs-overlay/var/lib/moonraker/moonraker.asvc
 git commit -m "ota: self-contained mod/ dir + run-init-in-place (no deploy mirror)"
 ```
 
@@ -297,7 +307,8 @@ lkg_counter_inc()   { mkdir -p "$STATE"; _atomic_write "$CNT" "$(( $(lkg_counter
 lkg_counter_reset() { mkdir -p "$STATE"; _atomic_write "$CNT" 0; }
 mod_version() { grep -o '"version"[^,]*' "$1/release_info.json" 2>/dev/null | sed 's/.*: *"//;s/"//'; }
 # is this a trial boot? (mod version differs from lkg version)
-is_trial() { [ "$(mod_version "$MOD")" != "$(mod_version "$LKG")" ]; }
+# A missing LKG (fresh device / first boot) is NOT a trial (S4 guard).
+is_trial() { [ -d "$LKG" ] || return 1; [ "$(mod_version "$MOD")" != "$(mod_version "$LKG")" ]; }
 lkg_promote() { rm -rf "$LKG.new"; cp -a "$MOD" "$LKG.new" && rm -rf "$LKG" && mv "$LKG.new" "$LKG"; lkg_counter_reset; }
 lkg_restore() { rm -rf "$MOD.bad"; mv "$MOD" "$MOD.bad" 2>/dev/null; cp -a "$LKG" "$MOD"; lkg_counter_reset; }
 ```
@@ -334,9 +345,10 @@ touch /tmp/reforge-ok
 - [ ] **Step 2: Write `reforge-lkg.sh`** per the contract. Run test → PASS.
 - [ ] **Step 3: Write `S99ok`** in `mod/init.d/` (chroot-relative `/mod/init.d/S99ok`), `chmod +x`.
   It is the **last** script `start.sh` runs, so reaching it just means "the init chain completed"
-  — it runs **unconditionally**, regardless of `SCREEN_MODE` (in HEADLESS, `S75guppyscreen`
-  self-skips and exits 0, so `S99ok` still runs). It sources `/mod/.shell/reforge-lkg.sh` and
-  calls `lkg_promote`. (Don't tie the sentinel to guppyscreen having started.)
+  — it runs **unconditionally** (it's the last script `start.sh` runs). `S75guppyscreen` exits 0
+  whether or not it launches the GUI (it self-skips when `/dev/fb0` is absent), so `S99ok` always
+  runs after it. It sources `/mod/.shell/reforge-lkg.sh` and calls `lkg_promote`. (Don't tie the
+  sentinel to guppyscreen having started.)
 - [ ] **Step 4: Wire the trial flow into `reforge-boot`.** Re-run `lkg-unit-test.sh` + `make validate-loopback`. Expected: PASS.
 - [ ] **Step 5: Commit**
 
