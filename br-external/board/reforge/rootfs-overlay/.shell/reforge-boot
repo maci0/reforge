@@ -46,6 +46,14 @@ if [ ! -f "${REFORGE_DIR}/.installed" ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Fire/ember boot banner (the script lives in the ReForge rootfs; it is plain
+# sh+printf, so we can render it from the stock side before the chroot).
+# ---------------------------------------------------------------------------
+if [ -f "${REFORGE_DIR}/usr/bin/reforge-banner" ]; then
+    sh "${REFORGE_DIR}/usr/bin/reforge-banner" 2>/dev/null || true
+fi
+
+# ---------------------------------------------------------------------------
 # Read persisted screen mode
 # ---------------------------------------------------------------------------
 SCREEN_MODE="HEADLESS"
@@ -82,12 +90,16 @@ mount --bind   /run            "${REFORGE_DIR}/run"
 mount --bind   /tmp            "${REFORGE_DIR}/tmp"
 
 # Expose /data inside the chroot so Klipper/Moonraker can reach gcodes etc.
+# ($DATA is the printer's /data = mmcblk0p7 = ReForge's own space, NOT the stock rootfs.)
 mkdir -p "${REFORGE_DIR}/data"
 mount --bind   "${DATA}"       "${REFORGE_DIR}/data"
 
-# Expose stock /opt/config (klipper printer config) inside chroot
-mkdir -p "${REFORGE_DIR}/opt/config"
-mount --bind   /opt/config     "${REFORGE_DIR}/opt/config"
+# NOTE: we deliberately do NOT bind the stock /opt/config. ReForge is fully
+# self-contained: klippy uses /etc/reforge/printer.cfg and moonraker uses
+# /etc/reforge/moonraker.conf (both inside the chroot, on /data/.reforge). The
+# ONLY persistent change ReForge makes to the stock rootfs is the single
+# /etc/init.d/S01reforge symlink. Everything else lives in /data/.reforge or is
+# a transient runtime bind-mount (proc/sys/dev/run/tmp/data) undone on uninstall.
 
 sync
 

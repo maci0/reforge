@@ -184,3 +184,14 @@ matches these patterns — providing an automated guard against accidental commi
 - The canonical `reforge-boot` lives in the rootfs overlay
   (`br-external/board/reforge/rootfs-overlay/.shell/reforge-boot`) — it ships inside the
   rootfs; there is intentionally no copy under `packaging/`.
+
+## Minimal stock footprint (design guarantee)
+ReForge installs as an overlay that makes **exactly one persistent change to the stock
+rootfs**: a single symlink `/etc/init.d/S01reforge → /data/.reforge/.shell/reforge-boot`.
+Everything else is **self-contained**:
+- the entire ReForge stack lives in `/data/.reforge` (on `/data` = `mmcblk0p7`, not the stock rootfs);
+- klippy/moonraker use their **own** configs (`/etc/reforge/{printer.cfg,moonraker.conf}` inside the chroot) — ReForge does **not** read or write the stock `/opt/config`;
+- the cloud-block edits the **chroot's** `/etc/hosts`, never the stock one;
+- `reforge-boot` only sets up **transient** runtime bind-mounts (proc/sys/dev/run/tmp/data) into the chroot — these modify nothing on disk and are gone on reboot/uninstall.
+
+So **uninstall = delete that one symlink + `/data/.reforge`** and the stock rootfs is byte-identical to before. (Verified by `validation/loopback-install-test.sh`, which asserts the installer writes nothing outside `$DATA` except the single init symlink.)
