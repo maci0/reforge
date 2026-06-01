@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # =============================================================================
-# ReForge P3 Task 8: spike-stockui/extract.sh
+# ReForge P3 Task 8: lab/spike-stockui/extract.sh
 #
 # Extract firmwareExe + Qt libs from the stock environment into
-# spike-stockui/extracted/  (GITIGNORED — proprietary blobs, never commit).
+# lab/spike-stockui/extracted/  (GITIGNORED — proprietary blobs, never commit).
 #
 # Sources (in order of preference):
 #   1. stock-rootfs.ext4 — loop-mount and copy /opt/PROGRAM/software/5.1.4/
@@ -12,11 +12,11 @@
 #   3. ../fw-analysis/library-5.1.4/   — env.cfg and ffstartup config.
 #
 # Usage:
-#   sudo spike-stockui/extract.sh
+#   sudo lab/spike-stockui/extract.sh
 #   (sudo needed for loop mount of stock-rootfs.ext4)
 #
 # Output:
-#   spike-stockui/extracted/
+#   lab/spike-stockui/extracted/
 #     firmwareExe          — the ARM ELF (unstripped, debug_info)
 #     env.cfg              — Qt + tslib + LD_LIBRARY_PATH env (from library pkg)
 #     ffstartup.cfg        — process startup config (AppArgs: -1;-D;-qws)
@@ -32,7 +32,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"   # lab/spike-stockui -> repo root
 SPIKE_DIR="${SCRIPT_DIR}"
 EXTRACTED="${SPIKE_DIR}/extracted"
 
@@ -47,10 +47,10 @@ warn() { echo "[extract] WARN:  $*" >&2; }
 # ---------------------------------------------------------------------------
 # Safety: confirm extracted/ is gitignored
 # ---------------------------------------------------------------------------
-if ! grep -q 'spike-stockui/extracted' "${REPO_ROOT}/.gitignore" 2>/dev/null; then
-    die "spike-stockui/extracted/ is NOT in .gitignore — add it before extracting!"
+if ! grep -q 'lab/spike-stockui/extracted' "${REPO_ROOT}/.gitignore" 2>/dev/null; then
+    die "lab/spike-stockui/extracted/ is NOT in .gitignore — add it before extracting!"
 fi
-log "Confirmed: spike-stockui/extracted/ is gitignored."
+log "Confirmed: lab/spike-stockui/extracted/ is gitignored."
 
 # ---------------------------------------------------------------------------
 # Create output dir

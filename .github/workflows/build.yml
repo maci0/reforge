@@ -20,7 +20,7 @@ jobs:
       - name: no proprietary blobs tracked
         run: |
           if git ls-files | grep -iE \
-            'firmwareExe|libQt(Core|Gui|Network)|spike-stockui/extracted/|/opt/PROGRAM/'; then
+            'firmwareExe|libQt(Core|Gui|Network)|lab/spike-stockui/extracted/|/opt/PROGRAM/'; then
             echo "ERROR: proprietary blob(s) found in tracked files — see above"
             exit 1
           fi

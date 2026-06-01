@@ -118,7 +118,7 @@ Configured in `/data/.reforge/config/screen.conf` (`SCREEN_MODE=<mode>`).
 | `GUPPY` | GuppyScreen Qt5 touchscreen UI against upstream Klipper. | Implemented (Plan 2) |
 | `STOCK` | Stock FlashForge `firmwareExe` Qt4/QWS UI against upstream Klipper. | Feasibility confirmed (see below) — implementation deferred to a later plan |
 
-### STOCK Mode — Feasibility (spike-stockui, Plan 3)
+### STOCK Mode — Feasibility (lab/spike-stockui, Plan 3)
 
 The Plan 3 spike confirmed that STOCK mode is feasible (**GO — Option A**):
 
@@ -131,7 +131,7 @@ The Plan 3 spike confirmed that STOCK mode is feasible (**GO — Option A**):
 - Constraint: `firmwareExe` is **soft-float ABI** and must run in the stock soft-float
   environment, not inside the ReForge hard-float chroot.
 
-Full spike findings: `spike-stockui/REPORT.md`.
+Full spike findings: `docs/research/stock-ui-spike.md` (spike scripts live in `lab/spike-stockui/`).
 
 Implementation of STOCK mode is **deferred** to a future plan.
 
@@ -171,7 +171,7 @@ significant build time.  They are not run in CI.  See
 
 The repo must **never track** FlashForge proprietary blobs (`firmwareExe`, Qt `.so`
 libraries, `/opt/PROGRAM/` contents).  The spike extracts them only to
-`spike-stockui/extracted/` which is gitignored.
+`lab/spike-stockui/extracted/` which is gitignored.
 
 A CI job (`no-blobs` in `.github/workflows/build.yml`) fails if any tracked file path
 matches these patterns — providing an automated guard against accidental commits.

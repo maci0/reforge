@@ -237,7 +237,7 @@ who prefer the FF stock UX (familiar workflow, language strings, calibration flo
 ## 5. Blob Guard Verification
 
 ```
-spike-stockui/extracted/  is gitignored: YES (.gitignore line: spike-stockui/extracted/)
+lab/spike-stockui/extracted/  is gitignored: YES (.gitignore line: lab/spike-stockui/extracted/)
 ```
 
 No proprietary blobs tracked. The `extracted/` directory contains firmwareExe + Qt/tslib

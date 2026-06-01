@@ -16,7 +16,7 @@ path works (LVGL → DRM/virtio-gpu fbdev → `/dev/fb0`). Regenerate with `make
 
 ## Stock UI (`firmwareExe`) — spike result, screenshot NOT committed
 
-The stock-UI spike (`spike-stockui/REPORT.md`) booted the stock environment in qemu and
+The stock-UI spike (`docs/research/stock-ui-spike.md`) booted the stock environment in qemu and
 ran FlashForge's proprietary `firmwareExe` against the same 800×480 fb. **Result: it
 rendered** — Qt4/QWS initialized and the FlashForge splash drew to the framebuffer
 (screendump had 97 distinct pixel values, non-blank).
@@ -25,6 +25,6 @@ The screenshot itself is **deliberately not committed**: it shows FlashForge's
 proprietary UI/branding, and this repo commits **zero proprietary assets** (CI-guarded —
 same policy that excludes the `firmwareExe` binary). The render is captured locally to
 `validation/qemu-harness/build/stockui-screenshot.ppm` (gitignored) when you run the
-spike; see `spike-stockui/REPORT.md` for the full works/breaks analysis and the
+spike; see `docs/research/stock-ui-spike.md` for the full works/breaks analysis and the
 **GO / Option-A** recommendation.
 </content>
