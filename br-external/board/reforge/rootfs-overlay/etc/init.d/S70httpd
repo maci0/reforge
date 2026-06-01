@@ -1,0 +1,43 @@
+#!/bin/sh
+#
+# S70httpd — serve the Mainsail static SPA via busybox httpd.
+#
+# Started after Moonraker (S65). busybox httpd only serves static files;
+# the browser talks to Moonraker's own HTTP+WebSocket server directly on
+# port 7125 (Moonraker cors_domains permits the LAN origin). No reverse
+# proxy — this replaces the heavier nginx (~3 MB RSS saved).
+#
+
+WWW=/var/www/mainsail
+PORT=80
+PIDFILE=/var/run/httpd.pid
+NAME=httpd
+
+case "$1" in
+	start)
+		if [ ! -f "$WWW/index.html" ]; then
+			echo "$NAME: $WWW not found — Mainsail not installed; skipping"
+			exit 0
+		fi
+		echo "Starting $NAME on :$PORT ($WWW)..."
+		# busybox httpd daemonizes; -f would foreground. Capture pid.
+		/usr/sbin/httpd -p "$PORT" -h "$WWW" &
+		echo $! > "$PIDFILE"
+		;;
+	stop)
+		echo "Stopping $NAME..."
+		[ -f "$PIDFILE" ] && kill "$(cat "$PIDFILE")" 2>/dev/null
+		# Fallback: kill any httpd serving our docroot
+		kill "$(pidof httpd)" 2>/dev/null || true
+		rm -f "$PIDFILE"
+		;;
+	restart|reload)
+		"$0" stop
+		sleep 1
+		"$0" start
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+		;;
+esac

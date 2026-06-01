@@ -1,14 +1,16 @@
 BUILD := tools/build/build.sh
-.PHONY: rootfs defconfig clean smoke repro integration guppy smoke-guppy tgz validate-loopback \
+.PHONY: rootfs defconfig clean smoke repro integration smoke-guppy tgz validate-loopback \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
         qemu-stock-rootfs qemu-run qemu-update qemu-render
+# Single image: `make rootfs` builds the full ReForge stack (klipper + moonraker
+# + mainsail + guppyscreen + zram). SCREEN_MODE gates the GUI at runtime.
 rootfs:            ; $(BUILD) rootfs
 defconfig:         ; $(BUILD) defconfig
 clean:             ; $(BUILD) clean
 smoke:             ; tests/smoke/smoke_rootfs.sh
 repro:             ; tests/smoke/repro_check.sh
 integration:       ; tests/smoke/chroot_integration.sh
-guppy:             ; $(BUILD) rootfs guppyscreen
+# smoke-guppy: assert the GuppyScreen binary is present in the single image
 smoke-guppy:       ; tests/smoke/smoke_guppy.sh
 tgz:               ; packaging/build-tgz.sh
 validate-loopback: ; sudo tests/loopback-install-test.sh

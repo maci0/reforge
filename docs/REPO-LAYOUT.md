@@ -22,7 +22,7 @@ vendor/        third-party we DON'T author — submodules + pinned tarballs (see
   kernels/tina-bsp-kernel/   git submodule (Allwinner T113 BSP, 5.4.61)
   toolchains/            pinned crosstool tarball (gcc 9.5.0 arm-linux-gnueabi)
   fetch.sh               reconstruct everything above at pinned versions
-build/         transient build output (gitignored): output/ + output-guppy/
+build/         transient build output (gitignored): output/ (single full image)
 lab/           experiments / scratch (does NOT ship) — see lab/README.md
 Makefile  pins.lock  .gitmodules  .github/   build glue, pins, submodule registry, CI
 ```
@@ -62,7 +62,7 @@ manually only for fallback/porting diffs. See `vendor/README.md`.
 
 ## Transient build output (gitignored in place — not committed)
 
-`build/` (= `build/output` default + `build/output-guppy` guppy variant),
+`build/output` (the single ReForge image),
 `tests/qemu-harness/build/`, `packaging/dist/`, `tools/recovery/*.img.gz`,
 `modules/zram-bsp/build-tina/`.
 

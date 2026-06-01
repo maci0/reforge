@@ -73,7 +73,7 @@ log "installer tgz : ${TGZ}"
 # ---------------------------------------------------------------------------
 # Locate artefacts
 # ---------------------------------------------------------------------------
-ROOTFS_TAR="${REPO_ROOT}/build/output-guppy/images/rootfs.tar"
+ROOTFS_TAR="${REPO_ROOT}/build/output/images/rootfs.tar"
 [ -f "${ROOTFS_TAR}" ] || die "Guppy rootfs not found: ${ROOTFS_TAR} — run 'make guppy' first"
 
 ZIMAGE="${BUILD_DIR}/zImage"
@@ -257,7 +257,7 @@ PYEOF
     # PATCH P4: Stub out the outer root's own S6x/S7x service scripts
     # (They must not conflict with the chroot services launched by reforge-boot)
     log "  applying P4: stubbing outer service scripts ..."
-    for svc in S60klipper S65moonraker S70nginx S75guppyscreen; do
+    for svc in S60klipper S65moonraker S70httpd S75guppyscreen; do
         OUTER_SVC="${MNT_DIR}/etc/init.d/${svc}"
         if [ -f "${OUTER_SVC}" ]; then
             cat > "${OUTER_SVC}" << 'EOF'

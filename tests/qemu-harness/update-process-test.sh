@@ -10,9 +10,9 @@
 # Root approach chosen: Option (a) — guppy rootfs as outer ext4 root
 # ---------------------------------------------------------------------------
 # Why option (a)?
-#   The guppy rootfs (build/output-guppy/images/rootfs.tar) already contains:
+#   The guppy rootfs (build/output/images/rootfs.tar) already contains:
 #     - BusyBox + inittab + rcS (a complete boot environment)
-#     - python3, nginx, all ReForge services
+#     - python3, busybox httpd, all ReForge services
 #   Using it as the outer root means the qemu VM boots into a real Linux
 #   userland immediately.  The installer then lays a second copy of the
 #   ReForge stack under /data/.reforge and symlinks S01reforge into
@@ -89,7 +89,7 @@ log "installer tgz : ${TGZ}"
 # ---------------------------------------------------------------------------
 # Locate artefacts
 # ---------------------------------------------------------------------------
-ROOTFS_TAR="${REPO_ROOT}/build/output-guppy/images/rootfs.tar"
+ROOTFS_TAR="${REPO_ROOT}/build/output/images/rootfs.tar"
 [ -f "${ROOTFS_TAR}" ] || die "Guppy rootfs not found: ${ROOTFS_TAR} — run 'make guppy' first"
 
 ZIMAGE="${BUILD_DIR}/zImage"
@@ -273,12 +273,12 @@ PYEOF
         log "  P3 patch verified: mmcblk0p7 removed from executable code."
     fi
 
-    # PATCH P4: Stub out the outer root's own S60klipper, S65moonraker, S70nginx,
+    # PATCH P4: Stub out the outer root's own S60klipper, S65moonraker, S70httpd,
     # S75guppyscreen so they don't conflict with the services launched inside the
     # chroot by reforge-boot.  These outer scripts would try to start klipper/
     # moonraker on the host filesystem paths which don't match the chroot layout.
-    log "  applying P4: stubbing outer service scripts (S60klipper, S65moonraker, S70nginx, S75guppyscreen) ..."
-    for svc in S60klipper S65moonraker S70nginx S75guppyscreen; do
+    log "  applying P4: stubbing outer service scripts (S60klipper, S65moonraker, S70httpd, S75guppyscreen) ..."
+    for svc in S60klipper S65moonraker S70httpd S75guppyscreen; do
         OUTER_SVC="${MNT_DIR}/etc/init.d/${svc}"
         if [ -f "${OUTER_SVC}" ]; then
             # Replace with a stub that does nothing
@@ -384,7 +384,7 @@ floor_check() {
     local log="$1"
     # Minimum evidence: the chroot init chain launched + at least one service started
     if grep -q '\[reforge-boot\] launching ReForge via chroot' "${log}" 2>/dev/null && \
-       grep -qE '(Starting klipper|Starting moonraker|Starting nginx)' "${log}" 2>/dev/null; then
+       grep -qE '(Starting klipper|Starting moonraker|Starting httpd)' "${log}" 2>/dev/null; then
         return 0
     fi
     return 1
@@ -491,7 +491,7 @@ log ""
 log "=== RESULT ==="
 
 log "Boot evidence in console log:"
-grep -E '(\[reforge-boot\]|Starting klipper|Starting moonraker|Starting nginx|klippy_state|ReForge|Welcome to)' \
+grep -E '(\[reforge-boot\]|Starting klipper|Starting moonraker|Starting httpd|klippy_state|ReForge|Welcome to)' \
     "${QEMU_LOG}" 2>/dev/null | head -30 | sed 's/^/  /' || log "  (none found)"
 
 if [ "${PASS}" -eq 1 ]; then

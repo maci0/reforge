@@ -1,18 +1,18 @@
 #!/bin/sh
 # chroot_integration.sh — ReForge P2 Task 8 host-side integration test
 #
-# Proves the core stack (Klipper + Moonraker + Mainsail + nginx) self-integrates
-# WITHOUT a device, using qemu-arm-static (no chroot/sudo required).
+# Proves the core stack (Klipper + Moonraker + Mainsail + busybox httpd)
+# self-integrates WITHOUT a device, using qemu-arm-static (no chroot/sudo).
 #
 # Exit 0 → PASS (either floor)
 # Exit 1 → FAIL
 #
-# FULL_API=1 path: Moonraker binds :7125, curl API + nginx serve Mainsail
-# FULL_API=0 path (documented floor): import smoke + config-parse + nginx -t + bundle present
+# FULL_API=1 path: Moonraker binds :7125, curl API + httpd serves Mainsail
+# FULL_API=0 path (documented floor): import smoke + config-parse + httpd-serve + bundle present
 set -eu
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-TARBALL="${ROOTFS_TAR:-$REPO_ROOT/build/output-guppy/images/rootfs.tar.xz}"
+TARBALL="${ROOTFS_TAR:-$REPO_ROOT/build/output/images/rootfs.tar.xz}"
 QEMU="${QEMU_ARM:-/usr/bin/qemu-arm-static}"
 
 # ── sanity ──────────────────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ QEMU="${QEMU_ARM:-/usr/bin/qemu-arm-static}"
 
 # ── work dir + trap cleanup ──────────────────────────────────────────────────
 WORK="$(mktemp -d)"
-NTMP="$(mktemp -d)"   # host-writable temp (nginx logs, pid, etc.)
+NTMP="$(mktemp -d)"   # host-writable temp (httpd logs, pid, etc.)
 # init PIDs BEFORE the trap so cleanup never hits an unbound var (set -u) and
 # never leaks a daemon, regardless of which branch (FULL_API 0/1) we exit from.
 KLIPPY_PID=""
@@ -48,8 +48,8 @@ QPYTHON="QEMU_LD_PREFIX=$ROOT PYTHONDONTWRITEBYTECODE=1 HOME=$ROOT/root"
 [ -f "$ROOT/opt/klipper/klippy/klippy.py" ] || { echo "FAIL: klippy.py not in rootfs"; exit 1; }
 [ -f "$ROOT/opt/moonraker/moonraker/moonraker.py" ] || { echo "FAIL: moonraker.py not in rootfs"; exit 1; }
 [ -f "$ROOT/var/www/mainsail/index.html" ] || { echo "FAIL: mainsail index.html not in rootfs"; exit 1; }
-[ -f "$ROOT/etc/nginx/nginx.conf" ] || { echo "FAIL: nginx.conf not in rootfs"; exit 1; }
-[ -f "$ROOT/usr/sbin/nginx" ] || { echo "FAIL: nginx binary not in rootfs"; exit 1; }
+[ -x "$ROOT/bin/busybox" ] || { echo "FAIL: busybox not in rootfs"; exit 1; }
+[ -e "$ROOT/usr/sbin/httpd" ] || { echo "FAIL: busybox httpd applet not enabled (/usr/sbin/httpd missing)"; exit 1; }
 echo "      rootfs structure validated."
 
 # Helper: run ARM binary under qemu-user
@@ -120,30 +120,18 @@ if [ "$FULL_API" = "1" ]; then
         || { echo "FAIL: Moonraker /server/info did not return JSON with 'result'"; exit 1; }
     echo "      PASS: Moonraker API responded with result JSON."
 
-    # Optional: nginx + Mainsail
-    echo "[4/5] Attempting nginx start for Mainsail check..."
-    _nginx_ok=0
-    # build a test nginx.conf (redirect pid/logs/tmp to $NTMP)
-    NGINX_CONF="$NTMP/nginx-live.conf"
-    sed "s|pid /run/nginx.pid;|pid $NTMP/nginx.pid;|; \
-         s|listen 80 |listen 18080 |; \
-         s|include mime.types;|include $ROOT/etc/nginx/mime.types;|; \
-         s|root /var/www/mainsail;|root $ROOT/var/www/mainsail;|; \
-         s|sendfile      on;|sendfile      on;\n    client_body_temp_path $NTMP/nginx-cache;\n    proxy_temp_path $NTMP/nginx-cache;\n    fastcgi_temp_path $NTMP/nginx-cache;\n    uwsgi_temp_path $NTMP/nginx-cache;\n    scgi_temp_path $NTMP/nginx-cache;\n    access_log $NTMP/nginx-access.log;|" \
-        "$ROOT/etc/nginx/nginx.conf" > "$NGINX_CONF"
-    mkdir -p "$NTMP/nginx-cache"
-    # nginx resolves a relative `include mime.types;` against the conf's dir ($NTMP)
-    cp "$ROOT/etc/nginx/mime.types" "$NTMP/mime.types" 2>/dev/null || true
-
+    # busybox httpd serves the Mainsail static SPA (no reverse proxy)
+    echo "[4/5] Starting busybox httpd for Mainsail check..."
+    _httpd_ok=0
     QEMU_LD_PREFIX="$ROOT" \
-        "$QEMU" "$ROOT/usr/sbin/nginx" -c "$NGINX_CONF" -e "$NTMP/nginx-err.log" &
-    _nginx_pid=$!
+        "$QEMU" "$ROOT/bin/busybox" httpd -f -p 18080 -h "$ROOT/var/www/mainsail" &
+    _httpd_pid=$!
     sleep 3
-    if kill -0 "$_nginx_pid" 2>/dev/null; then
+    if kill -0 "$_httpd_pid" 2>/dev/null; then
         _mainsail_resp=$(curl -s --max-time 5 http://127.0.0.1:18080/ 2>&1 | head -5)
         echo "      Mainsail response head: $_mainsail_resp"
-        echo "$_mainsail_resp" | grep -qi 'html\|mainsail\|<!DOCTYPE' && _nginx_ok=1
-        kill "$_nginx_pid" 2>/dev/null; wait "$_nginx_pid" 2>/dev/null || true
+        echo "$_mainsail_resp" | grep -qi 'html\|mainsail\|<!DOCTYPE' && _httpd_ok=1
+        kill "$_httpd_pid" 2>/dev/null; wait "$_httpd_pid" 2>/dev/null || true
     fi
 
     echo "[5/5] Shutting down Moonraker..."
@@ -151,9 +139,9 @@ if [ "$FULL_API" = "1" ]; then
     wait "$MOONRAKER_PID" 2>/dev/null || true
     MOONRAKER_PID=""
 
-    if [ "$_nginx_ok" = "1" ]; then
+    if [ "$_httpd_ok" = "1" ]; then
         echo ""
-        echo "PASS: core stack integrates (live moonraker API + mainsail served by nginx)"
+        echo "PASS: core stack integrates (live moonraker API + mainsail served by busybox httpd)"
     else
         echo ""
         echo "PASS: core stack integrates (live moonraker API)"
@@ -164,7 +152,7 @@ fi
 # ════════════════════════════════════════════════════════════════════════════
 # FULL_API=0 — documented floor
 # ════════════════════════════════════════════════════════════════════════════
-echo "[3/5] FULL_API=0 floor: import smoke + config-parse + nginx -t + bundle check"
+echo "[3/5] FULL_API=0 floor: import smoke + config-parse + httpd-serve + bundle check"
 echo ""
 
 # (a) Moonraker import smoke
@@ -264,27 +252,22 @@ grep -qi 'html\|mainsail\|<!DOCTYPE\|script\|link' "$ROOT/var/www/mainsail/index
     || { echo "FAIL: mainsail index.html does not look like a valid HTML file"; exit 1; }
 echo "      OK: index.html exists ($(wc -c < "$ROOT/var/www/mainsail/index.html") bytes)"
 
-# (g) nginx -t config test
-echo "  (g) nginx config test..."
-# Build a test nginx.conf with host-writable paths injected
-NGINX_TEST_CONF="$ROOT/etc/nginx/nginx-integration-test.conf"
-mkdir -p "$NTMP/nginx-cache" "$NTMP/nginx-logs"
-sed \
-    "s|pid /run/nginx.pid;|pid $NTMP/nginx.pid;| ; \
-     s|listen 80 |listen 18080 | ; \
-     s|sendfile      on;|sendfile      on;\n    client_body_temp_path $NTMP/nginx-cache;\n    proxy_temp_path $NTMP/nginx-cache;\n    fastcgi_temp_path $NTMP/nginx-cache;\n    uwsgi_temp_path $NTMP/nginx-cache;\n    scgi_temp_path $NTMP/nginx-cache;\n    access_log $NTMP/nginx-logs/access.log;|" \
-    "$ROOT/etc/nginx/nginx.conf" > "$NGINX_TEST_CONF"
-
+# (g) busybox httpd serve test — start httpd on the Mainsail docroot, fetch index
+echo "  (g) busybox httpd serve test..."
+_httpd_ok=0
 QEMU_LD_PREFIX="$ROOT" \
-    "$QEMU" "$ROOT/usr/sbin/nginx" \
-        -c "$NGINX_TEST_CONF" \
-        -e "$NTMP/nginx-logs/error.log" \
-        -t > "$NTMP/nginx-t.txt" 2>&1
-_nginx_rc=$?
-cat "$NTMP/nginx-t.txt"
-[ "$_nginx_rc" = "0" ] \
-    || { echo "FAIL: nginx -t exited $_nginx_rc"; exit 1; }
-echo "      OK: nginx config test passed"
+    "$QEMU" "$ROOT/bin/busybox" httpd -f -p 18080 -h "$ROOT/var/www/mainsail" \
+    > "$NTMP/httpd.log" 2>&1 &
+_httpd_pid=$!
+sleep 3
+if kill -0 "$_httpd_pid" 2>/dev/null; then
+    _resp=$(curl -s --max-time 5 http://127.0.0.1:18080/ 2>&1 | head -5)
+    echo "$_resp" | grep -qi 'html\|mainsail\|<!DOCTYPE' && _httpd_ok=1
+fi
+kill "$_httpd_pid" 2>/dev/null; wait "$_httpd_pid" 2>/dev/null || true
+[ "$_httpd_ok" = "1" ] \
+    || { echo "FAIL: busybox httpd did not serve Mainsail index"; exit 1; }
+echo "      OK: busybox httpd served Mainsail index.html"
 
 # ─────────────────────────────────────────────────────────────────────────────
 echo ""
@@ -293,4 +276,4 @@ echo ""
 echo "Floor achieved : FULL_API=0 (documented fallback)"
 echo "Assertions pass: moonraker-import, moonraker-help, klippy-help,"
 echo "                 klippy-import-test, klippy-config-parse,"
-echo "                 mainsail-bundle, nginx-config-test"
+echo "                 mainsail-bundle, busybox-httpd-serve"
