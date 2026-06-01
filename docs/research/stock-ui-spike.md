@@ -1,5 +1,11 @@
 # ReForge P3 Task 8: Stock-UI Feasibility Spike Report
 
+> **CORRECTION (2026-06-02):** this spike concluded a ready klippy alone unblocks
+> the stock UI. That is incomplete — firmwareExe has **two independent** startup
+> gates (an eboard serial `start`/`A`-ACK handshake on `/dev/ttyS1`+`/dev/ttyS5`,
+> **and** klippy on `/tmp/uds`). The stock UI now boots to a clean home screen in
+> qemu; see `docs/research/2026-06-02-qemu-ui-rendering.md`.
+
 **Date:** 2026-06-01  
 **Spike question:** Can the stock FlashForge `firmwareExe` (Qt4/QWS touchscreen UI) run as a
 ReForge screen mode against ReForge's upstream Klipper?  
