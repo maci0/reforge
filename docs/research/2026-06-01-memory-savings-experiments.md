@@ -80,6 +80,28 @@ busybox httpd **188 / 692**.
 - The arena cap itself is worth ~2.4 MB Pss; **forge-x lacks it → PR `moonraker-malloc-arena`**.
 - Ranked remaining ideas (untested): jemalloc tuned (`narenas:1,dirty_decay_ms:0`) vs glibc;
   trimming Moonraker further; these chase the 35 MB Moonraker heap, which dominates.
+- **Thumb-2 fold validated + shipped** (`reforge_defconfig`): klippy ran and **GuppyScreen
+  renders to the 800×480 fb under Thumb-2** (`make qemu-render` PASS).
+
+## VM / swap tuning (shipped: reforge `zram-setup.sh` + forge-x `init_swap.sh`)
+
+- **`vm.swappiness=100`** (max on 5.4) — with fast zram swap, readily push cold anon pages to
+  compressed swap to free RAM.
+- **`vm.page-cluster=0`** — disable swap read-ahead; zram is fast random-access, so batching
+  reads just wastes decompression.
+
+## transparent_hugepage=never — VERIFIED NO-OP on this hardware
+
+The stock 5.4.61 kernel config has **no `CONFIG_TRANSPARENT_HUGEPAGE`** (only the unrelated
+`ARCH_WANT_GENERAL_HUGETLB` capability). So `/sys/kernel/mm/transparent_hugepage/` does not
+exist and `=never` does nothing. THP is only a consideration in Plan 5 with our own kernel —
+where we simply won't enable it.
+
+## guppyscreen arena cap (shipped: reforge S75guppyscreen + forge-x S80guppyscreen)
+
+GuppyScreen is multi-threaded (LVGL loop + Moonraker WebSocket client thread) → gets
+`MALLOC_ARENA_MAX=2` like klippy/moonraker. Same mechanism as the measured Moonraker win
+(−2.7 MB RSS), zero downside.
 
 ## Caveats
 
