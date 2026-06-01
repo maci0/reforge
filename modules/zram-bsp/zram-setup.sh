@@ -17,5 +17,12 @@ echo "$SIZE" > /sys/block/zram0/disksize
 # CRITICAL: swap on at HIGH priority so zram is preferred over any eMMC swapfile.
 # busybox swapon has no -p, so use the static helper (SWAP_FLAG_PREFER|prio).
 "$DIR/swapon_prio" /dev/zram0 "$PRIO"
-echo "zram active (algo=$ALGO, prio=$PRIO); eMMC swapfile (if any) stays as low-prio overflow:"
+# zram is fast RAM-backed swap, so tune the VM to use it:
+#   swappiness=100  — push cold anon pages to (compressed) zram readily, freeing
+#                     RAM. 100 is the max on the 5.4 kernel (>100 needs 5.8+).
+#   page-cluster=0  — disable swap read-ahead. zram is fast random-access, so
+#                     reading one page at a time avoids decompressing unneeded pages.
+echo "${ZRAM_SWAPPINESS:-100}" > /proc/sys/vm/swappiness  2>/dev/null || true
+echo 0                        > /proc/sys/vm/page-cluster 2>/dev/null || true
+echo "zram active (algo=$ALGO, prio=$PRIO, swappiness=${ZRAM_SWAPPINESS:-100}, page-cluster=0); eMMC swapfile (if any) stays low-prio overflow:"
 cat /proc/swaps
