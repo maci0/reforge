@@ -23,6 +23,10 @@ case "$1" in
 		fi
 		echo "Starting $NAME..."
 		cd "$GUPPY_DIR" || exit 1
+		# GuppyScreen is multi-threaded (LVGL loop + Moonraker WebSocket client),
+		# so cap glibc malloc arenas like klippy/moonraker (§10b). Saves RSS on
+		# the 128 MB box with no functional change.
+		export MALLOC_ARENA_MAX=2
 		start-stop-daemon -S -b -m -p "$PIDFILE" \
 			-x "$DAEMON"
 		;;
