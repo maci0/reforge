@@ -13,7 +13,7 @@ tests/         ALL validation
   smoke/         smoke_rootfs, smoke_guppy, repro_check, chroot_integration
   loopback-install-test.sh
   qemu-harness/  qemu-system-arm: kernel build, fb-pinned render, update/web tests
-docs/          knowledge: specs/ plans/ research/ board-notes/ screenshots/ REPO-LAYOUT.md
+docs/          knowledge: architecture/build/boot/ota (diagrams) + specs/ plans/ research/ board-notes/ screenshots/ REPO-LAYOUT.md BACKLOG.md
 tools/         dev/ops tooling (not shipped in firmware)
   build/         build.sh + env.sh — top-level build entry
   recovery/      golden-dump tooling + RUNBOOK
