@@ -34,17 +34,21 @@ the pinned 800×480 framebuffer. No MCU in qemu → klippy is in `error`/waiting
 GuppyScreen shows its connecting/offline state — which still proves the full render
 path works (LVGL → DRM/virtio-gpu fbdev → `/dev/fb0`). Regenerate with `make qemu-render`.
 
-## Stock UI (`firmwareExe`) — spike result, screenshot NOT committed
+## Stock UI (`firmwareExe`) — running on the ReForge-overlaid stock base
 
-The stock-UI spike (`docs/research/stock-ui-spike.md`) booted the stock environment in qemu and
-ran FlashForge's proprietary `firmwareExe` against the same 800×480 fb. **Result: it
-rendered** — Qt4/QWS initialized and the FlashForge splash drew to the framebuffer
-(screendump had 97 distinct pixel values, non-blank).
+![Stock FlashForge UI in qemu, 800×480](stockui-qemu-800x480.png)
 
-The screenshot itself is **deliberately not committed**: it shows FlashForge's
-proprietary UI/branding, and this repo commits **zero proprietary assets** (CI-guarded —
-same policy that excludes the `firmwareExe` binary). The render is captured locally to
-`tests/qemu-harness/build/stockui-screenshot.ppm` (gitignored) when you run the
-spike; see `docs/research/stock-ui-spike.md` for the full works/breaks analysis and the
-**GO / Option-A** recommendation.
-</content>
+ReForge overlays the stock FlashForge base: the stock UI binary (`/opt/PROGRAM/.../firmwareExe`,
+soft-float Qt4/QWS) and its Qt + tslib libs live in that base, so ReForge's planned `STOCK`
+screen mode just bind-mounts the base and execs it — no extraction, no recompile. Booted under
+the same virt kernel + 800×480 fb the rest of these shots use.
+
+What renders is firmwareExe's modal **"No detected eboard mcu."** — the expected qemu state
+(no eboard MCU serial is emulated), the stock-UI analogue of GuppyScreen's offline/connecting
+screen. It proves the full stock render path (Qt4 LinuxFB → `/dev/fb0`): FF-green chrome,
+white dialog, red alert glyph, blue *Ok* — 435 distinct colors. The native panel is 480×800
+portrait; Qt centres the dialog within the landscape test fb.
+
+Regenerate by building the stock rootfs (`make qemu-stock-rootfs`, from `golden.img.gz`) and
+booting it; the capture lands at `tests/qemu-harness/build/stockui-screenshot.ppm`. Full
+works/breaks analysis: `docs/research/stock-ui-spike.md`.
