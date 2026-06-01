@@ -69,7 +69,11 @@ OUT="$(mktemp -d)"; trap 'rm -rf "$OUT"' EXIT
 VER=9.9.9 DIST_DIR="$OUT" "$REPO/tools/release/build-release.sh" --no-publish
 for a in klipper moonraker guppyscreen reforge; do
     [ -f "$OUT/$a.zip" ] || { echo "FAIL: $a.zip missing"; exit 1; }
-    # release_info.json present with all 4 keys + correct version
+    # release_info.json must be at the ZIP ROOT (not nested in a wrapper dir, or the
+    # component is silently invalid — net_deploy.py reads <path>/release_info.json)
+    unzip -l "$OUT/$a.zip" | awk '{print $NF}' | grep -qx 'release_info.json' \
+        || { echo "FAIL: $a.zip release_info.json not at zip root (nested wrapper?)"; exit 1; }
+    # all 4 keys + correct version
     unzip -p "$OUT/$a.zip" release_info.json | grep -q '"project_owner": "maci0"' || { echo "FAIL: $a release_info missing project_owner"; exit 1; }
     unzip -p "$OUT/$a.zip" release_info.json | grep -q '"version": "9.9.9"' || { echo "FAIL: $a version wrong"; exit 1; }
 done
@@ -121,9 +125,10 @@ updates apply without a reboot. Port forge-x's class (GPLv3; `forge-x/.root/moon
   `<script_path>/<service_name> <action>` via the shell command helper (mirror forge-x's ~42-line
   class), and register `"simple": SimpleProvider` in the `providers` dict. Buildroot auto-applies
   `br-external/package/moonraker/*.patch`; confirm via a rebuild.
-- [ ] **Step 2: Rebuild + verify the provider exists.** `make rootfs` (or rebuild just moonraker),
-  then `grep -n "class SimpleProvider" build/output/target/opt/moonraker/moonraker/components/machine.py`
-  → Expected: present. (TDD-ish: the grep is the test.)
+- [ ] **Step 2: Rebuild + verify the provider exists AND is registered.** `make rootfs` (or
+  rebuild just moonraker), then grep the built `machine.py` for **both** `class SimpleProvider`
+  **and** the registration `"simple": SimpleProvider` in the `providers` dict (the class alone,
+  unregistered, falls through to `Invalid Provider`). Expected: both present. (TDD: the greps are the test.)
 - [ ] **Step 3: Add the config.** Set `[machine] provider: simple` (keep `validate_service:
   false`, `validate_config: false`). Append the `[update_manager]` block:
 
@@ -173,8 +178,12 @@ path: /var/www/mainsail
 `[machine]` or the provider) at the mod-dir service-control scripts dir created in Task 3.
 `asset_name` is read from each path's `release_info.json` (not set here).
 
-- [ ] **Step 4: Validate it parses.** `Run: make integration` → Expected: still `PASS`
-  (Moonraker starts with `provider: simple` + the config; no parse error). Deeper check in Task 6.
+- [ ] **Step 4: Validate it parses + paths resolve.** `Run: make integration` → Expected: still
+  `PASS`. The `[update_manager]` paths are **chroot-relative** (Moonraker runs inside the
+  `/data/.reforge` chroot), so `/opt/klipper`, `/opt/moonraker`, `/opt/guppyscreen`, `/mod` must
+  exist at Moonraker's runtime root — `net_deploy`/`app_deploy` hard-fail config parse if a `path`
+  is missing. Assert Moonraker starts and `GET /machine/update/status` lists all 5 updaters (no
+  "path does not exist" error). Deeper update test in Task 6.
 - [ ] **Step 5: Commit**
 
 ```bash
@@ -195,41 +204,65 @@ mirror. A zip update of the dir is live on the next `SimpleProvider` restart/boo
 - Create: mod-dir service-control scripts `klipper`/`moonraker`/`guppyscreen`/`reforge`
 - Modify: `br-external/board/reforge/rootfs-overlay/.shell/reforge-boot` (chroot+exec mod init in place)
 
-**Self-contained `mod/` layout (the OTA path `/data/.reforge/mod`):**
+**The chroot model (read this — resolves the keystone ambiguity).** Today
+`/data/.reforge` IS the entire chroot rootfs (a full busybox/glibc tree built by Buildroot), and
+`reforge-boot` does `exec chroot /data/.reforge /etc/init.d/rcS start`. That **does not change**:
+- **chroot root** = `/data/.reforge` (full base rootfs: busybox/glibc, `/opt/*`, `/var/www`).
+  The base is **OTA-out-of-scope** (USB `.tgz` only).
+- The reforge-authored files (init scripts, configs, `.ko`, banner, service scripts, start/stop)
+  move into a **subdir** `/data/.reforge/mod` — *inside* the chroot this is `/mod` (and also
+  `/data/.reforge/mod` via the existing `/data` bind-mount). `mod/` holds **only reforge files**
+  (no busybox/glibc/`/opt`), so the zip updater's `rmtree(mod)`+extract is safe.
+- **`reforge-boot` now execs the mod's init**: `exec chroot /data/.reforge /mod/start.sh`, where
+  `start.sh` runs `/mod/init.d/S*` in order. The `Sxx` reference `/opt/klipper` etc — resolved
+  against the chroot rootfs, unchanged. **No `/etc/init.d` mirror.**
+- **`[update_manager]` paths are chroot-relative** (Moonraker runs *inside* the chroot): `/opt/klipper`,
+  `/opt/moonraker`, `/opt/guppyscreen`, and the reforge component path = `/mod`.
+
+**Self-contained `mod/` layout (chroot-internal `/mod`):**
 ```
 mod/
   release_info.json
-  etc/init.d/{S00cloudblock,S35zram,S60klipper,S65moonraker,S70httpd,S75guppyscreen,S99ok}
-  etc/reforge/{printer.cfg,printer.base.cfg,zram.conf}
+  start.sh stop.sh           # run/stop the S* chain (forge-x pattern)
+  init.d/{S00cloudblock,S35zram,S60klipper,S65moonraker,S70httpd,S75guppyscreen,S99ok}
+  etc/reforge/{printer.cfg,printer.base.cfg,zram.conf}   # default configs (-> /etc/reforge symlink or sourced from here)
   modules/{zram.ko,zsmalloc.ko,swapon_prio}
   usr/bin/reforge-banner
-  services/{klipper,moonraker,guppyscreen,reforge}   # SimpleProvider script_path wrappers
-  start.sh stop.sh
+  services/{klipper,moonraker,guppyscreen,reforge}       # SimpleProvider script_path wrappers
   .shell/{reforge-boot,reforge-lkg.sh}
 ```
 
-- [ ] **Step 1: `post-build.sh` assembles the self-contained `mod/`.** Copy the reforge-authored
-  files into `${TARGET_DIR}/data/.reforge/mod/...` per the layout, write a default
-  `release_info.json` (version from `packaging/VERSION`), and seed the LKG (`cp -a mod lkg`).
-  The image is built so the chroot runs init **from `mod/`** (not a separate `/etc/init.d`).
-
-- [ ] **Step 2: Service-control scripts** (`mod/services/<name>`), each a thin wrapper for
-  `SimpleProvider` (`<script_path>/<name> <action>`):
+- [ ] **Step 1: `post-build.sh` assembles `mod/` + seeds LKG.** Copy the reforge-authored files
+  into `${TARGET_DIR}/data/.reforge/mod/...` per the layout; write a default `release_info.json`
+  (4 keys, version from `packaging/VERSION`); seed `cp -a mod lkg`. Base rootfs stays in
+  `/data/.reforge` as today (NOT inside `mod/`). The `etc/reforge` configs are sourced from `mod/`
+  (klipper/moonraker already read `/etc/reforge/*` — symlink `/etc/reforge` → `/mod/etc/reforge`
+  in `start.sh`, or point the daemons at `/mod/etc/reforge`).
+- [ ] **Step 2: Service-control scripts** (`mod/services/<name>`) for `SimpleProvider`
+  (`<script_path>/<name> <action>`). The service **name** must equal Moonraker's `unit_name`
+  (defaults to `klipper`/`moonraker`/etc with `validate_service: false`):
 
 ```sh
 #!/bin/sh
 # mod/services/klipper  — start|stop|restart, delegates to the Sxx init script
-exec /etc/init.d/S60klipper "$1"
+exec /mod/init.d/S60klipper "$1"
 ```
-(one per `klipper`→S60, `moonraker`→S65, `guppyscreen`→S75; `reforge` restarts the whole stack
-via `start.sh`/`stop.sh`). Point `[machine] script_path` (Task 2) at this `services/` dir.
+(`klipper`→S60, `moonraker`→S65, `guppyscreen`→S75; `reforge`→`start.sh`/`stop.sh`). Set
+`[machine] script_path: /mod/services` in Task 2. **Verify** the restart actually shells
+`<script_path>/klipper restart` (not `klipper.service`) — see Notes.
 
-- [ ] **Step 3: `reforge-boot` runs the mod init in place** (POSIX sh): instead of mirroring,
-  it chroots and execs the mod dir's init chain (forge-x `start.sh` pattern), reading `Sxx`
-  **from `mod/`**. No copy to `/etc/init.d`.
-- [ ] **Step 4: Loopback test.** Point `REFORGE_DATA_ROOT` at a scratch dir with a `mod/` tree;
-  run `reforge-boot` (test mode); assert it execs the mod's init (e.g. a sentinel S-script wrote
-  its marker) and did **not** create a separate `/etc/init.d` mirror.
+- [ ] **Step 3: `reforge-boot` execs the mod init in place.** Change the final exec from
+  `chroot $DIR /etc/init.d/rcS start` to `chroot $DIR /mod/start.sh`; `start.sh` runs `/mod/init.d/S*`
+  in order. No mirror.
+- [ ] **Step 4: First-boot LKG seed (handles the `.tgz` install too).** The image is seeded by
+  post-build, but a USB `.tgz` install (`packaging/flashforge_init.sh`) extracts to
+  `/data/.reforge` and creates no `lkg`. Fix **both**: (a) `flashforge_init.sh` seeds
+  `cp -a /data/.reforge/mod /data/.reforge/lkg` after extract, **and** (b) `is_trial()` treats a
+  missing `lkg` as *not a trial* (`[ -d "$LKG" ] || return 1`) so a fresh boot never phantom-trials.
+- [ ] **Step 5: Loopback test.** Point `REFORGE_DATA_ROOT` at a scratch dir with a `mod/` tree
+  (+ a seeded `lkg`); run `reforge-boot` (test mode); assert it execs `/mod/start.sh` (a sentinel
+  S-script wrote its marker), created **no** `/etc/init.d` mirror, and (no-lkg case) did not
+  increment the trial counter.
 
 `Run: sudo make validate-loopback` (or the focused test) → Expected: PASS; init ran from `mod/`.
 
@@ -297,9 +330,13 @@ lkg_promote
 touch /tmp/reforge-ok
 ```
 
-- [ ] **Step 1: Write `lkg-unit-test.sh`** (failing): set up a scratch `DATA` with `mod` (v2) + `lkg` (v1); assert `is_trial` true; `lkg_counter_inc` thrice → `lkg_restore` swaps mod←lkg; `lkg_promote` makes versions equal + resets counter; counter writes are atomic (no partial file). Run → FAIL (helpers absent).
+- [ ] **Step 1: Write `lkg-unit-test.sh`** (failing): set up a scratch `DATA` with `mod` (v2) + `lkg` (v1); assert `is_trial` true; **assert `is_trial` is FALSE when `lkg` is absent** (first-boot guard, S4); `lkg_counter_inc` thrice → `lkg_restore` swaps mod←lkg; `lkg_promote` makes versions equal + resets counter; counter writes are atomic (no partial file). Run → FAIL (helpers absent).
 - [ ] **Step 2: Write `reforge-lkg.sh`** per the contract. Run test → PASS.
-- [ ] **Step 3: Write `S99ok`**, add to the `mod/` layout (Task 3 post-build) + the rcS S-script set. `chmod +x`.
+- [ ] **Step 3: Write `S99ok`** in `mod/init.d/` (chroot-relative `/mod/init.d/S99ok`), `chmod +x`.
+  It is the **last** script `start.sh` runs, so reaching it just means "the init chain completed"
+  — it runs **unconditionally**, regardless of `SCREEN_MODE` (in HEADLESS, `S75guppyscreen`
+  self-skips and exits 0, so `S99ok` still runs). It sources `/mod/.shell/reforge-lkg.sh` and
+  calls `lkg_promote`. (Don't tie the sentinel to guppyscreen having started.)
 - [ ] **Step 4: Wire the trial flow into `reforge-boot`.** Re-run `lkg-unit-test.sh` + `make validate-loopback`. Expected: PASS.
 - [ ] **Step 5: Commit**
 
@@ -322,10 +359,17 @@ A tiny HTTP server the qemu guest reaches via an `/etc/hosts` override (`api.git
 - `GET /repos/maci0/reforge/releases/latest` → JSON `{tag_name, assets:[{name, browser_download_url}]}` pointing at local asset URLs.
 - `GET /assets/<name>` → the zip bytes from `packaging/dist`.
 
-- [ ] **Step 1:** Implement with `python3 -m http.server` + a small handler (or a `socat`/busybox-httpd + static JSON generated from the dist dir). Generate the `releases/latest` JSON from whatever zips are in `DIST_DIR`, asset URLs pointing back at the mock host.
-- [ ] **Step 2:** Self-test on the host: `curl` the mock's `releases/latest` and one asset; assert JSON shape + asset downloads.
-
-  Note Moonraker hits `api.github.com` over **https**; document how the guest is redirected — `/etc/hosts` + the mock serving the API; if TLS is required, either run the mock with a cert the guest trusts, or (simpler) confirm whether Moonraker's http client allows an http API base for tests. The opt-in **real-release** path (publish to `maci0/reforge`) avoids the mock entirely and is the authentic check.
+- [ ] **Step 1:** Implement with `python3` (`http.server` + a small handler). Generate the
+  `releases/latest` JSON from whatever zips are in `DIST_DIR`, asset URLs pointing back at the mock.
+- [ ] **Step 2: TLS (resolved).** Moonraker calls `https://api.github.com` (+ the asset host) and
+  validates TLS — plain http won't work. So the mock runs **HTTPS with a self-signed cert** for
+  `api.github.com` + `objects.githubusercontent.com`, and the test **injects that CA into the
+  guest trust store** (append to the rootfs `etc/ssl/certs/ca-certificates.crt`) + adds an
+  `/etc/hosts` override (`api.github.com` / asset host → the qemu host gateway `10.0.2.2`). Then
+  Moonraker's TLS validates against the mock. Host self-test: `curl --cacert <ca> https://…/repos/maci0/reforge/releases/latest`.
+  **Alternative (authentic):** publish a real test release to `maci0/reforge` and let the guest
+  hit real GitHub — no mock/TLS. The mock is for offline CI; the **critical LKG test (Task 6
+  Step 2) needs neither** (it injects a broken `mod` directly).
 - [ ] **Step 3: Commit**
 
 ```bash
@@ -341,8 +385,21 @@ git commit -m "ota: local github-releases-API mock for offline OTA tests"
 - Create: `tests/qemu-harness/ota-test.sh`
 - Modify: `Makefile` (add `qemu-ota` target)
 
-- [ ] **Step 1: e2e update test.** Boot `build/output` rootfs (with the Task-2 config) under the virt kernel + virtio-net, with the mock (Task 5) reachable. Seed an **older** `release_info.json` version in a component path. Drive `POST /machine/update/<component>` via the Moonraker API; poll `GET /machine/update/status`; assert the path's `release_info.json` version bumped and the new files are present. Components **restart live via `SimpleProvider`** (`managed_services`), so assert the service was restarted (new process / new version). For `reforge`, also reboot once and assert `S99ok` promoted the new `mod`→`lkg`.
-- [ ] **Step 2: the critical LKG/rollback test.** Build a deliberately-broken `reforge.zip` (e.g. an `S60klipper` that `exit 1`s or hangs). Apply it (place in the mock release). Reboot N=3 times; assert: trial counter increments, never reaches `S99ok`, and on the 3rd the LKG is restored → the good version boots + reaches `S99ok`. This proves the brick-mitigation.
+- [ ] **Step 1: e2e update test** (needs the Task-5 mock **or** a real test release). Boot
+  `build/output` rootfs (Task-2 config) under the virt kernel + virtio-net, mock reachable + its CA
+  injected. Seed an **older** `release_info.json` version in a component path. Drive
+  `POST /machine/update/{component}`; **poll `GET /machine/update/status` until done**, then assert
+  the path's `release_info.json` version bumped + new files present + the service restarted live
+  (`SimpleProvider`). **Caveat (S1):** updating `moonraker` restarts Moonraker itself
+  *asynchronously* — the API call returns before the restart — so the test must **wait for
+  Moonraker to drop and reconnect** (poll `/server/info`) rather than expect a synchronous result.
+  For `reforge`, reboot once and assert `S99ok` promoted the new `mod`→`lkg`.
+- [ ] **Step 2: the critical LKG/rollback test** (network-free — does **not** use the mock). Inject
+  a deliberately-broken `mod` **directly** into the device's ext4 (e.g. `mod/init.d/S60klipper`
+  that `exit 1`s / hangs) with a `release_info.json` version ≠ the seeded `lkg`. Reboot N=3 times;
+  assert: the trial counter increments each boot, `S99ok` is never reached, and on the 3rd boot
+  the LKG is restored → the good version boots + reaches `S99ok`. Proves the brick-mitigation
+  independently of any download path.
 - [ ] **Step 3: Mainsail web check.** Assert `/var/www/mainsail/manifest.json` (`name: mainsail`) exists; assert Moonraker resolves the upstream `mainsail-crew` latest (dry-run; needs real github or a second mock entry).
 - [ ] **Step 4: `Makefile`** — `qemu-ota: ; sudo tests/qemu-harness/ota-test.sh`. Add to `.PHONY`.
 - [ ] **Step 5: Run** `sudo make qemu-ota` → Expected: e2e update PASS + LKG-restore PASS.
@@ -380,6 +437,14 @@ After all tasks: dispatch a final code-reviewer over the whole branch; verify th
 - **Verify Moonraker source before trusting config keys** — `net_deploy.py` (`AppType.ZIP/WEB`), `release_info.json` requires `project_owner` (a missing key marks the install invalid).
 - **`reforge-boot` updating itself** is one-boot-delayed (the *current* boot uses the old `reforge-boot` to launch the new mod init); the trial/LKG covers a bad new `reforge-boot`.
 - **Run-from-mod, no mirror**: the chroot runs `Sxx` directly from `mod/` (forge-x `start.sh` pattern), so a zip update of `mod/` is live with no copy step. The mod dir must be self-contained (init + configs + `.ko` + service-control scripts + start/stop) so the zip updater's `rmtree`+extract is safe.
-- **SimpleProvider**: ported from forge-x; `script_path` points at `mod/services/`; `managed_services: X` → `mod/services/X restart`.
+- **SimpleProvider**: ported from forge-x; `script_path` = `/mod/services` (chroot-relative);
+  `managed_services: X` → `/mod/services/X restart`.
+- **Verify the service NAME matches** (S2): Moonraker shells `<script_path>/<unit_name> <action>`,
+  where `unit_name` strips any `.service` suffix and defaults to the component name with
+  `validate_service: false`. Confirm at runtime it runs `/mod/services/klipper restart` (not
+  `klipper.service`) — an off-by-suffix name silently no-ops the restart. `moonraker` restarts
+  itself **asynchronously**; tests must reconnect, not expect a synchronous result.
+- **Chroot-relative paths everywhere**: Moonraker + the init run inside `/data/.reforge`; all
+  `update_manager` paths, `script_path`, and `/mod/...` references are relative to that root.
 - **No content-hash verification** in the updater (spec §integrity) — the trial/LKG is the corruption backstop; do not add a custom verifier (YAGNI).
 - **`make integration` / `make qemu-*`** are the existing harnesses; reuse them, don't reinvent.
