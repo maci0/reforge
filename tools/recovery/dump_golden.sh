@@ -1,9 +1,16 @@
 #!/bin/sh
 # Usage: ./dump_golden.sh root@<printer-ip>
+#
+# Captures a RAW full-eMMC dump of whatever is currently on the device. The output
+# is named dump-<host>-<ts>.img.gz — NOT "golden": a raw dump reflects the device's
+# actual state (stock, forge-x, reforge, ...), so naming it "golden" up front is
+# misleading. Curate it afterwards (see RUNBOOK.md / recovery-sources.md):
+#   - pristine stock  -> golden.img.gz       (via make-clean-golden.sh)
+#   - forge-x device  -> forge-x-<ts>.img.gz (kept as the forge-x reference)
 set -eu
 HOST="${1:?usage: dump_golden.sh root@host}"
 TS=$(date +%Y%m%d-%H%M%S)
-OUT="$(dirname "$0")/golden-$(echo "$HOST" | sed 's/.*@//')-${TS}.img.gz"
+OUT="$(dirname "$0")/dump-$(echo "$HOST" | sed 's/.*@//')-${TS}.img.gz"
 echo "device eMMC size:"
 # /sys/block/mmcblk0/size is in 512-byte sectors -> x512 for bytes.
 # (Do NOT change to x1024; that is /proc/partitions' 1K-block unit, a different source.)

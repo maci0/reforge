@@ -5,6 +5,21 @@ content hashes. Large blobs live in `tools/recovery/archive/` (gitignored); this
 is the tracked record. Background + provenance analysis:
 [`docs/research/2026-06-01-stock-recovery-images.md`](../../docs/research/2026-06-01-stock-recovery-images.md).
 
+## Curated local full-eMMC images (naming convention)
+
+Large binaries — **gitignored**, kept on local disk / external backup. The names encode
+*content*, not capture method (renamed 2026-06-01 to remove the old ambiguous `golden-<host>`):
+
+| name | content | how produced | role |
+|---|---|---|---|
+| `golden.img.gz` | **pristine stock** (forge-x removed) | `make-clean-golden.sh` (offline) | **canonical golden** — recovery baseline + qemu stock-rootfs source |
+| `forge-x-<ts>.img.gz` | raw device dump **with forge-x installed** | `dump_golden.sh` of a forge-x device | forge-x reference snapshot only |
+| `dump-<host>-<ts>.img.gz` | raw device dump, **as-is** (any state) | `dump_golden.sh` | uncurated capture — classify into one of the above by content |
+
+Rule: **"golden" = clean stock only.** A raw device dump is never "golden" until cleaned.
+Each image carries `.sha256` + `.size` (uncompressed full-eMMC byte count) sidecars; the
+forge-x dump also keeps a `.partitions.txt` GPT map.
+
 ## Pinned artifacts (sha256)
 
 | artifact | sha256 | size | kind | carries base rootfs? |

@@ -11,7 +11,7 @@
 #   (or via: make qemu-stock-rootfs)
 #
 # What it does:
-#   1. Decompress tools/recovery/golden-kunos-*.img.gz → build/golden-raw.img  (~7.3 GB)
+#   1. Decompress tools/recovery/golden.img.gz (clean stock) → build/golden-raw.img  (~7.3 GB)
 #   2. Attach GPT image via losetup -fP                                   → /dev/loopN
 #   3. dd /dev/loopNp6 → build/stock-rootfs.ext4                         (~1.31 GB)
 #   4. Detach loop; delete golden-raw.img (saves ~6 GB)
@@ -23,7 +23,9 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 HARNESS_DIR="${REPO_ROOT}/tests/qemu-harness"
 BUILD_DIR="${HARNESS_DIR}/build"
-RECOVERY_DIR="${REPO_ROOT}/recovery"
+# Golden dumps live under tools/recovery/ (post-reorg). Honour an override so
+# callers can point at an archived dump elsewhere.
+RECOVERY_DIR="${RECOVERY_DIR:-${REPO_ROOT}/tools/recovery}"
 
 RAW_IMG="${BUILD_DIR}/golden-raw.img"
 ROOTFS_EXT4="${BUILD_DIR}/stock-rootfs.ext4"
@@ -60,8 +62,12 @@ mkdir -p "${VERIFY_MNT}"
 # Step 1: Find + decompress golden dump
 # ---------------------------------------------------------------------------
 log "Step 1: Locating golden eMMC dump in ${RECOVERY_DIR} ..."
-DUMP_GZ=$(find "${RECOVERY_DIR}" -maxdepth 1 -name 'golden-kunos-*.img.gz' | sort | tail -1)
-[[ -n "${DUMP_GZ}" ]] || die "No golden-kunos-*.img.gz found in ${RECOVERY_DIR}"
+# Prefer the curated pristine-stock image (golden.img.gz). Fall back to any
+# golden-*.img.gz. We deliberately do NOT use forge-x-*.img.gz here: that is a
+# forge-x-installed device dump (mod overlay in /data, patched init), not stock.
+DUMP_GZ=$(find "${RECOVERY_DIR}" -maxdepth 1 -name 'golden.img.gz' | sort | tail -1)
+[[ -n "${DUMP_GZ}" ]] || DUMP_GZ=$(find "${RECOVERY_DIR}" -maxdepth 1 -name 'golden-*.img.gz' | sort | tail -1)
+[[ -n "${DUMP_GZ}" ]] || die "No golden.img.gz (clean stock) found in ${RECOVERY_DIR} — run make-clean-golden.sh"
 log "  Found: ${DUMP_GZ} ($(du -sh "${DUMP_GZ}" | cut -f1))"
 
 if [[ -f "${RAW_IMG}" ]]; then

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # make-clean-golden.sh  —  derive a PURE STOCK golden eMMC image (forge-x removed)
-#                          from the existing captured golden dump.
+#                          from the captured forge-x device dump (forge-x-*.img.gz).
 #
 # Works ENTIRELY OFFLINE on a loop-mounted copy of the dump.
 # Never touches the live printer (no SSH, no /dev/mmcblk0).
@@ -11,10 +11,10 @@
 #
 # Outputs (all gitignored):
 #   tools/recovery/.work/golden-raw.img           7.3 GB scratch raw (deleted at end)
-#   tools/recovery/golden-stock-clean.img.gz      cleaned + recompressed golden
+#   tools/recovery/golden.img.gz      cleaned + recompressed golden
 #   tests/qemu-harness/build/stock-clean-rootfs.ext4   cleaned p6 for qemu
 #
-# The original golden-kunos-*.img.gz is NEVER touched.
+# The source forge-x-*.img.gz (raw device dump) is NEVER touched.
 #
 # What is removed — drawn verbatim from forge-x's uninstall.sh + S00init +
 # boot/boot.sh (which together document EXACTLY what the installer places):
@@ -76,9 +76,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 WORK_DIR="$SCRIPT_DIR/.work"
-GOLDEN_SRC="$(ls "$SCRIPT_DIR"/golden-kunos-*.img.gz 2>/dev/null | sort | head -1)"
+GOLDEN_SRC="$(ls "$SCRIPT_DIR"/forge-x-*.img.gz 2>/dev/null | sort | head -1)"
 GOLDEN_RAW="$WORK_DIR/golden-raw.img"
-GOLDEN_CLEAN="$SCRIPT_DIR/golden-stock-clean.img.gz"
+GOLDEN_CLEAN="$SCRIPT_DIR/golden.img.gz"
 QEMU_ROOTFS="$REPO_ROOT/tests/qemu-harness/build/stock-clean-rootfs.ext4"
 
 MNT_P6="$WORK_DIR/mnt-p6"
@@ -128,8 +128,8 @@ pre_flight() {
     log "=== Step 0: Pre-flight checks ==="
     check_root
 
-    [ -n "$GOLDEN_SRC" ] || die "No golden-kunos-*.img.gz found in $SCRIPT_DIR"
-    log "Source golden: $GOLDEN_SRC"
+    [ -n "$GOLDEN_SRC" ] || die "No forge-x-*.img.gz (raw device dump) found in $SCRIPT_DIR"
+    log "Source forge-x dump: $GOLDEN_SRC"
 
     command -v losetup  >/dev/null || die "losetup not found"
     command -v e2fsck   >/dev/null || die "e2fsck not found"
@@ -546,7 +546,7 @@ main() {
     log "SUCCESS — clean stock golden produced."
     log "  Cleaned golden:  $GOLDEN_CLEAN"
     log "  Cleaned p6/qemu: $QEMU_ROOTFS"
-    log "  Original golden: $GOLDEN_SRC  (UNTOUCHED)"
+    log "  Source forge-x dump: $GOLDEN_SRC  (UNTOUCHED)"
     log "=================================================="
 }
 
