@@ -73,8 +73,8 @@ log "installer tgz : ${TGZ}"
 # ---------------------------------------------------------------------------
 # Locate artefacts
 # ---------------------------------------------------------------------------
-ROOTFS_TAR="${REPO_ROOT}/build/output/images/rootfs.tar"
-[ -f "${ROOTFS_TAR}" ] || die "Guppy rootfs not found: ${ROOTFS_TAR} — run 'make guppy' first"
+ROOTFS_TAR="${ROOTFS_TAR:-${REPO_ROOT}/build/output/images/rootfs.tar}"
+[ -f "${ROOTFS_TAR}" ] || die "rootfs not found: ${ROOTFS_TAR} — run 'make rootfs' first"
 
 ZIMAGE="${BUILD_DIR}/zImage"
 [ -f "${ZIMAGE}" ] || die "zImage not found: ${ZIMAGE} — run 'make qemu-kernel' first"
