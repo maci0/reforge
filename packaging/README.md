@@ -151,7 +151,7 @@ and the boot hook is placed correctly — all on an x86 host, no printer needed.
 
 ### qemu Harness
 
-The `validation/qemu-harness/` directory contains a qemu-system-arm test harness
+The `tests/qemu-harness/` directory contains a qemu-system-arm test harness
 that boots a virt-machine kernel + the stock rootfs + the ReForge overlay and runs
 install, boot, web-reachability, and GUI-render tests.
 
@@ -163,7 +163,7 @@ make qemu-render    # run the GuppyScreen / STOCK-UI render test
 
 These are **local-only** — they require sudo, ~10 GB of stock rootfs data, and
 significant build time.  They are not run in CI.  See
-`validation/qemu-harness/README.md` for full setup and expected results.
+`tests/qemu-harness/README.md` for full setup and expected results.
 
 ---
 
@@ -194,4 +194,4 @@ Everything else is **self-contained**:
 - the cloud-block edits the **chroot's** `/etc/hosts`, never the stock one;
 - `reforge-boot` only sets up **transient** runtime bind-mounts (proc/sys/dev/run/tmp/data) into the chroot — these modify nothing on disk and are gone on reboot/uninstall.
 
-So **uninstall = delete that one symlink + `/data/.reforge`** and the stock rootfs is byte-identical to before. (Verified by `validation/loopback-install-test.sh`, which asserts the installer writes nothing outside `$DATA` except the single init symlink.)
+So **uninstall = delete that one symlink + `/data/.reforge`** and the stock rootfs is byte-identical to before. (Verified by `tests/loopback-install-test.sh`, which asserts the installer writes nothing outside `$DATA` except the single init symlink.)

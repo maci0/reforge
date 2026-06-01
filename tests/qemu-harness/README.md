@@ -22,7 +22,7 @@ matches the stock 5.4 userland (important for the firmwareExe spike).
 Source: the in-repo vendor tree `modules/zram-bsp/tina-bsp-kernel` (Allwinner sun8iw20,
 **Linux 5.4.61** — same version as stock). Toolchain: the kernel.org crosstool
 **GCC 9.5** at `modules/zram-bsp/gcc-9.5.0-nolibc/arm-linux-gnueabi/bin/arm-linux-gnueabi-`.
-Built **out-of-tree** (`O=validation/qemu-harness/build/kbuild`) so the source stays clean.
+Built **out-of-tree** (`O=tests/qemu-harness/build/kbuild`) so the source stays clean.
 
 Config = `multi_v7_defconfig` + the fragment in `configs/virt.fragment`:
 
@@ -42,7 +42,7 @@ Config = `multi_v7_defconfig` + the fragment in `configs/virt.fragment`:
 - `EXT4_FS`, `DEVTMPFS`(+`_MOUNT`), `BLK_DEV_INITRD`
 - `SERIAL_AMBA_PL011`(+`_CONSOLE`) — the virt machine's console (`ttyAMA0`)
 
-Output: `validation/qemu-harness/build/zImage` (gitignored). Build ≈ 25 min.
+Output: `tests/qemu-harness/build/zImage` (gitignored). Build ≈ 25 min.
 
 If the vendor source is ever truly unbuildable for virt, the script falls back to
 **mainline `linux-5.4.61`** (`modules/zram-bsp/linux-5.4.61`) — same version, clean.
@@ -80,7 +80,7 @@ bus fails → no virtio-gpu → **no fb0**. `highmem=off` relocates ECAM to a 32
 ## Running things — `run-qemu.sh`
 
 ```
-validation/qemu-harness/run-qemu.sh <root-image-or-initramfs> [OPTIONS] [-- EXTRA_QEMU_ARGS...]
+tests/qemu-harness/run-qemu.sh <root-image-or-initramfs> [OPTIONS] [-- EXTRA_QEMU_ARGS...]
 ```
 - `<root>`: an `.ext4` (booted as a virtio-blk root, `/dev/vda`) or a `.cpio[.gz]` initramfs (auto-detected).
 - `--usb <file>`: attach a 2nd virtio-blk drive (`/dev/vdb`) carrying a file (e.g. a `.tgz` "USB stick" for the update test).

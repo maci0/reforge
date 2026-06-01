@@ -1,10 +1,10 @@
 # Recovery dumps — large binaries, never commit
-recovery/*.img
-recovery/*.img.gz
-recovery/*.img.gz.sha256
-recovery/*.size
-recovery/.current_dump_name
-recovery/.work/
+tools/recovery/*.img
+tools/recovery/*.img.gz
+tools/recovery/*.img.gz.sha256
+tools/recovery/*.size
+tools/recovery/.current_dump_name
+tools/recovery/.work/
 
 # Buildroot / build output
 buildroot/
@@ -23,7 +23,7 @@ packaging/dist/
 *.img
 
 # qemu-harness build artifacts (zImage, initramfs, build logs — never commit)
-validation/qemu-harness/build/
+tests/qemu-harness/build/
 
 # Lab — experiments / scratch (never ships to github)
 lab/scratch/

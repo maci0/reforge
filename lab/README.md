@@ -23,9 +23,9 @@ Heavy build output stays next to the thing that produces it and is gitignored in
 not moved here:
 
 - `output/`, `output-guppy/` — buildroot output
-- `validation/qemu-harness/build/` — test kernel, ext4 images, logs
+- `tests/qemu-harness/build/` — test kernel, ext4 images, logs
 - `packaging/dist/` — built `.tgz`
-- `recovery/*.img.gz` — golden dumps
+- `tools/recovery/*.img.gz` — golden dumps
 - `modules/zram-bsp/{tina-bsp-kernel,gcc-*,linux-5.4.61*,build-tina}/` — toolchains/kernels
 
 See `docs/REPO-LAYOUT.md` for the full product-vs-lab map.

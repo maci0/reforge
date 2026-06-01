@@ -7,12 +7,12 @@
 # Never touches the live printer (no SSH, no /dev/mmcblk0).
 #
 # Usage:
-#   sudo ./recovery/make-clean-golden.sh
+#   sudo ./tools/recovery/make-clean-golden.sh
 #
 # Outputs (all gitignored):
-#   recovery/.work/golden-raw.img           7.3 GB scratch raw (deleted at end)
-#   recovery/golden-stock-clean.img.gz      cleaned + recompressed golden
-#   validation/qemu-harness/build/stock-clean-rootfs.ext4   cleaned p6 for qemu
+#   tools/recovery/.work/golden-raw.img           7.3 GB scratch raw (deleted at end)
+#   tools/recovery/golden-stock-clean.img.gz      cleaned + recompressed golden
+#   tests/qemu-harness/build/stock-clean-rootfs.ext4   cleaned p6 for qemu
 #
 # The original golden-kunos-*.img.gz is NEVER touched.
 #
@@ -73,13 +73,13 @@ check_root() {
 # paths
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 WORK_DIR="$SCRIPT_DIR/.work"
 GOLDEN_SRC="$(ls "$SCRIPT_DIR"/golden-kunos-*.img.gz 2>/dev/null | sort | head -1)"
 GOLDEN_RAW="$WORK_DIR/golden-raw.img"
 GOLDEN_CLEAN="$SCRIPT_DIR/golden-stock-clean.img.gz"
-QEMU_ROOTFS="$REPO_ROOT/validation/qemu-harness/build/stock-clean-rootfs.ext4"
+QEMU_ROOTFS="$REPO_ROOT/tests/qemu-harness/build/stock-clean-rootfs.ext4"
 
 MNT_P6="$WORK_DIR/mnt-p6"
 MNT_P7="$WORK_DIR/mnt-p7"

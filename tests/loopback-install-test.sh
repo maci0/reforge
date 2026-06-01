@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# validation/loopback-install-test.sh — ReForge loopback install validation
+# tests/loopback-install-test.sh — ReForge loopback install validation
 #
 # Proves the installer (packaging/flashforge_init.sh) works on a fake /data
 # without a physical printer.  Needs sudo (loopback mount + ext4 mkfs).
 #
-# Usage:  sudo validation/loopback-install-test.sh
+# Usage:  sudo tests/loopback-install-test.sh
 #         make validate-loopback          (calls sudo automatically)
 #
 # Env overrides honoured by the installer (set here):

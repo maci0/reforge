@@ -4,14 +4,14 @@
 # Extract mmcblk0p6 (stock rootfs, ~1.31 GB) from the golden eMMC dump.
 #
 # REQUIRES: sudo  (losetup + mount for loop-mount verification)
-# OUTPUT:   validation/qemu-harness/build/stock-rootfs.ext4
+# OUTPUT:   tests/qemu-harness/build/stock-rootfs.ext4
 #
 # Usage:
-#   sudo validation/qemu-harness/extract-stock-rootfs.sh
+#   sudo tests/qemu-harness/extract-stock-rootfs.sh
 #   (or via: make qemu-stock-rootfs)
 #
 # What it does:
-#   1. Decompress recovery/golden-kunos-*.img.gz → build/golden-raw.img  (~7.3 GB)
+#   1. Decompress tools/recovery/golden-kunos-*.img.gz → build/golden-raw.img  (~7.3 GB)
 #   2. Attach GPT image via losetup -fP                                   → /dev/loopN
 #   3. dd /dev/loopNp6 → build/stock-rootfs.ext4                         (~1.31 GB)
 #   4. Detach loop; delete golden-raw.img (saves ~6 GB)
@@ -21,7 +21,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-HARNESS_DIR="${REPO_ROOT}/validation/qemu-harness"
+HARNESS_DIR="${REPO_ROOT}/tests/qemu-harness"
 BUILD_DIR="${HARNESS_DIR}/build"
 RECOVERY_DIR="${REPO_ROOT}/recovery"
 

@@ -15,7 +15,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-HARNESS_DIR="${REPO_ROOT}/validation/qemu-harness"
+HARNESS_DIR="${REPO_ROOT}/tests/qemu-harness"
 BUILD_DIR="${HARNESS_DIR}/build"
 
 VENDOR_KSRC="${REPO_ROOT}/modules/zram-bsp/tina-bsp-kernel"
