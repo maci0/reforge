@@ -31,3 +31,6 @@ tests/qemu-harness/build/
 # Lab — experiments / scratch (never ships to github)
 lab/scratch/
 lab/spike-stockui/extracted/
+
+# Recovery image archive — large third-party blobs (never commit)
+tools/recovery/archive/
