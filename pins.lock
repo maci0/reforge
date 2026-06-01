@@ -1,7 +1,13 @@
 # ReForge component pins — authoritative source of truth for reproducible builds.
 # Format: <component> <kind> <ref> <sha>
 buildroot   tag    2026.02.2            71d1dddae12e7cbf322d96864d7757f459801f47
-# kernel / u-boot / guppyscreen added in later plans
+# Stock-kernel BSP (Allwinner T113 sun8iw20, 5.4.61) — git submodule at vendor/kernels/tina-bsp-kernel.
+# This is the layout-exact source for the zram modules + the qemu virt test kernel.
+tina-bsp-kernel  submodule  5.4.61   349a0b9fe63a03ea21198d104e5e9e01e7c068a6  https://github.com/iLotusK9/linux_kernel_aw_t113.git
+# Cross toolchain (kernel.org crosstool GCC 9.5.0 arm-linux-gnueabi, nolibc) — tarball, fetched by vendor/fetch.sh.
+# Pinned by content hash of the exact artifact we build with (not a mutable mirror).
+gcc-crosstool    tarball    9.5.0    81669db4e5adc1ff1c35e7d939ebcb6a5793c9b39202a7251d9210396ea533ce  https://mirrors.edge.kernel.org/pub/tools/crosstool/files/bin/x86_64/9.5.0/x86_64-gcc-9.5.0-nolibc-arm-linux-gnueabi.tar.xz
+# u-boot added in later plans
 mainsail   tag     v2.17.0  d010f4df25557d520ccdbb8e42fc381df2288e6a5c72d3838a5a2433c7a31d4e
 klipper    commit  master  b7c0329f1dcc159bb20148afa65b113a34c51efa
 moonraker  commit  master  9008485843740c93e0154ccbdac1fc2b02b03aaa

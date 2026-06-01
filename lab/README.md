@@ -22,10 +22,11 @@ The **finding** from the stock-UI spike is product knowledge and lives in the do
 Heavy build output stays next to the thing that produces it and is gitignored in place —
 not moved here:
 
-- `output/`, `output-guppy/` — buildroot output
+- `build/output/`, `build/output-guppy/` — buildroot output (default + guppy variants)
 - `tests/qemu-harness/build/` — test kernel, ext4 images, logs
 - `packaging/dist/` — built `.tgz`
 - `tools/recovery/*.img.gz` — golden dumps
-- `modules/zram-bsp/{tina-bsp-kernel,gcc-*,linux-5.4.61*,build-tina}/` — toolchains/kernels
+- `vendor/kernels/`, `vendor/toolchains/` — BSP/mainline kernel sources + crosstool (downloaded)
+- `modules/zram-bsp/build-tina/` — zram BSP kernel build output
 
 See `docs/REPO-LAYOUT.md` for the full product-vs-lab map.

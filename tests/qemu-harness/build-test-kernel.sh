@@ -9,7 +9,8 @@
 #              is not compiled.  A qemu -M virt kernel needs ZERO sunxi drivers.
 #
 # Fallback (only if vendor truly unbuildable after real effort):
-#   modules/zram-bsp/linux-5.4.61  (mainline 5.4.61, same version, builds clean)
+#   mainline linux-5.4.61 (same version, builds clean) — NOT vendored by default.
+#   Fetch it manually into vendor/kernels/linux-5.4.61.tar.xz first (kernel.org).
 #   DO NOT use 6.x mainline.
 # =============================================================================
 set -euo pipefail
@@ -18,9 +19,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 HARNESS_DIR="${REPO_ROOT}/tests/qemu-harness"
 BUILD_DIR="${HARNESS_DIR}/build"
 
-VENDOR_KSRC="${REPO_ROOT}/modules/zram-bsp/tina-bsp-kernel"
-MAINLINE_KSRC="${REPO_ROOT}/modules/zram-bsp/linux-5.4.61"   # fallback (5.4.61 only)
-CROSS="${REPO_ROOT}/modules/zram-bsp/gcc-9.5.0-nolibc/arm-linux-gnueabi/bin/arm-linux-gnueabi-"
+VENDOR_KSRC="${REPO_ROOT}/vendor/kernels/tina-bsp-kernel"
+MAINLINE_KSRC="${REPO_ROOT}/vendor/kernels/linux-5.4.61"   # fallback (5.4.61 only)
+CROSS="${REPO_ROOT}/vendor/toolchains/gcc-9.5.0-nolibc/arm-linux-gnueabi/bin/arm-linux-gnueabi-"
 JOBS="${BUILD_JOBS:-$(nproc)}"
 
 log()  { echo "[build-test-kernel] $*"; }
@@ -237,16 +238,16 @@ build_mainline_fallback() {
 
     # Extract if not already done
     if [[ ! -f "${MAINLINE_KSRC}/Makefile" ]]; then
-        local TARBALL="${REPO_ROOT}/modules/zram-bsp/linux-5.4.61.tar.xz"
-        [[ -f "${TARBALL}" ]] || die "Mainline tarball not found: ${TARBALL}"
+        local TARBALL="${REPO_ROOT}/vendor/kernels/linux-5.4.61.tar.xz"
+        [[ -f "${TARBALL}" ]] || die "Mainline tarball not found: ${TARBALL} — it is not vendored by default; fetch it from kernel.org (see pins.lock / vendor/README.md) only if you need the fallback."
         log "Extracting mainline 5.4.61 ..."
         mkdir -p "${MAINLINE_KSRC}"
-        tar -xJf "${TARBALL}" -C "${REPO_ROOT}/modules/zram-bsp/" 2>&1 | tail -5
+        tar -xJf "${TARBALL}" -C "${REPO_ROOT}/vendor/kernels/" 2>&1 | tail -5
         # tar may extract as linux-5.4.61/; check
         if [[ ! -f "${MAINLINE_KSRC}/Makefile" ]]; then
             # Try moving extracted dir
             local extracted
-            extracted=$(find "${REPO_ROOT}/modules/zram-bsp" -maxdepth 1 -name "linux-5.4*" -type d | head -1)
+            extracted=$(find "${REPO_ROOT}/vendor/kernels" -maxdepth 1 -name "linux-5.4*" -type d | head -1)
             [[ -n "${extracted}" ]] || die "Cannot find extracted mainline source"
             [[ "${extracted}" == "${MAINLINE_KSRC}" ]] || mv "${extracted}" "${MAINLINE_KSRC}"
         fi
@@ -353,7 +354,7 @@ build_initramfs() {
     # Fallback: extract busybox + shared libs from Plan-1 rootfs
     local USE_BUSYBOX=0
     local BB="${INITRD_DIR}/bin/busybox"
-    local ROOTFS_XZ="${REPO_ROOT}/output/images/rootfs.tar.xz"
+    local ROOTFS_XZ="${REPO_ROOT}/build/output/images/rootfs.tar.xz"
 
     if [[ "${USE_STATIC_INIT}" -eq 0 ]]; then
         if [[ -f "${ROOTFS_XZ}" ]]; then

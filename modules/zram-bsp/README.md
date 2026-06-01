@@ -38,12 +38,14 @@ is the low-CPU escape hatch (`ZRAM_ALGO=lzo-rle`).
   using GCC ~9 (kernel.org crosstool) for clean 5.4 builds (local GCC 14 is too new).
 
 ## Build inputs
-- Kernel source: upstream **`linux-5.4.61`** (kernel.org). zram/zsmalloc/zpool are generic
-  mm/block drivers Allwinner does not patch, so upstream source is tried first.
+- Kernel source: the **Tina sun8iw20 BSP** submodule `vendor/kernels/tina-bsp-kernel`
+  (pinned in `pins.lock`). This is the layout-exact default — upstream mainline `linux-5.4.61`
+  was tried first and **Oopsed** (see RESULT below), so the BSP is what `build.sh` uses.
 - Config: the **captured stock `.config`** (`../../docs/board-notes/stock-kernel-config-5.4.61.txt.gz`)
   with `CONFIG_ZSMALLOC=m`, `CONFIG_ZRAM=m`, `CONFIG_ZPOOL=m`, `CONFIG_ZBUD=m` added.
-- Toolchain: kernel.org crosstool `arm-linux-gnueabi` GCC 9.5 (kernel builds soft-float
-  regardless of hf/non-hf prefix).
+- Toolchain: kernel.org crosstool `arm-linux-gnueabi` GCC 9.5 at
+  `vendor/toolchains/gcc-9.5.0-nolibc` (fetched + verified by `vendor/fetch.sh`; kernel
+  builds soft-float regardless of hf/non-hf prefix).
 
 ## Build steps (see build.sh once written)
 1. Extract source + toolchain.

@@ -1,3 +1,7 @@
 [submodule "buildroot"]
-	path = buildroot
+	path = vendor/buildroot
 	url = https://gitlab.com/buildroot.org/buildroot.git
+[submodule "vendor/kernels/tina-bsp-kernel"]
+	path = vendor/kernels/tina-bsp-kernel
+	url = https://github.com/iLotusK9/linux_kernel_aw_t113.git
+	branch = 5.4.61

@@ -2,8 +2,8 @@
 # qemu-user smoke test of the built ReForge rootfs.
 set -eu
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-TAR="$ROOT/output/images/rootfs.tar.xz"
-EXTRACT="$ROOT/output/smoke-root"
+TAR="$ROOT/build/output/images/rootfs.tar.xz"
+EXTRACT="$ROOT/build/output/smoke-root"
 [ -f "$TAR" ] || { echo "FAIL: no rootfs at $TAR"; exit 1; }
 rm -rf "$EXTRACT"; mkdir -p "$EXTRACT"
 tar -C "$EXTRACT" -xf "$TAR"
