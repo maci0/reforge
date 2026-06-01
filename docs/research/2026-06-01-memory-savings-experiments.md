@@ -103,6 +103,25 @@ GuppyScreen is multi-threaded (LVGL loop + Moonraker WebSocket client thread) �
 `MALLOC_ARENA_MAX=2` like klippy/moonraker. Same mechanism as the measured Moonraker win
 (−2.7 MB RSS), zero downside.
 
+## Moonraker [update_manager] — tested; reforge keeps it OFF
+
+reforge `moonraker.conf` ships `[update_manager]` disabled. Cost of enabling it (qemu
+`-m 128`, idle, web + git updaters):
+
+| | moonraker Pss | moonraker Rss |
+|---|---|---|
+| OFF (shipped) | 38.4 MB | 43.6 MB |
+| ON | 39.0 MB | 44.2 MB |
+| cost | +0.6 MB | +0.6 MB |
+
+The +0.6 MB is a **floor**: `git` is absent from the reforge rootfs, so the `git_repo`
+updater fails init early (cost understated) and `enable_auto_refresh: False` means no
+periodic-refresh state held. The real reason to keep it off is **the dependency** —
+update_manager needs `git` (+ deps: tens of MB of rootfs, plus git's own RSS when it runs).
+Reforge flashes via a USB `.tgz`, so in-place git updates aren't needed. **Decision: stay
+disabled** — the win is avoiding `git` in the image, not the 0.6 MB. (Probe tweak:
+`make qemu-mem TWEAKS=updmgr`.)
+
 ## Caveats
 
 - qemu has no MCU → klippy sits in error/retry, but Python + all modules are loaded, so

@@ -74,6 +74,26 @@ case ",${TWEAKS:-}," in *,noarena,*)
     log "tweak: remove arena cap (glibc default = 8*ncpu) — simulates forge-x"
     sed -i '/export MALLOC_ARENA_MAX=/d' "$K" "$M" 2>/dev/null || true
 ;; esac
+case ",${TWEAKS:-}," in *,updmgr,*)
+    log "tweak: enable Moonraker [update_manager] + web updaters (measure its cost)"
+    cat >> "${MNT}/etc/reforge/moonraker.conf" <<'UMG'
+
+[update_manager]
+enable_auto_refresh: False
+refresh_interval: 168
+
+[update_manager mainsail]
+type: web
+repo: mainsail-crew/mainsail
+path: /var/www/mainsail
+
+[update_manager moonraker]
+type: git_repo
+path: /opt/moonraker
+origin: https://github.com/Arksine/moonraker.git
+primary_branch: master
+UMG
+;; esac
 
 # Probe init: runs last (S98), after klipper/moonraker/httpd/guppyscreen.
 cat > "${MNT}/etc/init.d/S98memprobe" <<PROBE
