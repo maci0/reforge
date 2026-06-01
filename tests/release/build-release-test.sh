@@ -26,7 +26,10 @@ for a in klipper moonraker guppyscreen reforge; do
     # release_info.json MUST sit at the ZIP ROOT — not nested in a wrapper dir,
     # or net_deploy reads <path>/release_info.json and the component is silently
     # un-updatable. "$NF" is the path column from `unzip -l`.
-    unzip -l "$OUT/$a.zip" | awk '{print $NF}' | grep -qx 'release_info.json' \
+    # NOTE: buffer the listing first — `unzip -l | grep -q` races (grep closes the
+    # pipe on first match → unzip gets SIGPIPE → 141 → pipefail false-FAILs).
+    listing="$(unzip -l "$OUT/$a.zip")"
+    printf '%s\n' "$listing" | awk '{print $NF}' | grep -qx 'release_info.json' \
         || { echo "FAIL: $a.zip release_info.json not at zip root (nested wrapper?)"; exit 1; }
 
     # all four keys present + the right owner + the right version
@@ -37,16 +40,18 @@ for a in klipper moonraker guppyscreen reforge; do
     printf '%s' "$info" | grep -q "\"asset_name\": \"$a.zip\""  || { echo "FAIL: $a release_info asset_name wrong"; exit 1; }
 done
 
-# component payload spot-checks
-unzip -l "$OUT/klipper.zip" | grep -q 'klippy/chelper/c_helper.so' \
+# component payload spot-checks (buffer listings first — same SIGPIPE reason as above)
+klist="$(unzip -l "$OUT/klipper.zip")"
+rlist="$(unzip -l "$OUT/reforge.zip")"
+printf '%s\n' "$klist" | grep -q 'klippy/chelper/c_helper.so' \
     || { echo "FAIL: klipper.zip missing prebuilt c_helper.so"; exit 1; }
-unzip -l "$OUT/reforge.zip" | grep -qE 'etc/init\.d/S60klipper' \
+printf '%s\n' "$rlist" | grep -qE 'etc/init\.d/S60klipper' \
     || { echo "FAIL: reforge.zip missing init scripts (S60klipper)"; exit 1; }
-unzip -l "$OUT/reforge.zip" | grep -qE 'modules/zram\.ko' \
+printf '%s\n' "$rlist" | grep -qE 'modules/zram\.ko' \
     || { echo "FAIL: reforge.zip missing modules/zram.ko"; exit 1; }
-unzip -l "$OUT/reforge.zip" | grep -qE 'modules/swapon_prio' \
+printf '%s\n' "$rlist" | grep -qE 'modules/swapon_prio' \
     || { echo "FAIL: reforge.zip missing modules/swapon_prio"; exit 1; }
-unzip -l "$OUT/reforge.zip" | grep -qE 'usr/bin/reforge-banner' \
+printf '%s\n' "$rlist" | grep -qE 'usr/bin/reforge-banner' \
     || { echo "FAIL: reforge.zip missing usr/bin/reforge-banner"; exit 1; }
 
 # the USB .tgz, renamed to the requested VER
