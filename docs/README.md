@@ -2,6 +2,7 @@
 
 | path | what |
 |---|---|
+| [`optimizations.md`](optimizations.md) | **all tuning/optimizations + measured impact** (memory, size) |
 | [`architecture.md`](architecture.md) | system architecture, runtime stack, data flow (diagrams) |
 | [`build-process.md`](build-process.md) | pins → vendor fetch → Buildroot → image → `.tgz` (diagram) |
 | [`boot-flow.md`](boot-flow.md) | power-on → `reforge-boot` → service chain → up (diagram) |

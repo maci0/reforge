@@ -26,7 +26,8 @@ case "$1" in
 		# GuppyScreen is multi-threaded (LVGL loop + Moonraker WebSocket client),
 		# so cap glibc malloc arenas like klippy/moonraker (§10b). Saves RSS on
 		# the 128 MB box with no functional change.
-		export MALLOC_ARENA_MAX=2
+		export LD_PRELOAD=/usr/lib/libjemalloc.so.2
+		export MALLOC_CONF=narenas:1,dirty_decay_ms:0,muzzy_decay_ms:0
 		start-stop-daemon -S -b -m -p "$PIDFILE" \
 			-x "$DAEMON"
 		;;
