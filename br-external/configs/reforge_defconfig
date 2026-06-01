@@ -21,7 +21,44 @@ BR2_TARGET_GENERIC_HOSTNAME="reforge"
 BR2_TARGET_GENERIC_ISSUE="Welcome to ReForge"
 BR2_SYSTEM_DHCP="eth0"
 BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_REFORGE_PATH)/board/reforge/rootfs-overlay"
+# Enable the busybox httpd applet (serves the Mainsail SPA; replaces nginx)
+BR2_PACKAGE_BUSYBOX_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_REFORGE_PATH)/board/reforge/busybox-fragment.config"
 BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_REFORGE_PATH)/board/reforge/post-build.sh"
 BR2_TARGET_ROOTFS_TAR_XZ=y
-# Foundation plan is userspace-only — intentionally NO kernel, NO bootloader.
-# (BR2_LINUX_KERNEL and BR2_TARGET_UBOOT deliberately unset; added in Plan 5/P4.)
+# Userspace-only — intentionally NO kernel, NO bootloader (P1-P3 ride the stock
+# 5.4.61 kernel). BR2_LINUX_KERNEL and BR2_TARGET_UBOOT added in Plan 5.
+
+# ---------------------------------------------------------------------------
+# ReForge application stack (single image; SCREEN_MODE gates the on-screen GUI
+# at runtime, so there is ONE defconfig — headless and on-screen share it).
+# ---------------------------------------------------------------------------
+# Single shared interpreter for klippy + moonraker (COW page sharing)
+BR2_PACKAGE_PYTHON3=y
+# Core Python stdlib modules required by klippy (zlib used by msgproto.py/json)
+BR2_PACKAGE_PYTHON3_ZLIB=y
+BR2_PACKAGE_PYTHON3_SSL=y
+BR2_PACKAGE_PYTHON3_SQLITE=y
+# Klipper host deps
+BR2_PACKAGE_PYTHON_NUMPY=y
+BR2_PACKAGE_PYTHON_CFFI=y
+BR2_PACKAGE_PYTHON_SERIAL=y
+BR2_PACKAGE_PYTHON_GREENLET=y
+BR2_PACKAGE_PYTHON_JINJA2=y
+BR2_PACKAGE_PYTHON_MARKUPSAFE=y
+# Fortran needed to build numpy from source
+BR2_TOOLCHAIN_BUILDROOT_FORTRAN=y
+# Klipper host (klippy) + pre-compiled NEON chelper
+BR2_PACKAGE_KLIPPER=y
+# Moonraker API server (system python3, no venv, trimmed deps). Serves its own
+# HTTP + WebSocket on :7125 — no reverse proxy needed.
+BR2_PACKAGE_MOONRAKER=y
+# Mainsail web UI (prebuilt static SPA bundle). Served by busybox httpd on :80;
+# the browser talks to Moonraker directly at :7125 (cors_domains in moonraker.conf).
+BR2_PACKAGE_MAINSAIL=y
+# GuppyScreen — native LVGL touchscreen UI (framebuffer, talks to Moonraker).
+# Launched only when SCREEN_MODE=GUPPY (S75guppyscreen); idle otherwise.
+BR2_PACKAGE_GUPPYSCREEN=y
+BR2_PACKAGE_LIBEVDEV=y
+BR2_PACKAGE_WPA_SUPPLICANT=y
+# zram compressed swap — prebuilt modules for stock 5.4.61 kernel (P1-P3)
+BR2_PACKAGE_REFORGE_ZRAM=y

@@ -22,7 +22,7 @@ The **finding** from the stock-UI spike is product knowledge and lives in the do
 Heavy build output stays next to the thing that produces it and is gitignored in place —
 not moved here:
 
-- `build/output/`, `build/output-guppy/` — buildroot output (default + guppy variants)
+- `build/output/` — buildroot output (the single ReForge image)
 - `tests/qemu-harness/build/` — test kernel, ext4 images, logs
 - `packaging/dist/` — built `.tgz`
 - `tools/recovery/*.img.gz` — golden dumps

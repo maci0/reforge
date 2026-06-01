@@ -32,9 +32,9 @@ lab/          experiments / scratch (not shipped)
 # 1. Get the pinned third-party trees (submodules + verified toolchain tarball)
 ./vendor/fetch.sh
 
-# 2. Build the rootfs (headless, or the full GuppyScreen variant)
-make rootfs              # reforge_defconfig          -> build/output/
-make guppy               # reforge_guppyscreen_defconfig -> build/output-guppy/
+# 2. Build the single ReForge image (klipper + moonraker + mainsail +
+#    guppyscreen + zram). SCREEN_MODE picks headless vs on-screen at runtime.
+make rootfs              # reforge_defconfig -> build/output/
 
 # 3. Package the stock-format updater
 make tgz                 # -> packaging/dist/reforge-<ver>.tgz

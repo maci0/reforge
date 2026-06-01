@@ -2,8 +2,8 @@
 # qemu-user smoke test of the full-stack (guppyscreen) ReForge rootfs.
 set -eu
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-TAR="$ROOT/build/output-guppy/images/rootfs.tar.xz"
-EXTRACT="$ROOT/build/output-guppy/smoke-root"
+TAR="$ROOT/build/output/images/rootfs.tar.xz"
+EXTRACT="$ROOT/build/output/smoke-root"
 
 [ -f "$TAR" ] || { echo "FAIL: no rootfs at $TAR"; exit 1; }
 rm -rf "$EXTRACT"; mkdir -p "$EXTRACT"
@@ -63,11 +63,9 @@ file "$CHELPER_SO" | grep -q "ARM" \
 [ -f "$EXTRACT/var/www/mainsail/index.html" ] \
   || fail "/var/www/mainsail/index.html missing"
 
-# 8) nginx binary is present and is ARM
-[ -f "$EXTRACT/usr/sbin/nginx" ] \
-  || fail "/usr/sbin/nginx missing"
-file "$EXTRACT/usr/sbin/nginx" | grep -q "ARM" \
-  || fail "nginx not ARM"
+# 8) busybox httpd applet present (serves Mainsail; replaces nginx)
+[ -e "$EXTRACT/usr/sbin/httpd" ] \
+  || fail "/usr/sbin/httpd missing (busybox httpd applet not enabled?)"
 
 # 9) GuppyScreen binary is ARM
 [ -f "$EXTRACT/opt/guppyscreen/guppyscreen" ] \
@@ -76,7 +74,7 @@ file "$EXTRACT/opt/guppyscreen/guppyscreen" | grep -q "ARM" \
   || fail "guppyscreen binary not ARM"
 
 # 10) The 5 real init scripts exist and are executable
-for svc in S00cloudblock S60klipper S65moonraker S70nginx S75guppyscreen; do
+for svc in S00cloudblock S60klipper S65moonraker S70httpd S75guppyscreen; do
   SCRIPT="$EXTRACT/etc/init.d/$svc"
   [ -f "$SCRIPT" ] || fail "init script $svc missing"
   [ -x "$SCRIPT" ] || fail "init script $svc not executable"

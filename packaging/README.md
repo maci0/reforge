@@ -28,7 +28,7 @@ any official FlashForge update.
 reforge-<ver>.tgz
 ├── flashforge_init.sh          ← entry point; stock updater runs this
 ├── software-<ver>.tar.xz       ← ReForge rootfs overlay (klipper, moonraker,
-│                                   mainsail, nginx, guppyscreen, boot glue)
+│                                   mainsail, busybox httpd, guppyscreen, boot glue)
 ├── library-<ver>.tar.xz        ← shared libs / Python wheels (reserved)
 ├── control-<ver>.tar.xz        ← MCU firmware stub (EMPTY — Plan 4 placeholder)
 └── md5sum.list                 ← sha/md5 manifest; installer verifies before commit
@@ -69,7 +69,7 @@ Version is read from `packaging/VERSION`.
    - Bind-mounts `/proc`, `/sys`, `/dev`, `/run`, `/tmp`, `/data`, `/opt/config`
      into the chroot.
    - `exec chroot /data/.reforge /etc/init.d/rcS start` — runs the ReForge init
-     chain (cloud-block → zram → Klipper → Moonraker → nginx → GuppyScreen if enabled).
+     chain (cloud-block → zram → Klipper → Moonraker → httpd → GuppyScreen if enabled).
 
 **Stock kernel, partitions, and FlashForge binaries are never modified.**
 A bad install is recoverable by reflashing the stock `.tgz` from USB.

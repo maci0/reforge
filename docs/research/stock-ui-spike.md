@@ -93,7 +93,7 @@ Result: UI renders portrait into landscape fb (right half clipped). Non-fatal fo
 On real hardware the fb is 480x800 portrait and the UI fills correctly.
 
 **Soft-float ABI constraint:** firmwareExe is soft-float. It CANNOT run in ReForge's
-hard-float rootfs (`build/output-guppy`). It must run in the stock soft-float environment.
+hard-float rootfs (`build/output`). It must run in the stock soft-float environment.
 
 ---
 
