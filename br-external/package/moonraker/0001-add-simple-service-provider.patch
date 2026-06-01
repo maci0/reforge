@@ -1,0 +1,52 @@
+From: ReForge <reforge@localhost>
+Date: Sun, 1 Jun 2026 00:00:00 +0000
+Subject: [PATCH] machine: add SimpleProvider for init.d service control
+
+Upstream Moonraker ships no init.d service provider (only none /
+systemd_cli / systemd_dbus / supervisord_cli), so on a buildroot image
+`provider: none` returns 503 on any service action and updates require a
+reboot to apply.
+
+Add a SimpleProvider whose do_service_action shells out to
+"<script_path>/<service_name> <action>" via the shell_command helper, and
+register it as "simple" in the providers dict so `provider: simple` can
+live-restart our init.d-managed services after an update_manager update.
+
+Signed-off-by: ReForge <reforge@localhost>
+--- a/moonraker/components/machine.py
++++ b/moonraker/components/machine.py
+@@ -112,7 +112,8 @@
+             "none": BaseProvider,
+             "systemd_cli": SystemdCliProvider,
+             "systemd_dbus": SystemdDbusProvider,
+-            "supervisord_cli": SupervisordCliProvider
++            "supervisord_cli": SupervisordCliProvider,
++            "simple": SimpleProvider
+         }
+         self.provider_type = config.get('provider', 'systemd_dbus')
+         pclass = providers.get(self.provider_type)
+@@ -1607,6 +1608,24 @@
+         return service_info
+ 
+ 
++# Simple service-restarting provider, backed by per-service control scripts
++# (default path: /etc/init.d/). do_service_action shells out to
++# "<script_path>/<service_name> <action>" via the shell_command helper.
++class SimpleProvider(BaseProvider):
++    def __init__(self, config: ConfigHelper) -> None:
++        super().__init__(config)
++        self.script_path = config.get("script_path", "/etc/init.d/")
++        self.script_timeout = config.getfloat("script_timeout", 30.)
++
++    async def do_service_action(self,
++                                action: str,
++                                service_name: str
++                                ) -> None:
++        path = os.path.join(self.script_path, service_name)
++        cmd = f"{path} {action}"
++        await self.shell_cmd.exec_cmd(cmd, timeout=self.script_timeout)
++
++
+ # Install validation
+ INSTALL_VERSION = 1
+ SERVICE_VERSION = 1
