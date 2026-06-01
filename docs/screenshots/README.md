@@ -34,6 +34,31 @@ the pinned 800×480 framebuffer. No MCU in qemu → klippy is in `error`/waiting
 GuppyScreen shows its connecting/offline state — which still proves the full render
 path works (LVGL → DRM/virtio-gpu fbdev → `/dev/fb0`). Regenerate with `make qemu-render`.
 
+## Stock UI boot phases (`firmwareExe`) under simulated hardware
+
+The stock UI boot is ~90 s in qemu. Sampling the framebuffer across that window
+(`tests/qemu-harness/shots-capture.sh`, screendumps at t = 4/8/12/18/25/40/60/90 s plus a
+finer 18–30 s pass) yields a handful of visually distinct phases. Each frame is the pinned
+**800×480** panel, captured exactly like the home shot below (rootless slice + sim + screendump).
+
+### Phase 1 — loading / connecting ("Initialization…")
+
+![Stock FlashForge UI initialising in qemu, 800×480](stockui-boot-loading-800x480.png)
+
+The first thing `firmwareExe` paints: a dark canvas with the centred **"Initialization…"** card and
+spinner, shown while it brings up Qt/QWS on `/dev/fb0` and waits on the eboard serial handshake +
+klippy. (There is no separate green FlashForge bootlogo in this path — the Qt app owns the
+framebuffer from a dark background straight through to the home screen.)
+
+### Phase 2 — transient restart notice ("E0120: Restarted")
+
+![Stock FlashForge E0120 restart notice in qemu, 800×480](stockui-boot-restart-800x480.png)
+
+Mid-boot under qemu, `firmwareExe` self-restarts once and surfaces an **"E0120: Restarted. Please
+copy the logs!"** dialog before recovering. Captured honestly as a real boot-time state — it clears
+on its own and the UI proceeds to the home screen below. (On real hardware this is the watchdog/
+recovery notice; here it's the in-qemu restart on the way up.)
+
 ## Stock UI (`firmwareExe`) — full home screen under simulated hardware
 
 ![Stock FlashForge home screen in qemu, 800×480](stockui-home-qemu-800x480.png)
