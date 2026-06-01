@@ -2,7 +2,7 @@
 
 All captured from `qemu-system-arm` with `/dev/fb0` pinned to the printer's exact
 panel (**800×480, 32 bpp**), via the QEMU monitor `screendump` (see
-`validation/qemu-harness/README.md`). So these are **pixel-identical to what the real
+`tests/qemu-harness/README.md`). So these are **pixel-identical to what the real
 4.3" screen would show**.
 
 ## GuppyScreen (ReForge's on-screen UI)
@@ -24,7 +24,7 @@ rendered** — Qt4/QWS initialized and the FlashForge splash drew to the framebu
 The screenshot itself is **deliberately not committed**: it shows FlashForge's
 proprietary UI/branding, and this repo commits **zero proprietary assets** (CI-guarded —
 same policy that excludes the `firmwareExe` binary). The render is captured locally to
-`validation/qemu-harness/build/stockui-screenshot.ppm` (gitignored) when you run the
+`tests/qemu-harness/build/stockui-screenshot.ppm` (gitignored) when you run the
 spike; see `docs/research/stock-ui-spike.md` for the full works/breaks analysis and the
 **GO / Option-A** recommendation.
 </content>

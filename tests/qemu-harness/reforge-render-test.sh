@@ -21,7 +21,7 @@
 # qemu-compatibility patches (P2–P4 plus the screen-mode write).
 #
 # Usage:
-#   sudo validation/qemu-harness/reforge-render-test.sh
+#   sudo tests/qemu-harness/reforge-render-test.sh
 #   make qemu-render
 #
 # Env overrides:
@@ -32,8 +32,8 @@
 #   GUPPY_WAIT=360              — seconds to poll for guppyscreen start (default 360)
 #
 # Output:
-#   validation/qemu-harness/build/guppy-screenshot.ppm  (gitignored)
-#   validation/qemu-harness/build/reforge-render-qemu.log  (preserved for debug)
+#   tests/qemu-harness/build/guppy-screenshot.ppm  (gitignored)
+#   tests/qemu-harness/build/reforge-render-qemu.log  (preserved for debug)
 #
 # Exit codes: 0 = PASS, 1 = FAIL
 # Needs: sudo (loop mount), qemu-system-arm, socat
@@ -41,7 +41,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-HARNESS_DIR="${REPO_ROOT}/validation/qemu-harness"
+HARNESS_DIR="${REPO_ROOT}/tests/qemu-harness"
 BUILD_DIR="${HARNESS_DIR}/build"
 DIST_DIR="${REPO_ROOT}/packaging/dist"
 

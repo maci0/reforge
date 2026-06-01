@@ -45,7 +45,7 @@
 #   as the VM — chroot does not isolate the network stack).
 #   The host curls http://127.0.0.1:17125/server/info.
 #
-# Usage: sudo validation/qemu-harness/update-process-test.sh
+# Usage: sudo tests/qemu-harness/update-process-test.sh
 #        make qemu-update
 #
 # Env overrides:
@@ -61,7 +61,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-HARNESS_DIR="${REPO_ROOT}/validation/qemu-harness"
+HARNESS_DIR="${REPO_ROOT}/tests/qemu-harness"
 BUILD_DIR="${HARNESS_DIR}/build"
 DIST_DIR="${REPO_ROOT}/packaging/dist"
 

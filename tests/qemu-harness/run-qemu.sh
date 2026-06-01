@@ -43,12 +43,12 @@
 #   -device virtio-net-pci     Network (DHCP via user-mode slirp).
 #   -device virtio-input-host  virtio HID input (required by Task 7/8 UI tests).
 #
-# Kernel: validation/qemu-harness/build/zImage  (built by Task 4 build-test-kernel.sh)
+# Kernel: tests/qemu-harness/build/zImage  (built by Task 4 build-test-kernel.sh)
 # =============================================================================
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-HARNESS_DIR="${REPO_ROOT}/validation/qemu-harness"
+HARNESS_DIR="${REPO_ROOT}/tests/qemu-harness"
 BUILD_DIR="${HARNESS_DIR}/build"
 ZIMAGE="${BUILD_DIR}/zImage"
 

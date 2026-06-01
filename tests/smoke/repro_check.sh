@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TMPDIR_REPRO="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR_REPRO"' EXIT
 manifest() { # $1 = extract dir -> sorted "mode size sha path"

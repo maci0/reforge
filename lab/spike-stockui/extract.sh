@@ -37,7 +37,7 @@ SPIKE_DIR="${SCRIPT_DIR}"
 EXTRACTED="${SPIKE_DIR}/extracted"
 
 FW_ANALYSIS_DIR="${FW_ANALYSIS_DIR:-${REPO_ROOT}/../fw-analysis}"
-ROOTFS_IMG="${ROOTFS_IMG:-${REPO_ROOT}/validation/qemu-harness/build/stock-rootfs.ext4}"
+ROOTFS_IMG="${ROOTFS_IMG:-${REPO_ROOT}/tests/qemu-harness/build/stock-rootfs.ext4}"
 SKIP_LOOP_MOUNT="${SKIP_LOOP_MOUNT:-0}"
 
 log()  { echo "[extract] $*"; }

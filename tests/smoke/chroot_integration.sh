@@ -11,7 +11,7 @@
 # FULL_API=0 path (documented floor): import smoke + config-parse + nginx -t + bundle present
 set -eu
 
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TARBALL="${ROOTFS_TAR:-$REPO_ROOT/output-guppy/images/rootfs.tar.xz}"
 QEMU="${QEMU_ARM:-/usr/bin/qemu-arm-static}"
 

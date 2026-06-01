@@ -1,7 +1,7 @@
 #!/bin/sh
 # qemu-user smoke test of the full-stack (guppyscreen) ReForge rootfs.
 set -eu
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TAR="$ROOT/output-guppy/images/rootfs.tar.xz"
 EXTRACT="$ROOT/output-guppy/smoke-root"
 

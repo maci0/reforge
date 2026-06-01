@@ -247,5 +247,5 @@ libs but is excluded from git by `.gitignore`.
 
 *Evidence sources: static analysis of `fw-analysis/software-5.1.4/firmwareExe`
 (SHA1: f24ce8943f96971f9eb291730f296989d7c96932), stock rootfs at
-`validation/qemu-harness/build/stock-rootfs.ext4`, qemu live test log
+`tests/qemu-harness/build/stock-rootfs.ext4`, qemu live test log
 `build/stockui-live-test2.log`, screendump `build/stockui-screenshot.ppm`.*

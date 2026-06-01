@@ -61,7 +61,7 @@ Both satellite MCUs = **Nations N32G455** (144 MHz Cortex-M4, STM32F1-ish). Klip
   - Fans: part `eboard:PB5`, hotend `eboard:PB4`, chamber PC6+en PC7 (HW PWM), internal PB6, external PB8, controller_fan PB7. Chamber LED PA8 (mainboard). Servo PC9. Filament runout `!PB14`, e1 `!PE1`. Power: btn `!PC15`, `_power_off` PC14, `_clear_power_off` PG1.
 
 ## 8. eMMC / partitions
-Repos confirm only **`/data = /dev/mmcblk0p7`** (mod fsck+mounts it, chroot at `/data/.klipper_mod/chroot`, needs ≥512 MB free). Other partitions (boot-resource, env, dsp0/AR100 DSP, rootfs) **not enumerated** — full GPT/offsets require a **stock eMMC dump** (we have one: `recovery/golden-kunos-*.img.gz`).
+Repos confirm only **`/data = /dev/mmcblk0p7`** (mod fsck+mounts it, chroot at `/data/.klipper_mod/chroot`, needs ≥512 MB free). Other partitions (boot-resource, env, dsp0/AR100 DSP, rootfs) **not enumerated** — full GPT/offsets require a **stock eMMC dump** (we have one: `tools/recovery/golden-kunos-*.img.gz`).
 
 ## 9. Peripherals
 - **WiFi: RTL8821CU** confirmed (`8821cu.ko` from stock rootfs, USB, managed by **iwd**, `wlan0`). BT is part of the combo (unused by mod). [ReForge: mainline `CONFIG_RTW88_8821CU`.]
@@ -87,10 +87,10 @@ Repos confirm only **`/data = /dev/mmcblk0p7`** (mod fsck+mounts it, chroot at `
 - Hub: https://github.com/g992/flashforge-ad5m-5mpro-research (issues #25 external-CPU, #6 e-board handshake, #26 DRAM integrated, #28/#29 board diffs)
 - PCB scan / RS232 pinout: `photo/AD5M PRO Pcb Scan.png`
 - Klipper Mod (real engineering): https://github.com/xblax/flashforge_ad5m_klipper_mod
-  - MCU: `build_overlays/common/usr/libexec/mcu_update.sh`, `device_tools/mcu/boot_eboard_mcu.c`, `build_scripts/components/mcu_configs/ffad5m/{mainboard,eboard}`
+  - MCU: `build_overlays/common/usr/libexec/mcu_update.sh`, `device_tools/mcu/boot_eboard_mcu.c`, `tools/build/components/mcu_configs/ffad5m/{mainboard,eboard}`
   - Boot/chroot: `build_overlays/common/etc/init/S00klipper_mod`, `device_files/install/flashforge_init.sh`
   - Pin map: `printer_configs/printer.base.cfg`
-  - Buildroot: `build_scripts/buildroot/configs/{base,sdk,busybox.config}`
+  - Buildroot: `tools/build/buildroot/configs/{base,sdk,busybox.config}`
 - Buzzer: https://github.com/consp/flashforge_ad5m_audio ; Backlight: https://github.com/loss-and-quick/flashforge_ad5m_backlight
 
 **Could NOT find (remain ReForge tasks, need stock eMMC dump + HW probing):** panel timings/model/DTS; full GPT/partition offsets (only p7=data); U-Boot/boot0/DDR params; FEL or console-UART pinout.

@@ -13,7 +13,7 @@ jobs:
     #
     # Heavy qemu jobs (make qemu-*) are NOT run here — they require sudo + a real
     # ARM kernel + ~10 GB stock rootfs dump and are run locally / in a dedicated
-    # lab environment.  See validation/qemu-harness/README.md.
+    # lab environment.  See tests/qemu-harness/README.md.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

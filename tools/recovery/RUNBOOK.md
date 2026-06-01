@@ -77,10 +77,10 @@ connect it to a host machine, and write the golden image directly.
    # before running. This command will irrecoverably overwrite the target device.
 
    # Preferred: pure stock (forge-x removed)
-   gzip -dc recovery/golden-stock-clean.img.gz | sudo dd of=/dev/<reader-dev> bs=4M conv=fsync status=progress
+   gzip -dc tools/recovery/golden-stock-clean.img.gz | sudo dd of=/dev/<reader-dev> bs=4M conv=fsync status=progress
 
    # Alternative: exact capture state (forge-x installed)
-   # gzip -dc recovery/golden-kunos-20260531-152104.img.gz | sudo dd of=/dev/<reader-dev> bs=4M conv=fsync status=progress
+   # gzip -dc tools/recovery/golden-kunos-20260531-152104.img.gz | sudo dd of=/dev/<reader-dev> bs=4M conv=fsync status=progress
    ```
 
    Replace `<reader-dev>` with the confirmed device node from step 4.
@@ -99,11 +99,11 @@ binaries) and live only on local disk / external backup.
 
 | Image | State | Use for |
 |---|---|---|
-| `recovery/golden-kunos-20260531-152104.img.gz` (~886 MB gz) | Captured live, **forge-x installed** | Exact snapshot of the printer as it was; reference only |
-| `recovery/golden-stock-clean.img.gz` (~877 MB gz) | Derived offline, **pure stock — forge-x removed** | **Preferred recovery baseline and qemu rootfs source** |
+| `tools/recovery/golden-kunos-20260531-152104.img.gz` (~886 MB gz) | Captured live, **forge-x installed** | Exact snapshot of the printer as it was; reference only |
+| `tools/recovery/golden-stock-clean.img.gz` (~877 MB gz) | Derived offline, **pure stock — forge-x removed** | **Preferred recovery baseline and qemu rootfs source** |
 
 The `golden-stock-clean.img.gz` is the preferred pristine recovery baseline.
-It was derived from the original dump using `recovery/make-clean-golden.sh`
+It was derived from the original dump using `tools/recovery/make-clean-golden.sh`
 (offline, loop-mounted, no live printer access). The forge-x removal was guided
 by forge-x's own `uninstall.sh` + `S00init` + `boot/boot.sh` install record;
 it removes exactly what those scripts add and nothing more.
@@ -113,13 +113,13 @@ refreshed):
 
 ```sh
 # From the repo root (needs sudo for loop-mount):
-sudo ./recovery/make-clean-golden.sh
+sudo ./tools/recovery/make-clean-golden.sh
 ```
 
 This decompresses the original golden into a scratch raw, mounts p6/p7,
 removes all forge-x artifacts, verifies the cleaned state (15 checks PASS/FAIL),
-recompresses → `recovery/golden-stock-clean.img.gz`, extracts p6 →
-`validation/qemu-harness/build/stock-clean-rootfs.ext4`, then deletes the
+recompresses → `tools/recovery/golden-stock-clean.img.gz`, extracts p6 →
+`tests/qemu-harness/build/stock-clean-rootfs.ext4`, then deletes the
 scratch raw. The original golden is **never touched**.
 
 **Boot-verify result (2026-06-01):** The cleaned p6 was booted under the
@@ -136,16 +136,16 @@ userspace successfully.
 
 | Item | Location | In git? |
 |---|---|---|
-| Original golden (forge-x state) | `recovery/golden-kunos-20260531-152104.img.gz` | **NO** |
-| Original checksum | `recovery/golden-kunos-20260531-152104.img.gz.sha256` | **NO** |
-| Original size sidecar | `recovery/golden-kunos-20260531-152104.size` | **NO** |
-| **Stock-clean golden (preferred)** | `recovery/golden-stock-clean.img.gz` | **NO** |
-| Clean-golden derivation script | `recovery/make-clean-golden.sh` | YES |
-| Cleaned p6 rootfs for qemu | `validation/qemu-harness/build/stock-clean-rootfs.ext4` | **NO** |
-| Partition map | `recovery/partitions-20260531-152104.txt` | YES |
-| Dump script | `recovery/dump_golden.sh` | YES |
-| Verify script | `recovery/verify_dump.sh` | YES |
-| This runbook | `recovery/RUNBOOK.md` | YES |
+| Original golden (forge-x state) | `tools/recovery/golden-kunos-20260531-152104.img.gz` | **NO** |
+| Original checksum | `tools/recovery/golden-kunos-20260531-152104.img.gz.sha256` | **NO** |
+| Original size sidecar | `tools/recovery/golden-kunos-20260531-152104.size` | **NO** |
+| **Stock-clean golden (preferred)** | `tools/recovery/golden-stock-clean.img.gz` | **NO** |
+| Clean-golden derivation script | `tools/recovery/make-clean-golden.sh` | YES |
+| Cleaned p6 rootfs for qemu | `tests/qemu-harness/build/stock-clean-rootfs.ext4` | **NO** |
+| Partition map | `tools/recovery/partitions-20260531-152104.txt` | YES |
+| Dump script | `tools/recovery/dump_golden.sh` | YES |
+| Verify script | `tools/recovery/verify_dump.sh` | YES |
+| This runbook | `tools/recovery/RUNBOOK.md` | YES |
 
 **All `.img.gz` and `.ext4` files are gitignored and are NOT committed.**
 They live only on local disk (and wherever you back them up). A future operator
@@ -168,19 +168,19 @@ on a new device, or to refresh the baseline):
 
 ```sh
 # From the repo root:
-./recovery/dump_golden.sh root@<printer-ip>
+./tools/recovery/dump_golden.sh root@<printer-ip>
 ```
 
 This SSHes into the printer, reads `/dev/mmcblk0` via `dd`, gzip-compresses the
 stream locally, and writes:
-- `recovery/golden-<hostname-or-ip>-<timestamp>.img.gz`
-- `recovery/golden-<hostname-or-ip>-<timestamp>.size`
-- `recovery/golden-<hostname-or-ip>-<timestamp>.img.gz.sha256`
+- `tools/recovery/golden-<hostname-or-ip>-<timestamp>.img.gz`
+- `tools/recovery/golden-<hostname-or-ip>-<timestamp>.size`
+- `tools/recovery/golden-<hostname-or-ip>-<timestamp>.img.gz.sha256`
 
 Then verify the dump:
 
 ```sh
-./recovery/verify_dump.sh recovery/golden-<hostname-or-ip>-<timestamp>.img.gz
+./tools/recovery/verify_dump.sh tools/recovery/golden-<hostname-or-ip>-<timestamp>.img.gz
 ```
 
 Expected output ends with:
