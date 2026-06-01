@@ -45,15 +45,15 @@ change ships as a full USB `.tgz`.
 ## Device — `[update_manager]` config
 
 `[update_manager]` core: `enable_auto_refresh: False`, `enable_system_updates: False`
-(manual updates, like forge-x).
+(manual updates, like forge-x). `[machine] provider: simple` (see Apply model).
 
-| component | type | asset_name | path | payload |
-|---|---|---|---|---|
-| `klipper` | zip | `klipper.zip` | `/opt/klipper` | upstream + patches **+ `c_helper.so`** |
-| `moonraker` | zip | `moonraker.zip` | `/opt/moonraker` | upstream |
-| `guppyscreen` | zip | `guppyscreen.zip` | `/opt/guppyscreen` | prebuilt LVGL binary |
-| `reforge` | zip | `reforge.zip` | mod home (e.g. `/data/.reforge/mod`) | init scripts, `/etc/reforge`, zram `.ko` + `swapon_prio`, banner, boot hook |
-| `mainsail` | web | — | `/var/www/mainsail` | upstream `mainsail-crew/mainsail` |
+| component | type | asset_name | path | managed_services | payload |
+|---|---|---|---|---|---|
+| `klipper` | zip | `klipper.zip` | `/opt/klipper` | `klipper` | upstream + patches **+ `c_helper.so`** |
+| `moonraker` | zip | `moonraker.zip` | `/opt/moonraker` | `moonraker` | upstream **+ `SimpleProvider` patch** |
+| `guppyscreen` | zip | `guppyscreen.zip` | `/opt/guppyscreen` | `guppyscreen` | prebuilt LVGL binary |
+| `reforge` | zip | `reforge.zip` | `/data/.reforge/mod` (self-contained; chroot runs init from it) | `reforge` | `Sxx` init, `/etc/reforge`, zram `.ko` + `swapon_prio`, banner, service-control scripts, `start.sh` |
+| `mainsail` | web | — | `/var/www/mainsail` | — | upstream `mainsail-crew/mainsail` |
 
 All `zip` components set `repo: maci0/reforge` and a distinct `asset_name`, so they resolve the
 same `releases/latest` → identical version → atomic. Each zip carries **`release_info.json`**
@@ -65,30 +65,42 @@ equal `project_owner/project_name` or the updater logs a repo-mismatch anomaly
 (`net_deploy.py:124-132`). `persistent_files` per component preserves anything that must
 survive an update (user configs live in `printer_data`, outside these paths).
 
-## Apply model — all reboot-to-apply
+## Apply model — live restart via `SimpleProvider` (forge-x-aligned)
 
-Moonraker runs with `provider: none` (no systemd; there is **no init.d/sysv service provider**
-in Moonraker — only `systemd_cli`/`supervisord_cli`, `machine.py:111-116`). So Moonraker
-**cannot restart any service** — `do_service_action` raises `503` for all of them
-(`machine.py:959-963`), klipper included (the zip updater has **no** `FIRMWARE_RESTART` path; it
-calls `managed_services` restart, which 503s). Therefore **every component applies on the next
-reboot**, where the new version boots under the trial/LKG guard. This is uniform and safer than
-live-swapping init/overlay. (Optional future optimization, out of scope here: a Moonraker
-post-update hook could issue a Klipper `FIRMWARE_RESTART` over `/tmp/klippy_uds` to apply klipper
-without a reboot — but the baseline is reboot-to-apply for all.)
+Upstream Moonraker has no init.d service provider (only `systemd_cli`/`supervisord_cli`/`none`,
+`machine.py:111-116`), so `provider: none` would 503 on any restart → reboot-to-apply. **forge-x
+solves this with a tiny `SimpleProvider`** (its patched `machine.py`): `do_service_action` runs
+`<script_path>/<service_name> <action>` via the shell (~42 lines). We **adopt the same approach**
+— carry a `SimpleProvider` patch on our Moonraker package and run `provider: simple`. Then
+`managed_services` restarts each component **live** after an update (no reboot), exactly like
+forge-x.
 
-## Overlay deploy step (the `reforge` component)
+- Config: `[machine] provider: simple`, `validate_service: false`, `validate_config: false`.
+  Each `[update_manager X]` sets `managed_services: X`; the `simple` provider runs
+  `<script_path>/X <restart>`. `script_path` points at a dir of per-service control scripts
+  named exactly `klipper`, `moonraker`, `guppyscreen`, `reforge` (thin wrappers over the
+  `Sxx` init scripts, or symlinks).
+- Klipper additionally reloads via the klippy connection on a host update; `managed_services:
+  klipper` covers the service restart.
+- The trial/LKG guard (below) still applies: a `reforge`-component update whose new init/overlay
+  fails to come up is caught on the next boot and rolled back.
 
-`/opt/{klipper,moonraker,guppyscreen}` run directly from their paths, so Moonraker's extract
-makes them live on reboot with no extra step. The **`reforge` component is different**:
-Moonraker extracts it to a staging dir `/data/.reforge/mod` (it `rmtree`s + re-extracts only
-`self.path`, `net_deploy.py:325-350` — it never writes to `/etc/init.d` or `/etc/reforge`). So
-`mod/` is the **source of truth**, and **`reforge-boot` deploys it into the live chroot** early
-each boot, before running the S-scripts:
-- `mod/etc/init.d/*` → chroot `/etc/init.d/` (the live S-scripts)
-- `mod/etc/reforge/*` → chroot `/etc/reforge/` (default configs; user overrides in `printer_data` untouched)
-- `mod/modules/*.ko` + `swapon_prio` stay in `mod/` (S35zram insmods them from there)
-Deploy is an idempotent mirror (rsync-style copy) gated by the trial logic below.
+## Mod dir runs init in place — no deploy mirror (forge-x-aligned)
+
+forge-x runs its init **from the mod dir** via the chroot (`chroot $MOD .../start.sh`); the
+git-updated dir is directly live — no mirror to `/etc/init.d`. We do the same: the **`reforge`
+component path IS the dir the chroot runs init from**, so a zip update of that dir is live on
+the next service restart/boot with **no deploy step**.
+
+- The `reforge` mod dir (`/data/.reforge/mod`) is **self-contained**: its own `etc/init.d/Sxx`,
+  `etc/reforge/*.conf`, `modules/*.ko` + `swapon_prio`, `usr/bin/reforge-banner`, the per-service
+  control scripts (`klipper`/`moonraker`/…) for `SimpleProvider`, and `start.sh`/`stop.sh`.
+- `reforge-boot` chroots and execs the mod dir's init (forge-x `start.sh` pattern) — it reads
+  `Sxx` **from the mod dir**, not a separate `/etc/init.d`. The zip updater's `rmtree`+extract of
+  this self-contained dir (`net_deploy.py:325-350`) is therefore safe (it contains only reforge
+  mod files — no `/opt`, no user data).
+- `/opt/{klipper,moonraker,guppyscreen}` are separate component paths Moonraker extracts directly
+  to `/opt`; they're live on the `SimpleProvider` restart. No mirror anywhere.
 
 ## Safety — boot LKG is the rollback
 
@@ -109,14 +121,14 @@ and is rolled back). No custom manifest verification — YAGNI given the LKG net
 - **State dir** `/data/.reforge/state/` on writable `/data`. Counter file `trial.count` written
   atomically (write temp + `rename`) to survive power-cuts.
 - **LKG** = `/data/.reforge/lkg/` — a copy of the last `mod/` that reached services-up.
-- `reforge-boot` flow (early, before deploy + chroot):
+- `reforge-boot` flow (early, before chroot-exec'ing the mod init):
   1. If a `SKIP_MOD` marker is present → boot stock; **do not touch trial state** (orthogonal).
   2. New-update detection: if `mod/release_info.json` version ≠ `lkg/release_info.json` version,
-     this is a **trial boot**. Increment `trial.count` **atomically before deploying** (so a
-     brick during deploy/boot is counted).
+     this is a **trial boot**. Increment `trial.count` **atomically before exec'ing the mod
+     init** (so a brick during boot is counted).
   3. If `trial.count ≥ N` (**N = 3**): the new `mod` is failing → **restore LKG** (atomic:
      `mv mod mod.bad`; `cp -a lkg mod`), reset `trial.count = 0`, continue booting LKG.
-  4. Deploy `mod` → live chroot dirs; exec the S-script chain.
+  4. chroot into the mod dir and exec its init (the `Sxx` chain) **in place** — no mirror.
 - **Services-up sentinel = a single `S99ok` script** (the last init script, after
   klipper/moonraker/httpd/guppyscreen have started). On reaching it: **promote** current `mod`
   → `lkg` (atomic: `cp -a mod lkg.new && rm -rf lkg && mv lkg.new lkg`) and reset
@@ -158,9 +170,9 @@ caching. Deterministic via `pins.lock`.
    `update_manager` config under the virt kernel + virtio-net; seed an **older
    `release_info.json` version** in each zip-component path; drive `POST /machine/update/<component>`;
    assert download → extract → the path's `release_info.json` version bumps (via
-   `GET /machine/update/status`). **All components reboot-to-apply** (provider:none cannot
-   restart services), so the test asserts the files + version updated, then validates a reboot
-   into the new version. Backed by a
+   `GET /machine/update/status`). Components **restart live** via `SimpleProvider`
+   (`managed_services`), so the test asserts the files + version updated **and** the service was
+   restarted (new process / new version reported), no reboot needed. Backed by a
    **local mock of the GitHub releases API** (serves `releases/latest` JSON + zip assets via an
    `/etc/hosts` override) for offline CI; a real published test release is the opt-in authentic check.
 3. **Boot LKG / rollback test** (critical): inject a broken `reforge.zip` (init script that
@@ -174,9 +186,15 @@ caching. Deterministic via `pins.lock`.
 
 - `tools/release/build-release.sh` — slice `build/output` → per-component zips + `release_info.json` + `.tgz`; publish via `gh`.
 - `.github/workflows/release.yml` — tag-triggered, calls `build-release.sh`.
-- `br-external/package/moonraker/moonraker.conf` — add the `[update_manager]` block.
-- `br-external/board/reforge/rootfs-overlay/.shell/reforge-boot` — add the **overlay deploy
-  step** (mirror `mod/` → live `/etc/init.d` + `/etc/reforge`) + the **trial/LKG logic** (atomic
+- `br-external/package/moonraker/0001-add-simple-service-provider.patch` — port forge-x's
+  `SimpleProvider` (`do_service_action` runs `<script_path>/<service> <action>`), enabling
+  `provider: simple` live restart. Add to `MOONRAKER_PATCH` list.
+- `br-external/package/moonraker/moonraker.conf` — `[machine] provider: simple` + the
+  `[update_manager]` block (per-component zip + `managed_services` + `script_path`).
+- The `reforge` mod dir's **service-control scripts** (`klipper`/`moonraker`/`guppyscreen`/
+  `reforge`, thin wrappers over the `Sxx` init scripts) for `SimpleProvider`'s `script_path`.
+- `br-external/board/reforge/rootfs-overlay/.shell/reforge-boot` — chroot + exec the mod dir's
+  init **in place** (forge-x `start.sh` pattern; no mirror) + the **trial/LKG logic** (atomic
   `state/trial.count`, new-update detection via `release_info.json` version, N=3, restore-LKG).
 - `S99ok` init script (services-up sentinel) — promotes `mod`→`lkg` + resets the counter.
 - `tests/qemu-harness/ota-test.sh` + the local mock release server.
