@@ -128,7 +128,8 @@ cat > "${MNT}/etc/init.d/S98memprobe" <<PROBE
       *klippy*|*moonraker*|*guppyscreen*|*httpd*)
         pss=\$(awk '/^Pss:/{print \$2}' "\$p/smaps_rollup" 2>/dev/null)
         rss=\$(awk '/^Rss:/{print \$2}' "\$p/smaps_rollup" 2>/dev/null)
-        echo "PID \${p#/proc/} Pss=\${pss} Rss=\${rss} CMD=\${cmd}"
+        jem=no; grep -q libjemalloc "\$p/maps" 2>/dev/null && jem=yes
+        echo "PID \${p#/proc/} Pss=\${pss} Rss=\${rss} JEM=\${jem} CMD=\${cmd}"
       ;;
     esac
   done
