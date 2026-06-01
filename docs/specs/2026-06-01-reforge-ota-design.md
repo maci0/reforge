@@ -151,12 +151,16 @@ caching. Deterministic via `pins.lock`.
 ## Testing (qemu, no device)
 
 1. **Release-builder unit test** (host): run `build-release.sh` against `build/output`; assert
-   the 4 zips + `.tgz` exist; unzip and verify structure + injected `release_info.json`/`.version`
-   (`klipper.zip` has `c_helper.so`; `reforge.zip` has the `.ko` + init scripts). CI-friendly.
+   the 4 zips + `.tgz` exist; unzip and verify structure + the injected `release_info.json`
+   (all four keys) (`klipper.zip` has `c_helper.so`; `reforge.zip` has the `.ko` + init scripts).
+   CI-friendly.
 2. **End-to-end OTA** (`tests/qemu-harness/ota-test.sh`): boot the full rootfs with the
-   `update_manager` config under the virt kernel + virtio-net; seed an older `.version`; drive
-   `POST /machine/update/<component>`; assert download → extract → `.version` bump (via
-   `GET /machine/update/status`); klipper live-restart, others reboot-to-apply. Backed by a
+   `update_manager` config under the virt kernel + virtio-net; seed an **older
+   `release_info.json` version** in each zip-component path; drive `POST /machine/update/<component>`;
+   assert download → extract → the path's `release_info.json` version bumps (via
+   `GET /machine/update/status`). **All components reboot-to-apply** (provider:none cannot
+   restart services), so the test asserts the files + version updated, then validates a reboot
+   into the new version. Backed by a
    **local mock of the GitHub releases API** (serves `releases/latest` JSON + zip assets via an
    `/etc/hosts` override) for offline CI; a real published test release is the opt-in authentic check.
 3. **Boot LKG / rollback test** (critical): inject a broken `reforge.zip` (init script that
