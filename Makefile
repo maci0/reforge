@@ -2,7 +2,7 @@ BUILD := tools/build/build.sh
 .PHONY: lint rootfs defconfig clean smoke repro integration smoke-guppy tgz validate-loopback \
         run-from-mod \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
-        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-mem
+        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-mem qemu-ota
 # lint: shellcheck our own shell scripts (skips cleanly if shellcheck absent)
 lint:              ; tools/lint/shellcheck.sh
 # Single image: `make rootfs` builds the full ReForge stack (klipper + moonraker
@@ -62,3 +62,10 @@ qemu-stockui:      ; tests/qemu-harness/stockui-render.sh
 #   make qemu-mem TWEAKS=oo,arena1
 ROOTFS_TAR ?=
 qemu-mem:          ; TWEAKS="$(TWEAKS)" tests/qemu-harness/mem-probe.sh $(ROOTFS_TAR)
+
+# --- OTA Task 6: qemu e2e Moonraker update + CRITICAL LKG/brick-rollback test ---
+# Boots the ReForge rootfs under the virt kernel. Step 2 (network-free) proves
+# brick-mitigation: a deliberately-broken mod is rolled back to last-known-good
+# after N=3 failed boots. Step 1 (e2e Moonraker update) is best-effort. Fully
+# rootless (mke2fs -d / debugfs), NO sudo.
+qemu-ota:          ; tests/qemu-harness/ota-test.sh
