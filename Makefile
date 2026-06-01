@@ -2,7 +2,7 @@ BUILD := tools/build/build.sh
 .PHONY: lint rootfs defconfig clean smoke repro integration smoke-guppy tgz validate-loopback \
         run-from-mod \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
-        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-mem qemu-ota
+        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-guppy qemu-mem qemu-ota
 # lint: shellcheck our own shell scripts (skips cleanly if shellcheck absent)
 lint:              ; tools/lint/shellcheck.sh
 # Single image: `make rootfs` builds the full ReForge stack (klipper + moonraker
@@ -54,6 +54,13 @@ qemu-render:       ; tests/qemu-harness/reforge-render-test.sh
 # reaches its home screen.  Fully ROOTLESS (no sudo): debugfs inject + GPT-offset
 # slice + unprivileged qemu.  Output: build/stockui-home.ppm (gitignored).
 qemu-stockui:      ; tests/qemu-harness/stockui-render.sh
+
+# --- full-stack "ready" rig: fake klippy so Moonraker reports klippy ready ----
+# Swaps real klippy for a Moonraker-grade stand-in so the whole stack reaches
+# "ready" with no MCU (Moonraker klippy_state:ready, GuppyScreen connects). Rig
+# for Moonraker/OTA/API testing; the on-screen guppy capture is still blank (an
+# LVGL-vs-virtio-gpu fb-flush limitation — see the script header). Rootless.
+qemu-guppy:        ; tests/qemu-harness/guppy-render.sh
 
 # --- memory probe: boot the full stack at -m 128, dump per-process Pss ---
 # A/B runtime levers without rebuilding, e.g.:

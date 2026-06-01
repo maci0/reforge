@@ -99,9 +99,12 @@ robust_inject "${BUILD_DIR}/.stocksim-marker" /etc/reforge-stocksim
 #    printerSerialNumber). Replace with a demo SN so we don't ship it.
 log "scrubbing captured device state (PowerOff flag + real serial)"
 debugfs -w -R "rm /opt/config/PowerOff" "${IMG}" >/dev/null 2>&1 || true
+#  * general.CheckAppFrist gates firmwareExe's checkAppTip() — the boot-time
+#    "Please upgrade the slicer software to V1.7.3" nag. Flip it false to clear.
 A5M="${BUILD_DIR}/.Adventurer5M.json"
 if debugfs -R "cat /opt/config/Adventurer5M.json" "${IMG}" 2>/dev/null > "${A5M}" && [ -s "${A5M}" ]; then
     sed -i 's/"SN[A-Z0-9]\{6,\}"/"REFORGE-DEMO"/g' "${A5M}"
+    sed -i 's/"CheckAppFrist"[[:space:]]*:[[:space:]]*true/"CheckAppFrist" : false/g' "${A5M}"
     robust_inject "${A5M}" /opt/config/Adventurer5M.json
 fi
 
