@@ -34,21 +34,29 @@ the pinned 800×480 framebuffer. No MCU in qemu → klippy is in `error`/waiting
 GuppyScreen shows its connecting/offline state — which still proves the full render
 path works (LVGL → DRM/virtio-gpu fbdev → `/dev/fb0`). Regenerate with `make qemu-render`.
 
-## Stock UI (`firmwareExe`) — running on the ReForge-overlaid stock base
+## Stock UI (`firmwareExe`) — full home screen under simulated hardware
 
-![Stock FlashForge UI in qemu, 800×480](stockui-qemu-800x480.png)
+![Stock FlashForge home screen in qemu, 800×480](stockui-home-qemu-800x480.png)
 
-ReForge overlays the stock FlashForge base: the stock UI binary (`/opt/PROGRAM/.../firmwareExe`,
-soft-float Qt4/QWS) and its Qt + tslib libs live in that base, so ReForge's planned `STOCK`
-screen mode just bind-mounts the base and execs it — no extraction, no recompile. Booted under
-the same virt kernel + 800×480 fb the rest of these shots use.
+The stock FlashForge UI booted all the way to its **home screen** in qemu: nav rail
+(home / print / settings / info), live nozzle + bed temperature panels, light/network/camera
+tiles, and a normal *"Do you want to recovery print?"* prompt — 901 distinct colors, fully
+interactive. ReForge overlays the stock base, so the stock UI binary (`/opt/PROGRAM/.../firmwareExe`,
+soft-float Qt4/QWS) and its Qt + tslib libs run straight from that base — no extraction, no recompile.
 
-What renders is firmwareExe's modal **"No detected eboard mcu."** — the expected qemu state
-(no eboard MCU serial is emulated), the stock-UI analogue of GuppyScreen's offline/connecting
-screen. It proves the full stock render path (Qt4 LinuxFB → `/dev/fb0`): FF-green chrome,
-white dialog, red alert glyph, blue *Ok* — 435 distinct colors. The native panel is 480×800
-portrait; Qt centres the dialog within the landscape test fb.
+Getting past startup needs **two gates satisfied** (firmwareExe checks them independently):
+1. an **eboard MCU serial handshake** on `/dev/ttyS1` (+`/dev/ttyS5`) @230400 — qemu virt has no
+   8250 UART, so `tests/qemu-harness/stockui/mcu-sim.py` emulates a gcode MCU on a pty;
+2. a **klippy "ready"** reply on `/tmp/uds` — `tests/qemu-harness/stockui/fake-klippy.py` serves
+   the JSON-RPC subset firmwareExe polls.
 
-Regenerate by building the stock rootfs (`make qemu-stock-rootfs`, from `golden.img.gz`) and
-booting it; the capture lands at `tests/qemu-harness/build/stockui-screenshot.ppm`. Full
-works/breaks analysis: `docs/research/stock-ui-spike.md`.
+Reproduce with **`make qemu-stockui`** (fully rootless — debugfs inject + GPT-offset rootfs slice
++ unprivileged qemu). Capture lands at `tests/qemu-harness/build/stockui-home.ppm`.
+
+### Without the MCU sim — the "No detected eboard mcu." modal
+
+![Stock FlashForge MCU-absent modal](stockui-qemu-800x480.png)
+
+Booting the same stock base with **no** MCU sim stops at firmwareExe's
+**"No detected eboard mcu."** modal (gate 1 unmet) — the green/white dialog that motivated the
+simulation above. Full works/breaks analysis: `docs/research/stock-ui-spike.md`.

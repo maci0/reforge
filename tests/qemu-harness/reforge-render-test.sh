@@ -378,9 +378,13 @@ log "=== STEP 4: Capturing framebuffer via QEMU monitor screendump ==="
 SCREENSHOT_CAPTURED=0
 
 if [ "${GUPPY_STARTED}" -eq 1 ] && qemu_alive; then
-    # Give GuppyScreen a moment to render its first frame (LVGL init takes ~3-5s)
-    log "  waiting 10s for GuppyScreen to render initial frame ..."
-    sleep 10
+    # Give GuppyScreen time to connect to Moonraker and paint its UI. LVGL init
+    # is ~3-5s, but the websocket connect + first full repaint can take longer;
+    # too short a wait captures a cleared (black) back-buffer. Override with
+    # RENDER_SETTLE for a richer frame.
+    RENDER_SETTLE="${RENDER_SETTLE:-10}"
+    log "  waiting ${RENDER_SETTLE}s for GuppyScreen to render initial frame ..."
+    sleep "${RENDER_SETTLE}"
 fi
 
 # Find the monitor socket
