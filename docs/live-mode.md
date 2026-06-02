@@ -69,7 +69,9 @@ tar xzf packaging/dist/reforge-live-<ver>.tar.gz -C /path/to/usb/
 
 Then: insert the stick, power on the printer — ReForge boots from USB. To return to
 stock, **pull the stick and reboot**. The build is fully rootless (`mkfs.f2fs` +
-`sload.f2fs` + `mcopy`); only the final `dd` to your stick needs root.
+`sload.f2fs` bake the F2FS image, `tar`+`gzip` pack it); extracting onto a FAT32 stick
+needs no `dd` and no dedicated stick — the stock `auto_run` picks up `flashforge_init.sh`
+off any FAT USB.
 
 USB layout (FAT32):
 
