@@ -61,3 +61,16 @@ on source change). Working options:
    correct thumb2/NEON `c_helper.so` (timestamped so klippy won't recompile) + vendored deps;
    no git/gcc/pip on device. This is the clean path to full host OTA.
 3. Status quo: USB `.tgz` reflash (no OTA).
+
+## live USB: vfat + f2fs partitions (drop loopback)
+
+Replace the current single-FAT + loop-mounted-f2fs-image live USB with a 2-partition
+stick: p1 vfat (the `flashforge_init.sh` hook + `net-up.sh` + `screen_mode` + the
+modules), p2 f2fs (the rootfs as a real block device). The launcher then mounts
+`/dev/sdaN -t f2fs` directly — **no loop file, no `loop.ko`** (still needs `f2fs.ko` +
+`crc32_generic.ko`). More robust than the loopback (the loop path is the fragile bit).
+Cost: the stick must be partitioned (a 2-partition image to `dd`, or `sfdisk` + `mkfs`
+once) instead of "extract a tarball onto FAT". Build (`build-live-usb.sh`) would emit a
+partitioned `.img`; the launcher gains a "find the sibling f2fs partition" step.
+Raised during the 2026-06-02 hardware trial; the loop+f2fs path actually worked once the
+crc32 bug was fixed, so this is robustness polish, not a blocker.

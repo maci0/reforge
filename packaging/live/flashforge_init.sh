@@ -24,10 +24,13 @@ SELF_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd || true)"
 USB_MNT="${USB_MNT:-${SELF_DIR:-/mnt}}"
 LIVE_IMG="${LIVE_IMG:-${USB_MNT}/reforge-live.f2fs}"
 
-# Logging goes to the console (the panel, when headless) AND a persistent log file ON
-# THE USB, so a pulled stick is debuggable with no network. Writing to the USB is fine
-# — it is the live medium, NOT the eMMC, so the zero-eMMC-write invariant is unaffected.
+# Logging goes to the console AND a persistent log file ON THE USB, so a pulled stick is
+# debuggable with no network. Writing to the USB is fine — it is the live medium, NOT the
+# eMMC, so the zero-eMMC-write invariant is unaffected. Prefer the framebuffer console
+# (the panel, /dev/tty1) so HEADLESS output is visible on screen, not just on the serial
+# /dev/console; fall back to /dev/console.
 LIVE_LOG=/dev/console
+for _t in /dev/tty1 /dev/tty0; do [ -c "${_t}" ] && [ -w "${_t}" ] && { LIVE_LOG="${_t}"; break; }; done
 USB_LOG="${USB_MNT}/reforge-live.log"
 : > "${USB_LOG}" 2>/dev/null || true   # fresh log each boot
 log() { echo "[reforge-live] $*" | tee -a "${USB_LOG}" 2>/dev/null > "${LIVE_LOG}" 2>&1; }

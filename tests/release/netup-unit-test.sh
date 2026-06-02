@@ -44,14 +44,14 @@ EOF
 #!/bin/sh
 echo "wpa_supplicant \$*" >> "${WORK}/calls"
 : > "${WORK}/WPA_STARTED"
-# simulate association succeeding -> an IP shows up
-: > "${WORK}/HAS_IP"
+# wpa associates but does NOT assign an IP — that's DHCP's job (below).
 exit 0
 EOF
     cat > "${bin}/udhcpc" <<EOF
 #!/bin/sh
 echo "udhcpc \$*" >> "${WORK}/calls"
 : > "${WORK}/DHCP_RAN"
+: > "${WORK}/HAS_IP"     # the lease assigns the address
 exit 0
 EOF
     cat > "${bin}/pgrep" <<'EOF'
@@ -71,6 +71,7 @@ run_netup() {  # extra args are VAR=val overrides (applied after the defaults)
       PATH="${BIN}:${PATH}" env \
         REFORGE_LIVE_NET_SYS="${SYS}" REFORGE_LIVE_WPA_CONF="${CONF}" \
         REFORGE_LIVE_WIFI_IFACE=wlan0 REFORGE_LIVE_NET_WAIT="${WAIT:-2}" \
+        REFORGE_LIVE_IF_WAIT="${IFWAIT:-0}" \
         "$@" \
         sh -c '. "'"${NETUP}"'"; reforge_live_netup' )
 }
@@ -101,12 +102,12 @@ else
 fi
 
 # --- 5. never blocks when no IP ever appears --------------------------------
-# wpa mock sets HAS_IP, so override it to a no-op that does NOT set HAS_IP.
-cat > "${BIN}/wpa_supplicant" <<EOF
+# Override udhcpc to a no-op that does NOT assign an IP (simulate DHCP never landing).
+cat > "${BIN}/udhcpc" <<EOF
 #!/bin/sh
-echo "wpa \$*" >> "${WORK}/calls"; : > "${WORK}/WPA_STARTED"; exit 0
+echo "udhcpc \$*" >> "${WORK}/calls"; : > "${WORK}/DHCP_RAN"; exit 0
 EOF
-chmod +x "${BIN}/wpa_supplicant"
+chmod +x "${BIN}/udhcpc"
 rm -f "${WORK}/HAS_IP"; mkdir -p "${SYS}/wlan0"
 t0=$(date +%s); WAIT=2 run_netup; rc=$?; t1=$(date +%s)
 if [ "${rc}" -eq 0 ] && [ "$((t1 - t0))" -le 6 ]; then pass "no-IP: returns 0 within the WAIT cap ($((t1-t0))s)"; else fail "no-IP did not return promptly (rc=${rc}, $((t1-t0))s)"; fi
