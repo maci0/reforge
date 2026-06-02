@@ -25,7 +25,9 @@ ROOT="${REFORGE_LIVE_ROOT:-/tmp/.reforge-live}"   # chroot root (/tmp is tmpfs)
 DATA="${REFORGE_LIVE_DATA:-/tmp/.reforge-data}"   # writable /data -> tmpfs
 
 log "starting (img=${LIVE_IMG})"
-[ -f "${LIVE_IMG}" ] || { log "ERROR: ${LIVE_IMG} not found on USB"; exit 1; }
+# -e, not -f: LIVE_IMG is a regular file on the FAT USB, but may be a raw block
+# device (e.g. the qemu zero-write gate presents the rootfs as /dev/vdb).
+[ -e "${LIVE_IMG}" ] || { log "ERROR: ${LIVE_IMG} not found on USB"; exit 1; }
 
 mkdir -p "${ROOT}" "${DATA}"
 
