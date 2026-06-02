@@ -10,9 +10,12 @@ kernel today and a mainline kernel + self-ported T113 display driver later.
 (See [`docs/screenshots/`](docs/screenshots/README.md) for the boot console + on-screen UI.)
 
 > **Status:** core stack builds, boots, and serves Moonraker live under qemu (no device
-> required). zram compressed swap works on the stock kernel. Stock-UI (`firmwareExe`)
-> against upstream Klipper is feasibility-confirmed. MCU firmware (Plan 4) and the full
-> mainline image + display driver (Plan 5) are not started.
+> required). zram compressed swap works on the stock kernel. **Live-from-USB is
+> hardware-validated** on a real AD5M Pro — ReForge ran brick-free from a USB stick
+> (GuppyScreen on the panel) with **zero eMMC writes** ([live mode](docs/live-mode.md)).
+> Still open on hardware: WiFi in live mode, and the host↔MCU Klipper link (klippy needs
+> a firmware-version match). MCU firmware (Plan 4) and the full mainline image + display
+> driver (Plan 5) are not started.
 
 ## Layout
 

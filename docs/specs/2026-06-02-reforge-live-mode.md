@@ -77,6 +77,19 @@ mid-run — the chroot's fs vanishes but the eMMC is intact; reboot recovers.
 Real Klipper ↔ the real eboard MCU, the real 480×800 panel, the whole stack — the
 things qemu can't exercise — with zero flashing.
 
+### Trial result (2026-06-02, AD5M Pro `kunos`)
+
+First hardware run (via `tools/release/verify-live-trial.sh`). **Brick-safe model
+confirmed:** ReForge booted live from USB (GuppyScreen on the panel); the eMMC was
+untouched — `/data/.reforge` absent before AND after, print files intact, no residue,
+modules unloaded on reboot, forge-x pristine afterward. Findings: (1) a `crc32`
+module-skip bug (substring match of `crc32c`) blocked the F2FS mount on the first
+attempt — fixed to `grep -qw`; (2) no network in live mode — the launcher blocks
+`auto_run` before the stock WiFi init runs, so only the local GuppyScreen works (Moonraker/
+Mainsail/SSH need a planned `wlan0`-in-launcher fix); (3) klippy stays "waiting to
+initialize" — host↔MCU Klipper version mismatch (the MCUs carry forge-x's flashed
+firmware; ReForge ships a different commit). Full write-up: `docs/live-mode.md`.
+
 ## Caveats
 
 - USB must stay inserted (it *is* the rootfs); running from USB is slower than eMMC.

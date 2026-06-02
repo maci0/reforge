@@ -92,6 +92,31 @@ The qemu gate `tests/qemu-harness/live-mode-test.sh` (`make qemu-live`, rootless
 enforces it: it boots the launcher with an eMMC stand-in disk and **asserts the
 eMMC bytes are identical before and after** and the stack came up. CI-gated.
 
+## Hardware trial (2026-06-02, AD5M Pro `kunos`)
+
+First real-hardware run, verified with `tools/release/verify-live-trial.sh`
+(baseline → live → stock). **Result: the brick-safe model holds on real hardware.**
+ReForge booted live from the USB (GuppyScreen on the panel), and a clean before/after
+showed the eMMC was **untouched**: `/data/.reforge` ABSENT both before and after, the
+user's print files intact, no `/mod` or ReForge residue, the live modules unloaded on
+reboot, and forge-x came back pristine. Pulling the stick + rebooting returned to stock.
+
+Two findings (next-frontier, not live-mode failures):
+
+- **`crc32` module-skip bug — fixed during the trial** (`grep -q "crc32"` matched the
+  device's `crc32c` and skipped `crc32_generic.ko`, so the F2FS mount failed and the
+  launcher fell through to the stock UI). Fixed to a word match (`grep -qw`); without
+  it the trial wouldn't have booted. See `packaging/live/flashforge_init.sh`.
+- **No network in live mode** — the launcher blocks `auto_run` (`sleep` forever) before
+  the stock WiFi/network init runs later in the stock boot, so there is no LAN: the
+  local GuppyScreen works, but Moonraker/Mainsail/SSH are unreachable. Fix (planned):
+  bring `wlan0` up in the launcher before it blocks.
+- **klippy "waiting to initialize"** — Moonraker + GuppyScreen are up, but the host
+  Klipper can't bring the MCU to `ready`: the printer's MCUs carry the Klipper firmware
+  forge-x flashed, while ReForge ships a different Klipper commit, and Klipper requires
+  the host/MCU data-dictionary versions to match. This is the host↔MCU boundary (Plan
+  4); confirming it needs `klippy.log`, i.e. the network fix above.
+
 ## Caveats
 
 - The USB must stay inserted — it *is* the rootfs; running from USB is slower than eMMC.
@@ -99,6 +124,10 @@ eMMC bytes are identical before and after** and the stack came up. CI-gated.
   headless. That's the point.
 - `/data` is tmpfs (ephemeral). Persistent live state across reboots is a future
   option (a writable dir on the FAT stick).
+- **No network yet** (see the trial findings) — local GuppyScreen only; remote
+  Moonraker/Mainsail/SSH need the planned `wlan0`-in-launcher fix.
+- **The MCU does not initialize** until ReForge's Klipper version matches the MCU
+  firmware (or the MCU is reflashed — Plan 4).
 
 ## See also
 
