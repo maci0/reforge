@@ -14,13 +14,22 @@ write-ups: [`docs/research/`](research/).
 | **Thumb-2 + -Os + locale purge** | smaller code → fewer resident code pages across every process; smaller rootfs | **−4.9 MB Σ Pss (−8.2 %)**, **−1.08 MB** rootfs | `reforge_defconfig` (`BR2_ARM_INSTRUCTIONS_THUMB2`, `BR2_OPTIMIZE_S`, `BR2_ENABLE_LOCALE_PURGE`) |
 | **nginx → busybox httpd** | serve the Mainsail SPA statically; browser hits Moonraker `:7125` direct (no reverse proxy) | **−~3 MB RSS** (httpd Pss 0.19 MB vs nginx ~2–4 MB) | `S70httpd`, mainsail package |
 | **zram compressed swap** | zstd-compressed RAM swap on the stock kernel (loadable `.ko`) | ~**4× compression** of cold anon pages → effective RAM gain; high-prio over eMMC | `modules/zram-bsp/`, `S35zram` |
-| **zram VM tuning** | `vm.swappiness=100` (push cold pages to fast zram) + `vm.page-cluster=0` (no swap read-ahead) | makes zram actually get used; less eMMC swap thrash | `modules/zram-bsp/zram-setup.sh` |
+| **zram VM tuning** | the runtime sysctls for the zram-as-primary-swap profile: `vm.page-cluster=0` (zram is RAM — no swap read-ahead), `vm.swappiness=100` (prefer compressed-RAM swap over eMMC file re-reads), `vm.vfs_cache_pressure=50`, `vm.watermark_scale_factor=40` (kswapd reclaims ahead of demand), `vm.dirty_ratio=10` / `vm.dirty_background_ratio=5` | makes zram actually get used + targets the measured direct-reclaim/throttle storm; **no fixed RAM cost** | `.shell/reforge-vmtune.sh`, sourced by `S35zram` right after `swapon` |
 | **single shared Python interpreter** | klippy + moonraker share one python3 → COW page sharing of code/libs | avoids a second interpreter's resident set | by design |
 | **Moonraker trimmed** | `update_manager`/`spoolman`/`notifier`/`ldap` off | smaller resident set; **avoids the `git` dependency** (tens of MB rootfs) | `moonraker.conf` |
 
 **Note on `MALLOC_ARENA_MAX=2`:** this was the prior allocator win (−2.7 MB/daemon vs glibc
 default) and is still what the **forge-x PRs** ship. ReForge has now **superseded it with jemalloc**
 (jemalloc ignores `MALLOC_ARENA_MAX`). A forge-x jemalloc change is under evaluation.
+
+**Note on the zram VM tuning:** the six knobs above are the "no fixed RAM cost" set from the
+runtime-tuning audit ([`docs/research/2026-06-02-stock-kernel-runtime-tuning.md`](research/2026-06-02-stock-kernel-runtime-tuning.md)).
+The two knobs that **do** cost reserved RAM — `vm.min_free_kbytes` (≈+2.7 MB always-free) and
+`vm.extra_free_kbytes` — are deliberately **not** shipped: they are measure-first, pending a
+before/after on the reclaim *rates* across a real print. The same audit also closes out
+`cpufreq` governor tuning, KSM, compaction and the CFS latency knobs as **not runtime-available**
+on this BSP kernel (no driver / config), so they are not pursued. forge-x ships the same six via
+`DrA1ex/ff5m#66`.
 
 ## Ruled out — measured, not worth it (evidence saved effort)
 

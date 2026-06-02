@@ -17,12 +17,14 @@ echo "$SIZE" > /sys/block/zram0/disksize
 # CRITICAL: swap on at HIGH priority so zram is preferred over any eMMC swapfile.
 # busybox swapon has no -p, so use the static helper (SWAP_FLAG_PREFER|prio).
 "$DIR/swapon_prio" /dev/zram0 "$PRIO"
-# zram is fast RAM-backed swap, so tune the VM to use it:
-#   swappiness=100  — push cold anon pages to (compressed) zram readily, freeing
-#                     RAM. 100 is the max on the 5.4 kernel (>100 needs 5.8+).
-#   page-cluster=0  — disable swap read-ahead. zram is fast random-access, so
-#                     reading one page at a time avoids decompressing unneeded pages.
-echo "${ZRAM_SWAPPINESS:-100}" > /proc/sys/vm/swappiness  2>/dev/null || true
-echo 0                        > /proc/sys/vm/page-cluster 2>/dev/null || true
-echo "zram active (algo=$ALGO, prio=$PRIO, swappiness=${ZRAM_SWAPPINESS:-100}, page-cluster=0); eMMC swapfile (if any) stays low-prio overflow:"
+# zram is fast RAM-backed swap, so tune the VM to use it. These mirror the shipped
+# ReForge profile (.shell/reforge-vmtune.sh); per-knob rationale is in
+# docs/research/2026-06-02-stock-kernel-runtime-tuning.md. No fixed RAM cost.
+echo "${ZRAM_SWAPPINESS:-100}" > /proc/sys/vm/swappiness            2>/dev/null || true
+echo 0                        > /proc/sys/vm/page-cluster           2>/dev/null || true
+echo 50                       > /proc/sys/vm/vfs_cache_pressure     2>/dev/null || true
+echo 40                       > /proc/sys/vm/watermark_scale_factor 2>/dev/null || true
+echo 10                       > /proc/sys/vm/dirty_ratio            2>/dev/null || true
+echo 5                        > /proc/sys/vm/dirty_background_ratio 2>/dev/null || true
+echo "zram active (algo=$ALGO, prio=$PRIO, swappiness=${ZRAM_SWAPPINESS:-100}, page-cluster=0, +VM tuning); eMMC swapfile (if any) stays low-prio overflow:"
 cat /proc/swaps

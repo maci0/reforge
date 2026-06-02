@@ -1,5 +1,5 @@
 BUILD := tools/build/build.sh
-.PHONY: lint rootfs defconfig clean smoke repro integration smoke-guppy tgz live-usb validate-loopback \
+.PHONY: lint unit rootfs defconfig clean smoke repro integration smoke-guppy tgz live-usb validate-loopback \
         run-from-mod \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
         qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-guppy qemu-live qemu-live-ota qemu-mem qemu-ota shots-reforge
@@ -20,6 +20,8 @@ live-usb:          ; tools/release/build-live-usb.sh
 validate-loopback: ; sudo tests/loopback-install-test.sh
 # run-from-mod: structural test of the self-contained mod/ + run-in-place model
 run-from-mod:      ; tests/release/run-from-mod-test.sh
+# unit: host unit + fuzz tests for the .shell helpers (no qemu, no root)
+unit:              ; tests/release/lkg-unit-test.sh && tests/release/vmtune-unit-test.sh
 
 # --- P3 Task 4: qemu virt test kernel (vendor 5.4.61, ARCH_SUNXI=n, 800x480x32 fb) ---
 # build zImage + initramfs + run smoke test

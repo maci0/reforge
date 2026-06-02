@@ -45,6 +45,11 @@ case "$1" in
 		/sbin/mkswap /dev/zram0 >/dev/null
 		"$MODULES_DIR/swapon_prio" /dev/zram0 100
 
+		# Apply the VM tuning for the zram-as-primary-swap profile (no fixed RAM
+		# cost; see docs/research/2026-06-02-stock-kernel-runtime-tuning.md).
+		# shellcheck source=/dev/null
+		[ -f /mod/.shell/reforge-vmtune.sh ] && . /mod/.shell/reforge-vmtune.sh && reforge_vmtune
+
 		echo "zram swap active."
 		;;
 

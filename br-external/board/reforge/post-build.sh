@@ -121,6 +121,14 @@ else
     echo "[post-build] ERROR: reforge-lkg.sh not found in overlay" >&2
     exit 1
 fi
+# reforge-vmtune.sh — zram-as-primary-swap VM tuning, sourced by S35zram.
+if [ -f "${OVERLAY}/.shell/reforge-vmtune.sh" ]; then
+    cp -a "${OVERLAY}/.shell/reforge-vmtune.sh" "${MOD}/.shell/reforge-vmtune.sh"
+    chmod 0755 "${MOD}/.shell/reforge-vmtune.sh"
+else
+    echo "[post-build] ERROR: reforge-vmtune.sh not found in overlay" >&2
+    exit 1
+fi
 
 # ---------------------------------------------------------------------------
 # services/ — SimpleProvider script_path wrappers (delegate to the S-scripts).
