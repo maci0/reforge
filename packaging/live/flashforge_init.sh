@@ -16,9 +16,6 @@
 # =============================================================================
 set -u
 
-LIVE_LOG=/dev/console
-log() { echo "[reforge-live] $*" > "${LIVE_LOG}" 2>&1; }
-
 # The stock auto_run.sh already mounted the USB and runs us *from* it
 # (`/mnt/flashforge_init.sh`), so we never need to find/mount a device ourselves —
 # the rootfs image sits right next to this script. Derive the USB dir from $0 so
@@ -26,6 +23,14 @@ log() { echo "[reforge-live] $*" > "${LIVE_LOG}" 2>&1; }
 SELF_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd || true)"
 USB_MNT="${USB_MNT:-${SELF_DIR:-/mnt}}"
 LIVE_IMG="${LIVE_IMG:-${USB_MNT}/reforge-live.f2fs}"
+
+# Logging goes to the console (the panel, when headless) AND a persistent log file ON
+# THE USB, so a pulled stick is debuggable with no network. Writing to the USB is fine
+# — it is the live medium, NOT the eMMC, so the zero-eMMC-write invariant is unaffected.
+LIVE_LOG=/dev/console
+USB_LOG="${USB_MNT}/reforge-live.log"
+: > "${USB_LOG}" 2>/dev/null || true   # fresh log each boot
+log() { echo "[reforge-live] $*" | tee -a "${USB_LOG}" 2>/dev/null > "${LIVE_LOG}" 2>&1; }
 ROOT="${REFORGE_LIVE_ROOT:-/tmp/.reforge-live}"   # chroot root (/tmp is tmpfs)
 DATA="${REFORGE_LIVE_DATA:-/tmp/.reforge-data}"   # writable /data -> tmpfs
 
@@ -107,12 +112,33 @@ if [ -f "${USB_MNT}/net-up.sh" ]; then
     log "net: $(ip -o addr show 2>/dev/null | grep -o 'inet [0-9.]*' | grep -v '127.0.0.1' | tr '\n' ' ')"
 fi
 
-log "launching the ReForge stack (SCREEN_MODE=${SCREEN_MODE:-GUPPY}) ..."
+# Append a diagnostics snapshot to the USB log (and console) — net, loaded modules,
+# and the chroot's klippy/moonraker logs + dmesg — so a pulled stick shows WHY the
+# stack is in whatever state it's in, with no network needed.
+snapshot() {
+    {
+        echo "==== reforge-live snapshot (uptime $(cut -d' ' -f1 /proc/uptime 2>/dev/null)s) ===="
+        echo "-- net --";        ip -o addr show 2>/dev/null | grep -o 'inet [0-9.]*'
+        echo "-- modules --";    lsmod 2>/dev/null | grep -E 'f2fs|^loop|crc32|8821|cfg80211' || echo "(none)"
+        echo "-- klippy.log (tail) --"; tail -n 40 "${ROOT}/var/log/klippy.log" 2>/dev/null || echo "(no klippy.log)"
+        echo "-- moonraker.log (tail) --"; tail -n 20 "${ROOT}/var/lib/moonraker/logs/moonraker.log" "${ROOT}/var/log/moonraker.log" 2>/dev/null
+        echo "-- dmesg (tail) --"; dmesg 2>/dev/null | tail -n 25
+        echo ""
+    } >> "${USB_LOG}" 2>/dev/null || true
+    sync 2>/dev/null || true
+}
+
+log "launching the ReForge stack (SCREEN_MODE=${SCREEN_MODE}) ..."
 # REFORGE_LIVE=1 makes the boot/LKG scripts skip persistent trial bookkeeping.
-REFORGE_LIVE=1 SCREEN_MODE="${SCREEN_MODE:-GUPPY}" \
-    chroot "${ROOT}" /mod/start.sh > "${LIVE_LOG}" 2>&1
+# Tee the boot chain to the console AND the USB log.
+REFORGE_LIVE=1 SCREEN_MODE="${SCREEN_MODE}" \
+    chroot "${ROOT}" /mod/start.sh 2>&1 | tee -a "${USB_LOG}" > "${LIVE_LOG}" 2>&1
 
 log "stack started — holding (eMMC untouched; remove USB + reboot for stock)"
-# Never return: stock auto_run stays blocked here, so it never umounts /mnt,
-# never installs, and never launches the stock UI.
-while true; do sleep 3600; done
+# Never return: stock auto_run stays blocked here so it never umounts /mnt, installs,
+# or launches the stock UI. Snapshot a few times early (to capture klippy/MCU startup
+# + errors onto the USB), then idle.
+i=0
+while true; do
+    if [ "${i}" -lt 8 ]; then sleep 15; snapshot; i=$((i + 1)); else sleep 3600; fi
+done
