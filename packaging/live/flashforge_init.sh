@@ -76,11 +76,13 @@ insmod_ko 'f2fs'  "${MOD_DIR}/f2fs.ko"
 
 # Mount the ReForge rootfs image (the chroot root). A file on the FAT USB needs
 # a loop device; a raw block device (e.g. the qemu zero-write gate) mounts directly.
+# nodiscard: the loop device over a FAT-hosted image can't service DISCARD/TRIM, so
+# F2FS's discards fail (loop0 I/O error, ret -5) and spam the log — disable them.
 if [ -b "${LIVE_IMG}" ]; then
-    mount -t f2fs -o rw "${LIVE_IMG}" "${ROOT}" 2>/dev/null \
+    mount -t f2fs -o rw,nodiscard "${LIVE_IMG}" "${ROOT}" 2>/dev/null \
         || mount -o rw "${LIVE_IMG}" "${ROOT}" 2>/dev/null \
         || { log "ERROR: cannot mount ${LIVE_IMG}"; exit 1; }
-elif ! mount -t f2fs -o loop,rw "${LIVE_IMG}" "${ROOT}" 2>/dev/null; then
+elif ! mount -t f2fs -o loop,rw,nodiscard "${LIVE_IMG}" "${ROOT}" 2>/dev/null; then
     mount -o loop,rw "${LIVE_IMG}" "${ROOT}" 2>/dev/null \
         || { log "ERROR: cannot loop-mount ${LIVE_IMG}"; exit 1; }
 fi
@@ -111,7 +113,9 @@ REFORGE_LIVE=1 TERM=linux chroot "${ROOT}" /usr/bin/reforge-banner > "${LIVE_LOG
 # the host net namespace; the chroot shares it. Never blocks the boot.
 if [ -f "${USB_MNT}/net-up.sh" ]; then
     # shellcheck source=/dev/null
-    . "${USB_MNT}/net-up.sh" && reforge_live_netup || true
+    . "${USB_MNT}/net-up.sh"
+    # Send net-up's step log to the USB log so a failed WiFi join is debuggable offline.
+    REFORGE_LIVE_NET_LOG="${USB_LOG}" reforge_live_netup || true
     log "net: $(ip -o addr show 2>/dev/null | grep -o 'inet [0-9.]*' | grep -v '127.0.0.1' | tr '\n' ' ')"
 fi
 
