@@ -1,0 +1,85 @@
+# ReForge Live Mode — run from USB, zero eMMC writes
+
+**Goal:** test ReForge on real AD5M/Pro hardware **without installing** — boot the
+full stack from a USB stick, touch the eMMC **never**, so pulling the USB and
+rebooting returns to pristine stock. No brick risk.
+
+## Why it works (the stock hook)
+
+The stock `auto_run.sh` scans a FAT USB (`/dev/sda`) on every boot and, besides
+the `.tgz` install path, runs **any `flashforge_init.sh` at the USB root directly
+from `/mnt`**:
+
+```sh
+if [ -f /mnt/flashforge_init.sh ]; then
+    chmod a+x /mnt/flashforge_init.sh
+    /mnt/flashforge_init.sh ${MACHINE} ${PID}
+    if [ $? -eq 0 ]; then umount /mnt; sleep 100000; fi   # stock UI never launches
+fi
+```
+
+It is run from the USB (no copy to eMMC). If our launcher **never returns**, stock
+never reaches `umount /mnt` / its own UI — ReForge owns the machine, the USB stays
+mounted, and nothing is written to eMMC.
+
+## Layout (FAT USB)
+
+```
+/flashforge_init.sh      the LIVE launcher (this design)
+/reforge-live.ext4       an ext4 image = the ReForge chroot root (the reforge rootfs)
+```
+
+(FAT can't host a Linux rootfs — symlinks/perms — so the rootfs is an **ext4 image**
+on the FAT stick, loop-mounted by the launcher.)
+
+## The launcher
+
+Mirrors `reforge-boot`, but rooted on the USB image with a **tmpfs `/data`**:
+
+1. `mount -o loop /mnt/reforge-live.ext4 /tmp/.reforge-live`  (chroot root; `/tmp` is tmpfs)
+2. bind `proc`/`sys`/`dev`/`run` + a fresh **tmpfs** for `/tmp` and for `/data`
+   into the chroot — the on-device path binds the eMMC `/data` (mmcblk0p7); live
+   mode uses tmpfs so **no eMMC partition is touched**.
+3. `REFORGE_LIVE=1 SCREEN_MODE=GUPPY chroot /tmp/.reforge-live /mod/start.sh`
+4. block forever (`while true; do sleep 3600; done`) so stock never proceeds.
+
+`REFORGE_LIVE=1` tells the boot/LKG scripts to **skip the trial/LKG bookkeeping**
+(it's for persistent installs; live mode reboots clean by removing the USB).
+
+## The brick-safe invariant
+
+**Never write the eMMC.** No partition writes, no init edits, no `/data/.reforge`
+install. All runtime state (klippy logs, moonraker DB, zram) lives in the
+loop-mounted USB image (persistent) or tmpfs (ephemeral). Worst case — USB yanked
+mid-run — the chroot's fs vanishes but the eMMC is intact; reboot recovers.
+
+## What it validates on hardware
+
+Real Klipper ↔ the real eboard MCU, the real 480×800 panel, the whole stack — the
+things qemu can't exercise — with zero flashing.
+
+## Caveats
+
+- USB must stay inserted (it *is* the rootfs); running from USB is slower than eMMC.
+- The stock UI (`firmwareExe`) does not run — live mode runs ReForge's GuppyScreen
+  / headless. That is the point.
+- `/data` is tmpfs by default (ephemeral). Persistent live state across reboots is a
+  future option (a writable dir on the FAT USB).
+
+## qemu gate (prove zero-write before touching hardware)
+
+`tests/qemu-harness/live-mode-test.sh` (rootless):
+
+1. Build the stock-rootfs eMMC image + record a checksum of its bytes.
+2. Build the live USB image (FAT: launcher + `reforge-live.ext4`).
+3. Boot stock under qemu with the eMMC + the USB presented as `/dev/sda`
+   (`usb-storage`), so the stock `auto_run` hook fires the live launcher; or, if
+   the test kernel lacks USB host support, run the launcher via an injected init
+   hook (same code path) with the live image on a 2nd disk.
+4. **Assert:** the ReForge stack came up **and** the eMMC image is **byte-identical**
+   to its pre-boot checksum.
+
+## Build
+
+`make live-usb` → `tools/release/build-live-usb.sh` → `packaging/dist/reforge-live-<ver>.img`
+(dd to a USB stick), assembled from `build/output/images/rootfs.tar` + the launcher.

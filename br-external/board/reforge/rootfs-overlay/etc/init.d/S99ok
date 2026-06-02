@@ -17,6 +17,14 @@
 # inside the chroot (via the /data bind-mount) as on the stock side.
 [ "$1" = start ] || exit 0
 
+# Live mode (run-from-USB) has no persistent install + no eMMC /data, so the
+# trial/LKG bookkeeping is meaningless — just mark services up and return.
+if [ "${REFORGE_LIVE:-0}" = "1" ]; then
+    echo "[S99ok] live mode — services up (LKG bookkeeping skipped)"
+    touch /tmp/reforge-ok
+    exit 0
+fi
+
 . /mod/.shell/reforge-lkg.sh
 
 is_trial && echo "[S99ok] services up — promoting mod -> LKG"

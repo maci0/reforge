@@ -1,8 +1,8 @@
 BUILD := tools/build/build.sh
-.PHONY: lint rootfs defconfig clean smoke repro integration smoke-guppy tgz validate-loopback \
+.PHONY: lint rootfs defconfig clean smoke repro integration smoke-guppy tgz live-usb validate-loopback \
         run-from-mod \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
-        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-guppy qemu-mem qemu-ota
+        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-guppy qemu-live qemu-mem qemu-ota
 # lint: shellcheck our own shell scripts (skips cleanly if shellcheck absent)
 lint:              ; tools/lint/shellcheck.sh
 # Single image: `make rootfs` builds the full ReForge stack (klipper + moonraker
@@ -16,6 +16,7 @@ integration:       ; tests/smoke/chroot_integration.sh
 # smoke-guppy: assert the GuppyScreen binary is present in the single image
 smoke-guppy:       ; tests/smoke/smoke_guppy.sh
 tgz:               ; packaging/build-tgz.sh
+live-usb:          ; tools/release/build-live-usb.sh
 validate-loopback: ; sudo tests/loopback-install-test.sh
 # run-from-mod: structural test of the self-contained mod/ + run-in-place model
 run-from-mod:      ; tests/release/run-from-mod-test.sh
@@ -54,6 +55,7 @@ qemu-render:       ; tests/qemu-harness/reforge-render-test.sh
 # reaches its home screen.  Fully ROOTLESS (no sudo): debugfs inject + GPT-offset
 # slice + unprivileged qemu.  Output: build/stockui-home.ppm (gitignored).
 qemu-stockui:      ; tests/qemu-harness/stockui-render.sh
+qemu-live:         ; tests/qemu-harness/live-mode-test.sh
 
 # --- full-stack "ready" rig: fake klippy so Moonraker reports klippy ready ----
 # Swaps real klippy for a Moonraker-grade stand-in so the whole stack reaches
