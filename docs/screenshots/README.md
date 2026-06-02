@@ -1,11 +1,11 @@
 # Screenshots
 
-GUI renders are captured from `qemu-system-arm` with `/dev/fb0` pinned to the printer's exact
-panel (**800×480, 32 bpp**), via the QEMU monitor `screendump` (see
-`tests/qemu-harness/README.md`) — **pixel-identical to the real 4.3" screen**. The console
-images are rasterized onto the same 800×480 panel (8×16 fbcon cell) by
-`tests/qemu-harness/render-banner.sh` / `render-screen.py`, so they match what the framebuffer
-console actually shows.
+All images are captured from `qemu-system-arm` with `/dev/fb0` pinned to the printer's exact
+panel (**800×480, 32 bpp**), via the QEMU monitor `screendump` — **pixel-identical to the real
+4.3" screen**. The boot splash + console are real framebuffer-console captures (16-color VGA/CP437
+fbcon, not rasterized approximations) produced by `tests/qemu-harness/shots-reforge.sh`
+(`make shots-reforge`), which injects the working-tree banner, boots the virt kernel with
+virtio-gpu, and screendumps the live fbcon.
 
 ## Bootsplash (fire/ember "ReForge")
 
@@ -14,9 +14,10 @@ console actually shows.
 The fire/ember banner from `board/reforge/rootfs-overlay/usr/bin/reforge-banner` — shown on the
 boot console (via `reforge-boot`) and on interactive login (`/etc/profile.d`). Block-glyph
 REFORGE wordmark in a fire gradient, shaded-block flames, a steel anvil over the forge base,
-tagline *"ReForge — Klipper, reforged"*. Drawn with VGA/CP437 console glyphs (`█ ▓ ▒ ░ ▟ ▙ ▛ ▜`,
-double-box) so it renders on the real panel; 256-color ANSI, degrades to plain text on dumb
-terminals. Sized to fit the 30-row console without scrolling.
+tagline *"ReForge - Klipper, reforged"*. Drawn with VGA/CP437 console glyphs only (`█ ▓ ▒ ░ ▀ ▄`,
+single/double box) so every glyph exists in the framebuffer console font; 256-color ANSI that the
+16-color fbcon maps to the fire palette (yellow→red), degrading to plain text on dumb terminals.
+Self-centres to the console width and fits the 30-row console without scrolling.
 
 ### LIVE mode
 
