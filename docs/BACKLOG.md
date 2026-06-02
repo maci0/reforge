@@ -120,3 +120,29 @@ panel UI + many stock procs already running), `switch_root` is an initramfs-era 
 would tear down the running stock system, and it wouldn't change the (stock) kernel or the
 vermagic-locked driver anyway. Brick-safety comes precisely from being a non-invasive
 guest under stock init (pull USB → pristine stock). Raised 2026-06-02.
+
+## forge-x: one shared python for klippy + moonraker (drop the 2nd interpreter's RSS)
+
+forge-x runs **two** interpreters: stock klippy on **soft-float Python 3.7** (`/opt/Python-3.7.11`,
+`ld-linux.so.3`) and moonraker on a **hard-float Python 3.11** venv (`/root/moonraker-env`,
+`ld-linux-armhf.so.3`). Different version AND different float ABI ⇒ no COW sharing ⇒ real
+double-RSS. Verified in the qemu virt harness: klippy *runs* under moonraker-env's 3.11 (all
+python deps import once `cffi`+`pycparser`+`greenlet` cp311 hard-float wheels are added — moonraker-env
+already has jinja2/pyserial/numpy), but it cannot `dlopen` the stock **soft-float** `c_helper.so`
+into the **hard-float** 3.11 process → `OSError: ... internal error`.
+
+Unblock = ship a **hard-float `c_helper.so`** (the only soft-float blocker; klipper compiles it on
+the host with gcc, which the device lacks). `tools/build-chelper-hardfloat.sh <klippy/chelper>`
+cross-compiles it from forge-x's OWN chelper sources (so the cffi cdef matches) using ReForge's
+buildroot armhf toolchain — Cortex-A7 NEON-VFPv4 hard-float, mirrors `br-external/package/klipper/klipper.mk`.
+
+Recipe (reversible):
+1. `scp -r root@PRINTER:/opt/klipper/klippy/chelper /tmp/fx-chelper`
+2. `tools/build-chelper-hardfloat.sh /tmp/fx-chelper` → hard-float `c_helper.so`; copy it back to
+   `/opt/klipper/klippy/chelper/` on the device.
+3. Vendor `cffi`+`pycparser`+`greenlet` cp311 armv7 (hard-float) wheels into
+   `/root/moonraker-env/lib/python3.11/site-packages/`.
+4. Point forge-x's `S60klipper` python at `/root/moonraker-env/bin/python3`.
+Final confirmation must be on real hardware (klippy → MCU connect). The other direction
+(moonraker on stock soft-float 3.7) is impossible — moonraker needs ≥3.8 and there's no soft-float
+3.11. ReForge avoids all this: all-hard-float, one interpreter by design.
