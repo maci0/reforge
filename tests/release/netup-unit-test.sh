@@ -58,6 +58,16 @@ EOF
 #!/bin/sh
 exit 1
 EOF
+    # wpa_cli: record the kick/diag subcommands; emit plausible status/scan output.
+    cat > "${bin}/wpa_cli" <<EOF
+#!/bin/sh
+echo "wpa_cli \$*" >> "${WORK}/calls"
+case "\$*" in
+  *scan_results*) echo "bssid / freq / signal / flags / ssid"; echo "40:ae:30:fd:a0:e3	5240	-70	[WPA2-PSK-CCMP][ESS]	bacon" ;;
+  *status*)       echo "wpa_state=COMPLETED"; echo "ssid=bacon"; echo "freq=5240" ;;
+esac
+exit 0
+EOF
     chmod +x "${bin}"/*
 }
 
@@ -70,8 +80,9 @@ run_netup() {  # extra args are VAR=val overrides (applied after the defaults)
     ( rm -f "${WORK}/calls" "${WORK}/WPA_STARTED" "${WORK}/DHCP_RAN"
       PATH="${BIN}:${PATH}" env \
         REFORGE_LIVE_NET_SYS="${SYS}" REFORGE_LIVE_WPA_CONF="${CONF}" \
+        REFORGE_LIVE_WPA_EFF="${WORK}/eff.conf" \
         REFORGE_LIVE_WIFI_IFACE=wlan0 REFORGE_LIVE_NET_WAIT="${WAIT:-2}" \
-        REFORGE_LIVE_IF_WAIT="${IFWAIT:-0}" \
+        REFORGE_LIVE_IF_WAIT="${IFWAIT:-0}" REFORGE_LIVE_KICK_WAIT=0 \
         "$@" \
         sh -c '. "'"${NETUP}"'"; reforge_live_netup' )
 }
@@ -95,10 +106,58 @@ if [ "${rc}" -eq 0 ] && [ ! -f "${WORK}/WPA_STARTED" ]; then pass "no-creds: no 
 # --- 4. happy path -> wpa_supplicant + udhcpc, returns 0 --------------------
 rm -f "${WORK}/HAS_IP"; mkdir -p "${SYS}/wlan0"
 run_netup; rc=$?
-if [ "${rc}" -eq 0 ] && [ -f "${WORK}/WPA_STARTED" ] && [ -f "${WORK}/DHCP_RAN" ]; then
-    pass "happy path: associated + DHCP, returns 0"
+if [ "${rc}" -eq 0 ] && [ -f "${WORK}/WPA_STARTED" ] && [ -f "${WORK}/DHCP_RAN" ] \
+   && ! grep -q 'udhcpc_wlan0' "${WORK}/calls"; then
+    pass "happy path: associated + DHCP (no procd-wrapper as -s), returns 0"
 else
     fail "happy path failed (rc=${rc}, wpa=$( [ -f "${WORK}/WPA_STARTED" ] && echo y), dhcp=$( [ -f "${WORK}/DHCP_RAN" ] && echo y))"
+fi
+
+# --- 4a. happy path also kicks the supplicant (enable_network + reassociate) -
+rm -f "${WORK}/HAS_IP"; mkdir -p "${SYS}/wlan0"
+run_netup; rc=$?
+if [ "${rc}" -eq 0 ] && grep -q "wpa_cli.*enable_network all" "${WORK}/calls" && grep -q "wpa_cli.*reassociate" "${WORK}/calls"; then
+    pass "kick: enable_network + reassociate issued after wpa start"
+else
+    fail "kick missing (calls=$(grep wpa_cli "${WORK}/calls" 2>/dev/null | tr '\n' ';'))"
+fi
+
+# --- 4b. disabled=1 network -> uses an enabled tmpfs copy -------------------
+# Stock confs carry `disabled=1`; net-up must strip it into a tmpfs copy and point
+# wpa_supplicant at that copy (the original on eMMC stays untouched).
+DCONF="${WORK}/disabled.conf"
+printf 'ctrl_interface=/var/run/wpa_supplicant\nupdate_config=1\nnetwork={\n\tssid="x"\n\tpsk="y"\n\tdisabled=1\n}\n' > "${DCONF}"
+rm -f "${WORK}/HAS_IP" "${WORK}/eff.conf"; mkdir -p "${SYS}/wlan0"
+run_netup REFORGE_LIVE_WPA_CONF="${DCONF}"; rc=$?
+if [ "${rc}" -eq 0 ] && [ -f "${WORK}/eff.conf" ] \
+   && ! grep -qiE '^[[:space:]]*disabled=1' "${WORK}/eff.conf" \
+   && grep -q 'ssid="x"' "${WORK}/eff.conf" \
+   && grep -qF "${WORK}/eff.conf" "${WORK}/calls" \
+   && grep -qiE '^[[:space:]]*disabled=1' "${DCONF}"; then
+    pass "disabled=1: enabled tmpfs copy made, supplicant uses it, original untouched"
+else
+    fail "disabled=1 handling wrong (rc=${rc}, eff=$( [ -f "${WORK}/eff.conf" ] && echo y), calls=$(cat "${WORK}/calls" 2>/dev/null))"
+fi
+
+# --- 4c. already-enabled conf -> no copy, original path used ----------------
+rm -f "${WORK}/HAS_IP" "${WORK}/eff.conf"; mkdir -p "${SYS}/wlan0"
+run_netup; rc=$?   # CONF has no disabled flag
+if [ "${rc}" -eq 0 ] && [ ! -f "${WORK}/eff.conf" ] && grep -qF "${CONF}" "${WORK}/calls"; then
+    pass "enabled conf: no rewrite, supplicant uses original path"
+else
+    fail "enabled-conf passthrough wrong (eff-exists=$( [ -f "${WORK}/eff.conf" ] && echo y), calls=$(cat "${WORK}/calls" 2>/dev/null))"
+fi
+
+# --- 4d. _wpa_effective_conf unit (direct) ----------------------------------
+# disabled stripped; enabled passthrough; unreadable src -> echoes src unchanged.
+EFFOUT="$( sh -c '. "'"${NETUP}"'"; REFORGE_LIVE_WPA_EFF="'"${WORK}/u_eff.conf"'" _wpa_effective_conf "'"${DCONF}"'"' )"
+ENOUT="$(  sh -c '. "'"${NETUP}"'"; REFORGE_LIVE_WPA_EFF="'"${WORK}/u_eff2.conf"'" _wpa_effective_conf "'"${CONF}"'"' )"
+MISS="$(   sh -c '. "'"${NETUP}"'"; REFORGE_LIVE_WPA_EFF="'"${WORK}/u_eff3.conf"'" _wpa_effective_conf "'"${WORK}/absent.conf"'"' )"
+if [ "${EFFOUT}" = "${WORK}/u_eff.conf" ] && ! grep -qiE 'disabled=1' "${EFFOUT}" \
+   && [ "${ENOUT}" = "${CONF}" ] && [ "${MISS}" = "${WORK}/absent.conf" ]; then
+    pass "_wpa_effective_conf: strips disabled, passes through enabled + missing"
+else
+    fail "_wpa_effective_conf wrong (eff='${EFFOUT}', en='${ENOUT}', miss='${MISS}')"
 fi
 
 # --- 5. never blocks when no IP ever appears --------------------------------
@@ -111,6 +170,12 @@ chmod +x "${BIN}/udhcpc"
 rm -f "${WORK}/HAS_IP"; mkdir -p "${SYS}/wlan0"
 t0=$(date +%s); WAIT=2 run_netup; rc=$?; t1=$(date +%s)
 if [ "${rc}" -eq 0 ] && [ "$((t1 - t0))" -le 6 ]; then pass "no-IP: returns 0 within the WAIT cap ($((t1-t0))s)"; else fail "no-IP did not return promptly (rc=${rc}, $((t1-t0))s)"; fi
+# On the no-IP path net-up must dump diagnostics (wpa status + scan count) via wpa_cli.
+if grep -q "wpa_cli.*status" "${WORK}/calls" && grep -q "wpa_cli.*scan_results" "${WORK}/calls"; then
+    pass "no-IP: dumps wpa status + scan_results diagnostics"
+else
+    fail "no-IP: missing diagnostics (calls=$(grep wpa_cli "${WORK}/calls" 2>/dev/null | tr '\n' ';'))"
+fi
 make_mocks "${BIN}"  # restore the associating mock
 
 # --- 6. FUZZ ----------------------------------------------------------------
@@ -118,9 +183,14 @@ fuzz_fail=0
 for i in $(seq 1 150); do
     rand_if="$(head -c 8 /dev/urandom | tr -dc 'a-z0-9' | head -c 5)"; [ -n "${rand_if}" ] || rand_if="if${i}"
     rand_conf="${WORK}/$(head -c 6 /dev/urandom | tr -dc 'a-z' | head -c 4).conf"
-    [ $((i % 3)) -eq 0 ] && : > "${rand_conf}"   # sometimes the conf exists
+    # sometimes the conf exists; vary enabled vs disabled=1 so the rewrite path is fuzzed
+    case $((i % 3)) in
+      0) printf 'network={\n\tssid="z"\n\tpsk="w"\n\tdisabled=1\n}\n' > "${rand_conf}" ;;
+      1) printf 'network={ ssid="z" psk="w" }\n' > "${rand_conf}" ;;
+    esac
     [ $((i % 2)) -eq 0 ] && mkdir -p "${SYS}/${rand_if}"
-    WAIT=0 run_netup REFORGE_LIVE_WIFI_IFACE="${rand_if}" REFORGE_LIVE_WPA_CONF="${rand_conf}" >/dev/null 2>&1 || { fuzz_fail=1; break; }
+    WAIT=0 run_netup REFORGE_LIVE_WIFI_IFACE="${rand_if}" REFORGE_LIVE_WPA_CONF="${rand_conf}" \
+        REFORGE_LIVE_WPA_EFF="${WORK}/fz_eff_${i}.conf" >/dev/null 2>&1 || { fuzz_fail=1; break; }
 done
 [ "${fuzz_fail}" -eq 0 ] && pass "fuzz: 150 random iface/conf calls returned 0, no crash" || fail "fuzz: a call returned non-zero/crashed"
 

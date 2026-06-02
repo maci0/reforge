@@ -45,6 +45,33 @@ if [ -z "${SCREEN_MODE:-}" ] && [ -r "${USB_MNT}/screen_mode" ]; then
 fi
 SCREEN_MODE="${SCREEN_MODE:-GUPPY}"
 
+# NET-ONLY debug mode: skip the ENTIRE ReForge stack — no f2fs mount, no chroot, no
+# klippy/moonraker/guppy. Just bring up WiFi + make sure an SSH daemon is listening,
+# then hold forever (so stock auto_run never resumes → eMMC stays untouched). Lets us
+# isolate "is the box reachable on the network?" from the printer stack. Enabled by a
+# `net_only` file at the USB root (drop it next to this script) or NET_ONLY=1.
+[ -z "${NET_ONLY:-}" ] && [ -e "${USB_MNT}/net_only" ] && NET_ONLY=1
+if [ "${NET_ONLY:-0}" = 1 ]; then
+    log "NET-ONLY mode — skipping klippy/moonraker/guppy; WiFi + sshd + hold"
+    if [ -f "${USB_MNT}/net-up.sh" ]; then
+        # shellcheck source=/dev/null
+        . "${USB_MNT}/net-up.sh"
+        REFORGE_LIVE_NET_LOG="${USB_LOG}" reforge_live_netup || true
+    fi
+    # Stock starts dropbear early in boot, but make sure something is listening on :22.
+    if ps w 2>/dev/null | grep -q '[d]ropbear' || ps w 2>/dev/null | grep -q '[s]shd'; then
+        log "ssh daemon already running"
+    else
+        for _d in /usr/sbin/dropbear /bin/dropbear /sbin/dropbear; do
+            [ -x "${_d}" ] && { log "starting ${_d} -R -p 22"; "${_d}" -R -p 22 2>/dev/null; break; }
+        done
+    fi
+    while true; do
+        log "net-only: ip=[$(ip addr show 2>/dev/null | grep -o 'inet [0-9.]*' | grep -v 127.0.0.1 | tr '\n' ' ')]"
+        sleep 30
+    done
+fi
+
 log "starting (img=${LIVE_IMG}, screen=${SCREEN_MODE})"
 # -e, not -f: LIVE_IMG is a regular file on the FAT USB, but may be a raw block
 # device (e.g. the qemu zero-write gate presents the rootfs as /dev/vdb).
