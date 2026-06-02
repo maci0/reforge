@@ -37,6 +37,21 @@ log() { echo "[reforge-live] $*" | tee -a "${USB_LOG}" 2>/dev/null > "${LIVE_LOG
 ROOT="${REFORGE_LIVE_ROOT:-/tmp/.reforge-live}"   # chroot root (/tmp is tmpfs)
 DATA="${REFORGE_LIVE_DATA:-/tmp/.reforge-data}"   # writable /data -> tmpfs
 
+# Make sure an SSH daemon is listening on :22 so the box stays reachable for debugging
+# even when the printer stack (klippy/GuppyScreen) is wedged. Stock starts dropbear early
+# in a normal boot, but in live mode we block stock's auto_run before that point, so on
+# the full-stack path nothing brings sshd up — start one if absent. Best-effort, never
+# fatal; -R generates a host key on demand if the stock rootfs has none.
+ensure_sshd() {
+    if ps w 2>/dev/null | grep -q '[d]ropbear' || ps w 2>/dev/null | grep -q '[s]shd'; then
+        log "ssh daemon already running"; return 0
+    fi
+    for _d in /usr/sbin/dropbear /bin/dropbear /sbin/dropbear; do
+        [ -x "${_d}" ] && { log "starting ${_d} -R -p 22"; "${_d}" -R -p 22 2>/dev/null; return 0; }
+    done
+    log "no dropbear/sshd binary found — SSH will be unavailable"
+}
+
 # Screen mode: env wins, else an optional `screen_mode` file at the USB root (so you
 # can drop "HEADLESS" next to the launcher to debug — the boot console + net-up + klippy
 # errors then show on the panel instead of GuppyScreen), else default GUPPY.
@@ -58,14 +73,7 @@ if [ "${NET_ONLY:-0}" = 1 ]; then
         . "${USB_MNT}/net-up.sh"
         REFORGE_LIVE_NET_LOG="${USB_LOG}" reforge_live_netup || true
     fi
-    # Stock starts dropbear early in boot, but make sure something is listening on :22.
-    if ps w 2>/dev/null | grep -q '[d]ropbear' || ps w 2>/dev/null | grep -q '[s]shd'; then
-        log "ssh daemon already running"
-    else
-        for _d in /usr/sbin/dropbear /bin/dropbear /sbin/dropbear; do
-            [ -x "${_d}" ] && { log "starting ${_d} -R -p 22"; "${_d}" -R -p 22 2>/dev/null; break; }
-        done
-    fi
+    ensure_sshd
     while true; do
         log "net-only: ip=[$(ip addr show 2>/dev/null | grep -o 'inet [0-9.]*' | grep -v 127.0.0.1 | tr '\n' ' ')]"
         sleep 30
@@ -143,8 +151,13 @@ if [ -f "${USB_MNT}/net-up.sh" ]; then
     . "${USB_MNT}/net-up.sh"
     # Send net-up's step log to the USB log so a failed WiFi join is debuggable offline.
     REFORGE_LIVE_NET_LOG="${USB_LOG}" reforge_live_netup || true
-    log "net: $(ip -o addr show 2>/dev/null | grep -o 'inet [0-9.]*' | grep -v '127.0.0.1' | tr '\n' ' ')"
+    log "net: $(ip addr show 2>/dev/null | grep -o 'inet [0-9.]*' | grep -v '127.0.0.1' | tr '\n' ' ')"
 fi
+
+# Bring SSH up NOW — before the (slow, possibly-wedged) stack launch below — so the box
+# is reachable for debugging even if klippy never reaches 'ready'. In live mode stock's
+# own dropbear init is blocked, so without this the full-stack path has no SSH.
+ensure_sshd
 
 # Append a diagnostics snapshot to the USB log (and console) — net, loaded modules,
 # and the chroot's klippy/moonraker logs + dmesg — so a pulled stick shows WHY the
