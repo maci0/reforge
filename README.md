@@ -81,8 +81,8 @@ make qemu-live           # prove live mode boots from USB and writes ZERO bytes 
 writes the eMMC** — pull the stick + reboot to return to pristine stock.
 
 ```sh
-make live-usb            # -> packaging/dist/reforge-live-<ver>.img
-sudo dd if=packaging/dist/reforge-live-<ver>.img of=/dev/sdX bs=4M conv=fsync
+make live-usb            # -> packaging/dist/reforge-live-<ver>.tar.gz
+tar xzf packaging/dist/reforge-live-<ver>.tar.gz -C /path/to/usb/   # extract onto a FAT32 stick
 # insert the stick, power on. Remove + reboot for stock.
 ```
 

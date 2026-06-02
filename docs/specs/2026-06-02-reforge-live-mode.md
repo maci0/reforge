@@ -100,5 +100,5 @@ things qemu can't exercise — with zero flashing.
 
 ## Build
 
-`make live-usb` → `tools/release/build-live-usb.sh` → `packaging/dist/reforge-live-<ver>.img`
+`make live-usb` → `tools/release/build-live-usb.sh` → `packaging/dist/reforge-live-<ver>.tar.gz` (extract onto a FAT32 USB root — no dd)
 (dd to a USB stick), assembled from `build/output/images/rootfs.tar` + the launcher.

@@ -15,8 +15,8 @@
 #     contract — so a typo can never spam /proc/sys/vm)
 #
 # Exit 0 = PASS, 1 = FAIL.
+# shellcheck disable=SC1090,SC2015,SC2034  # source path is fixed; &&/|| asserts + vars consumed by the sourced helper are intentional
 set -uo pipefail
-# shellcheck disable=SC1090  # VMTUNE_SH is a fixed path; sourcing it is intentional
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 VMTUNE_SH="${REPO_ROOT}/br-external/board/reforge/rootfs-overlay/.shell/reforge-vmtune.sh"

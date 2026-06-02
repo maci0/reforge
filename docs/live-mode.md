@@ -62,8 +62,9 @@ loop-mounts read-write.
 
 ```sh
 make rootfs                       # the ReForge image (build/output/images/rootfs.tar)
-make live-usb                     # -> packaging/dist/reforge-live-<ver>.img
-sudo dd if=packaging/dist/reforge-live-<ver>.img of=/dev/sdX bs=4M conv=fsync
+make live-usb                     # -> packaging/dist/reforge-live-<ver>.tar.gz
+# extract onto the root of any FAT32 USB stick (no dd, no dedicated stick):
+tar xzf packaging/dist/reforge-live-<ver>.tar.gz -C /path/to/usb/
 ```
 
 Then: insert the stick, power on the printer — ReForge boots from USB. To return to

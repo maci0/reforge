@@ -1,22 +1,23 @@
 #!/usr/bin/env bash
 # =============================================================================
-# build-live-usb.sh — assemble a ReForge LIVE USB image (run-from-USB, no install).
+# build-live-usb.sh — assemble a ReForge LIVE USB payload (run-from-USB, no install).
 #
-# Produces a FAT image holding: the live launcher, three BSP kernel modules (loop+crc32+f2fs), and the
-# ReForge rootfs as an F2FS image. The stock FlashForge
-# auto_run.sh picks up the launcher via its `/mnt/flashforge_init.sh` hook (see
-# docs/specs/2026-06-02-reforge-live-mode.md); the launcher insmods the three
-# modules and loop-mounts the F2FS rootfs. dd the result to a USB stick; boot it
-# inserted; pull it + reboot to return to pristine stock. NOTHING touches eMMC.
+# Produces a .tar.gz holding (at the archive root): the live launcher, three BSP
+# kernel modules (loop+crc32+f2fs), and the ReForge rootfs as an F2FS image. NO dd
+# and no dedicated stick needed — the stock FlashForge auto_run.sh scans ANY FAT USB
+# for /flashforge_init.sh (see docs/specs/2026-06-02-reforge-live-mode.md), so the
+# trial is just: extract this tarball onto the root of a FAT32 stick, insert it, and
+# power on. The launcher insmods the three modules and loop-mounts the F2FS rootfs.
+# Pull the stick + reboot to return to pristine stock. NOTHING touches eMMC.
 #
-# Fully ROOTLESS (no sudo): mkfs.f2fs + sload.f2fs for the rootfs, mkfs.vfat +
-# mcopy (mtools) for the FAT image — no loop mounts.
+# Fully ROOTLESS (no sudo): mkfs.f2fs + sload.f2fs bake the rootfs image, tar+gzip
+# pack the payload — no loop mounts, no FAT tooling.
 #
 # Usage:   tools/release/build-live-usb.sh
 #   VER       version tag (default: packaging/VERSION)
 #   DIST_DIR  output dir (default: packaging/dist)
-# Output:   <DIST_DIR>/reforge-live-<VER>.img   (dd to a USB stick)
-# Needs:    f2fs-tools, mkfs.vfat (dosfstools), mcopy/mmd (mtools), modules/f2fs-bsp
+# Output:   <DIST_DIR>/reforge-live-<VER>.tar.gz   (extract onto a FAT32 USB root)
+# Needs:    f2fs-tools (mkfs.f2fs/sload.f2fs), tar, gzip, modules/f2fs-bsp
 # =============================================================================
 set -euo pipefail
 
@@ -27,16 +28,15 @@ LAUNCHER="${PACKAGING_DIR}/live/flashforge_init.sh"
 
 VER="${VER:-$(cat "${PACKAGING_DIR}/VERSION")}"
 DIST_DIR="${DIST_DIR:-${PACKAGING_DIR}/dist}"
-OUT="${DIST_DIR}/reforge-live-${VER}.img"
+OUT="${DIST_DIR}/reforge-live-${VER}.tar.gz"
 
 log() { echo "[build-live-usb] $*"; }
 die() { echo "[build-live-usb] ERROR: $*" >&2; exit 1; }
 
 [ -f "${ROOTFS_TAR}" ] || die "rootfs.tar missing — run 'make rootfs' first (${ROOTFS_TAR})"
 [ -f "${LAUNCHER}" ]   || die "live launcher missing: ${LAUNCHER}"
-command -v mke2fs   >/dev/null || die "mke2fs not installed (e2fsprogs)"
-command -v mkfs.vfat >/dev/null || die "mkfs.vfat not installed (dosfstools)"
-command -v mcopy    >/dev/null || die "mcopy not installed (mtools)"
+command -v tar >/dev/null || die "tar not installed"
+command -v gzip >/dev/null || die "gzip not installed"
 
 mkdir -p "${DIST_DIR}"
 WORK="$(mktemp -d)"; trap 'rm -rf "${WORK}"' EXIT
@@ -79,21 +79,24 @@ truncate -s 1843M "${LIVE_F2FS}"
 mkfs.f2fs -q -f -l reforge-live "${LIVE_F2FS}" >/dev/null
 sload.f2fs -f "${STAGE}" "${LIVE_F2FS}" >/dev/null 2>&1
 
-# --- 2. the FAT carrier the stock firmware mounts -----------------------------
-# Holds the launcher, f2fs.ko, and the F2FS rootfs image (real data under 1 GB).
-log "creating FAT image ${OUT} ..."
+# --- 2. the payload tarball the user extracts onto a FAT USB -------------------
+# No dd / no dedicated stick needed: the stock auto_run.sh scans ANY FAT USB for
+# /flashforge_init.sh, so the trial is just "extract these files onto the root of a
+# FAT32 stick". The tarball holds the launcher + 3 modules + the F2FS rootfs image,
+# all at the archive root, so extracting onto the USB root puts them where the
+# launcher (and auto_run) expect them.
+log "assembling payload tarball ${OUT} ..."
+PAYLOAD="${WORK}/payload"; mkdir -p "${PAYLOAD}"
+# symlink the inputs in (tar -h dereferences) — avoids copying the ~2 GB image.
+ln -sf "${LAUNCHER}"  "${PAYLOAD}/flashforge_init.sh"
+ln -sf "${LIVE_F2FS}" "${PAYLOAD}/reforge-live.f2fs"
+for ko in ${KOS}; do ln -sf "$(ko_path "${ko}")" "${PAYLOAD}/${ko}"; done
 rm -f "${OUT}"
-truncate -s 2300M "${OUT}"
-mkfs.vfat -F 32 -n REFORGE-LIVE "${OUT}" >/dev/null
+tar -C "${PAYLOAD}" -czhf "${OUT}" flashforge_init.sh ${KOS} reforge-live.f2fs
 
-log "copying launcher + modules (loop/crc32/f2fs) + rootfs image onto the FAT (mcopy) ..."
-mcopy -i "${OUT}" "${LAUNCHER}" ::flashforge_init.sh
-for ko in ${KOS}; do mcopy -i "${OUT}" "$(ko_path "${ko}")" "::${ko}"; done
-mcopy -i "${OUT}" "${LIVE_F2FS}" ::reforge-live.f2fs
-
-log "verifying FAT contents ..."
-mdir -i "${OUT}" :: | sed 's/^/  /'
-
-log "done: ${OUT}"
-log "  Flash:  dd if=${OUT} of=/dev/sdX bs=4M conv=fsync   (X = your USB stick)"
-log "  Then boot the printer with the stick in; remove it + reboot for stock."
+log "done: ${OUT} ($(du -h "${OUT}" | cut -f1))"
+log "  Contents:"; tar -tzf "${OUT}" | sed 's/^/    /'
+log "  Trial:  mount a FAT32 USB stick, then:"
+log "          tar xzf ${OUT} -C /path/to/usb/   (files land at the USB root)"
+log "          Insert the stick, power on the printer -> ReForge runs from USB."
+log "          Pull the stick + reboot to return to pristine stock. eMMC is never touched."
