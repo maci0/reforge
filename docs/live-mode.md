@@ -110,7 +110,7 @@ Two findings (next-frontier, not live-mode failures):
 - **No network in live mode** — the launcher blocks `auto_run` (`sleep` forever) before
   the stock WiFi/network init runs later in the stock boot, so there is no LAN: the
   local GuppyScreen works, but Moonraker/Mainsail/SSH are unreachable. Fix (planned):
-  bring `wlan0` up in the launcher before it blocks.
+  bring `wlan0` up in the launcher before it blocks — spec: `docs/specs/2026-06-02-live-mode-wifi.md`.
 - **klippy "waiting to initialize"** — Moonraker + GuppyScreen are up, but the host
   Klipper can't bring the MCU to `ready`: the printer's MCUs carry the Klipper firmware
   forge-x flashed, while ReForge ships a different Klipper commit, and Klipper requires
@@ -125,7 +125,7 @@ Two findings (next-frontier, not live-mode failures):
 - `/data` is tmpfs (ephemeral). Persistent live state across reboots is a future
   option (a writable dir on the FAT stick).
 - **No network yet** (see the trial findings) — local GuppyScreen only; remote
-  Moonraker/Mainsail/SSH need the planned `wlan0`-in-launcher fix.
+  Moonraker/Mainsail/SSH need the planned `wlan0`-in-launcher fix (`docs/specs/2026-06-02-live-mode-wifi.md`).
 - **The MCU does not initialize** until ReForge's Klipper version matches the MCU
   firmware (or the MCU is reflashed — Plan 4).
 
