@@ -74,3 +74,49 @@ once) instead of "extract a tarball onto FAT". Build (`build-live-usb.sh`) would
 partitioned `.img`; the launcher gains a "find the sibling f2fs partition" step.
 Raised during the 2026-06-02 hardware trial; the loop+f2fs path actually worked once the
 crc32 bug was fixed, so this is robustness polish, not a blocker.
+
+## live klippy: respawn after CRC-mismatch auto-restart
+
+On the first ReForge live boot after the printer has run forge-x, the AD5M MCUs still
+hold forge-x's config CRC. ReForge's klippy connects, detects the mismatch, resets the
+MCUs and "Restarts printer" to reconfigure them — but `mod/init.d/S60klipper` launches
+klippy via `start-stop-daemon -S -b` with **no respawn**, so klippy exits on that restart
+and is never relaunched → GuppyScreen sits at "waiting for printer". Manually relaunching
+klippy once (MCUs now reset/clean) reaches `ready` immediately. Fix: supervise klippy in
+live mode (respawn loop, or a watchdog that relaunches on exit) so the reset→reconfigure
+cycle converges on its own. Found during the 2026-06-02 hardware MCU-link bring-up; the
+link itself works (both MCUs, real temps) once klippy is relaunched.
+
+## AD5M MCU firmware vs host Klipper version skew (adxl345 / input shaping)
+
+The AD5M MCU firmware (build 2023-03-17) predates ReForge's host Klipper, and the
+`query_adxl345` command format changed in between (`oid rest_ticks` vs `oid clock
+rest_ticks`) → "MCU Protocol error: Command format mismatch" the moment klippy configures
+the accelerometer. `[adxl345]`/`[resonance_tester]` are currently disabled in
+printer.base.cfg to reach `ready`. To re-enable resonance testing / input-shaper
+auto-cal, rebuild + flash the AD5M MCU firmware from a Klipper matching the host version
+(careful: reflashing the mainboard MCU is higher-risk than host-side changes). Everything
+else in the MCU protocol (steppers, heaters, thermocouples, both MCUs' 105 commands)
+matches fine — this is the one version-locked feature.
+
+## live mode: decouple from the stock rootfs (run our userspace in the chroot)
+
+Today the launcher runs `net-up` and a few bring-up steps **pre-chroot, in stock's
+userspace**, leaning on stock's `wpa_supplicant`/`udhcpc`/`/etc/wpa_supplicant.conf`.
+That coupling is exactly what caused the 2026-06-02 wifi bugs (the network stored
+`disabled=1`; `/etc/wifi/udhcpc_wlan0` is a procd service-wrapper, not a udhcpc event
+script). Reduce reliance on the original rootfs:
+
+- Move network bring-up **post-chroot**, using the f2fs's own `wpa_supplicant` + `udhcpc`
+  + a conf we control (immune to stock's `disabled=1`/wrapper quirks). Read the SSID/PSK
+  from stock once (read-only) and write our own clean conf to tmpfs.
+- Leave only the unavoidable hard stock deps: the **kernel**, the vermagic-locked wifi
+  `.ko` (`8821cu`), and the tiny `chroot`/`mount`/`insmod` bootstrap.
+- Optional: `pivot_root` inside a private mount namespace (`unshare -m`) for cleaner
+  isolation than `chroot`.
+
+NOT `switch_root`: we are not PID1 (stock init launches us late via `auto_run`, with the
+panel UI + many stock procs already running), `switch_root` is an initramfs-era tool that
+would tear down the running stock system, and it wouldn't change the (stock) kernel or the
+vermagic-locked driver anyway. Brick-safety comes precisely from being a non-invasive
+guest under stock init (pull USB → pristine stock). Raised 2026-06-02.
