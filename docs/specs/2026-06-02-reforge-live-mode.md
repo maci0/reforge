@@ -26,20 +26,30 @@ mounted, and nothing is written to eMMC.
 
 ```
 /flashforge_init.sh      the LIVE launcher (this design)
-/f2fs.ko                 F2FS kernel module, built against the stock BSP (vermagic 5.4.61)
+/loop.ko                 loop block driver (to loop-mount the rootfs image)
+/crc32_generic.ko        the 'crc32' crypto algo F2FS needs at mount
+/f2fs.ko                 F2FS filesystem
 /reforge-live.f2fs       an F2FS image = the ReForge chroot root (the reforge rootfs)
 ```
 
 (FAT can't host a Linux rootfs — symlinks/perms — so the rootfs is a **filesystem
 image** on the FAT stick, loop-mounted by the launcher.)
 
-**Why F2FS + a shipped `.ko`:** F2FS is flash-friendly. The stock 5.4.61 kernel has
-**no built-in F2FS** (only ext4 + vfat — confirmed on the device), so we build
-`f2fs.ko` against the Tina BSP (same recipe as `modules/zram-bsp`, `CONFIG_F2FS_FS=m`,
-exact vermagic `5.4.61 SMP preempt mod_unload ARMv7 p2v8`, `depends=` empty → standalone)
-and the launcher `insmod`s it before mounting. **Verified on real hardware:** the .ko
-loads and `f2fs` appears in `/proc/filesystems`. The launcher falls back to a non-F2FS
-mount if the module is absent or F2FS is already built in (e.g. the qemu gate kernel).
+**Why F2FS + three shipped `.ko`s:** F2FS is flash-friendly, but the stock 5.4.61
+kernel (probed on the device) ships **none** of what's needed: no loop driver
+(`# CONFIG_BLK_DEV_LOOP is not set` → can't loop-mount any image file), no plain
+`crc32` crypto (only `crc32c` → F2FS mount dies `Cannot load crc32 driver`), and no
+F2FS. So `modules/f2fs-bsp/build.sh` builds all three against the Tina BSP (same recipe
+as `modules/zram-bsp`, exact vermagic `5.4.61 SMP preempt mod_unload ARMv7 p2v8`,
+`depends=` empty → standalone). The `loop.ko` build also patches `loop.c` to
+`MODULE_IMPORT_NS(VFS_internal_…)` (it uses `vfs_getattr`, namespaced in this Android-GKI
+kernel — the BSP source omits the import since loop was never a module here).
+
+The launcher `insmod`s loop → crc32 → f2fs (each a no-op if already present), then
+loop-mounts the F2FS rootfs. **Verified end-to-end on real hardware:** all three load
+and an F2FS image loop-mounts read-write. Each insmod no-ops when the symbol is already
+present (e.g. the qemu gate kernel), and the launcher falls back to a non-F2FS/direct
+mount when modules are absent.
 
 ## The launcher
 

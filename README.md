@@ -21,8 +21,8 @@ Three trees — **product** (what we author), **vendor** (third-party, pinned), 
 
 ```
 br-external/  the firmware (Buildroot BR2_EXTERNAL tree)
-modules/      out-of-tree kernel modules (zram)
-packaging/    stock-format .tgz installer
+modules/      out-of-tree kernel modules (zram + the live-mode loop/crc32/f2fs)
+packaging/    stock-format .tgz installer + the live-from-USB launcher
 tests/        qemu harness + smoke + loopback install test
 tools/        build entry + golden-dump recovery
 docs/         specs, plans, research, board notes, screenshots
@@ -56,6 +56,7 @@ third-party trees at exactly those pins. Build paths are driven by the `Makefile
 | [Build process](docs/build-process.md) | pins → vendor fetch → Buildroot → image → `.tgz` |
 | [Boot flow](docs/boot-flow.md) | power-on → `reforge-boot` → service chain → up (with `SKIP_MOD`) |
 | [Updates / OTA](docs/ota.md) | git-free in-place updates + the last-known-good rollback (designed) |
+| [Live mode](docs/live-mode.md) | run the whole stack from USB, zero eMMC writes — brick-free hardware trials |
 | [Optimizations](docs/optimizations.md) | every tuning lever + its measured RAM/size impact |
 
 ![ReForge boot console](docs/screenshots/reforge-boot-console.png)
@@ -71,6 +72,18 @@ and the on-screen GUI — all on an x86 host. See
 make qemu-kernel         # build the virt test kernel (heavy, one-time)
 make qemu-update         # install ReForge into an ext4 + boot it, assert Moonraker live
 make qemu-render         # capture the GuppyScreen render at 800x480
+make qemu-live           # prove live mode boots from USB and writes ZERO bytes to eMMC
+```
+
+## Try it on hardware — no install, no brick risk
+
+[Live mode](docs/live-mode.md) boots the whole stack from a USB stick and **never
+writes the eMMC** — pull the stick + reboot to return to pristine stock.
+
+```sh
+make live-usb            # -> packaging/dist/reforge-live-<ver>.img
+sudo dd if=packaging/dist/reforge-live-<ver>.img of=/dev/sdX bs=4M conv=fsync
+# insert the stick, power on. Remove + reboot for stock.
 ```
 
 ## Recovery

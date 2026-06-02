@@ -36,16 +36,23 @@ log "starting (img=${LIVE_IMG})"
 
 mkdir -p "${ROOT}" "${DATA}"
 
-# The rootfs image is F2FS (flash-friendly). The stock 5.4.61 kernel has no
-# built-in F2FS (only ext4 + vfat), so load the matching-vermagic f2fs.ko shipped
-# next to us on the USB. (No-op / harmless if F2FS is already built in, e.g. the
-# qemu gate kernel.) f2fs.ko is standalone (depends= empty), built against the
-# stock BSP — see modules/f2fs-bsp/.
-F2FS_KO="${F2FS_KO:-${USB_MNT}/f2fs.ko}"
-if ! grep -q f2fs /proc/filesystems 2>/dev/null && [ -f "${F2FS_KO}" ]; then
-    log "insmod ${F2FS_KO}"
-    insmod "${F2FS_KO}" 2>/dev/null || /sbin/insmod "${F2FS_KO}" 2>/dev/null || log "WARN: insmod f2fs.ko failed"
-fi
+# The stock 5.4.61 kernel (verified on hardware) ships NONE of what this needs:
+# no loop driver (to loop-mount the rootfs image off the FAT stick), no plain
+# 'crc32' crypto (F2FS needs it at mount; the kernel only has crc32c), and no
+# F2FS. Load the three matching-vermagic modules shipped next to us on the USB,
+# in dependency order. All are standalone (depends= empty), built against the
+# stock BSP — see modules/f2fs-bsp/. Each insmod is a no-op if already present
+# (e.g. a qemu gate kernel with these built in).
+MOD_DIR="${MOD_DIR:-${USB_MNT}}"
+insmod_ko() {  # <name-in-/proc> <file>
+    grep -q "$1" /proc/filesystems /proc/crypto /proc/devices 2>/dev/null && return 0
+    [ -f "$2" ] || return 0
+    log "insmod $2"
+    insmod "$2" 2>/dev/null || /sbin/insmod "$2" 2>/dev/null || log "WARN: insmod $2 failed"
+}
+insmod_ko 'loop'  "${MOD_DIR}/loop.ko"
+insmod_ko 'crc32' "${MOD_DIR}/crc32_generic.ko"
+insmod_ko 'f2fs'  "${MOD_DIR}/f2fs.ko"
 
 # Mount the ReForge rootfs image (the chroot root). A file on the FAT USB needs
 # a loop device; a raw block device (e.g. the qemu zero-write gate) mounts directly.

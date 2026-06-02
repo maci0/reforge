@@ -2,11 +2,11 @@
 # =============================================================================
 # build-live-usb.sh — assemble a ReForge LIVE USB image (run-from-USB, no install).
 #
-# Produces a FAT image holding: the live launcher, f2fs.ko (built against the
-# stock BSP), and the ReForge rootfs as an F2FS image. The stock FlashForge
+# Produces a FAT image holding: the live launcher, three BSP kernel modules (loop+crc32+f2fs), and the
+# ReForge rootfs as an F2FS image. The stock FlashForge
 # auto_run.sh picks up the launcher via its `/mnt/flashforge_init.sh` hook (see
-# docs/specs/2026-06-02-reforge-live-mode.md); the launcher insmods f2fs.ko and
-# mounts the F2FS rootfs. dd the result to a USB stick; boot the printer with it
+# docs/specs/2026-06-02-reforge-live-mode.md); the launcher insmods the three
+# modules and loop-mounts the F2FS rootfs. dd the result to a USB stick; boot it
 # inserted; pull it + reboot to return to pristine stock. NOTHING touches eMMC.
 #
 # Fully ROOTLESS (no sudo): mkfs.f2fs + sload.f2fs for the rootfs, mkfs.vfat +
@@ -47,17 +47,26 @@ WORK="$(mktemp -d)"; trap 'rm -rf "${WORK}"' EXIT
 # insmods it. Built rootlessly: mkfs.f2fs + sload.f2fs (loads files, no mount).
 command -v mkfs.f2fs >/dev/null || die "mkfs.f2fs not installed (f2fs-tools)"
 command -v sload.f2fs >/dev/null || die "sload.f2fs not installed (f2fs-tools)"
-F2FS_KO="${REPO_ROOT}/modules/f2fs-bsp/dist/f2fs.ko"
-[ -f "${F2FS_KO}" ] || F2FS_KO="${REPO_ROOT}/modules/f2fs-bsp/build/f2fs.ko"
-if [ ! -f "${F2FS_KO}" ]; then
-    log "f2fs.ko missing — building it (modules/f2fs-bsp/build.sh) ..."
-    "${REPO_ROOT}/modules/f2fs-bsp/build.sh" >/dev/null 2>&1 || die "f2fs.ko build failed — see modules/f2fs-bsp/build.sh"
+# Three modules the stock kernel lacks (loop to loop-mount the image, crc32 for
+# F2FS's mount checksum, f2fs itself). Prefer the committed dist/ copies; build
+# them if absent. All must match the device vermagic.
+MODBASE="${REPO_ROOT}/modules/f2fs-bsp"
+KOS="loop.ko crc32_generic.ko f2fs.ko"
+need_build=0
+for ko in ${KOS}; do [ -f "${MODBASE}/dist/${ko}" ] || [ -f "${MODBASE}/build/${ko}" ] || need_build=1; done
+if [ "${need_build}" -eq 1 ]; then
+    log "live-mode modules missing — building (modules/f2fs-bsp/build.sh) ..."
+    "${MODBASE}/build.sh" >/dev/null 2>&1 || die "module build failed — see modules/f2fs-bsp/build.sh"
 fi
-VM="$(strings "${F2FS_KO}" | grep -m1 '^vermagic=' || true)"
-case "${VM}" in
-    *'5.4.61 SMP preempt mod_unload ARMv7 p2v8'*) : ;;
-    *) die "f2fs.ko vermagic mismatch (${VM}) — must be the device's 5.4.61 build" ;;
-esac
+ko_path() { [ -f "${MODBASE}/dist/$1" ] && echo "${MODBASE}/dist/$1" || echo "${MODBASE}/build/$1"; }
+for ko in ${KOS}; do
+    p="$(ko_path "${ko}")"
+    VM="$(strings "${p}" | grep -m1 '^vermagic=' || true)"
+    case "${VM}" in
+        *'5.4.61 SMP preempt mod_unload ARMv7 p2v8'*) : ;;
+        *) die "${ko} vermagic mismatch (${VM}) — must be the device's 5.4.61 build" ;;
+    esac
+done
 
 log "staging rootfs (${ROOTFS_TAR}) ..."
 STAGE="${WORK}/root"; mkdir -p "${STAGE}"
@@ -77,9 +86,9 @@ rm -f "${OUT}"
 truncate -s 2300M "${OUT}"
 mkfs.vfat -F 32 -n REFORGE-LIVE "${OUT}" >/dev/null
 
-log "copying launcher + f2fs.ko + rootfs image onto the FAT image (mcopy) ..."
+log "copying launcher + modules (loop/crc32/f2fs) + rootfs image onto the FAT (mcopy) ..."
 mcopy -i "${OUT}" "${LAUNCHER}" ::flashforge_init.sh
-mcopy -i "${OUT}" "${F2FS_KO}"  ::f2fs.ko
+for ko in ${KOS}; do mcopy -i "${OUT}" "$(ko_path "${ko}")" "::${ko}"; done
 mcopy -i "${OUT}" "${LIVE_F2FS}" ::reforge-live.f2fs
 
 log "verifying FAT contents ..."

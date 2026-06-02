@@ -29,6 +29,10 @@ flowchart TB
 The base rootfs (busybox/glibc) inside the chroot is built fresh by Buildroot (glibc, Thumb-2/
 -Os). The stock `firmwareExe` on p6 stays available — `SKIP_MOD` boots it (dual-boot).
 
+**Live mode** reuses this exact chroot model but roots it on a loop-mounted image on a USB
+stick, with a **tmpfs `/data`** instead of the eMMC partition — so the whole stack runs with
+**zero eMMC writes** (pull the stick + reboot → pristine stock). See [live mode](live-mode.md).
+
 ## Runtime stack
 
 ```mermaid
@@ -84,6 +88,7 @@ the static SPA, so there's no reverse proxy (nginx removed, ~3 MB saved).
 | packaging (USB `.tgz`) | `packaging/` | — |
 | boot hook + overlay | `br-external/board/reforge/rootfs-overlay/` | [boot flow](boot-flow.md) |
 | updates | (designed) | [OTA](ota.md) |
+| run-from-USB (no install) | `packaging/live/`, `modules/f2fs-bsp/` | [live mode](live-mode.md) |
 | third-party (pinned) | `vendor/` | `vendor/README.md` |
 
 ## Phases

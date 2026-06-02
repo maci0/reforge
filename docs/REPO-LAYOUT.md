@@ -7,8 +7,8 @@ tree is everything *we author* to build, package, install, test, and document Re
 
 ```
 br-external/   firmware: Buildroot BR2_EXTERNAL tree (the product core, ours)
-modules/       out-of-tree kernel modules we author (zram-bsp; Plan 5 display driver)
-packaging/     stock-format .tgz builder + installer/uninstaller
+modules/       out-of-tree kernel modules we author (zram-bsp; f2fs-bsp for live mode; Plan 5 display driver)
+packaging/     stock-format .tgz builder + installer/uninstaller + live/ run-from-USB launcher
 tests/         ALL validation
   smoke/         smoke_rootfs, smoke_guppy, repro_check, chroot_integration
   loopback-install-test.sh
@@ -32,8 +32,9 @@ Makefile  pins.lock  .gitmodules  .github/   build glue, pins, submodule registr
 | path | responsibility |
 |---|---|
 | `br-external/` | Buildroot `BR2_EXTERNAL` tree (name `REFORGE`) — defconfigs, packages, rootfs overlay, board files. **The firmware.** |
-| `packaging/` | Stock-format `.tgz` builder + installer/uninstaller. |
+| `packaging/` | Stock-format `.tgz` builder + installer/uninstaller; `live/flashforge_init.sh` — the run-from-USB launcher (see `docs/live-mode.md`). |
 | `modules/zram-bsp/` | zram/zsmalloc loadable modules **(our build scripts + `swapon_prio.c` + setup + `dist/*.ko`)**. Builds against the BSP submodule in `vendor/`. |
+| `modules/f2fs-bsp/` | Live-mode loadable modules — `loop.ko` + `crc32_generic.ko` + `f2fs.ko` (build script + `dist/*.ko`), built against the BSP at the device's exact vermagic. |
 | `tests/` | All test **runners**: `smoke/`, `loopback-install-test.sh`, `qemu-harness/`. |
 | `docs/` | `specs/`, `plans/`, `research/`, `board-notes/`, `screenshots/`, this file. |
 | `tools/build/` | `build.sh` + `env.sh` — build entry (driven by the `Makefile`). |
@@ -64,7 +65,7 @@ manually only for fallback/porting diffs. See `vendor/README.md`.
 
 `build/output` (the single ReForge image),
 `tests/qemu-harness/build/`, `packaging/dist/`, `tools/recovery/*.img.gz`,
-`modules/zram-bsp/build-tina/`.
+`modules/zram-bsp/build-tina/`, `modules/f2fs-bsp/build/` (the `dist/*.ko` ARE committed).
 
 ## Conventions
 

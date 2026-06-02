@@ -7,6 +7,7 @@
 | [`build-process.md`](build-process.md) | pins → vendor fetch → Buildroot → image → `.tgz` (diagram) |
 | [`boot-flow.md`](boot-flow.md) | power-on → `reforge-boot` → service chain → up (diagram) |
 | [`ota.md`](ota.md) | git-free in-place updates + last-known-good rollback (diagrams; designed) |
+| [`live-mode.md`](live-mode.md) | run the stack from USB, zero eMMC writes — brick-free hardware trials |
 | [`REPO-LAYOUT.md`](REPO-LAYOUT.md) | **source of truth** for the repo structure (product / vendor / lab) |
 | [`BACKLOG.md`](BACKLOG.md) | unscheduled ideas (e.g. the Zig microgit; reforge OTA design) |
 | `specs/` | design specs (dated) — archival snapshots |
