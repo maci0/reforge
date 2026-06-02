@@ -45,7 +45,11 @@ mkdir -p "${ROOT}" "${DATA}"
 # (e.g. a qemu gate kernel with these built in).
 MOD_DIR="${MOD_DIR:-${USB_MNT}}"
 insmod_ko() {  # <name-in-/proc> <file>
-    grep -q "$1" /proc/filesystems /proc/crypto /proc/devices 2>/dev/null && return 0
+    # WORD match, not substring: the device exposes 'crc32c' but NOT plain 'crc32',
+    # and a substring grep would match 'crc32c' and wrongly skip crc32_generic.ko —
+    # then the F2FS mount dies for lack of the plain 'crc32' shash. grep -qw 'crc32'
+    # does not match 'crc32c', so the module is loaded as intended.
+    grep -qw "$1" /proc/filesystems /proc/crypto /proc/devices 2>/dev/null && return 0
     [ -f "$2" ] || return 0
     log "insmod $2"
     insmod "$2" 2>/dev/null || /sbin/insmod "$2" 2>/dev/null || log "WARN: insmod $2 failed"
