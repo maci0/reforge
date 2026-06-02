@@ -51,6 +51,11 @@ log "staging the ReForge rootfs (the USB payload) ..."
 USBSTAGE="${WORK}/usb"; mkdir -p "${USBSTAGE}"
 tar -C "${USBSTAGE}" -xf "${ROOTFS_TAR}"
 [ -x "${USBSTAGE}/mod/start.sh" ] || die "rootfs has no /mod/start.sh — wrong/old build"
+# ext4 image: the gate proves the zero-eMMC-write invariant, which is
+# filesystem-agnostic, and the current virt test kernel has no F2FS (its rebuild
+# needs a non-vendored mainline tarball). The real live USB uses F2FS — its
+# mountability is verified on actual hardware (f2fs.ko insmod), not here. The
+# launcher tries f2fs first and falls back to this ext4 image.
 rm -f "${LIVE_IMG}"; mke2fs -q -F -t ext4 -L live-usb -d "${USBSTAGE}" "${LIVE_IMG}" 1843M
 
 # --- 2. the host (vda): boots straight into the launcher via init= ------------

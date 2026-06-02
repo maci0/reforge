@@ -25,7 +25,7 @@ log() { echo "[reforge-live] $*" > "${LIVE_LOG}" 2>&1; }
 # it's correct wherever stock mounts the stick (falls back to /mnt).
 SELF_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd || true)"
 USB_MNT="${USB_MNT:-${SELF_DIR:-/mnt}}"
-LIVE_IMG="${LIVE_IMG:-${USB_MNT}/reforge-live.ext4}"
+LIVE_IMG="${LIVE_IMG:-${USB_MNT}/reforge-live.f2fs}"
 ROOT="${REFORGE_LIVE_ROOT:-/tmp/.reforge-live}"   # chroot root (/tmp is tmpfs)
 DATA="${REFORGE_LIVE_DATA:-/tmp/.reforge-data}"   # writable /data -> tmpfs
 
@@ -36,13 +36,26 @@ log "starting (img=${LIVE_IMG})"
 
 mkdir -p "${ROOT}" "${DATA}"
 
+# The rootfs image is F2FS (flash-friendly). The stock 5.4.61 kernel has no
+# built-in F2FS (only ext4 + vfat), so load the matching-vermagic f2fs.ko shipped
+# next to us on the USB. (No-op / harmless if F2FS is already built in, e.g. the
+# qemu gate kernel.) f2fs.ko is standalone (depends= empty), built against the
+# stock BSP — see modules/f2fs-bsp/.
+F2FS_KO="${F2FS_KO:-${USB_MNT}/f2fs.ko}"
+if ! grep -q f2fs /proc/filesystems 2>/dev/null && [ -f "${F2FS_KO}" ]; then
+    log "insmod ${F2FS_KO}"
+    insmod "${F2FS_KO}" 2>/dev/null || /sbin/insmod "${F2FS_KO}" 2>/dev/null || log "WARN: insmod f2fs.ko failed"
+fi
+
 # Mount the ReForge rootfs image (the chroot root). A file on the FAT USB needs
 # a loop device; a raw block device (e.g. the qemu zero-write gate) mounts directly.
 if [ -b "${LIVE_IMG}" ]; then
-    mount -o rw "${LIVE_IMG}" "${ROOT}" 2>/dev/null || { log "ERROR: cannot mount ${LIVE_IMG}"; exit 1; }
-elif ! mount -o loop,rw "${LIVE_IMG}" "${ROOT}" 2>/dev/null; then
-    log "ERROR: cannot loop-mount ${LIVE_IMG}"
-    exit 1
+    mount -t f2fs -o rw "${LIVE_IMG}" "${ROOT}" 2>/dev/null \
+        || mount -o rw "${LIVE_IMG}" "${ROOT}" 2>/dev/null \
+        || { log "ERROR: cannot mount ${LIVE_IMG}"; exit 1; }
+elif ! mount -t f2fs -o loop,rw "${LIVE_IMG}" "${ROOT}" 2>/dev/null; then
+    mount -o loop,rw "${LIVE_IMG}" "${ROOT}" 2>/dev/null \
+        || { log "ERROR: cannot loop-mount ${LIVE_IMG}"; exit 1; }
 fi
 [ -x "${ROOT}/mod/start.sh" ] || { log "ERROR: ${ROOT}/mod/start.sh missing — bad image"; exit 1; }
 

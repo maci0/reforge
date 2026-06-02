@@ -26,11 +26,20 @@ mounted, and nothing is written to eMMC.
 
 ```
 /flashforge_init.sh      the LIVE launcher (this design)
-/reforge-live.ext4       an ext4 image = the ReForge chroot root (the reforge rootfs)
+/f2fs.ko                 F2FS kernel module, built against the stock BSP (vermagic 5.4.61)
+/reforge-live.f2fs       an F2FS image = the ReForge chroot root (the reforge rootfs)
 ```
 
-(FAT can't host a Linux rootfs — symlinks/perms — so the rootfs is an **ext4 image**
-on the FAT stick, loop-mounted by the launcher.)
+(FAT can't host a Linux rootfs — symlinks/perms — so the rootfs is a **filesystem
+image** on the FAT stick, loop-mounted by the launcher.)
+
+**Why F2FS + a shipped `.ko`:** F2FS is flash-friendly. The stock 5.4.61 kernel has
+**no built-in F2FS** (only ext4 + vfat — confirmed on the device), so we build
+`f2fs.ko` against the Tina BSP (same recipe as `modules/zram-bsp`, `CONFIG_F2FS_FS=m`,
+exact vermagic `5.4.61 SMP preempt mod_unload ARMv7 p2v8`, `depends=` empty → standalone)
+and the launcher `insmod`s it before mounting. **Verified on real hardware:** the .ko
+loads and `f2fs` appears in `/proc/filesystems`. The launcher falls back to a non-F2FS
+mount if the module is absent or F2FS is already built in (e.g. the qemu gate kernel).
 
 ## The launcher
 
