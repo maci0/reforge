@@ -54,7 +54,11 @@ if [ -z "${TAG:-}" ]; then
     fi
 fi
 
-log()  { echo "[mock-github] $*"; }
+# Diagnostics go to stderr so stdout stays clean for machine-readable output
+# (notably `--print-ca`, whose ONLY stdout line must be the cert path — a stray
+# stdout log here once made the qemu harness capture "generating cert..." into
+# the CA path and skip the whole e2e step).
+log()  { echo "[mock-github] $*" >&2; }
 die()  { echo "[mock-github] ERROR: $*" >&2; exit 1; }
 
 # Cleanup state, kept script-global so the EXIT trap can always reach it
@@ -85,7 +89,13 @@ ensure_cert() {
     fi
     mkdir -p "${CERT_DIR}"
     log "generating self-signed cert (SAN: api.github.com, objects.githubusercontent.com)"
-    openssl req -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes \
+    # ECDSA P-256, NOT RSA-2048: under qemu's emulated ARM (TCG) an RSA-2048 TLS
+    # handshake is slow enough that Moonraker's asset download
+    # (http_client.download_file: connect_timeout=5s, attempts=1) intermittently
+    # times out mid-update ("Timeout while connecting"). A P-256 handshake is far
+    # cheaper on the emulated CPU and comfortably fits the 5s connect budget.
+    openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
+        -sha256 -days 3650 -nodes \
         -keyout "${KEY}" -out "${CERT}" \
         -subj "/CN=api.github.com" \
         -addext "subjectAltName=DNS:api.github.com,DNS:objects.githubusercontent.com,DNS:localhost,IP:127.0.0.1" \
@@ -110,6 +120,7 @@ import os
 import ssl
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
 
 DIST_DIR = os.path.abspath(os.environ["DIST_DIR"])
 PORT = int(os.environ["PORT"])
@@ -120,6 +131,13 @@ KEY = os.environ["KEY"]
 # Hosts the qemu guest resolves to the host gateway via /etc/hosts. The asset
 # URLs we hand back must point at this mock, reachable as api.github.com.
 PUBLIC_HOST = os.environ.get("PUBLIC_HOST", "api.github.com")
+# Port advertised in browser_download_url. The guest reaches the mock via a qemu
+# guestfwd on api.github.com:443 (the real GitHub port — http_client.py hardcodes
+# https://api.github.com/), so the advertised asset port must match what the
+# guest can actually reach. Defaults to the listen PORT for host-side self-tests;
+# the qemu harness sets PUBLIC_PORT=443 so both the API call and the asset
+# download land on the single guestfwd. 443 is omitted from the URL (default).
+PUBLIC_PORT = int(os.environ.get("PUBLIC_PORT", str(PORT)))
 
 
 def list_zips():
@@ -132,17 +150,31 @@ def list_zips():
     )
 
 
+def asset_url(name):
+    """browser_download_url for an asset, omitting the port when it is 443."""
+    if PUBLIC_PORT == 443:
+        return "https://%s/assets/%s" % (PUBLIC_HOST, name)
+    return "https://%s:%d/assets/%s" % (PUBLIC_HOST, PUBLIC_PORT, name)
+
+
 def releases_latest():
-    """The releases/latest JSON, built live from DIST_DIR's zips."""
+    """The releases/latest JSON, built live from DIST_DIR's zips.
+
+    Mirrors the GitHub releases/latest shape closely enough for Moonraker's
+    update_manager: it reads ``name`` as the remote version (net_deploy.py
+    _get_remote_version) and ``assets[].name`` / ``browser_download_url`` to
+    pick + fetch the per-component zip. Without ``name`` the remote version
+    stays "?" and update() refuses with "Unable to locate update", so we MUST
+    emit it (set to the tag).
+    """
     assets = [
         {
             "name": name,
-            "browser_download_url":
-                "https://%s:%d/assets/%s" % (PUBLIC_HOST, PORT, name),
+            "browser_download_url": asset_url(name),
         }
         for name in list_zips()
     ]
-    return {"tag_name": TAG, "assets": assets}
+    return {"name": TAG, "tag_name": TAG, "assets": assets}
 
 
 def safe_asset_path(name):
@@ -215,8 +247,22 @@ class Handler(BaseHTTPRequestHandler):
         self._send_404()
 
 
+class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handle each connection in its own thread.
+
+    The default HTTPServer is serial: it finishes one request before accepting
+    the next. Under qemu the guest (Moonraker) opens the releases-API call and
+    the asset download as separate TLS connections via a slow slirp guestfwd; a
+    serial server can leave the second connection waiting past Tornado's connect
+    timeout -> 'Timeout while connecting' mid-update. Threading lets the download
+    and any concurrent probe proceed in parallel.
+    """
+
+    daemon_threads = True
+
+
 def main():
-    httpd = HTTPServer(("0.0.0.0", PORT), Handler)
+    httpd = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.load_cert_chain(certfile=CERT, keyfile=KEY)
     httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)

@@ -65,6 +65,10 @@ ROOTFS_TAR="${ROOTFS_TAR:-${REPO_ROOT}/build/output/images/rootfs.tar}"
 BOOT_TIMEOUT="${QEMU_TIMEOUT:-240}"   # a boot that must reach services-up
 HANG_TIMEOUT="${HANG_TIMEOUT:-90}"    # a boot we EXPECT to wedge (broken mod)
 MOCK_PORT="${MOCK_PORT:-8443}"
+# Slirp address the guest resolves api.github.com to and qemu guestfwd's to the
+# host mock. Must NOT be the gateway (10.0.2.2), DNS (10.0.2.3) or the guest
+# (10.0.2.15) — qemu rejects a guestfwd onto its own gateway.
+GUEST_MOCK_IP="${GUEST_MOCK_IP:-10.0.2.200}"
 
 log()  { echo "[ota-test] $*"; }
 warn() { echo "[ota-test] WARN: $*" >&2; }
@@ -518,7 +522,12 @@ run_e2e_test() {
     if [ -z "${ca}" ] || [ ! -f "${ca}" ]; then
         log "SKIP (e2e): could not obtain mock CA."; return 0
     fi
-    PORT="${MOCK_PORT}" "${MOCK}" >/dev/null 2>&1 &
+    # The guest reaches the mock through a qemu guestfwd on api.github.com:443
+    # (Moonraker's http_client.py hardcodes https://api.github.com/), so the
+    # advertised asset URLs must use port 443 too — PUBLIC_PORT=443 makes the
+    # mock emit portless (==443) browser_download_urls that land on the same
+    # guestfwd. The mock itself still LISTENS on MOCK_PORT host-side.
+    PORT="${MOCK_PORT}" PUBLIC_PORT=443 "${MOCK}" >/dev/null 2>&1 &
     MOCK_PID=$!
     sleep 2
     if ! kill -0 "${MOCK_PID}" 2>/dev/null; then
@@ -532,20 +541,75 @@ run_e2e_test() {
     log "staging rootfs ..."
     extract_rootfs "${stage}"
 
-    # Inject the mock CA + api.github.com hosts override into the guest.
+    # Inject the mock CA so Moonraker (Tornado -> Python ssl -> OpenSSL) trusts
+    # it. CRITICAL: Python's ssl.create_default_context() on this guest reports
+    # cafile=None, capath=/etc/ssl/certs — i.e. OpenSSL trusts the hashed-symlink
+    # DIRECTORY, NOT the ca-certificates.crt bundle. Appending to that bundle is
+    # silently ignored, so the cert MUST be dropped as <subject_hash>.0 in
+    # /etc/ssl/certs. (Verified in-guest: bundle-append -> "self-signed
+    # certificate" handshake failure; <hash>.0 -> verify OK.)
     mkdir -p "${stage}/etc/ssl/certs" "${stage}/usr/local/share/ca-certificates"
     cp -a "${ca}" "${stage}/usr/local/share/ca-certificates/mock-github.crt" 2>/dev/null || true
     cat "${ca}" >> "${stage}/etc/ssl/certs/ca-certificates.crt" 2>/dev/null || true
+    local ca_hash
+    ca_hash="$(openssl x509 -hash -noout -in "${ca}" 2>/dev/null || true)"
+    if [ -n "${ca_hash}" ]; then
+        cp -a "${ca}" "${stage}/etc/ssl/certs/${ca_hash}.0"
+        log "installed mock CA into guest trust store as /etc/ssl/certs/${ca_hash}.0"
+    else
+        warn "could not hash mock CA — guest TLS trust may fail"
+    fi
+    # Point the GitHub API + asset hosts at the qemu guestfwd target (NOT the
+    # slirp gateway 10.0.2.2 — qemu forbids a guestfwd onto its own gateway
+    # address). GUEST_MOCK_IP is an otherwise-unused slirp address the guestfwd
+    # below redirects to the host-side mock.
+    #
+    # Separately, blackhole every OTHER GitHub/announcement host to 127.0.0.1
+    # (nothing listens there -> instant connection-refused). Moonraker's
+    # announcements + the other updaters' refreshes would otherwise open REAL
+    # internet TLS to arksine.github.io / *.githubusercontent.com (185.199.x.x);
+    # under ARM TCG those slow handshakes monopolise the event loop and starve
+    # our OTA asset download, whose connect_timeout is only 5s. Failing them fast
+    # keeps the emulated CPU free for the update we actually exercise.
     {
-        echo "10.0.2.2 api.github.com"
-        echo "10.0.2.2 objects.githubusercontent.com"
+        echo "${GUEST_MOCK_IP} api.github.com"
+        echo "127.0.0.1 objects.githubusercontent.com"
+        echo "127.0.0.1 github.com"
+        echo "127.0.0.1 www.github.com"
+        echo "127.0.0.1 raw.githubusercontent.com"
+        echo "127.0.0.1 arksine.github.io"
+        echo "127.0.0.1 codeload.github.com"
     } >> "${stage}/etc/hosts" 2>/dev/null || true
 
     # Seed an OLDER version into a component path so the update has a delta to
-    # apply. We target /opt/klipper (the [update_manager klipper] path).
-    mkdir -p "${stage}/opt/klipper"
-    cat > "${stage}/opt/klipper/release_info.json" <<'EOF'
-{ "project_name": "reforge", "project_owner": "maci0", "version": "0.0.1-old", "asset_name": "klipper.zip" }
+    # apply. We target [update_manager guppyscreen] (path /opt/guppyscreen):
+    #
+    #   * 'klipper' and 'moonraker' are RESERVED updater names in Moonraker —
+    #     update_manager rewires them to its own klipper/moonraker handling
+    #     (klipper is keyed off 'server:klippy_identified', which never fires in
+    #     this MCU-less qemu guest), so their /machine/update/status entries come
+    #     back empty {} and they can't be driven as plain zip updaters.
+    #   * 'reforge' restarts the WHOLE S-chain (managed_services: reforge ->
+    #     /mod/stop.sh; /mod/start.sh), which would tear down Moonraker itself
+    #     mid-update.
+    #   * 'guppyscreen' is a plain zip updater whose managed_services restart is a
+    #     no-op here (S75guppyscreen self-skips without /dev/fb0), so it's the
+    #     clean, side-effect-free component to exercise end to end.
+    #
+    # The seed keeps project_owner/name = maci0/reforge so the updater's repo
+    # matches what the mock serves (/repos/maci0/reforge/releases/latest). The
+    # asset_name pins the download to the SMALLEST published zip (reforge.zip,
+    # ~260KB vs guppyscreen.zip ~2.4MB): the asset's payload is irrelevant to
+    # what we assert (only that an OTA download+extract bumped the recorded
+    # version), and a small asset finishes well inside Moonraker's download
+    # window under slow ARM-TCG networking. After extraction the path's
+    # release_info.json carries the asset's version (0.3.0-dev), which is the
+    # bump we assert.
+    E2E_COMPONENT="guppyscreen"
+    E2E_PATH="/opt/guppyscreen"
+    mkdir -p "${stage}${E2E_PATH}"
+    cat > "${stage}${E2E_PATH}/release_info.json" <<'EOF'
+{ "project_name": "reforge", "project_owner": "maci0", "version": "0.0.1-old", "asset_name": "reforge.zip" }
 EOF
 
     # Bring up the in-place chain on boot (mem-probe pattern) so Moonraker is live.
@@ -564,12 +628,31 @@ EOF
     # Boot with a Moonraker port-forward.
     wait_for_qemu_drain
     rm -f "${E2E_SERIAL}"
-    log "booting e2e guest (Moonraker forward host:${E2E_PORT} -> :7125) ..."
-    qemu-system-arm -M virt,highmem=off -cpu cortex-a7 -m 256 \
+    log "booting e2e guest (Moonraker forward host:${E2E_PORT} -> :7125;" \
+        "guest api.github.com (${GUEST_MOCK_IP}:443) -> mock 127.0.0.1:${MOCK_PORT}) ..."
+    # hostfwd : host:E2E_PORT -> guest:7125 so we can drive Moonraker from the host.
+    # guestfwd: the guest's connection to api.github.com:443 (resolved to
+    #           GUEST_MOCK_IP via the injected /etc/hosts) is redirected to the
+    #           host-side mock on 127.0.0.1:MOCK_PORT. Moonraker's update_manager
+    #           hardcodes https://api.github.com/ (port 443) for BOTH the releases
+    #           API call and the asset download, so this single guestfwd carries
+    #           the whole OTA conversation to the offline mock — no real network.
+    #           (GUEST_MOCK_IP is deliberately NOT 10.0.2.2: qemu refuses a
+    #           guestfwd onto its own slirp gateway address.)
+    # -smp 2 / -m 128: match the real device — the T113-S3 is a dual-core Cortex-A7
+    # with 128MB DDR (≈110MB usable after CMA/DSP reserve). The second core is also
+    # what makes the download land: under TCG the qemu main loop drives slirp
+    # networking, so a single saturated vCPU (Moonraker's components + numpy) starves
+    # the guestfwd and the guest's outbound TLS connect repeatedly misses Moonraker's
+    # tight 5s download connect-timeout. The device has two real cores, so giving the
+    # guest two keeps networking responsive while Python runs — device-faithful AND
+    # enough to let the OTA asset download complete. (The LKG test in Step 2 keeps its
+    # lean single-cpu profile — it never touches the network.)
+    qemu-system-arm -M virt,highmem=off -cpu cortex-a7 -smp 2 -m 128 \
         -kernel "${ZIMAGE}" \
         -append "console=ttyAMA0,115200 root=/dev/vda rw rootwait loglevel=4" \
         -drive "file=${E2E_IMG},if=virtio,format=raw,cache=writeback" \
-        -netdev "user,id=n0,hostfwd=tcp::${E2E_PORT}-:7125" \
+        -netdev "user,id=n0,hostfwd=tcp::${E2E_PORT}-:7125,guestfwd=tcp:${GUEST_MOCK_IP}:443-tcp:127.0.0.1:${MOCK_PORT}" \
         -device virtio-net-pci,netdev=n0 \
         -nographic > "${E2E_SERIAL}" 2>&1 &
     MY_QEMU_PID=$!
@@ -588,35 +671,100 @@ EOF
         log "Serial tail:"; tail -25 "${E2E_SERIAL}" 2>/dev/null | sed 's/^/  /' || true
         return 0
     fi
-    log "Moonraker live. Driving POST /machine/update/klipper ..."
+    log "Moonraker live. Refreshing + driving update of '${E2E_COMPONENT}' ..."
 
-    curl -s --max-time 15 -X POST "http://127.0.0.1:${E2E_PORT}/machine/update/klipper" \
-        >/dev/null 2>&1 || true
-
-    # Poll update status until idle / done.
-    local done_upd=0 _i
-    # shellcheck disable=SC2034  # _i is just a poll counter
-    for _i in $(seq 1 40); do
-        local st
-        st="$(curl -sf --max-time 8 "http://127.0.0.1:${E2E_PORT}/machine/update/status" 2>/dev/null || true)"
-        if echo "${st}" | grep -q '"version": *"0.0.1-old"'; then :; fi
-        # When the refresh completes klipper's reported version should change.
-        if echo "${st}" | grep -qE '"busy": *false'; then done_upd=1; fi
+    # The initial auto-refresh holds update_manager's cmd_request_lock for a
+    # while at startup (each updater hits the mock once); a refresh/update during
+    # that window returns 503 "Server is busy". Wait for the status to settle
+    # (busy:false) before driving, so our refresh/update isn't rejected.
+    local _w
+    # shellcheck disable=SC2034
+    for _w in $(seq 1 24); do
+        kill -0 "${MY_QEMU_PID}" 2>/dev/null || break
+        if curl -sf --max-time 8 "http://127.0.0.1:${E2E_PORT}/machine/update/status" 2>/dev/null \
+            | grep -qE '"busy": *false'; then break; fi
         sleep 5
     done
-    kill_my_qemu; sync
 
-    # Assert the seeded path's release_info.json version bumped off 0.0.1-old.
-    local newver
-    newver="$(dbg_cat "${E2E_IMG}" /opt/klipper/release_info.json \
+    # Drive the update in a RETRY LOOP, asserting off the LIVE Moonraker status
+    # (authoritative — a kill -9 with cache=writeback can drop not-yet-flushed
+    # disk writes, so the on-disk release_info.json may lag the applied version).
+    #
+    # Why retry: Moonraker's asset download (net_deploy.update -> http_client.
+    # download_file) uses connect_timeout=5s, attempts=1. Under ARM TCG the
+    # guest's TLS connect to the mock through the slirp guestfwd intermittently
+    # misses that 5s window while klipper/httpd churn the emulated CPU, surfacing
+    # as a 500 "Timeout while connecting". The releases-API refresh (attempts=3)
+    # almost always lands, so remote_version resolves; we just re-drive the
+    # update until one attempt's download wins the 5s race. A NAMED app updater
+    # (guppyscreen) is driven via /machine/update/client?name=<app> — only
+    # moonraker/klipper/system/client/full have dedicated endpoints; a direct
+    # POST /machine/update/<app> 404s.
+    local live_ver="0.0.1-old" seen_remote="?" attempt
+    for attempt in $(seq 1 20); do
+        kill -0 "${MY_QEMU_PID}" 2>/dev/null || break
+
+        # (Re)fetch remote version, then attempt the update. Both can transiently
+        # 503 (busy) / 500 (download timeout); that's expected — we loop.
+        curl -s --max-time 30 -X POST \
+            "http://127.0.0.1:${E2E_PORT}/machine/update/refresh?name=${E2E_COMPONENT}" \
+            >/dev/null 2>&1 || true
+        curl -s --max-time 90 -X POST \
+            "http://127.0.0.1:${E2E_PORT}/machine/update/client?name=${E2E_COMPONENT}" \
+            >/dev/null 2>&1 || true
+
+        # Read back the component's live version. Retry a few times while the
+        # status is mid-flight (an in-progress update can briefly report the
+        # component as {} -> "?"); we only want a settled reading.
+        local st parsed try
+        live_ver="?"; seen_remote="?"
+        # shellcheck disable=SC2034  # try is just a small retry counter
+        for try in 1 2 3 4 5; do
+            st="$(curl -sf --max-time 8 "http://127.0.0.1:${E2E_PORT}/machine/update/status" 2>/dev/null || true)"
+            parsed="$(printf '%s' "${st}" \
+                | python3 -c 'import sys,json
+try:
+  d=json.load(sys.stdin)["result"]["version_info"].get("'"${E2E_COMPONENT}"'",{})
+  print((d.get("version") or "?"), (d.get("remote_version") or "?"))
+except Exception:
+  print("? ?")' 2>/dev/null || echo "? ?")"
+            live_ver="${parsed%% *}"
+            seen_remote="${parsed##* }"
+            [ "${live_ver}" != "?" ] && break
+            sleep 3
+        done
+        log "  e2e update attempt ${attempt}: ${E2E_COMPONENT} version=${live_ver} remote=${seen_remote}"
+        if [ "${live_ver}" != "0.0.1-old" ] && [ "${live_ver}" != "?" ]; then
+            break
+        fi
+        sleep 5
+    done
+    log "live ${E2E_COMPONENT} version after update: ${live_ver}" \
+        "(was 0.0.1-old; remote=${seen_remote})"
+
+    # Best-effort on-disk confirmation (may lag due to writeback; informational).
+    kill_my_qemu; sync
+    local diskver
+    diskver="$(dbg_cat "${E2E_IMG}" "${E2E_PATH}/release_info.json" \
         | grep -o '"version"[^,]*' | sed 's/.*: *"//;s/"//')"
-    log "post-update /opt/klipper version: ${newver:-<unknown>} (was 0.0.1-old; updated=${done_upd})"
-    if [ -n "${newver}" ] && [ "${newver}" != "0.0.1-old" ]; then
-        log "PASS (e2e): Moonraker applied the update — version bumped to ${newver}."
+    log "on-disk ${E2E_PATH} version (post-kill, may lag writeback): ${diskver:-<unknown>}"
+
+    if [ -n "${live_ver}" ] && [ "${live_ver}" != "0.0.1-old" ] && [ "${live_ver}" != "?" ]; then
+        log "PASS (e2e): Moonraker applied the OTA update against the offline mock —" \
+            "${E2E_COMPONENT} version bumped 0.0.1-old -> ${live_ver}" \
+            "(remote advertised ${seen_remote})."
         return 0
     fi
-    log "SKIP (e2e): version did not bump (update may need a real matching release zip);"
-    log "            best-effort step — not failing the run. The LKG test is the gating result."
+
+    # Failed to bump: surface Moonraker's own log so the blocker is diagnosable
+    # (download error, TLS trust, etc.) rather than a bare skip. Moonraker logs
+    # to stdout by default here, so this read-back is best-effort.
+    log "e2e update did not bump the version; Moonraker log tail (if any):"
+    dbg_cat "${E2E_IMG}" /var/lib/moonraker/logs/moonraker.log 2>/dev/null \
+        | grep -iE 'update_manager|github|guppyscreen|download|refresh|tls|ssl|certificate|error' \
+        | tail -25 | sed 's/^/  /' || true
+    log "SKIP (e2e): version did not bump — best-effort step, not failing the run."
+    log "            (the LKG / brick-rollback test below is the gating result.)"
     return 0
 }
 
