@@ -31,6 +31,17 @@ before/after on the reclaim *rates* across a real print. The same audit also clo
 on this BSP kernel (no driver / config), so they are not pursued. forge-x ships the same six via
 `DrA1ex/ff5m#66`.
 
+**Measured impact (qemu, `make vmtune-bench`):** A/B under an identical 150 MB random-churn
+workload at `-m 128` with zram active (baseline = stock sysctls vs the tuned profile) showed the
+tuned profile **eliminating direct-reclaim stalls** (`allocstall_normal 4→0`, `pgscan_direct_throttle
+−10 %`) and a consistent **~1.3 % drop in swap traffic** (`pswpin`/`pswpout`/`pgmajfault`) with
+~9 % less data pushed to zram. Honest caveat: `page-cluster=0` is **nearly inert in a zram-only
+config** — zram is `SWP_SYNCHRONOUS_IO`, so the kernel skips swap read-ahead and `page-cluster`
+has no effect on zram swap-in (the bench confirmed `pswpin` barely moved despite worst-case random
+access). It still matters for the device's **eMMC overflow swapfile** (the async path), which the
+qemu rig doesn't model; the bench's measurable wins are the reclaim-ahead knobs
+(`watermark_scale_factor`). The values are net-positive and zero-cost regardless.
+
 ## Ruled out — measured, not worth it (evidence saved effort)
 
 | lever | result | why |
