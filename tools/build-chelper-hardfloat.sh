@@ -23,6 +23,9 @@ set -eu
 SRC="${1:?usage: build-chelper-hardfloat.sh <klippy/chelper dir> [out.so]}"
 OUT="${2:-$SRC/c_helper.so}"
 [ -f "$SRC/__init__.py" ] || { echo "error: no chelper/__init__.py in '$SRC' (point at klippy/chelper)" >&2; exit 1; }
+# Resolve OUT to an absolute path NOW: the compile step cd's into $SRC, so a relative
+# OUT (e.g. ./c_helper.hf.so) would otherwise be written relative to the chelper dir.
+case "$OUT" in /*) ;; *) OUT="$(pwd)/$OUT" ;; esac
 
 # Cross compiler: prefer ReForge's buildroot armhf toolchain (its glibc is <= the
 # device's, so the .so won't demand newer GLIBC symbols); else a system gnueabihf;
