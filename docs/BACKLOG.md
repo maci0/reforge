@@ -121,7 +121,18 @@ would tear down the running stock system, and it wouldn't change the (stock) ker
 vermagic-locked driver anyway. Brick-safety comes precisely from being a non-invasive
 guest under stock init (pull USB → pristine stock). Raised 2026-06-02.
 
-## forge-x: one shared python for klippy + moonraker (drop the 2nd interpreter's RSS)
+## forge-x: one shared python for klippy + moonraker (drop the 2nd interpreter's RSS) — CLOSED (negative)
+
+> **Closed 2026-06-03: net RAM LOSS, do not pursue.** Built end-to-end and live-tested on a
+> 5M Pro (`contrib/forge-x-shared-python/`). klippy runs **Ready** under moonraker's py3.11
+> from the host root (chroot interpreter via host loader symlink + PYTHONHOME/PYTHONPATH/
+> LD_LIBRARY_PATH; a `gcode_shell_command` env-strip keeps host soft-float macros working),
+> with MCUs + macros intact. **But it regresses RAM ~16 MB**: stock klippy@py3.7 Pss 7.3 MB
+> Ready vs py3.11 23.2 MB; libpython3.11 COW-sharing with moonraker only reclaims ~1 MB. The
+> premise was backwards — py3.7 is the *lean* interpreter, so consolidating onto the heavier
+> py3.11 costs far more than the shared pages save. Reusable findings live in the contrib
+> README (host-launch of a chroot binary; the gcode_shell_command env leak). Real wins stay
+> jemalloc + zram + vmtune. Original analysis kept below for context.
 
 forge-x runs **two** interpreters: stock klippy on **soft-float Python 3.7** (`/opt/Python-3.7.11`,
 `ld-linux.so.3`) and moonraker on a **hard-float Python 3.11** venv (`/root/moonraker-env`,
