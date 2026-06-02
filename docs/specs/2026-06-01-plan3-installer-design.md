@@ -3,7 +3,19 @@
 **Status:** Implemented (branch plan3-installer) — installer + qemu harness + stock-UI spike (GO/Option-A)
 **Date:** 2026-06-01
 **Depends on:** Plan 1 (Buildroot foundation, merged), Plan 2 (core stack, merged — `output-guppy` full-stack rootfs).
-**Parent spec:** `docs/2026-05-31-reforge-firmware-design.md` (§7 install/recovery).
+**Parent spec:** `docs/specs/2026-05-31-reforge-firmware-design.md` (§7 install/recovery).
+
+> **CORRECTION (2026-06-02 hardware trial — supersedes two premises below):**
+> 1. *"klippy will not connect to the stock v11 MCU / driving the printer needs Plan 3 +
+>    Plan 4 together"* is **WRONG**. ReForge's vanilla Klipper **drives the stock v11 MCUs**
+>    (both `mcu` + `eboard` connect, real temps, klippy `ready`) with no MCU reflash. Plan 4
+>    only restores the version-locked **adxl345/input-shaper calibration** (`query_adxl345`
+>    format changed v11→v13). The host↔MCU link itself works on stock firmware.
+> 2. The stock firmwareExe config uses **vanilla Klipper sensors** (`MAX31856` load cell,
+>    `MAX31865` TVOC, `[adxl345]`, `[probe] pin:!PB4`) — see `reference/ad5m-factory-config/`.
+>    `flashforge_loadcell`/`flashforge_tvoc` (referenced in §6.2 / spike) are **xblax's v13
+>    custom modules**, NOT the stock dependency. Full analysis:
+>    `docs/2026-06-02-ad5m-mcu-firmware-and-config.md`.
 
 ---
 

@@ -2,7 +2,22 @@
 
 **Status:** Design / brainstorming output
 **Date:** 2026-05-31
-**Target hardware:** FlashForge Adventurer 5M (Pro) — Allwinner T113-S3 (sun8iw20, Cortex-A7 dual, `armv7l`), 128 MB RAM, 7.28 GiB eMMC. Two satellite MCUs (mainboard + eboard) running Klipper firmware.
+**Target hardware:** FlashForge Adventurer 5M (Pro) — Allwinner T113-S3 (sun8iw20, Cortex-A7 dual, `armv7l`), 128 MB RAM, 7.28 GiB eMMC. Two satellite MCUs (mainboard `mcu` on `/dev/ttyS5` + toolhead `eboard` on `/dev/ttyS1`), each a **Nationstech N32G455** (STM32-F4-class, Cortex-M4 @144 MHz) running FlashForge's stock **Klipper v11** firmware.
+
+> **UPDATES (2026-06-02, verified after this design was written):**
+> - **MCU link works on stock firmware.** ReForge's host Klipper drives the stock v11 MCUs as-is
+>   (proven on hardware: both MCUs, real temps, `ready`). The MCU phase (below) is therefore
+>   **optional** — it only restores the version-locked adxl345/input-shaper calibration, or moves
+>   to Klipper v13. See `docs/2026-06-02-ad5m-mcu-firmware-and-config.md`.
+> - **Phase-numbering map** (this doc's labels → canonical plan numbers used everywhere else):
+>   `P3.5 / MCU` → **Plan 4**; `P4 / full image+kernel+display` → **Plan 5**. (Treat the §-internal
+>   "Plan 5 (P4)" / "P3.5" labels accordingly; the stock-UI spike in the installer spec is a
+>   separate step, not this MCU "P3.5".)
+> - **Shipped memory tuning** (supersedes §10b's "measure-first" framing): zram (zstd, primary) +
+>   the VM sysctls (`swappiness=100`, `page-cluster=0`, `vfs_cache_pressure=50`,
+>   `watermark_scale_factor=40`, `dirty_ratio=10`/`dirty_background_ratio=5`) + **jemalloc**
+>   (`narenas:1` zero-decay) for klippy/moonraker were adopted. Full impact: `docs/optimizations.md`.
+> - **§10.6/§10.7 citations** in this doc point at content now under §10b.
 
 ---
 

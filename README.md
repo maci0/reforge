@@ -57,7 +57,7 @@ third-party trees at exactly those pins. Build paths are driven by the `Makefile
 |---|---|
 | [Architecture](docs/architecture.md) | the overlay-on-stock chroot model + the runtime stack + data flow |
 | [Build process](docs/build-process.md) | pins → vendor fetch → Buildroot → image → `.tgz` |
-| [Boot flow](docs/boot-flow.md) | power-on → `reforge-boot` → service chain → up (with `SKIP_MOD`) |
+| [Boot flow](docs/boot.md) | power-on → `reforge-boot` → service chain → up (with `SKIP_MOD`) |
 | [Updates / OTA](docs/ota.md) | git-free in-place updates + the last-known-good rollback (designed) |
 | [Live mode](docs/live-mode.md) | run the whole stack from USB, zero eMMC writes — brick-free hardware trials |
 | [Optimizations](docs/optimizations.md) | every tuning lever + its measured RAM/size impact |

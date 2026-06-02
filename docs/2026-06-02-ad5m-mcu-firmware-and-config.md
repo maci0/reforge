@@ -41,7 +41,9 @@ Sources: on-device forge-x config (`192.168.0.158:/opt/config`), the golden eMMC
 ### Where the stock MCU firmware lives (we hold it)
 The stock OTA `control-2.2.3.tar.xz` ships the **MCU firmware binaries + the N32G455
 flasher**:
-- `Mainboard-20230831.bin`, `Eboard-20231012.hex` (the v11 MCU firmware)
+- `Mainboard-20230831.bin`, `Eboard-20231012.hex` (the v11 MCU firmware; the `2023083x`/
+  `2023101x` filename dates are OTA *packaging* dates — the Klipper build string baked into
+  the running firmware is `20230317`, which is what identifies it as native v11)
 - `NationsCommand`, `IAPCommand`, `mcu.img` (the N32G455 IAP flash tooling)
 
 So we have the v11 binaries and the flash mechanism in-hand. v13 binaries come from
@@ -153,7 +155,7 @@ Verbatim key values (`printer.base.cfg` unless noted; `printer.cfg` = the overri
 | `[printer]` | **corexy**, max_velocity `600`, max_accel `20000`, **max_accel_to_decel 5000**, max_z_velocity `25`, max_z_accel `500`, square_corner_velocity `25` |
 | loadcell/TVOC | `MAX31856 weightValue` (PD5 + sw-SPI PD6/7/8, gcode_id W); `MAX31865 tvocValue` (PD4 + sw-SPI PE3/4/5, gcode_id V) |
 | leveling | `level_h1/h2/h3` = `PG2/PG3/PG4`, `level_clear` = `PD10`, `check_level_pin` = `!PE0` |
-| misc | `servo my_servo` `PC9` (115°), `idle_timeout 600`, `pause_resume recover_velocity 50`, fans: `heat_fan eboard:PB4`, `fanM106 eboard:PB5`, `chamber_fan PC6/PC7 hw_pwm`, `internal_fan PB8`, `external_fan PB6`, `controller_fan driver_fan PB7`; M106/M107/M900 macros |
+| misc | `servo my_servo` `PC9` (**factory `initial_angle: 90`**; forge-x/ZMod use 115), `idle_timeout 600`, `pause_resume recover_velocity 50`, fans: `heat_fan eboard:PB4`, `fanM106 eboard:PB5`, `chamber_fan PC6/PC7 hw_pwm`, `internal_fan PB8`, `external_fan PB6`, **`fan_generic pcb_fan PB7`** (factory; forge-x renames it `controller_fan driver_fan`); M106/M107/M900 macros |
 
 ---
 

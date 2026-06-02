@@ -8,7 +8,15 @@
 
 **Tech Stack:** bash, tar/xz, GNU make, Buildroot (in-repo submodule), the Tina vendor kernel source (`modules/zram-bsp/tina-bsp-kernel`), qemu-system-arm (`-M virt`, virtio-blk/gpu/input), qemu-arm-static, ext4 loopback, the golden eMMC dump.
 
-**Spec:** `docs/2026-06-01-plan3-installer-design.md`. Read it. Path bases (spec §8): the golden dump, the Tina kernel source, and `output-guppy/` are **in-repo** under `reforge/`; `../fw-analysis/` and `../forge-x/` are **external sibling dirs** (use `../` or absolute paths). The proprietary `firmwareExe` lives only in `../fw-analysis/` and must NEVER be copied into the repo.
+**Spec:** `docs/specs/2026-06-01-plan3-installer-design.md`. Read it. Path bases (spec §8): the golden dump, the Tina kernel source, and `output-guppy/` are **in-repo** under `reforge/`; `../fw-analysis/` and `../forge-x/` are **external sibling dirs** (use `../` or absolute paths). The proprietary `firmwareExe` lives only in `../fw-analysis/` and must NEVER be copied into the repo.
+
+> **CORRECTION (2026-06-02 hardware trial):** the scope-boundary claim below — *"won't drive
+> the printer until Plan 4"* — is **superseded**. ReForge's host Klipper drives the **stock
+> v11 MCUs** as-is (proven on hardware: both MCUs, real temps, `ready`); Plan 4 (matching MCU
+> firmware) is **optional** and only restores adxl345/input-shaper calibration. Likewise the
+> `flashforge_loadcell`/`flashforge_tvoc` references (steps below) are **xblax's v13 modules**,
+> not the stock config (stock uses vanilla `MAX31856`/`MAX31865`). See
+> `docs/2026-06-02-ad5m-mcu-firmware-and-config.md` + `reference/ad5m-factory-config/`.
 
 **Scope boundary:** Plan 3 = userland installer + validation + spike. NO device flash. The `control-` (MCU) subpackage is an **empty stub** (Plan 4 fills it) — a flashed ReForge boots + is web-reachable but won't drive the printer until Plan 4. No motion/print simulation.
 
@@ -280,7 +288,7 @@ git commit -m "P3: stock-UI spike — firmwareExe vs upstream klippy report (no 
 
 ## Task 9: CI no-blob guard + docs/caveats
 
-**Files:** Modify `.github/workflows/build.yml`, `docs/2026-06-01-plan3-installer-design.md` (status), add `packaging/README.md`.
+**Files:** Modify `.github/workflows/build.yml`, `docs/specs/2026-06-01-plan3-installer-design.md` (status), add `packaging/README.md`.
 
 - [ ] **Step 1: CI no-proprietary-blob check** — add a job/step that fails if any tracked file looks like a FlashForge/Qt blob (`git ls-files | grep -iE 'firmwareExe|libQt.*\.so|/extracted/'` → fail) and that the `.tgz` build + loopback-install test run (the qemu jobs may be too heavy for CI — gate them behind a manual/scheduled trigger like the Plan-1 repro job, or skip in CI and document).
 
@@ -289,7 +297,7 @@ git commit -m "P3: stock-UI spike — firmwareExe vs upstream klippy report (no 
 - [ ] **Step 3: Validate YAML + commit**
 ```
 python3 -c "import yaml; yaml.safe_load(open('.github/workflows/build.yml')); print('yaml ok')"
-git add .github/workflows/build.yml packaging/README.md docs/2026-06-01-plan3-installer-design.md
+git add .github/workflows/build.yml packaging/README.md docs/specs/2026-06-01-plan3-installer-design.md
 git commit -m "P3: CI no-blob guard + packaging docs/caveats"
 ```
 

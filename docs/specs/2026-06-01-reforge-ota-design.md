@@ -1,6 +1,8 @@
 # ReForge OTA / release channel — design
 
 **Status:** Design (approved in brainstorming 2026-06-01)
+**Date:** 2026-06-01
+**Implementation plan:** [`docs/plans/2026-06-01-reforge-ota.md`](../plans/2026-06-01-reforge-ota.md)
 **Depends on:** P1–P3 (core stack builds/boots/serves in qemu). Independent of Plan 4 (MCU)
 and Plan 5 (mainline image).
 

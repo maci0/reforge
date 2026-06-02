@@ -1,8 +1,21 @@
 # ReForge Live Mode — run from USB, zero eMMC writes
 
+**Status:** IMPLEMENTED + hardware-trialed 2026-06-02. Live guide: [`docs/live-mode.md`](../live-mode.md).
 **Goal:** test ReForge on real AD5M/Pro hardware **without installing** — boot the
 full stack from a USB stick, touch the eMMC **never**, so pulling the USB and
 rebooting returns to pristine stock. No brick risk.
+
+> **UPDATES (2026-06-02 trial):**
+> - The rootfs image is **F2FS** (`reforge-live.f2fs`); any `reforge-live.ext4` reference
+>   in this snapshot is superseded. Build extracts onto a FAT32 stick (no `dd`).
+> - The "klippy waiting to initialize" stall was a **config parse error** (FlashForge-fork
+>   sections vanilla Klipper lacks + a missing `rotation_distance`/`z_offset`), **not** a
+>   host↔MCU version wall. After rebasing the config on the stock/ZMod form, klippy reaches
+>   `ready` and **drives both stock v11 MCUs** — no reflash. Only adxl345 input-shaper
+>   *calibration* is version-locked. WiFi works (`net-up.sh`). See
+>   `docs/2026-06-02-ad5m-mcu-firmware-and-config.md`.
+> - Panel: the framebuffer is `800×480` (the physical panel is a 480×800 presented as an
+>   800×480 fb) — match the fb spec, not "480×800".
 
 ## Why it works (the stock hook)
 

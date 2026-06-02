@@ -8,7 +8,7 @@
 
 **Tech Stack:** Buildroot (latest stable release tag, ~2026.02), GNU make, git submodules, qemu-arm-static (qemu-user) for smoke tests, dtc, sha256sum, xz.
 
-**Scope boundary:** This plan covers Phase 0 (recovery) + Phase 1 (build-system foundation) from the design spec `reforge/docs/2026-05-31-reforge-firmware-design.md`. It does NOT add Klipper/Moonraker/Mainsail/GuppyScreen (Plan 2), the `.tgz` installer (Plan 3), MCU firmware (Plan 4), or kernel/u-boot/display (Plan 5). The rootfs produced here is intentionally minimal (busybox + init).
+**Scope boundary:** This plan covers Phase 0 (recovery) + Phase 1 (build-system foundation) from the design spec `docs/specs/2026-05-31-reforge-firmware-design.md`. It does NOT add Klipper/Moonraker/Mainsail/GuppyScreen (Plan 2), the `.tgz` installer (Plan 3), MCU firmware (Plan 4), or kernel/u-boot/display (Plan 5). The rootfs produced here is intentionally minimal (busybox + init).
 
 ---
 

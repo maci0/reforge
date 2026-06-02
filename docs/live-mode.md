@@ -104,21 +104,30 @@ showed the eMMC was **untouched**: `/data/.reforge` ABSENT both before and after
 user's print files intact, no `/mod` or ReForge residue, the live modules unloaded on
 reboot, and forge-x came back pristine. Pulling the stick + rebooting returned to stock.
 
-Two findings (next-frontier, not live-mode failures):
+Findings from the trial — **all three since resolved** (same day):
 
 - **`crc32` module-skip bug — fixed during the trial** (`grep -q "crc32"` matched the
   device's `crc32c` and skipped `crc32_generic.ko`, so the F2FS mount failed and the
   launcher fell through to the stock UI). Fixed to a word match (`grep -qw`); without
   it the trial wouldn't have booted. See `packaging/live/flashforge_init.sh`.
-- **No network in live mode** — the launcher blocks `auto_run` (`sleep` forever) before
-  the stock WiFi/network init runs later in the stock boot, so there is no LAN: the
-  local GuppyScreen works, but Moonraker/Mainsail/SSH are unreachable. Fix (planned):
-  bring `wlan0` up in the launcher before it blocks — spec: `docs/specs/2026-06-02-live-mode-wifi.md`.
-- **klippy "waiting to initialize"** — Moonraker + GuppyScreen are up, but the host
-  Klipper can't bring the MCU to `ready`: the printer's MCUs carry the Klipper firmware
-  forge-x flashed, while ReForge ships a different Klipper commit, and Klipper requires
-  the host/MCU data-dictionary versions to match. This is the host↔MCU boundary (Plan
-  4); confirming it needs `klippy.log`, i.e. the network fix above.
+- **No network — FIXED.** Added `packaging/live/net-up.sh` (sourced by the launcher
+  before it blocks): brings `wlan0` up reusing the stock driver + creds. Two real bugs
+  were root-caused + fixed: the stored network had `disabled=1` (a plain
+  `wpa_supplicant -c` never associates — net-up strips it into a tmpfs copy), and
+  `/etc/wifi/udhcpc_wlan0` is an OpenWrt procd *service-wrapper* (not a udhcpc event
+  script) that `killall`s udhcpc — net-up uses busybox's default lease script instead.
+  Plus `ensure_sshd` (start dropbear if stock hasn't) and a `net_only` debug mode (wifi
+  + sshd, skip the stack). **Proven on hardware: the box joined WiFi (got a DHCP lease),
+  SSH reachable.** See `docs/2026-06-02-ad5m-mcu-firmware-and-config.md` and
+  `docs/specs/2026-06-02-live-mode-wifi.md`.
+- **klippy "waiting to initialize" — was a CONFIG error, not a host↔MCU version wall.**
+  The stall was klippy aborting config parse on FlashForge-fork sections vanilla Klipper
+  lacks (`flashforge_loadcell`/`flashforge_tvoc`) + a missing `[extruder] rotation_distance`
+  + a `[probe] z_offset`. After rebasing the config on the stock/ZMod form (standard
+  `MAX31856`/`MAX31865` sensors), **klippy reaches `ready` and drives BOTH stock v11 MCUs**
+  (`mcu` + `eboard`, real temps) — no MCU reflash / Plan 4 needed. The only version-locked
+  piece is `[adxl345]` input-shaper *calibration* (`query_adxl345` format changed v11→v13),
+  left gated. Full analysis: `docs/2026-06-02-ad5m-mcu-firmware-and-config.md`.
 
 ## Caveats
 
@@ -127,10 +136,10 @@ Two findings (next-frontier, not live-mode failures):
   headless. That's the point.
 - `/data` is tmpfs (ephemeral). Persistent live state across reboots is a future
   option (a writable dir on the FAT stick).
-- **No network yet** (see the trial findings) — local GuppyScreen only; remote
-  Moonraker/Mainsail/SSH need the planned `wlan0`-in-launcher fix (`docs/specs/2026-06-02-live-mode-wifi.md`).
-- **The MCU does not initialize** until ReForge's Klipper version matches the MCU
-  firmware (or the MCU is reflashed — Plan 4).
+- **Network works** (`net-up.sh` joins WiFi before the launcher blocks; `ensure_sshd`
+  brings up SSH) — Moonraker/Mainsail/SSH are reachable. See the trial findings.
+- **klippy reaches `ready` and drives the stock v11 MCUs** with the rebased config; only
+  adxl345/input-shaper *calibration* is version-locked (gated). No MCU reflash needed to run.
 
 ## See also
 

@@ -3,6 +3,19 @@
 Mined from `g992/flashforge-ad5m-5mpro-research` (+ issue #25) and the linked
 `xblax/flashforge_ad5m_klipper_mod`. Date: 2026-05-31.
 
+> **CORRECTIONS (2026-06-02, vs the verified factory config + hardware trial — see
+> `docs/2026-06-02-ad5m-mcu-firmware-and-config.md` + `reference/ad5m-factory-config/`):**
+> - **Fan pins transposed (§7):** factory is `internal_fan = PB8`, `external_fan = PB6`.
+> - **`flashforge_loadcell`/`flashforge_tvoc`** are **xblax's v13** custom modules (what g992
+>   mined). The stock/factory config reads the load cell as `MAX31856` (`weightValue`) and TVOC
+>   as `MAX31865` (`tvocValue`) — standard vanilla sensors.
+> - **N32G455 is STM32-F4-class** (Cortex-M4 @144 MHz); the `stm32f103xe` Klipper *target* is a
+>   port choice, not the silicon class. The "STM32F103 same pinout" swap is g992's unverified claim.
+> - Stale path: the golden dump is now `tools/recovery/golden.img.gz` (the `golden-kunos-*` name
+>   was dropped 2026-06-01).
+> - g992's "Klipper won't enumerate on the N32G455" is mod-build-specific; ReForge's host Klipper
+>   **does** drive the stock-firmware MCUs (proven on hardware).
+
 ## 1. Repo overview
 `g992/flashforge-ad5m-5mpro-research` is a small community hardware/research hub
 (~140★, board photos, MCU/external-CPU notes), authoritative for **board-level +

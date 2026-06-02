@@ -48,14 +48,19 @@ flowchart TB
     KL <-->|"unix socket<br/>/tmp/klippy_uds"| MO
     MO --- HT
     GS -->|websocket| MO
-    KL <-->|"serial / CAN<br/>(Plan 4 MCU fw)"| MCU["MCU(s):<br/>mainboard + eboard"]
+    KL <-->|"serial<br/>ttyS5 + ttyS1 @230400"| MCU["MCU(s): N32G455<br/>mainboard + eboard"]
     MCU --> HW["steppers · heaters · sensors"]
 ```
 
-Single shared Python interpreter for klippy + moonraker (COW page sharing); `MALLOC_ARENA_MAX=2`
-on both (+ guppyscreen) for RAM. The on-screen UI is **runtime-selectable** via `SCREEN_MODE`
-(`GUPPY` = GuppyScreen, `HEADLESS` = web-only, `STOCK` = the stock `firmwareExe`, feasibility-
-confirmed). MCU firmware (Plan 4) is what makes a flashed unit actually move.
+Single shared Python interpreter for klippy + moonraker (COW page sharing); **jemalloc**
+(`LD_PRELOAD` + `MALLOC_CONF=narenas:1,dirty_decay_ms:0,muzzy_decay_ms:0`) on both (+ guppyscreen)
+for RAM — see [optimizations](optimizations.md). The on-screen UI is **runtime-selectable** via
+`SCREEN_MODE` (`GUPPY` = GuppyScreen, `HEADLESS` = web-only, `STOCK` = the stock `firmwareExe`,
+feasibility-confirmed). **The MCUs are Nationstech N32G455 running FlashForge's stock Klipper v11
+firmware — ReForge's host Klipper drives them as-is** (proven on hardware: both MCUs connect, real
+temps, klippy `ready`). Plan 4 (matching MCU firmware) is **not** required to move the printer; it
+only restores the version-locked adxl345/input-shaper *calibration* (the `query_adxl345` command
+format changed v11→v13). See [MCU firmware & config](2026-06-02-ad5m-mcu-firmware-and-config.md).
 
 ## Control / data flow (a print command)
 
@@ -86,7 +91,7 @@ the static SPA, so there's no reverse proxy (nginx removed, ~3 MB saved).
 | firmware (Buildroot external tree) | `br-external/` | [build process](build-process.md) |
 | kernel modules (zram; later display) | `modules/` | `modules/zram-bsp/README.md` |
 | packaging (USB `.tgz`) | `packaging/` | — |
-| boot hook + overlay | `br-external/board/reforge/rootfs-overlay/` | [boot flow](boot-flow.md) |
+| boot hook + overlay | `br-external/board/reforge/rootfs-overlay/` | [boot](boot.md) |
 | updates | (designed) | [OTA](ota.md) |
 | run-from-USB (no install) | `packaging/live/`, `modules/f2fs-bsp/` | [live mode](live-mode.md) |
 | third-party (pinned) | `vendor/` | `vendor/README.md` |
@@ -97,5 +102,5 @@ the static SPA, so there's no reverse proxy (nginx removed, ~3 MB saved).
 |---|---|---|
 | P1–P3 | core stack on stock kernel; builds/boots/serves in qemu; packaging; validation | **done** |
 | OTA | git-free in-place updates | designed ([spec](specs/2026-06-01-reforge-ota-design.md)) |
-| Plan 4 | MCU firmware (mainboard + eboard) — makes a flashed unit drive the printer | not started |
+| Plan 4 | matching MCU firmware (mainboard + eboard) — **optional**: the stock v11 MCU already drives the printer; Plan 4 restores adxl345/input-shaper calibration (or moves to v13) | not started |
 | Plan 5 | mainline U-Boot + 6.12 LTS kernel + ported T113 display driver | researched ([notes](research/2026-06-01-t113-mainline-kernel-support.md)) |

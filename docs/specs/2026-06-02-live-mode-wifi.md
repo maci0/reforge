@@ -1,7 +1,18 @@
 # Live mode WiFi — bring up the network before the launcher blocks
 
+**Status:** IMPLEMENTED + hardware-proven 2026-06-02 (`packaging/live/net-up.sh`).
 **Goal:** give ReForge LIVE mode LAN access (Moonraker / Mainsail / SSH reachable),
 without breaking the brick-safe invariant (zero eMMC writes).
+
+> **UPDATE (2026-06-02): two extra root-causes found + fixed beyond this spec's design.**
+> Bringing `wlan0` up before the launcher blocks was necessary but **not sufficient**:
+> (1) the stored network has **`disabled=1`** — a plain `wpa_supplicant -c <conf>` never
+> associates, so net-up copies the conf to tmpfs with that flag stripped; (2)
+> `/etc/wifi/udhcpc_wlan0` is an **OpenWrt procd service-wrapper, not a udhcpc event
+> script** (it `killall`s udhcpc) — so net-up uses busybox's default lease script, not
+> `-s /etc/wifi/udhcpc_wlan0`. Also added `ensure_sshd` + a `net_only` debug mode.
+> Proven: the box joined WiFi (DHCP lease) + SSH reachable. Backlog follow-up: decouple
+> from the stock rootfs (write our own clean conf) — `docs/BACKLOG.md`.
 
 ## Background — why live mode has no network
 

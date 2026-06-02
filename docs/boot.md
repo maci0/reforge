@@ -1,12 +1,14 @@
-# AD5M / AD5M Pro boot chain, intervention points & stock hooks
+# ReForge boot — stock chain, hooks, intervention & the installed service chain
 
 **Date:** 2026-06-02
 **SoC:** Allwinner T113-S3 (sun8iw20p1), dual Cortex-A7, 128 MB DRAM.
 **Status:** reference — verified read-only against the live printer + the eMMC dumps.
 
-Answers: *where can we intervene in the stock/forge-x boot, how early, and how
-reversibly* — plus how forge-x hooks in and how the stock firmware detects a USB
-update `.tgz` (the mechanism ReForge live-mode + the installer ride on).
+The single boot reference. §1–§6 cover the **stock/forge-x substrate**: the BROM→init
+chain, where (and how reversibly) we can intervene, how forge-x hooks in, and how the
+stock firmware detects a USB update `.tgz` (the mechanism live-mode + the installer ride
+on). §7 covers the **installed-ReForge boot** (the chroot service chain). Live-mode boot
+is its own topic — see [live-mode.md](live-mode.md).
 
 ---
 
@@ -203,3 +205,51 @@ restore is drilled (see docs/specs Plan 3, recovery posture).
   firmware flashes via `/opt/PROGRAM/control/<ver>/Update` + `run.sh`.
 - ReForge-live currently hooks at the **latest** point (#8 auto_run); it could move as
   early as #3/#5/#6 if a future design wants pre-kernel / pre-mount control.
+
+---
+
+## 7. Installed-ReForge boot (the chroot service chain)
+
+This is the **installed** product (Plan 3), distinct from the stock chain above and from
+live-mode. ReForge installs as an **overlay on stock**: the stock SPL/U-Boot/kernel/init
+are untouched; the **only** persistent change is one symlink, `/etc/init.d/S01reforge` →
+the ReForge boot hook (`reforge-boot`). Everything ReForge lives under the writable
+`/data/.reforge` chroot. (forge-x, by contrast, owns the `S00init` symlink — §3; the two
+escape hatches both use the `SKIP_MOD` pattern.)
+
+```mermaid
+flowchart TD
+    A[rcS] --> D{"S01reforge<br/>(reforge-boot)"}
+    D --> E{"SKIP_MOD marker?<br/>/tmp/SKIP_MOD · $DATA/.reforge/SKIP_MOD"}
+    E -- yes --> Z[Boot stock firmware<br/>firmwareExe / stock klipper]
+    E -- no --> F{".reforge installed?<br/>(.installed stamp)"}
+    F -- no --> Z
+    F -- yes --> G[fire/ember banner]
+    G --> H[Mount /data · read SCREEN_MODE]
+    H --> T{"trial/LKG check (OTA era)"}
+    T --> I["bind proc/sys/dev/run/tmp/data → /data/.reforge"]
+    I --> J["chroot /data/.reforge · exec mod init chain"]
+    J --> K[S00cloudblock] --> L[S35zram] --> M[S60klipper] --> N[S65moonraker]
+    N --> O[S70httpd] --> P{"SCREEN_MODE=GUPPY?"}
+    P -- yes --> Q[S75guppyscreen] --> R[S99ok]
+    P -- no --> R
+    R --> S([ReForge up])
+```
+
+| step | what | source |
+|---|---|---|
+| `S01reforge` | boot hook — chroots into `/data/.reforge` | `…/rootfs-overlay/.shell/reforge-boot` |
+| `SKIP_MOD` gate | USB/`/tmp` marker → pure stock boot (escape hatch) | `reforge-boot` |
+| banner | fire/ember "ReForge" splash | `usr/bin/reforge-banner` |
+| `S00cloudblock` | block FF cloud hosts in `/etc/hosts` | `etc/init.d/S00cloudblock` |
+| `S35zram` | insmod `zram.ko`/`zsmalloc.ko` + zstd swap; sources `reforge-vmtune.sh` (the VM sysctls) | `modules/zram-bsp/` + `.shell/reforge-vmtune.sh` |
+| `S60klipper` | klippy — **jemalloc** (`LD_PRELOAD` + `MALLOC_CONF=narenas:1,…decay:0`) | `etc/init.d/S60klipper` |
+| `S65moonraker` | Moonraker API/WS `:7125` — jemalloc | `etc/init.d/S65moonraker` |
+| `S70httpd` | busybox httpd serves Mainsail `:80` (browser → Moonraker direct, no proxy) | `etc/init.d/S70httpd` |
+| `S75guppyscreen` | LVGL UI on `/dev/fb0` — only when `SCREEN_MODE=GUPPY` | `etc/init.d/S75guppyscreen` |
+| `S99ok` | services-up sentinel (OTA era: promote `mod`→LKG) | `etc/init.d/S99ok` |
+
+Memory tuning (jemalloc, zram, the VM sysctls) is detailed in
+[optimizations.md](optimizations.md). OTA adds a **trial/last-known-good** guard around
+the `mod` dir (trial counter; reaching `S99ok` promotes to LKG; N=3 failures restore the
+previous LKG) — see [ota.md](ota.md). Uninstall = remove the one `S01reforge` symlink.
