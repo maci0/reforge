@@ -2,7 +2,7 @@ BUILD := tools/build/build.sh
 .PHONY: lint rootfs defconfig clean smoke repro integration smoke-guppy tgz live-usb validate-loopback \
         run-from-mod \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
-        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-guppy qemu-live qemu-live-ota qemu-mem qemu-ota
+        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-guppy qemu-live qemu-live-ota qemu-mem qemu-ota render-banner
 # lint: shellcheck our own shell scripts (skips cleanly if shellcheck absent)
 lint:              ; tools/lint/shellcheck.sh
 # Single image: `make rootfs` builds the full ReForge stack (klipper + moonraker
@@ -57,6 +57,7 @@ qemu-render:       ; tests/qemu-harness/reforge-render-test.sh
 qemu-stockui:      ; tests/qemu-harness/stockui-render.sh
 qemu-live:         ; tests/qemu-harness/live-mode-test.sh
 qemu-live-ota:     ; tests/qemu-harness/live-ota-test.sh
+render-banner:     ; tests/qemu-harness/render-banner.sh
 
 # --- full-stack "ready" rig: fake klippy so Moonraker reports klippy ready ----
 # Swaps real klippy for a Moonraker-grade stand-in so the whole stack reaches

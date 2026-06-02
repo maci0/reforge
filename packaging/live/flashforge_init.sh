@@ -75,6 +75,15 @@ mount --bind   /run  "${ROOT}/run"   2>/dev/null
 mount -t tmpfs tmpfs "${ROOT}/tmp"   2>/dev/null
 mount --bind   "${DATA}" "${ROOT}/data" 2>/dev/null   # tmpfs /data — zero eMMC writes
 
+# Mark the chroot as live so the banner (boot splash + every login) shows the LIVE
+# badge. /run is tmpfs (bind from host) — the marker is ephemeral, gone once the USB
+# is pulled and the printer reboots to stock, which is exactly what we want.
+: > "${ROOT}/run/reforge-live" 2>/dev/null || true
+
+# Paint the fire/ember boot splash (with the LIVE badge) on the console, the way
+# reforge-boot would on a normal boot. TERM=linux so the framebuffer console colorizes.
+REFORGE_LIVE=1 TERM=linux chroot "${ROOT}" /usr/bin/reforge-banner > "${LIVE_LOG}" 2>&1 || true
+
 log "launching the ReForge stack (SCREEN_MODE=${SCREEN_MODE:-GUPPY}) ..."
 # REFORGE_LIVE=1 makes the boot/LKG scripts skip persistent trial bookkeeping.
 REFORGE_LIVE=1 SCREEN_MODE="${SCREEN_MODE:-GUPPY}" \

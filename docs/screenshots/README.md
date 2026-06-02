@@ -2,28 +2,39 @@
 
 GUI renders are captured from `qemu-system-arm` with `/dev/fb0` pinned to the printer's exact
 panel (**800×480, 32 bpp**), via the QEMU monitor `screendump` (see
-`tests/qemu-harness/README.md`) — **pixel-identical to the real 4.3" screen**. The boot
-images are rendered from the actual qemu serial capture / the in-repo banner script.
+`tests/qemu-harness/README.md`) — **pixel-identical to the real 4.3" screen**. The console
+images are rasterized onto the same 800×480 panel (8×16 fbcon cell) by
+`tests/qemu-harness/render-banner.sh` / `render-screen.py`, so they match what the framebuffer
+console actually shows.
 
 ## Bootsplash (fire/ember "ReForge")
 
 ![ReForge bootsplash](reforge-bootsplash.png)
 
-The fire-gradient banner from `board/reforge/rootfs-overlay/usr/bin/reforge-banner` — shown on
-the boot console (via `reforge-boot`) and on interactive login (`/etc/profile.d`). Steel anvil,
-ember-hot base, tagline *"ReForge — Klipper, reforged"*. 256-color ANSI; degrades to plain text
-on dumb terminals.
+The fire/ember banner from `board/reforge/rootfs-overlay/usr/bin/reforge-banner` — shown on the
+boot console (via `reforge-boot`) and on interactive login (`/etc/profile.d`). Block-glyph
+REFORGE wordmark in a fire gradient, shaded-block flames, a steel anvil over the forge base,
+tagline *"ReForge — Klipper, reforged"*. Drawn with VGA/CP437 console glyphs (`█ ▓ ▒ ░ ▟ ▙ ▛ ▜`,
+double-box) so it renders on the real panel; 256-color ANSI, degrades to plain text on dumb
+terminals. Sized to fit the 30-row console without scrolling.
+
+### LIVE mode
+
+![ReForge bootsplash, LIVE](reforge-bootsplash-live.png)
+
+In [live mode](../live-mode.md) the launcher sets `REFORGE_LIVE=1` and drops a `/run/reforge-live`
+marker, so the banner adds a cyan badge — **running from USB · eMMC untouched · pull+reboot =
+stock** — making the run-from-USB state obvious on the panel and at every login.
 
 ## Boot process
 
 ![ReForge boot console](reforge-boot-console.png)
 
-The real ReForge userspace boot sequence captured from the qemu serial: cloud-block → sysctl →
-zram swap → klipper → moonraker → busybox httpd (Mainsail) → guppyscreen → `Welcome to ReForge`.
-
-> The zram line shows skipped here because the qemu **virt** test kernel is built without
-> `PREEMPT`, so the stock-built `zram.ko` vermagic mismatches. On the **real stock 5.4.61
-> kernel** the module matches and zram swap activates (see `modules/zram-bsp/`).
+The ReForge userspace boot sequence: cloud-block → sysctl → **zram swap (active)** → klipper →
+moonraker → busybox httpd (Mainsail) → guppyscreen → `Welcome to ReForge`. The qemu **virt** test
+kernel now carries zram built-in, so `/dev/zram0` is present and the swap activates (zstd, 256M)
+exactly as on the real stock kernel — the stock-built `zram.ko` still vermagic-mismatches and is
+skipped first, then S35zram falls back to the built-in device (see `modules/zram-bsp/`).
 
 ## GuppyScreen (ReForge's on-screen UI) — PARKED (renders blank in qemu)
 
