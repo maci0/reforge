@@ -45,7 +45,7 @@ p4 boot(34.4M) · p5 dsp0(1M) · p6 rootfs(1.3G) · p7 UDISK/data(5.9G)`.
 | 0 | **BROM FEL** | `sunxi-fel` over USB-OTG (BROM enters FEL if boot0 fails / key held) | n/a (RAM-only) | **recovery context**, not a standing hook; needs USB + trigger |
 | 1 | boot0 / SPL (eGON) | reflash raw eMMC sectors 0..73727 | only via FEL | **BRICK** (FEL never rehearsed) |
 | 2 | U-Boot binary | reflash boot0/uboot area | only via FEL/SPL | **BRICK** |
-| 3 | **U-Boot env (p2/p3)** | **`fw_setenv`** — edit `bootargs`/`bootcmd`/`init=`, or add a `boot.scr` | **YES** — `fw_setenv` is CRC-safe; p3 is a redundant copy; restore = stock | **LOW** ⭐ earliest *safe* hook |
+| 3 | **U-Boot env (p2/p3)** | **`fw_setenv`** — edit `bootargs`/`bootcmd`/`init=`, or add a `boot.scr` | **ONLY if it still boots to a shell** — see ⚠ below | **HIGH on this unit** — a bad `init=`/`bootargs`/`bootcmd` boots U-Boot+kernel but kills userspace; with **no UART + no FEL** there's no in-band fix → **eMMC-reader hard-brick** |
 | 4 | boot.img (p4) | repack the Android kernel+ramdisk+cmdline | reflash p4 | medium |
 | 5 | **`init=` override** | env `init=` → our PID1 script (which `exec`s busybox / `switch_root`) | YES (env) | low–med ⭐ earliest *userspace control* |
 | 6 | **/etc/preinit** | create the file (absent today) → runs before mounts/swap/net/rcS | YES (file on p6) | LOW ⭐ earliest *safe userspace* on the stock flow |
@@ -57,13 +57,27 @@ p4 boot(34.4M) · p5 dsp0(1M) · p6 rootfs(1.3G) · p7 UDISK/data(5.9G)`.
   recovery/injection path, not a persistent boot modification.
 - **Earliest persistent code:** boot0/SPL — reflash → brick risk, FEL recovery never
   rehearsed → **off-limits in practice**.
-- **Earliest SAFE + reversible:** the **U-Boot environment on p2** (`fw_setenv` is on
-  the device; `/etc/fw_env.config` maps `mmcblk0p2 0x0 0x20000` + p3). Change
-  `bootargs`/`init=`/`bootcmd` *before the kernel runs*, restore from p3/backup → stock
-  boots. No code reflash.
-- **Earliest USERSPACE we control:** `init=<our-script>` set via that env → we are
-  **PID1** before any mount; **or** create **`/etc/preinit`** (inittab already calls it
-  first; it doesn't exist today → a free, intended, reversible early hook).
+- **Earliest userspace-controlling pre-kernel hook:** the **U-Boot environment on p2**
+  (`fw_setenv`; `/etc/fw_env.config` maps `mmcblk0p2 0x0 0x20000` + p3). BUT it is **NOT
+  a safe hook on this unit** — see ⚠ below. Only the *value* is reversible, and only if
+  the new value still boots to a shell.
+- **Earliest TRULY SAFE hook:** create **`/etc/preinit`** (inittab calls it first; it
+  doesn't exist today). A broken `/etc/preinit` is **non-fatal** — busybox init logs the
+  error and continues to the next sysinit line, so the box still boots to SSH and you
+  revert with `rm /etc/preinit`. This is the right place for early experiments.
+
+> ⚠ **Brick reality (no FEL, no UART on this unit — `tools/recovery/RUNBOOK.md`).**
+> A bad `init=`/`bootargs`/`bootcmd` set via `fw_setenv` does NOT corrupt U-Boot, so
+> U-Boot + the kernel still run — but userspace never starts. You then have **no SSH**
+> (no userspace), **no U-Boot prompt** (no UART), **no FEL** (USB). That is a hard-brick
+> recoverable ONLY by Path B: open the enclosure, attach an eMMC reader, and
+> `gzip -dc tools/recovery/golden.img.gz | sudo dd of=/dev/<reader-dev> bs=4M conv=fsync`.
+> The redundant p3 copy only protects against a *bad CRC* (U-Boot then falls back to its
+> compiled-in defaults); it does NOT protect against a *valid-but-wrong* value, which is
+> what `fw_setenv` writes. Therefore: do NOT change boot-critical env vars on this unit
+> until the eMMC-reader golden-restore has been rehearsed end-to-end. Prefer `/etc/preinit`
+> (#6) for early hooks; reserve `init=` overrides for after recovery is proven + with a
+> wrapper that `exec /init` on any error.
 
 ### Early `switch_root` (re: the earlier discussion)
 ReForge-live hooks at `auto_run.sh` (#8) — deep under stock init, not PID1, so a real
@@ -128,9 +142,17 @@ Runs at `rcS:50` (backgrounded). `MACHINE=Adventurer5MPro`, `PID=0024`. Sequence
 
 ## 5. Recipes (brick-safety boundary)
 
-**SAFE side (reversible, no FEL needed): everything at or above the U-Boot env.**
+**Brick-safety on this unit (no FEL, no UART) has only TWO tiers:**
+- **SAFE — revertible over SSH:** changes to **files on the rootfs (p6)** — `/etc/preinit`,
+  inittab, rc scripts, `/opt/auto_run.sh`. If they misbehave the box still boots to a
+  shell (or stock), so you `rm`/edit them back. Worst case, reflash a stock `.tgz` over
+  USB (RUNBOOK Path A — needs userspace to reach `auto_run.sh`).
+- **NOT SAFE — eMMC-reader recovery only:** the **U-Boot env (p2/p3)** and anything below
+  it (U-Boot, boot0, boot.img). A bad value here can stop userspace, and with no UART/FEL
+  the only fix is RUNBOOK **Path B** (open case → eMMC reader → `dd` golden). Treat the
+  env as boot-code, not as a config file — even though `fw_setenv` makes it *look* easy.
 
-### Earliest safe pre-kernel hook — U-Boot env (`fw_setenv`)
+### Pre-kernel env hook — U-Boot env (`fw_setenv`)  ⚠ hard-brick risk, see §4 ⚠
 ```sh
 # inspect
 fw_printenv                      # reads p2 (per /etc/fw_env.config)
@@ -170,9 +192,11 @@ restore is drilled (see docs/specs Plan 3, recovery posture).
 ## 6. Summary
 
 - Earliest *theoretically*: BROM FEL (USB) — recovery only.
-- Earliest *safe + reversible*: **U-Boot env (p2)** via `fw_setenv` (pre-kernel) →
-  enables `init=` override → PID1 → clean early `switch_root`.
-- Earliest *safe userspace on the stock flow*: **`/etc/preinit`** (free unused hook).
+- Earliest *pre-kernel* hook: **U-Boot env (p2)** via `fw_setenv` → `init=` override →
+  PID1 → clean early `switch_root`. **But NOT safe on this unit** — a bad value =
+  eMMC-reader hard-brick (no UART/FEL). Gate behind a rehearsed golden-restore.
+- Earliest *truly safe* hook (revertible over SSH): **`/etc/preinit`** (free unused
+  hook; broken = non-fatal, box still boots).
 - forge-x hooks by **owning the `/etc/init.d/S00init` symlink** (+ `SKIP_MOD` escapes).
 - Stock update detection: `/opt/auto_run.sh` (rcS:50) — `Adventurer5MPro-*.tgz` or a
   bare `flashforge_init.sh`, exit-0 ⇒ `sleep 100000`, **no signature check**; MCU
