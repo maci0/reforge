@@ -74,10 +74,22 @@ tar -C "${STAGE}" -xf "${ROOTFS_TAR}"
 [ -x "${STAGE}/mod/start.sh" ] || die "rootfs has no /mod/start.sh — wrong/old build"
 
 LIVE_F2FS="${WORK}/reforge-live.f2fs"
-log "baking reforge-live.f2fs via mkfs.f2fs + sload.f2fs (rootless) ..."
-truncate -s 1843M "${LIVE_F2FS}"
+# Size the F2FS image to the rootfs + slack, NOT a fixed 1.8 GB. FAT (the USB) has
+# no sparse-file support, so the image is written byte-for-byte onto the stick —
+# keeping it small makes the trial extract fast and the footprint honest. Runtime
+# state (klippy logs, moonraker DB, zram) goes to the tmpfs /data, not here; the
+# image only needs the rootfs + headroom for an OTA update. Override via F2FS_SIZE.
+ROOTFS_MB=$(( ($(stat -c%s "${ROOTFS_TAR}") + 1048575) / 1048576 ))
+F2FS_SIZE="${F2FS_SIZE:-$(( ROOTFS_MB + 384 ))M}"   # rootfs + 384 MB slack
+log "baking reforge-live.f2fs (${F2FS_SIZE}) via mkfs.f2fs + sload.f2fs (rootless) ..."
+truncate -s "${F2FS_SIZE}" "${LIVE_F2FS}"
 mkfs.f2fs -q -f -l reforge-live "${LIVE_F2FS}" >/dev/null
-sload.f2fs -f "${STAGE}" "${LIVE_F2FS}" >/dev/null 2>&1
+sload.f2fs -f "${STAGE}" "${LIVE_F2FS}" >/dev/null 2>&1 \
+    || die "sload.f2fs failed — F2FS_SIZE=${F2FS_SIZE} too small for the rootfs?"
+# integrity: the loaded image must fsck clean (catches a silently-truncated load).
+if command -v fsck.f2fs >/dev/null; then
+    fsck.f2fs "${LIVE_F2FS}" >/dev/null 2>&1 || die "reforge-live.f2fs failed fsck after sload"
+fi
 
 # --- 2. the payload tarball the user extracts onto a FAT USB -------------------
 # No dd / no dedicated stick needed: the stock auto_run.sh scans ANY FAT USB for
