@@ -29,7 +29,15 @@ LIVE_IMG="${LIVE_IMG:-${USB_MNT}/reforge-live.f2fs}"
 ROOT="${REFORGE_LIVE_ROOT:-/tmp/.reforge-live}"   # chroot root (/tmp is tmpfs)
 DATA="${REFORGE_LIVE_DATA:-/tmp/.reforge-data}"   # writable /data -> tmpfs
 
-log "starting (img=${LIVE_IMG})"
+# Screen mode: env wins, else an optional `screen_mode` file at the USB root (so you
+# can drop "HEADLESS" next to the launcher to debug — the boot console + net-up + klippy
+# errors then show on the panel instead of GuppyScreen), else default GUPPY.
+if [ -z "${SCREEN_MODE:-}" ] && [ -r "${USB_MNT}/screen_mode" ]; then
+    SCREEN_MODE="$(tr -d ' \t\r\n' < "${USB_MNT}/screen_mode" 2>/dev/null)"
+fi
+SCREEN_MODE="${SCREEN_MODE:-GUPPY}"
+
+log "starting (img=${LIVE_IMG}, screen=${SCREEN_MODE})"
 # -e, not -f: LIVE_IMG is a regular file on the FAT USB, but may be a raw block
 # device (e.g. the qemu zero-write gate presents the rootfs as /dev/vdb).
 [ -e "${LIVE_IMG}" ] || { log "ERROR: ${LIVE_IMG} not found on USB"; exit 1; }
