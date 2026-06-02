@@ -88,6 +88,17 @@ mount --bind   "${DATA}" "${ROOT}/data" 2>/dev/null   # tmpfs /data — zero eMM
 # reforge-boot would on a normal boot. TERM=linux so the framebuffer console colorizes.
 REFORGE_LIVE=1 TERM=linux chroot "${ROOT}" /usr/bin/reforge-banner > "${LIVE_LOG}" 2>&1 || true
 
+# Bring up the network (best-effort) BEFORE the chroot: in live mode we block stock's
+# auto_run, so the stock WiFi init never runs and the box has no LAN. net-up.sh reuses
+# the stock driver + /etc/wpa_supplicant.conf creds (read-only) to join, so Moonraker /
+# Mainsail / SSH are reachable. See docs/specs/2026-06-02-live-mode-wifi.md. wlan0 is in
+# the host net namespace; the chroot shares it. Never blocks the boot.
+if [ -f "${USB_MNT}/net-up.sh" ]; then
+    # shellcheck source=/dev/null
+    . "${USB_MNT}/net-up.sh" && reforge_live_netup || true
+    log "net: $(ip -o addr show 2>/dev/null | grep -o 'inet [0-9.]*' | grep -v '127.0.0.1' | tr '\n' ' ')"
+fi
+
 log "launching the ReForge stack (SCREEN_MODE=${SCREEN_MODE:-GUPPY}) ..."
 # REFORGE_LIVE=1 makes the boot/LKG scripts skip persistent trial bookkeeping.
 REFORGE_LIVE=1 SCREEN_MODE="${SCREEN_MODE:-GUPPY}" \

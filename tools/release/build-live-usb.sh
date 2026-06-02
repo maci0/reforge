@@ -25,6 +25,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PACKAGING_DIR="${REPO_ROOT}/packaging"
 ROOTFS_TAR="${REPO_ROOT}/build/output/images/rootfs.tar"
 LAUNCHER="${PACKAGING_DIR}/live/flashforge_init.sh"
+NETUP="${PACKAGING_DIR}/live/net-up.sh"
 
 VER="${VER:-$(cat "${PACKAGING_DIR}/VERSION")}"
 DIST_DIR="${DIST_DIR:-${PACKAGING_DIR}/dist}"
@@ -35,6 +36,7 @@ die() { echo "[build-live-usb] ERROR: $*" >&2; exit 1; }
 
 [ -f "${ROOTFS_TAR}" ] || die "rootfs.tar missing — run 'make rootfs' first (${ROOTFS_TAR})"
 [ -f "${LAUNCHER}" ]   || die "live launcher missing: ${LAUNCHER}"
+[ -f "${NETUP}" ]      || die "net-up.sh missing: ${NETUP}"
 command -v tar >/dev/null || die "tar not installed"
 command -v gzip >/dev/null || die "gzip not installed"
 
@@ -101,10 +103,11 @@ log "assembling payload tarball ${OUT} ..."
 PAYLOAD="${WORK}/payload"; mkdir -p "${PAYLOAD}"
 # symlink the inputs in (tar -h dereferences) — avoids copying the ~2 GB image.
 ln -sf "${LAUNCHER}"  "${PAYLOAD}/flashforge_init.sh"
+ln -sf "${NETUP}"     "${PAYLOAD}/net-up.sh"
 ln -sf "${LIVE_F2FS}" "${PAYLOAD}/reforge-live.f2fs"
 for ko in ${KOS}; do ln -sf "$(ko_path "${ko}")" "${PAYLOAD}/${ko}"; done
 rm -f "${OUT}"
-tar -C "${PAYLOAD}" -czhf "${OUT}" flashforge_init.sh ${KOS} reforge-live.f2fs
+tar -C "${PAYLOAD}" -czhf "${OUT}" flashforge_init.sh net-up.sh ${KOS} reforge-live.f2fs
 
 log "done: ${OUT} ($(du -h "${OUT}" | cut -f1))"
 log "  Contents:"; tar -tzf "${OUT}" | sed 's/^/    /'

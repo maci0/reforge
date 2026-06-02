@@ -77,6 +77,7 @@ USB layout (FAT32):
 
 ```
 /flashforge_init.sh    the live launcher
+/net-up.sh             best-effort WiFi bring-up (sourced by the launcher)
 /loop.ko               loop block driver
 /crc32_generic.ko      the 'crc32' algo F2FS needs at mount
 /f2fs.ko               F2FS filesystem

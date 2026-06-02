@@ -21,7 +21,7 @@ validate-loopback: ; sudo tests/loopback-install-test.sh
 # run-from-mod: structural test of the self-contained mod/ + run-in-place model
 run-from-mod:      ; tests/release/run-from-mod-test.sh
 # unit: host unit + fuzz tests for the .shell helpers (no qemu, no root)
-unit:              ; tests/release/lkg-unit-test.sh && tests/release/vmtune-unit-test.sh
+unit:              ; tests/release/lkg-unit-test.sh && tests/release/vmtune-unit-test.sh && tests/release/netup-unit-test.sh
 
 # --- P3 Task 4: qemu virt test kernel (vendor 5.4.61, ARCH_SUNXI=n, 800x480x32 fb) ---
 # build zImage + initramfs + run smoke test
