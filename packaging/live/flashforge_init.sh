@@ -19,7 +19,12 @@ set -u
 LIVE_LOG=/dev/console
 log() { echo "[reforge-live] $*" > "${LIVE_LOG}" 2>&1; }
 
-USB_MNT="${USB_MNT:-/mnt}"                 # where stock mounted the FAT USB
+# The stock auto_run.sh already mounted the USB and runs us *from* it
+# (`/mnt/flashforge_init.sh`), so we never need to find/mount a device ourselves —
+# the rootfs image sits right next to this script. Derive the USB dir from $0 so
+# it's correct wherever stock mounts the stick (falls back to /mnt).
+SELF_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd || true)"
+USB_MNT="${USB_MNT:-${SELF_DIR:-/mnt}}"
 LIVE_IMG="${LIVE_IMG:-${USB_MNT}/reforge-live.ext4}"
 ROOT="${REFORGE_LIVE_ROOT:-/tmp/.reforge-live}"   # chroot root (/tmp is tmpfs)
 DATA="${REFORGE_LIVE_DATA:-/tmp/.reforge-data}"   # writable /data -> tmpfs
