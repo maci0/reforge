@@ -10,8 +10,9 @@
 #   STEP 1  e2e Moonraker update (best-effort).  Seeds an OLDER release_info.json
 #           version into a component path, points the guest at the offline
 #           mock-github-release.sh (HTTPS, self-signed CA injected into the guest
-#           trust store, api.github.com -> the qemu gateway 10.0.2.2 via
-#           /etc/hosts), drives POST /machine/update/{component} and POLLS
+#           trust store; the guest networks via gvproxy, and api.github.com:MOCK_PORT
+#           -> gvproxy host alias -> the host mock — see the gvproxy note below),
+#           drives POST /machine/update/{component} and POLLS
 #           GET /machine/update/status, then asserts the path's release_info.json
 #           version bumped + the service restarted live (SimpleProvider).
 #           Heavy / network-dependent: if it can't go green in-budget it is logged
@@ -44,7 +45,8 @@
 # Env:     SKIP_E2E=1   skip Step 1 (LKG + Mainsail only)
 #          ONLY_E2E=1   run only Step 1
 #          QEMU_TIMEOUT  per-boot qemu cap (default 240s for boots, 90s for hangs)
-# Needs:   qemu-system-arm, mke2fs/debugfs (e2fsprogs), curl, socat, python3
+# Needs:   qemu-system-arm, mke2fs/debugfs (e2fsprogs), curl, python3, and (for the
+#          best-effort Step 1 e2e only) gvproxy — absent gvproxy, Step 1 SKIPs.
 #          build/zImage (make qemu-kernel) + build/output/images/rootfs.tar (make rootfs)
 # Exit:    0 = LKG test PASS (+ Mainsail), 1 = LKG test FAIL.  A skipped/failed e2e
 #          step never on its own fails the run (it is best-effort).
@@ -65,10 +67,20 @@ ROOTFS_TAR="${ROOTFS_TAR:-${REPO_ROOT}/build/output/images/rootfs.tar}"
 BOOT_TIMEOUT="${QEMU_TIMEOUT:-240}"   # a boot that must reach services-up
 HANG_TIMEOUT="${HANG_TIMEOUT:-90}"    # a boot we EXPECT to wedge (broken mod)
 MOCK_PORT="${MOCK_PORT:-8443}"
-# Slirp address the guest resolves api.github.com to and qemu guestfwd's to the
-# host mock. Must NOT be the gateway (10.0.2.2), DNS (10.0.2.3) or the guest
-# (10.0.2.15) — qemu rejects a guestfwd onto its own gateway.
-GUEST_MOCK_IP="${GUEST_MOCK_IP:-10.0.2.200}"
+# The e2e guest networks via gvproxy (gvisor-tap-vsock), NOT qemu's built-in slirp.
+# Measured: qemu's user-mode slirp `guestfwd` relays only the FIRST guest connection
+# and stalls every subsequent one (conn1 ok, conn2+ hang) — so Moonraker's release
+# API call lands but the asset download (a later connection) never connects. gvproxy's
+# gVisor netstack handles unlimited sequential connections (proven: 4x 2.4MB downloads,
+# ~135ms each). gvproxy speaks the qemu `-netdev socket` frame protocol on a TCP port,
+# exposes the host loopback to the guest at 192.168.127.254 (port-preserving), and its
+# control API forwards host->guest so we can drive Moonraker from the host.
+GV_NET="192.168.127"                       # gvproxy's fixed subnet
+GV_GUEST_IP="${GV_GUEST_IP:-${GV_NET}.2}"  # static guest IP (avoids a DHCP race)
+GV_HOST_IP="${GV_HOST_IP:-${GV_NET}.254}"  # gvproxy's NAT alias for host 127.0.0.1
+GV_QEMU_PORT="${GV_QEMU_PORT:-5556}"       # gvproxy <-> qemu -netdev socket
+GV_API_SOCK="${GV_API_SOCK:-${BUILD_DIR}/gvproxy-api.sock}"
+GV_PID=""
 
 log()  { echo "[ota-test] $*"; }
 warn() { echo "[ota-test] WARN: $*" >&2; }
@@ -138,6 +150,9 @@ cleanup() {
     kill_my_qemu
     [ -n "${MOCK_PID:-}" ] && kill "${MOCK_PID}" 2>/dev/null || true
     [ -n "${MOCK_PID:-}" ] && wait "${MOCK_PID}" 2>/dev/null || true
+    [ -n "${GV_PID:-}" ] && kill "${GV_PID}" 2>/dev/null || true
+    [ -n "${GV_PID:-}" ] && wait "${GV_PID}" 2>/dev/null || true
+    [ -n "${GV_API_SOCK:-}" ] && rm -f "${GV_API_SOCK}" 2>/dev/null || true
     [ -n "${SCRATCH}" ] && rm -rf "${SCRATCH}" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
@@ -522,18 +537,47 @@ run_e2e_test() {
     if [ -z "${ca}" ] || [ ! -f "${ca}" ]; then
         log "SKIP (e2e): could not obtain mock CA."; return 0
     fi
-    # The guest reaches the mock through a qemu guestfwd on api.github.com:443
-    # (Moonraker's http_client.py hardcodes https://api.github.com/), so the
-    # advertised asset URLs must use port 443 too — PUBLIC_PORT=443 makes the
-    # mock emit portless (==443) browser_download_urls that land on the same
-    # guestfwd. The mock itself still LISTENS on MOCK_PORT host-side.
-    PORT="${MOCK_PORT}" PUBLIC_PORT=443 "${MOCK}" >/dev/null 2>&1 &
+    # The guest reaches the mock over gvproxy: Moonraker is hotpatched (below) to use
+    # https://api.github.com:MOCK_PORT/, and the mock advertises its asset URLs on the
+    # same port (PUBLIC_PORT=MOCK_PORT), so BOTH the releases API call and the asset
+    # download go to api.github.com:MOCK_PORT -> (/etc/hosts) GV_HOST_IP -> gvproxy ->
+    # host 127.0.0.1:MOCK_PORT. Using MOCK_PORT (8443) end-to-end avoids needing to
+    # bind privileged :443 anywhere (gvproxy's NAT is port-preserving). The mock
+    # LISTENS on MOCK_PORT host-side.
+    PORT="${MOCK_PORT}" PUBLIC_PORT="${MOCK_PORT}" "${MOCK}" >/dev/null 2>&1 &
     MOCK_PID=$!
     sleep 2
     if ! kill -0 "${MOCK_PID}" 2>/dev/null; then
         log "SKIP (e2e): mock server failed to start."; MOCK_PID=""; return 0
     fi
     log "mock release server up on :${MOCK_PORT} (pid ${MOCK_PID}); CA=${ca}"
+
+    # gvproxy networking (replaces qemu's slirp guestfwd, which — measured — relays
+    # only the FIRST guest connection and stalls every later one, so the asset
+    # download never connects). gvproxy's gVisor netstack handles unlimited
+    # sequential connections. It speaks the qemu -netdev socket frame protocol on a
+    # TCP port and forwards host->guest so we can drive Moonraker from the host.
+    if ! command -v gvproxy >/dev/null 2>&1; then
+        log "SKIP (e2e): gvproxy not installed (needed for the guest network)."
+        log "            (the LKG/brick test below is the gating result and runs network-free)"
+        return 0
+    fi
+    rm -f "${GV_API_SOCK}"
+    gvproxy -listen-qemu "tcp://127.0.0.1:${GV_QEMU_PORT}" -listen "unix://${GV_API_SOCK}" \
+        >"${BUILD_DIR}/gvproxy.log" 2>&1 &
+    GV_PID=$!
+    sleep 3
+    if ! kill -0 "${GV_PID}" 2>/dev/null; then
+        log "SKIP (e2e): gvproxy failed to start:"
+        tail -3 "${BUILD_DIR}/gvproxy.log" 2>/dev/null | sed 's/^/  /'
+        GV_PID=""; return 0
+    fi
+    # Forward host:E2E_PORT -> guest Moonraker :7125 (the guest takes the static
+    # GV_GUEST_IP below, so the expose target is exact).
+    curl -s --unix-socket "${GV_API_SOCK}" -X POST http://x/services/forwarder/expose \
+        -d "{\"local\":\"127.0.0.1:${E2E_PORT}\",\"remote\":\"${GV_GUEST_IP}:7125\",\"protocol\":\"tcp\"}" \
+        >/dev/null 2>&1 || warn "gvproxy Moonraker expose may have failed"
+    log "gvproxy up (pid ${GV_PID}); host:${E2E_PORT} -> guest ${GV_GUEST_IP}:7125"
 
     SCRATCH="$(mktemp -d /tmp/ota-e2e-stage-XXXXXX)"
     local stage="${SCRATCH}/root"
@@ -559,20 +603,30 @@ run_e2e_test() {
     else
         warn "could not hash mock CA — guest TLS trust may fail"
     fi
-    # Point the GitHub API + asset hosts at the qemu guestfwd target (NOT the
-    # slirp gateway 10.0.2.2 — qemu forbids a guestfwd onto its own gateway
-    # address). GUEST_MOCK_IP is an otherwise-unused slirp address the guestfwd
-    # below redirects to the host-side mock.
+
+    # Hotpatch Moonraker's hardcoded GitHub API base to the mock's port. http_client.py
+    # pins GITHUB_PREFIX = "https://api.github.com/" (implicit :443); we can't bind 443
+    # rootless on the host and gvproxy's NAT is port-preserving, so redirect the API to
+    # :MOCK_PORT (the asset URLs already carry :MOCK_PORT via the mock's PUBLIC_PORT).
+    # TEST-ONLY, in the throwaway guest image — the shipped firmware is untouched.
+    local mr_http="${stage}/opt/moonraker/moonraker/components/http_client.py"
+    if [ -f "${mr_http}" ] && grep -q 'GITHUB_PREFIX = "https://api.github.com/"' "${mr_http}"; then
+        sed -i "s#GITHUB_PREFIX = \"https://api.github.com/\"#GITHUB_PREFIX = \"https://api.github.com:${MOCK_PORT}/\"#" "${mr_http}"
+        log "hotpatched Moonraker GITHUB_PREFIX -> api.github.com:${MOCK_PORT} (test guest only)"
+    else
+        warn "could not hotpatch GITHUB_PREFIX — e2e API calls may miss the mock"
+    fi
+
+    # Route the GitHub API + asset host to gvproxy's host-loopback alias (GV_HOST_IP),
+    # which NATs to the host's 127.0.0.1 where the mock listens.
     #
-    # Separately, blackhole every OTHER GitHub/announcement host to 127.0.0.1
-    # (nothing listens there -> instant connection-refused). Moonraker's
-    # announcements + the other updaters' refreshes would otherwise open REAL
-    # internet TLS to arksine.github.io / *.githubusercontent.com (185.199.x.x);
-    # under ARM TCG those slow handshakes monopolise the event loop and starve
-    # our OTA asset download, whose connect_timeout is only 5s. Failing them fast
-    # keeps the emulated CPU free for the update we actually exercise.
+    # Separately, blackhole every OTHER GitHub/announcement host to 127.0.0.1 (guest
+    # loopback, nothing listening -> instant connection-refused). Moonraker's
+    # announcements + the other updaters' refreshes would otherwise open REAL internet
+    # TLS to arksine.github.io / *.githubusercontent.com (185.199.x.x); under ARM TCG
+    # those slow handshakes monopolise the event loop and starve the update we exercise.
     {
-        echo "${GUEST_MOCK_IP} api.github.com"
+        echo "${GV_HOST_IP} api.github.com"
         echo "127.0.0.1 objects.githubusercontent.com"
         echo "127.0.0.1 github.com"
         echo "127.0.0.1 www.github.com"
@@ -613,9 +667,13 @@ run_e2e_test() {
 EOF
 
     # Bring up the in-place chain on boot (mem-probe pattern) so Moonraker is live.
-    cat > "${stage}/etc/init.d/S98otae2e" <<'EOF'
+    # First give eth0 a STATIC IP on the gvproxy netstack — deterministic, and avoids
+    # a race where gvproxy's DHCP isn't ready when the rootfs's one-shot udhcpc fires.
+    cat > "${stage}/etc/init.d/S98otae2e" <<EOF
 #!/bin/sh
-[ "$1" = start ] || exit 0
+[ "\$1" = start ] || exit 0
+ifconfig eth0 ${GV_GUEST_IP} netmask 255.255.255.0 up 2>/dev/null
+ip route add default via ${GV_NET}.1 2>/dev/null
 [ -x /mod/start.sh ] && SCREEN_MODE=HEADLESS /mod/start.sh > /dev/console 2>&1
 EOF
     chmod 0755 "${stage}/etc/init.d/S98otae2e"
@@ -628,31 +686,20 @@ EOF
     # Boot with a Moonraker port-forward.
     wait_for_qemu_drain
     rm -f "${E2E_SERIAL}"
-    log "booting e2e guest (Moonraker forward host:${E2E_PORT} -> :7125;" \
-        "guest api.github.com (${GUEST_MOCK_IP}:443) -> mock 127.0.0.1:${MOCK_PORT}) ..."
-    # hostfwd : host:E2E_PORT -> guest:7125 so we can drive Moonraker from the host.
-    # guestfwd: the guest's connection to api.github.com:443 (resolved to
-    #           GUEST_MOCK_IP via the injected /etc/hosts) is redirected to the
-    #           host-side mock on 127.0.0.1:MOCK_PORT. Moonraker's update_manager
-    #           hardcodes https://api.github.com/ (port 443) for BOTH the releases
-    #           API call and the asset download, so this single guestfwd carries
-    #           the whole OTA conversation to the offline mock — no real network.
-    #           (GUEST_MOCK_IP is deliberately NOT 10.0.2.2: qemu refuses a
-    #           guestfwd onto its own slirp gateway address.)
-    # -smp 2 / -m 128: match the real device — the T113-S3 is a dual-core Cortex-A7
-    # with 128MB DDR (≈110MB usable after CMA/DSP reserve). The second core is also
-    # what makes the download land: under TCG the qemu main loop drives slirp
-    # networking, so a single saturated vCPU (Moonraker's components + numpy) starves
-    # the guestfwd and the guest's outbound TLS connect repeatedly misses Moonraker's
-    # tight 5s download connect-timeout. The device has two real cores, so giving the
-    # guest two keeps networking responsive while Python runs — device-faithful AND
-    # enough to let the OTA asset download complete. (The LKG test in Step 2 keeps its
-    # lean single-cpu profile — it never touches the network.)
+    log "booting e2e guest (gvproxy net; host:${E2E_PORT} -> guest ${GV_GUEST_IP}:7125;" \
+        "guest api.github.com -> ${GV_HOST_IP} -> host mock :${MOCK_PORT}) ..."
+    # Networking is gvproxy via -netdev socket (NOT qemu slirp): the guest's virtio-net
+    # frames are tunnelled over tcp:127.0.0.1:GV_QEMU_PORT to gvproxy's gVisor netstack,
+    # which NATs api.github.com (-> GV_HOST_IP) to the host's 127.0.0.1:MOCK_PORT mock
+    # and reliably carries the full OTA conversation (release API + asset download) —
+    # unlike slirp's guestfwd, which stalls after the first connection.
+    # -smp 2 / -m 128: match the real device — dual-core Cortex-A7, 128MB DDR
+    # (≈110MB usable). (The LKG test in Step 2 keeps its lean single-cpu profile.)
     qemu-system-arm -M virt,highmem=off -cpu cortex-a7 -smp 2 -m 128 \
         -kernel "${ZIMAGE}" \
         -append "console=ttyAMA0,115200 root=/dev/vda rw rootwait loglevel=4" \
         -drive "file=${E2E_IMG},if=virtio,format=raw,cache=writeback" \
-        -netdev "user,id=n0,hostfwd=tcp::${E2E_PORT}-:7125,guestfwd=tcp:${GUEST_MOCK_IP}:443-tcp:127.0.0.1:${MOCK_PORT}" \
+        -netdev "socket,id=n0,connect=127.0.0.1:${GV_QEMU_PORT}" \
         -device virtio-net-pci,netdev=n0 \
         -nographic > "${E2E_SERIAL}" 2>&1 &
     MY_QEMU_PID=$!
@@ -690,13 +737,12 @@ EOF
     # (authoritative — a kill -9 with cache=writeback can drop not-yet-flushed
     # disk writes, so the on-disk release_info.json may lag the applied version).
     #
-    # Why retry: Moonraker's asset download (net_deploy.update -> http_client.
-    # download_file) uses connect_timeout=5s, attempts=1. Under ARM TCG the
-    # guest's TLS connect to the mock through the slirp guestfwd intermittently
-    # misses that 5s window while klipper/httpd churn the emulated CPU, surfacing
-    # as a 500 "Timeout while connecting". The releases-API refresh (attempts=3)
-    # almost always lands, so remote_version resolves; we just re-drive the
-    # update until one attempt's download wins the 5s race. A NAMED app updater
+    # Why retry: the update can transiently 503 ("Server is busy") while
+    # update_manager holds cmd_request_lock during its startup refresh, and
+    # Moonraker's asset download (net_deploy.update -> http_client.download_file)
+    # uses connect_timeout=5s, attempts=1, which can still occasionally miss under a
+    # momentary emulated-CPU spike. We re-drive until an attempt lands (over gvproxy
+    # the connection itself is reliable — see the netdev note above). A NAMED app updater
     # (guppyscreen) is driven via /machine/update/client?name=<app> — only
     # moonraker/klipper/system/client/full have dedicated endpoints; a direct
     # POST /machine/update/<app> 404s.
