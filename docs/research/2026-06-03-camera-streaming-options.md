@@ -50,18 +50,25 @@ free. Two viable transport/decode options on the client:
   (Cedar) → HW H.264-encode (Cedar)`. The VE can do both.
 - **Encode driver state (the load-bearing detail):**
   - **Mainline `cedrus` is decode-only** — MPEG2 (5.0), H264 (5.2), H265 — **no encode**.
-  - **Hardware encode is real but out-of-tree.** Bootlin shipped an open-source V4L2 H.264
-    **encoder** driver in 2023 — but **only for the Allwinner *V3 / V3s / S3* camera SoCs**, and
-    not mainlined (no stable stateless-encoder uAPI yet; rate-control absent, QP-only). Older
-    community PoCs exist for A10/A13/A20/H3 H.264 **and JPEG** encode. So yes — the Allwinner VE
-    **can** encode H.264 + JPEG/MJPEG; the capability is well established.
-  - **BUT that driver is for a different VE than ours.** Naming trap: the "**S3**" in *T113-S3*
-    is Allwinner's **stacked-DRAM package suffix** (the SoC is **sun8iw20p1**, D1/D1s family) —
-    **unrelated** to the V-series "**S3 / V3s**" camera SoCs Bootlin's encoder targets. The T113
-    VE is the newer (H265-capable, D1-class) generation. The emerging cedrus-encode work is
-    moving toward newer parts (there's an **H616 cedrus-encoder** test effort + a FOSDEM-2024
-    stateless-encode uAPI push), and T113≈D1 may eventually ride that — but **no open V4L2
-    encoder exists for the T113 today**. Porting Bootlin's approach to this VE = dedicated work.
+  - **Hardware encode is real but out-of-tree.** The Allwinner VE has done HW **H.264 (baseline
+    profile) + JPEG/MJPEG encode since the sun5i/sun7i era** — linux-sunxi: *"the video engine can
+    only encode h264 in baseline profile."* Open implementations exist for that **legacy VE**:
+    Jens Kuske's libcedrus, and PoCs like `milosladni/sunxi-tvin2jpeg_h264` (HW H264 + JPEG
+    encoder for A10/A13/A20). Separately, Bootlin shipped an open V4L2 **H.264 encoder** driver
+    (2023) for the **V3/V3s/S3** camera SoCs. So the capability is well established across
+    generations — just never mainlined (no stable stateless-encoder uAPI yet).
+  - **Baseline-only is fine for us:** a camera monitor wants low latency, and baseline H.264 (no
+    B-frames) is exactly the low-latency, trivially-decodable profile — every browser / WebCodecs
+    handles it. The profile limit is not a blocker for this use case.
+  - **BUT every open encoder targets a different VE generation than ours.** The sun5i/sun7i PoCs
+    (A13 etc.) use the **legacy VE register interface**; Bootlin's V4L2 encoder targets the
+    **V3/V3s/S3** camera VE. The **T113 is the newer D1-class VE** (sun8iw20p1, H265-decode-capable)
+    — different programming model, so neither the A13 PoC nor the V3/S3 driver runs on it as-is.
+    (Naming trap: the "**S3**" in *T113-S3* is Allwinner's **stacked-DRAM package suffix**,
+    **unrelated** to the V-series "S3/V3s" camera SoCs.) The emerging cedrus-encode work is moving
+    toward newer parts (an **H616 cedrus-encoder** test effort + the FOSDEM-2024 stateless-encode
+    uAPI push), and T113≈D1 may eventually ride that — but **no open V4L2 encoder exists for the
+    T113 today**. Porting the legacy/V3 encode work to this VE = dedicated driver effort.
   - **What works on the T113 right now is the proprietary `cedarx`/`libvenc` blob** — the device
     already ships `libvenc_h264.so` / `libvenc_jpeg.so` / `libVE.so`, and the stock camera app
     uses exactly that stack. `rosimildo/videoenc` is a working example of Cedar H.264 encode via
