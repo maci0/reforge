@@ -47,6 +47,24 @@ the D1/T113 TCON-LCD** — which is exactly what the AD5M Pro's 800×480 paralle
 | **Display — LVDS** | ⚠️ out-of-tree | combo-PHY LVDS mode series was v3-in-review (Nov 2025); not needed (panel is RGB) |
 | CAN/LRADC/GPADC/LEDC/RTC/crypto/SID | ✅ mainline | all `sun20i-d1-*` present |
 
+## Kernel `.config` — memory/perf knobs to enable (vs the BSP defconfig)
+
+The stock 5.4.61 BSP defconfig (`sun8iw20p1smp*_defconfig`) builds **without** several
+low-RAM-relevant features, so they can't be tuned at runtime on P1–P3. Enable them in the
+ReForge fork's `.config`. Rationale + runtime knobs each unlocks:
+[`2026-06-02-stock-kernel-runtime-tuning.md`](2026-06-02-stock-kernel-runtime-tuning.md) §7 / §7.1.
+
+| config | BSP | set | why |
+|---|---|---|---|
+| **`CONFIG_COMPACTION`** | not set | **`y`** | Migrate movable pages → satisfy high-order / **CMA-16M** (display/camera) allocations instead of stalling. Live vmstat: **`allocstall_movable 5236`** (the dominant stall class) + `pgscan_direct_throttle 5197`. Unlocks `vm.compact_memory` (manual defrag), `compact_unevictable_allowed`, `extfrag_threshold`, and `compaction_proactiveness` (≥5.9; set low ~20). `CONFIG_MIGRATION=y` already in BSP. Cost: `kcompactd` CPU on 2 cores — reactive + manual on lower kernels, low proactiveness on 6.x. Note: zsmalloc/zram has its **own** internal compaction, separate from this. |
+| **`CONFIG_SCHED_DEBUG`** | not set | `y` | Exposes CFS latency sysctls (`sched_latency_ns`, `sched_min_granularity_ns`, …) for klippy stepping latency, if ever needed. Debug surface only. |
+| **MGLRU (`CONFIG_LRU_GEN` + `_ENABLED`)** | n/a (6.1+) | `y` | Multi-gen LRU — much better hot/cold detection than 5.4's 2-gen LRU on this swap-heavy box. Default-on in 6.1+; just don't disable. |
+| **`CONFIG_KSM`** | not set | _optional_ | Same-page merging. Marginal here — Python pages already COW-shared; costs a scan thread. Evaluate, probably skip. |
+| THP (`CONFIG_TRANSPARENT_HUGEPAGE`) | not set | _leave off / madvise_ | Debatable on 128 MB; fragmentation/overhead risk. If built, default to `madvise`, not `always`. |
+
+cpufreq/DVFS is a separate driver-bring-up item (see the subsystem table — T113s dtsi has no
+OPP table; fixed-clock initially). These are config flags, applied once in the fork's defconfig.
+
 ## Display porting specifics (the load-bearing question)
 
 The RGB/parallel (DPI) path is **already upstream**, verified in `drivers/gpu/drm/sun4i/`:

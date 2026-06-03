@@ -12,6 +12,7 @@ write-ups: [`docs/research/`](research/).
 |---|---|---|---|
 | **jemalloc (tuned)** | `LD_PRELOAD` jemalloc with `MALLOC_CONF=narenas:1,dirty_decay_ms:0,muzzy_decay_ms:0` — single arena + zero-decay (return freed pages to the OS immediately) | **−6.5 MB Σ Pss (−11.2 %)**; klippy Rss 26.3→23.4, moonraker 43.5→38.2; MemAvail +2.2 MB | `reforge_defconfig` (`BR2_PACKAGE_JEMALLOC`) + `S60klipper`/`S65moonraker`/`S75guppyscreen` |
 | **Thumb-2 + -Os + locale purge** | smaller code → fewer resident code pages across every process; smaller rootfs | **−4.9 MB Σ Pss (−8.2 %)**, **−1.08 MB** rootfs | `reforge_defconfig` (`BR2_ARM_INSTRUCTIONS_THUMB2`, `BR2_OPTIMIZE_S`, `BR2_ENABLE_LOCALE_PURGE`) |
+| **LTO (all packages)** | link-time cross-TU dead-code elimination + inlining → smaller `.text`/rootfs on top of -Os/Thumb-2 | _not yet measured — just enabled; expected small (the `.so` are COW-shared, so the win is mostly code pages/rootfs)_ | `reforge_defconfig` (`BR2_ENABLE_LTO`) |
 | **nginx → busybox httpd** | serve the Mainsail SPA statically; browser hits Moonraker `:7125` direct (no reverse proxy) | **−~3 MB RSS** (httpd Pss 0.19 MB vs nginx ~2–4 MB) | `S70httpd`, mainsail package |
 | **zram compressed swap** | zstd-compressed RAM swap on the stock kernel (loadable `.ko`) | ~**4× compression** of cold anon pages → effective RAM gain; high-prio over eMMC | `modules/zram-bsp/`, `S35zram` |
 | **zram VM tuning** | the runtime sysctls for the zram-as-primary-swap profile: `vm.page-cluster=0` (zram is RAM — no swap read-ahead), `vm.swappiness=100` (prefer compressed-RAM swap over eMMC file re-reads), `vm.vfs_cache_pressure=50`, `vm.watermark_scale_factor=40` (kswapd reclaims ahead of demand), `vm.dirty_ratio=10` / `vm.dirty_background_ratio=5` | makes zram actually get used + targets the measured direct-reclaim/throttle storm; **no fixed RAM cost** | `.shell/reforge-vmtune.sh`, sourced by `S35zram` right after `swapon` |
@@ -28,7 +29,9 @@ The two knobs that **do** cost reserved RAM — `vm.min_free_kbytes` (≈+2.7 MB
 `vm.extra_free_kbytes` — are deliberately **not** shipped: they are measure-first, pending a
 before/after on the reclaim *rates* across a real print. The same audit also closes out
 `cpufreq` governor tuning, KSM, compaction and the CFS latency knobs as **not runtime-available**
-on this BSP kernel (no driver / config), so they are not pursued. forge-x ships the same six via
+on this BSP kernel (no driver / config), so they are not pursued **on stock** — the worthwhile
+ones (compaction, CFS-debug, cpufreq, MGLRU) carry forward as Plan-5 kernel-build levers (below).
+forge-x ships the same six via
 `DrA1ex/ff5m#66`.
 
 **Measured impact (qemu, `make vmtune-bench`):** A/B under an identical 150 MB random-churn
@@ -41,6 +44,21 @@ has no effect on zram swap-in (the bench confirmed `pswpin` barely moved despite
 access). It still matters for the device's **eMMC overflow swapfile** (the async path), which the
 qemu rig doesn't model; the bench's measurable wins are the reclaim-ahead knobs
 (`watermark_scale_factor`). The values are net-positive and zero-cost regardless.
+
+## Plan-5 kernel-build levers (not on stock 5.4.61)
+
+These are **not** runtime-tunable on the stock BSP kernel (the configs/drivers aren't built),
+so they're out of reach for P1–P3. They become available when ReForge ships its **own** kernel
+(Plan 5, mainline 6.x LTS). Listed here so the memory work carries forward. Full analysis:
+[`docs/research/2026-06-02-stock-kernel-runtime-tuning.md`](research/2026-06-02-stock-kernel-runtime-tuning.md) §7 / §7.1.
+
+| lever | why enable | cost / caveat |
+|---|---|---|
+| **`CONFIG_COMPACTION=y`** | live vmstat shows **`allocstall_movable 5236`** (movable-alloc stalls → direct reclaim) + CMA-16M contiguous pressure for display/camera; compaction migrates pages to satisfy high-order/CMA allocs instead of stalling. Unlocks `vm.compact_memory` (manual defrag), `compact_unevictable_allowed`, `extfrag_threshold`, and `compaction_proactiveness` (6.x). `CONFIG_MIGRATION=y` already set. | `kcompactd` CPU on 2 cores — keep proactiveness low (~20); reactive-only on <5.9. Reduces fragmentation, **not** idle RAM. zsmalloc's own compaction is separate. |
+| **MGLRU (`lru_gen`)** | default on 6.1+; far better hot/cold detection than 5.4's 2-gen LRU — directly relevant to this swap-heavy box | none meaningful; needs the 6.x kernel |
+| **`CONFIG_SCHED_DEBUG=y`** | exposes CFS latency knobs (`sched_latency_ns`, …) if klippy stepping ever needs them | debug surface; off by default |
+| **real cpufreq driver / `schedutil`** | T113 BSP binds no DVFS driver → CPU at fixed clock today; mainline could add actual scaling | board-specific bring-up |
+| **THP `madvise`** | debatable on 128 MB — likely leave off | fragmentation/RAM overhead on low memory |
 
 ## Ruled out — measured, not worth it (evidence saved effort)
 
