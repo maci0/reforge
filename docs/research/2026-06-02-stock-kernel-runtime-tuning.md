@@ -273,11 +273,64 @@ the ReForge mainline-LTS (6.x) kernel build:
   directly relevant to this swap-heavy workload.
 - A real **cpufreq driver** for the T113 (or `schedutil`) — gives actual DVFS, currently absent.
 - `CONFIG_COMPACTION=y` — lets zsmalloc/zram reclaim fragmented memory; also enables
-  `compaction_proactiveness` (5.9+) as a runtime knob.
+  `compaction_proactiveness` (5.9+) as a runtime knob. **Detailed in §7.1.**
 - THP `madvise` mode — debatable on low RAM; probably leave off.
 
 These are tracked elsewhere in the Plan-5 kernel notes; listed here only to close the loop on
 "is this knob a sysctl or a rebuild?" for each item.
+
+### 7.1 Memory compaction (`CONFIG_COMPACTION`) — possible tuning (Plan-5 kernel)
+
+**Status today: compiled out.** `# CONFIG_COMPACTION is not set` in every sun8iw20p1/T113
+kernel defconfig (`arch/arm/configs/sun8iw20p1smp*_defconfig`) and confirmed on the live unit
+— `/proc/sys/vm/compact_memory`, `compact_unevictable_allowed`, `extfrag_threshold` are all
+absent and `/proc/vmstat` has **no `compact_*` counters**. So there is nothing to tune at
+runtime on P1–P3; this is purely a **ReForge-kernel build decision** for Plan 5. `CONFIG_MIGRATION=y`
+is already set (it's the prerequisite), so enabling compaction is a small, clean addition.
+
+**What compaction does, and why it could help *this* box.** Compaction migrates movable pages
+together to free up physically-contiguous (high-order) blocks, instead of failing or
+direct-reclaiming when a >order-0 allocation can't be satisfied in a fragmented zone. On a
+128 MB SoC the contiguous-allocation pressure is real:
+
+- **`allocstall_movable 5236`** in the live vmstat (vs `allocstall_normal 1078`) — the *movable*
+  allocation class is the dominant stall source, and movable allocations are precisely what
+  compaction services. Without compaction those stalls fall straight into direct reclaim
+  (which the §2 watermark knobs only partially relieve). This is the single strongest argument
+  for enabling it.
+- **CMA = 16 MB** carved for display/camera + DMA-contiguous needs. CMA migration *uses the
+  compaction machinery*; with `CONFIG_COMPACTION` off the kernel has fewer tools to vacate a
+  CMA region when the framebuffer/camera needs a large contiguous buffer, so a fragmented box
+  can fail a CMA grab even when `CmaFree` looks ample (the appendix already shows odd
+  `CmaFree > CmaTotal` accounting). Compaction makes CMA reclaim more reliable.
+- zram's `zsmalloc` has its **own** internal compaction (`mm_stat: pages_compacted 1963`) — that
+  is *separate* from kernel `CONFIG_COMPACTION` and already runs. So enabling kernel compaction
+  helps the page-allocator / CMA side, **not** the zram store (don't double-count the benefit).
+
+**Runtime knobs it unlocks (once built):**
+
+| sysctl | default | meaning |
+|---|---|---|
+| `vm.compact_memory` | write-only | write `1` → one synchronous full-system compaction pass. A cheap **manual defrag**; good to fire once before an operation that needs contiguous memory (e.g. starting the camera/UI, or post-print). |
+| `vm.compact_unevictable_allowed` | `1` | allow compaction to migrate unevictable (e.g. mlock'd) pages. Leave `1` for best defrag on a tight box; `0` only if a latency-sensitive mlock'd region must never be migrated. |
+| `vm.extfrag_threshold` | `500` | fragmentation index (0–1000) above which the allocator prefers **compaction over reclaim** for a high-order request. Lower → compact more eagerly. Leave default unless high-order failures persist. |
+| `vm.compaction_proactiveness` | n/a on 5.4 | **5.9+ only.** Background proactive compaction (0–100). If Plan-5 lands a 6.x LTS, set this **low (~20)** so kcompactd trickle-defrags without stealing A7 cycles from klippy. On 5.4 compaction is reactive-only (on allocation failure or manual `compact_memory`). |
+
+**Costs / caveats.**
+- A `kcompactd0` kernel thread + CPU for page migration — non-trivial on 2 cores; keep
+  proactiveness low (or rely on reactive + manual triggers on 5.4) so it never competes with a
+  print's real-time stepping.
+- Tiny code-size add; negligible idle RAM.
+- Compaction reduces *fragmentation*, not total RAM use — it won't lower idle Pss. Its win is
+  fewer high-order/CMA allocation failures and fewer `allocstall_movable` direct-reclaim stalls.
+
+**Recommendation.** Enable `CONFIG_COMPACTION=y` in the Plan-5 mainline kernel (cheap, and the
+`allocstall_movable` + CMA evidence justifies it). On a 6.x build also expose
+`compaction_proactiveness` and set it modestly (~20). **Validate** before claiming a win: snapshot
+`allocstall_movable`, `pgscan_direct_throttle`, and any high-order/CMA allocation-failure counters
+(`/proc/vmstat compact_fail`, `compact_stall`) before/after over a real print + a camera start,
+and confirm kcompactd CPU doesn't show up against klippy timing. A one-shot
+`echo 1 > /proc/sys/vm/compact_memory` before a CMA-heavy operation is the safest first use.
 
 ---
 

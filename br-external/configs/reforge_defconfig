@@ -7,6 +7,11 @@ BR2_ARM_FPU_VFPV4=y
 # builds with -mcpu=cortex-a7; klippy/busybox/python verified running Thumb-2.
 BR2_ARM_INSTRUCTIONS_THUMB2=y
 BR2_OPTIMIZE_S=y
+# Link-time optimization across all packages that support it: cross-TU dead-code
+# elimination + inlining shrinks .text further on top of -Os/Thumb-2. libpython and
+# the other .so are COW-shared, so the Pss win is modest but free; main payoff is
+# smaller code pages + rootfs. Packages that can't LTO opt out individually.
+BR2_ENABLE_LTO=y
 BR2_ENABLE_LOCALE_PURGE=y
 BR2_GENERATE_LOCALE="C"
 # glibc pinned EXPLICITLY (not relying on the Buildroot default toolchain) so a
