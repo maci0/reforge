@@ -17,8 +17,10 @@
 #define VE_IRQ    98
 #define IOMMU_BASE 0x02010000
 #define IOMMU_SIZE 0x1000
+#define SYSCFG_BASE 0x03000000   /* VE node reg[1]: SRAM-to-MACC remap control */
+#define SYSCFG_SIZE 0x1000
 
-static void __iomem *ve, *gic, *iommu;
+static void __iomem *ve, *gic, *iommu, *syscfg;
 
 static int ve_diag_show(struct seq_file *m, void *v)
 {
@@ -48,6 +50,11 @@ static int ve_diag_show(struct seq_file *m, void *v)
 	} seq_printf(m, "\n"); }
 	/* IOMMU state — is the VE (master 0 on sun8iw20) translating or in bypass?
 	 * and is there a fault (VE accessing an unmapped IOVA)? */
+	if (syscfg) {
+		u32 c0 = readl(syscfg + 0x0), c4 = readl(syscfg + 0x4);
+		seq_printf(m, "SYSCFG[0x00]=%08x (bit0=%d SRAM%s-to-VE) [0x04]=%08x (bit24=%d)\n",
+			   c0, !!(c0&1), (c0&1)?"-NOT-mapped":"-mapped", c4, !!(c4&(1<<24)));
+	}
 	if (iommu) {
 		seq_printf(m, "IOMMU enable=%08x bypass=%08x ttb=%08x int_sta=%08x\n",
 			   readl(iommu + 0x020), readl(iommu + 0x030),
@@ -70,6 +77,7 @@ static int __init ve_diag_init(void)
 	ve  = ioremap(VE_BASE, VE_SIZE);
 	gic = ioremap(GIC_DIST, GIC_SIZE);
 	iommu = ioremap(IOMMU_BASE, IOMMU_SIZE);
+	syscfg = ioremap(SYSCFG_BASE, SYSCFG_SIZE);
 	if (!ve || !gic) { pr_err("ve_diag: ioremap failed\n"); return -ENOMEM; }
 	proc_create("ve_diag", 0444, NULL, &ve_diag_fops);
 	pr_info("ve_diag: loaded (ve=%p gic=%p)\n", ve, gic);
@@ -81,6 +89,7 @@ static void __exit ve_diag_exit(void)
 	if (ve) iounmap(ve);
 	if (gic) iounmap(gic);
 	if (iommu) iounmap(iommu);
+	if (syscfg) iounmap(syscfg);
 }
 module_init(ve_diag_init);
 module_exit(ve_diag_exit);
