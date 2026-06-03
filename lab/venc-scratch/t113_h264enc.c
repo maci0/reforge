@@ -257,6 +257,41 @@ static h264enc *h264enc_new(unsigned w,unsigned h,unsigned qp,int cabac){
 static int h264enc_encode_picture(h264enc*c){
 	c->current_slice_type = c->current_frame_num ? SLICE_P : SLICE_I;
 	if(getenv("RST")){ ioctl(cedar_fd,IOCTL_RESET_VE,0); writel(0x00130007,ve_regs+VE_CTRL); }
+
+	/* Two-stage flow: run the ISP engine (0xa) to load/convert the input frame into a
+	 * separate output buffer, THEN the AVC engine (0xb) encodes that. The T113 VE has a
+	 * separate ISP engine with its own trigger (MACC_ISP_TRIG 0xa0c, 1=launch) per the
+	 * linux-sunxi VE_Register_guide. ISP2=1 enables; uses bufs[0] reused as ISP output. */
+	if(getenv("ISP2")){
+		unsigned PW=c->mb_width*16, PH=c->mb_height*16;
+		uint32_t in_y=ve_virt2phys(c->luma_buffer), in_c=ve_virt2phys(c->chroma_buffer);
+		uint32_t out_y=ve_virt2phys(c->ref_picture[0].luma_buffer);
+		uint32_t out_c=ve_virt2phys(c->ref_picture[0].chroma_buffer);
+		writel(0x0013000a, ve_regs+VE_CTRL);          /* select ISP engine 0xa */
+		writel((c->mb_width<<16)|c->mb_height, ve_regs+0xa00); /* PIC_SIZE (MBs) */
+		writel(c->mb_width<<16, ve_regs+0xa04);               /* PIC_STRIDE */
+		writel(0u<<29, ve_regs+0xa08);                        /* CTRL: NV12 */
+		writel((PW/8)<<16|(PH/8), ve_regs+0xa2c);             /* SCALER_SIZE */
+		writel(0x00100100, ve_regs+0xa38);                    /* SCALER_FACTOR 1x */
+		/* source input register is uncertain on T113 — scan via ISPSRC env */
+		unsigned src=getenv("ISPSRC")?strtoul(getenv("ISPSRC"),0,16):0xa78;
+		writel(in_y, ve_regs+src); writel(in_c, ve_regs+src+4);   /* source candidate */
+		writel(out_y, ve_regs+0xa70); writel(out_c, ve_regs+0xa74); /* ISP output */
+		writel(0x7, ve_regs+0xa10);                           /* clear ISP status */
+		uint32_t pre=readl(ve_regs+0xa10);
+		if(!getenv("NOTRIG")) writel(0x1, ve_regs+0xa0c);     /* ISP TRIG launch */
+		uint32_t ist=0; struct timespec a,b; clock_gettime(CLOCK_MONOTONIC,&a);
+		for(;;){ ist=readl(ve_regs+0xa10); if(ist&0x3) break;
+			clock_gettime(CLOCK_MONOTONIC,&b);
+			if((b.tv_sec-a.tv_sec)*1000+(b.tv_nsec-a.tv_nsec)/1000000>300) break; }
+		uint8_t*op=(uint8_t*)c->ref_picture[0].luma_buffer;
+		fprintf(stderr,"[ISP stage] a10 pre=0x%08x post=0x%08x  out_first8=%02x %02x %02x %02x %02x %02x %02x %02x\n",
+			pre, ist, op[0],op[1],op[2],op[3],op[4],op[5],op[6],op[7]);
+		writel(ist, ve_regs+0xa10);                           /* ack ISP status */
+		/* point AVC input at the ISP output */
+		c->luma_buffer=c->ref_picture[0].luma_buffer;
+		c->chroma_buffer=c->ref_picture[0].chroma_buffer;
+	}
 	c->regs=ve_get(VE_ENGINE_AVC,0);
 
 	ve_flush_cache(c->bytestream_buffer,c->bytestream_buffer_size);

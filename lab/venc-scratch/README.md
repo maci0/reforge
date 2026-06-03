@@ -52,7 +52,25 @@ Findings that pin it:
   (verified: `firmwareExe` holds `/dev/video0` as `MJPG`, loads no venc/cedar libs, never
   opens `/dev/cedar_dev`).
 
-## Root cause: the VE codec engine never completes ANY op on this unit
+## UPDATE — the VE is NOT inert: the ISP engine (0xa) responds to its trigger
+A later finding revises the "completes nothing" conclusion below. The linux-sunxi
+VE_Register_guide shows the VE has a **separate ISP engine (0xa)** with its own trigger
+(`MACC_ISP_TRIG` 0xa0c, 1=launch), feeding the **AVC engine (0xb)** — a two-stage pipeline
+neither jemk's A20 code nor the standalone path runs. Implemented it (`ISP2=1`):
+- Selecting engine 0xa and writing `a0c=1` makes the ISP status `a10` go **0→1, reproducibly,
+  and ONLY when the trigger is written** (control test with the trigger skipped leaves it 0).
+  So the engine is **not inert** — it deterministically acknowledges the ISP trigger.
+- BUT no visible converted output yet (the T113 ISP **source/output address registers differ
+  from the guide's gen** — guide's `a00` is width/16, the T113 lib uses width/8 — and a scan of
+  candidate source offsets produced nothing at `a70/a74`), and the AVC engine (0xb) still stalls.
+
+So the encode is most likely a **solvable register-programming problem** (correct T113 ISP
+source/output mapping + ISP→AVC coupling), not dead silicon. Remaining RE: map the T113 ISP
+source/output registers (the guide is a different VE gen) and the ISP→AVC hand-off. This is the
+most promising open lead; the "never completes" framing below applies to the AVC engine and the
+naive single-stage flow, not the ISP trigger.
+
+## (earlier) The AVC engine / single-stage flow never completes ANY op
 Converging evidence that this is the **VE revision / unit**, not the code:
 - **jemk's register sequence is PROVEN on the A20 (VE 0x1625); it hangs identically here
   (VE 0x1667).** Same register layout, different revision — the T113 encode-completion path
