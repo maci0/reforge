@@ -60,3 +60,8 @@ disp_reserve=1536000,0x448ee000 androidboot.dramsize=128
 - [firmwareexe-ota-update.md](firmwareexe-ota-update.md) — OTA path (MD5-only, unsigned).
 - [firmwareexe-cloud-command-surface.md](firmwareexe-cloud-command-surface.md) — remote-control surface.
 - [firmwareexe-lan-protocol-and-crypto.md](firmwareexe-lan-protocol-and-crypto.md) — TCP 8899 + crypto/keys.
+- [firmwareexe-local-print-api.md](firmwareexe-local-print-api.md) — Klippy socket /tmp/uds + print g-code.
+- [firmwareexe-cloud-rest-and-oss.md](firmwareexe-cloud-rest-and-oss.md) — cloud REST + OSS upload.
+- [firmwareexe-filesystem-and-system.md](firmwareexe-filesystem-and-system.md) — ffsdk, FS map, USB, PWM, display.
+- [firmwareexe-network-wifi.md](firmwareexe-network-wifi.md) — wifi/eth/AP/static.
+- [firmwareexe-ui-classes.md](firmwareexe-ui-classes.md) — UI/i18n/Guider/dialogs/QR.

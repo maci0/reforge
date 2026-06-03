@@ -10,6 +10,11 @@ references:
 - [`firmwareexe-ota-update.md`](firmwareexe-ota-update.md) — OTA path (**MD5-only, unsigned**).
 - [`firmwareexe-cloud-command-surface.md`](firmwareexe-cloud-command-surface.md) — remote-control surface.
 - [`firmwareexe-lan-protocol-and-crypto.md`](firmwareexe-lan-protocol-and-crypto.md) — TCP 8899, discovery, keys.
+- [`firmwareexe-local-print-api.md`](firmwareexe-local-print-api.md) — Klippy socket `/tmp/uds` (ETX-framed) + print g-code.
+- [`firmwareexe-cloud-rest-and-oss.md`](firmwareexe-cloud-rest-and-oss.md) — cloud REST catalog + OSS upload.
+- [`firmwareexe-filesystem-and-system.md`](firmwareexe-filesystem-and-system.md) — ffsdk, filesystem map, USB, PWM, display.
+- [`firmwareexe-network-wifi.md`](firmwareexe-network-wifi.md) — wifi/eth/AP/static via shell-outs.
+- [`firmwareexe-ui-classes.md`](firmwareexe-ui-classes.md) — Keyboard/Language/Guider/dialogs/QR.
 
 ## 0. What it is
 
@@ -227,6 +232,11 @@ Added by the deep-dives (see linked docs):
     check (weak serial+code).
 12. **Shell-interpolated crypto** (`echo -n '<challenge>' | openssl dgst -sign`, `curl -F 'X-Amz-Signature=..'`)
     with cloud-supplied fields → command-injection surface.
+13. **Hardcoded HMAC secrets in the binary** for cloud log-upload signing (`A7dK9xP2LmQ4sT8Z`,
+    `s9Kf3Lx2Pq8Vn4TzA1mR6YwB`, const `model_log_upload`) → forgeable `/api/v3/model/log/upload`.
+14. **Default UI credentials in config**: `admin` / `ff123456` (`Adventurer5M.json` userID/userPass).
+15. **Cleartext + shell-injectable wifi**: STA/AP creds passed on `wpa_cli`/`echo` command lines and
+    stored plaintext; touchscreen SSID/PSK interpolated unescaped into `system()`.
 
 (No secret values reproduced here — presence + location only.)
 
