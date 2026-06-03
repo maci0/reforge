@@ -1,11 +1,16 @@
-# AD5M Pro — stock Klipper hardware config (recovered from firmwareExe)
+# AD5M Pro — stock Klipper hardware config
 
-The complete printer.cfg / pin map the stock firmware uses, recovered verbatim from embedded
-config fragments in `/opt/PROGRAM/software/5.1.4/firmwareExe` (not stripped). Needed to author a
-from-scratch ReForge `printer.cfg`. Live on-device paths: `/opt/config/printer.cfg`,
-`/opt/config/printer.base.cfg` (extruder/eboard sections via `[include printer.base.cfg]`),
-`/opt/config/levelPrint.cfg`. (Version note: software package dir is `5.1.4`; the app/UI version
-string embedded is `V2.0.0-1.3` — distinct fields.)
+The complete printer.cfg / pin map for the AD5M Pro. **Cross-validated against three sources** (pin
+map + all mechanical/electrical values are IDENTICAL across them — see "Config differences" below):
+1. **Stock firmwareExe 5.1.4** — recovered verbatim from embedded config fragments in
+   `/opt/PROGRAM/software/5.1.4/firmwareExe` (not stripped).
+2. **Stock factory 3.1.3** — `printer.cfg`/`printer.base.cfg` from the ff5m 1.2.0 factory image
+   (`vendor/stock-printer-cfg/`).
+3. **forge-x live** — the on-unit `/opt/config/printer.cfg` (forge-x restructures it; values same).
+
+Live on-device paths: `/opt/config/printer.cfg`, `/opt/config/printer.base.cfg`
+(`[include printer.base.cfg]`), `/opt/config/levelPrint.cfg`. Needed to author a from-scratch
+ReForge `printer.cfg`.
 
 ## Dual-MCU topology
 Two MCUs, both **230400 baud**, `restart_method: command`:
@@ -69,7 +74,8 @@ Klipper started by `/opt/klipper/start.sh &`; API socket `/tmp/printer` (+ `/tmp
   `probe_count 5,5`, `algorithm bicubic`, `bicubic_tension 0.2`.
 - **[probe]** `pin !PB4`, `z_offset -0.25`, `speed 5`, `samples 3`.
 - **[adxl345]** eboard SPI, `rate 800`. **[resonance_tester]** `5–100 Hz`, point `0,0,100`.
-- **[servo my_servo]** angles 0–180, `initial_angle 115`, pulse 0.0005–0.0025.
+- **[servo my_servo]** angles 0–180, pulse 0.0005–0.0025, **`initial_angle`: 90 (factory 3.1.3) /
+  115 (firmwareExe 5.1.4 + forge-x live)** — the one value that changed between fw versions.
 - Misc: `[idle_timeout] timeout 600`, `[pause_resume] recover_velocity 50`,
   `[gcode_arcs] resolution 1.0`, `[virtual_sdcard] path /data/`, `[display_status]`,
   `[pid_calibrate]`, `[exclude_object]`.
@@ -86,6 +92,29 @@ Klipper started by `/opt/klipper/start.sh &`; API socket `/tmp/printer` (+ `/tmp
 - Fans: `fanM106` (part, eboard:PB5), `heat_fan` (heatbreak, eboard:PB4, heater_temp 50),
   `chamber_fan` (PC6/PC7 hw_pwm), `pcb_fan` (PB7), `internal_fan` (PB8), `external_fan` (PB6).
 - `led chamber_led` white_pin PA8.
+
+## Config differences across versions
+Pin map + every mechanical/electrical value (steppers, currents, PID, shaper, mesh, probe,
+sensors, fans, build volume) is **identical** across factory 3.1.3, firmwareExe 5.1.4, and the
+forge-x live config. The only differences are version bumps and forge-x's restructuring:
+
+| Item | Factory **3.1.3** (ff5m 1.2.0) | firmwareExe **5.1.4** | **forge-x live** (on unit) |
+|---|---|---|---|
+| servo `initial_angle` | `90` | `115` | `115` |
+| `[heater_bed]` location | in `printer.base.cfg` | in `printer.base.cfg` | moved into `printer.cfg` |
+| chamber LED | `[led chamber_led]` white_pin PA8, hw_pwm False | `[led chamber_led]` | renamed `[led chamber_light]`, `+ cycle_time: 0.002` |
+| `[fan_generic pcb_fan]` (PB7) | present | present | **removed** |
+| extruder `[extruder]` PID | active (`control: pid …`) | active | **commented out** (deferred to `SAVE_CONFIG`) |
+| `[input_shaper]` | active (mzv 47.4/46.2) | active | **commented out** (deferred to `SAVE_CONFIG`) |
+| extra sections | — | — | `[skew_correction]`, `[include ./mod/config/stock.cfg]`, `[include ./mod_data/user.cfg]` (DEFERRED_INCLUDES), auto `SAVE_CONFIG` mesh data |
+
+**forge-x restructuring (live config):** PID + shaper values are removed from the static cfg and
+left to Klipper's `SAVE_CONFIG` autosave / a separate `mod_data/user.cfg` include, so per-machine
+calibration persists independently of the base config. `heater_bed` + the chamber LED are lifted
+into `printer.cfg`; `pcb_fan` is dropped; `chamber_led`→`chamber_light` (+ `cycle_time` for PWM
+smoothing). Whitespace is normalized (trailing spaces trimmed). The pin assignments are untouched.
+
+Canonical factory copies are committed at `vendor/stock-printer-cfg/` (factory 3.1.3).
 
 ## ReForge notes
 - A from-scratch config must instantiate **both** `[mcu]` (`/dev/ttyS5`) and `[mcu eboard]`
