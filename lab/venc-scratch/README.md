@@ -108,17 +108,21 @@ reach DRAM). So the VE does internal logic but **no DMA completes**.
 
 SoC-level checks (via `../ve-kmod/ve_diag.ko`) — every layer verified correct/enabled:
 - MBUS master **access-enable** `ACEN0@0x20=0xffffffff` → VE (port 26) IS bus-enabled.
-- MBUS VE QoS/priority (`cfg0@0x3b0`) = 0 (lowest). The driver's own `mbus_port_setpri(26,1)`
-  is commented out ("kernel version not support"). A lowest-QoS real-time codec under the
-  always-active display master *could* be starved — but **writing the QoS register from a kmod
-  does not stick** (reads work, writes drop; the master-config reg is RO/locked without the
-  MBUS config clock or a bootloader-owned unlock). So this lead is plausible but **not
-  modifiable from any reachable interface**.
+- MBUS VE QoS/priority: on sun8iw20 the **VE is MBUS master 4** (`MBUS_PMU_VE=4`), so CFG0 is
+  at `0x210+0x10*4 = 0x250` (the cedar driver's `mbus_port_setpri(26,...)` `26` was
+  multi-platform code for a different SoC — `0x3b0` is a reserved reg, which is why an earlier
+  write there didn't stick). At the **correct** register `cfg0@0x250` the kmod successfully set
+  the VE to **pri=1 + QoS=3 (max)** (`0x0 → 0xe`, verified) — and the encode **still hangs**.
+  So MBUS QoS starvation is **ruled out**: even at max priority/QoS + access-enabled, no DMA
+  completes.
 - (also verified: all 6 VE clocks incl mbus-ve, IOMMU translation+no-fault, SRAM mapped.)
 
-Net: the VE acknowledges trigger-register writes but completes no DMA-backed codec op, and the
-one remaining plausible cause (MBUS QoS starvation) sits behind a locked register. The fix, if
-any, lives in bootloader/SoC init the stock pipeline performs — not reachable here.
+Net: the VE acknowledges trigger-register writes but completes no DMA-backed codec op, with
+**every reachable SoC control verified correct/enabled** — 6 VE clocks (incl mbus-ve), IOMMU
+(translates, no fault), SRAM (mapped), MBUS access-enable (master 4 on), and MBUS QoS/priority
+(set to max at the correct register `0x250`). None makes any DMA complete. The cause is below
+the layer reachable/modifiable from Linux — silicon, or an undocumented AXI/bus-interface init
+the stock `RecordCamera` pipeline performs (and which never runs: USB-MJPEG camera).
 
 ## Practical conclusion
 HW H.264 encode does **not** complete in any standalone configuration reachable on this
