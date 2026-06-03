@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-02
 **Status:** reference — informs ReForge's printer config + the v11↔v13 switch design.
-**See also:** [`board-notes/ad5m-pro-klipper-hardware-config.md`](board-notes/ad5m-pro-klipper-hardware-config.md)
+**See also:** [`reverse-engineering/ad5m-pro-klipper-hardware-config.md`](reverse-engineering/ad5m-pro-klipper-hardware-config.md)
 — the complete MCU pin map / printer.cfg section values (cross-validated 3 sources).
 
 This documents (1) what the "v11" / "v13" MCU firmware versions are and how the two

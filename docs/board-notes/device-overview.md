@@ -29,7 +29,9 @@ Top-level map of the FlashForge Adventurer 5M Pro hardware/software stack (this 
   `encoderTest`, `vdecoderdemo`, `vencoderDemo`.
 
 ## Related
-- Full doc index: [README.md](README.md) (the 11 firmwareExe RE docs + hardware/mod docs).
+- **Stock-firmware RE finding reports**: [`../reverse-engineering/`](../reverse-engineering/)
+  (firmwareExe analysis + stock Klipper pin map).
+- Board-notes index: [README.md](README.md). forge-x mod boot: [forge-x-boot-architecture.md](forge-x-boot-architecture.md).
 - `../../lab/venc-scratch/README.md` — Cedar VE H.264 encode investigation (HW encode non-functional).
 - `../../lab/ve-kmod/` — VE/IOMMU/MBUS diagnostic kernel module.
 

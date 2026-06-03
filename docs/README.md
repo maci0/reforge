@@ -14,7 +14,8 @@
 | `specs/` | design specs (dated) — archival snapshots |
 | `plans/` | implementation plans (dated) — archival snapshots |
 | `research/` | findings: memory experiments, T113 mainline support, stock recovery images, stock-UI spike, buildroot-vs-alpine, etc. |
-| `board-notes/` | device/hardware reference + full reverse-engineering of the stock `firmwareExe` UI app + forge-x boot architecture (start at `board-notes/README.md`) |
+| `reverse-engineering/` | stock-firmware RE finding reports — full teardown of the `firmwareExe` UI app + stock Klipper pin map (start at `reverse-engineering/README.md`) |
+| `board-notes/` | device/hardware reference: device overview, forge-x boot architecture, captured kernel config / unit probe |
 | `screenshots/` | qemu-captured renders + the boot console / bootsplash (see its README) |
 
 **Convention:** `specs/` and `plans/` are *snapshots* — they record paths/decisions as written

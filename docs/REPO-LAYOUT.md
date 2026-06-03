@@ -13,7 +13,7 @@ tests/         ALL validation
   smoke/         smoke_rootfs, smoke_guppy, repro_check, chroot_integration
   loopback-install-test.sh
   qemu-harness/  qemu-system-arm: kernel build, fb-pinned render, update/web tests
-docs/          knowledge: architecture/build/boot/ota (diagrams) + specs/ plans/ research/ board-notes/ screenshots/ REPO-LAYOUT.md BACKLOG.md
+docs/          knowledge: architecture/build/boot/ota (diagrams) + specs/ plans/ research/ board-notes/ reverse-engineering/ screenshots/ REPO-LAYOUT.md BACKLOG.md
 tools/         dev/ops tooling (not shipped in firmware)
   build/         build.sh + env.sh — top-level build entry
   recovery/      golden-dump tooling + RUNBOOK
@@ -36,7 +36,7 @@ Makefile  pins.lock  .gitmodules  .github/   build glue, pins, submodule registr
 | `modules/zram-bsp/` | zram/zsmalloc loadable modules **(our build scripts + `swapon_prio.c` + setup + `dist/*.ko`)**. Builds against the BSP submodule in `vendor/`. |
 | `modules/f2fs-bsp/` | Live-mode loadable modules — `loop.ko` + `crc32_generic.ko` + `f2fs.ko` (build script + `dist/*.ko`), built against the BSP at the device's exact vermagic. |
 | `tests/` | All test **runners**: `smoke/`, `loopback-install-test.sh`, `qemu-harness/`. |
-| `docs/` | `specs/`, `plans/`, `research/`, `board-notes/`, `screenshots/`, this file. |
+| `docs/` | `specs/`, `plans/`, `research/`, `board-notes/`, `reverse-engineering/`, `screenshots/`, this file. |
 | `tools/build/` | `build.sh` + `env.sh` — build entry (driven by the `Makefile`). |
 | `tools/recovery/` | Golden-dump tooling + `RUNBOOK.md` (scripts only — images gitignored). |
 | `Makefile`, `pins.lock`, `.gitmodules`, `.github/` | Build glue, pins, submodule registry, CI no-blobs guard. |
