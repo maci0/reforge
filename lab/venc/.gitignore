@@ -1,0 +1,6 @@
+# proprietary device blobs — fetch from the printer per build.sh
+devlibs/
+# build output
+enc_nv12_h264
+*.nv12
+*.h264

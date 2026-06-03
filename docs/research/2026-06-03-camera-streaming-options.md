@@ -142,11 +142,27 @@ Staged plan (each stage independently verifiable):
   cheaply at 640×480: `ffmpeg -f v4l2 -input_format mjpeg -i /dev/video0 -pix_fmt nv12 -f rawvideo - `.
   (Later: replace CPU JPEG-decode with the VE's HW JPEG **decoder** via `cedrus`/`libvecore` to
   drop CPU further.)
-- **Stage 2 — wire it.** Chain camera→decode→encode through a FIFO. `vencoderDemo` reads a file,
-  so either point `-i` at a named pipe fed by the ffmpeg rawvideo, or write a ~150-line C app
-  against the VENC API (`VencCreate/VencInit/VencQueueInputBuffer/VencDequeueOutputBuffer`,
-  headers from the Allwinner Tina `libcedarc/vencoder/` the demo is built from). Cross-compile
-  with the ReForge buildroot armhf toolchain, link the device's `libvenc*.so`.
+- **Stage 2 — custom VENC app.** *Attempted live 2026-06-03 — substantial progress, blocked at
+  encoder memory init; code + harness in [`lab/venc/`](../../lab/venc/).* Findings:
+  - Recovered the **full cedarc VENC API + struct layouts** from the on-device libs' DWARF
+    (`gdb ptype`/`sizeof`/`offsetof`) and wrote `enc_nv12_h264.c` driving structs by byte-offset
+    (ABI-exact). API is the canonical `VideoEncCreate/VideoEncInit/VideoEncSetParameter/
+    GetOneAllocInputBuffer/AddOneInputBuffer/VideoEncodeOneFrame/GetOneBitstreamFrame`.
+  - **ABI gotcha:** the device `libvenc*.so` are **soft-float** (`0x5000202`, `/lib/ld-linux.so.3`)
+    — the ReForge buildroot toolchain is hard-float and **cannot** be used. Built with a
+    soft-float **Linaro `arm-linux-gnueabi`** gcc instead.
+  - The binary **runs and the Cedar VE initializes** (`VeInitialize: ic_version=0x1301000010210`),
+    reaching `H264InitMemory` — but init fails there: **`h264Context->pBSMamager == NULL`**
+    (`venc_init_fail`). Ruled out by tracing the working stock demo and matching it: `memops`
+    choice (`MemAdapterGetOpsS` vs the ION ops `__GetIonMemOpsS`), VBV size (12 MB), all
+    `VencH264Param` values (profile=High/CABAC), and `memops->open()`.
+  - **Root differentiator:** the stock `vencoderDemo`'s init succeeds because its **first
+    `VENC_IndexParamProcSet` (1027)** call passes an internal **context pointer** (a lib address)
+    that can't be reconstructed from outside the closed lib. (The demo then crashes later in
+    `H264EncEncode` on its own NULL — its input path — but its *init* is clean.)
+  - **Next step:** trace the stock **`libsdk_camera.so`** (Android camera HAL), which drives this
+    exact VE successfully, and mirror its VENC init / what the ProcSet pointer references; or RE
+    `libvenc_codec.so`'s `H264InitMemory`. Then finish: FIFO from camera→decode→this encoder.
 - **Stage 3 — transport + browser decode.** Emit the H.264 **Annex-B** elementary stream over a
   WebSocket; a ~50-line HTML page feeds NAL units to **WebCodecs `VideoDecoder`**
   (`codec:"avc1.42E01E"` = baseline). Alternatively reuse on-device gstreamer for RTP
