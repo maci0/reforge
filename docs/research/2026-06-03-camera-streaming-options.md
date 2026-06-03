@@ -47,17 +47,31 @@ free. Two viable transport/decode options on the client:
 
 ### The catch — why it's a spike, not a drop-in
 - The camera gives **MJPEG, not raw**, so H.264 needs a **transcode**: `MJPEG → HW JPEG-decode
-  (Cedar) → HW H.264-encode (Cedar libvenc_h264)`. The VE can do both, but it's the
-  **proprietary vendor stack**, not mainline V4L2 M2M.
-- Therefore the obvious off-the-shelf tools **don't work out-of-box here**:
-  - `ayufan/camera-streamer` (the Klipper SOTA: HW MJPEG + H.264 + WebRTC) targets the
-    **Raspberry Pi** V4L2 stateful encoder — it has no Allwinner Cedar backend.
-  - `ustreamer` is MJPEG-focused (HW-JPEG offload on Pi), no Cedar H.264.
-- Proof the building block exists: `rosimildo/videoenc` is an Allwinner Cedar H.264 encoder
-  demo using the same `libvenc` family the T113 ships. So a **custom pipeline** (or a gstreamer
-  build with the sunxi cedar plugins) using `libvenc_h264.so` is feasible — but it's real
-  integration work, and the transcode consumes CMA/VE buffers (bounded, but non-trivial on the
-  16 MB CMA budget).
+  (Cedar) → HW H.264-encode (Cedar)`. The VE can do both.
+- **Encode driver state (the load-bearing detail):**
+  - **Mainline `cedrus` is decode-only** — MPEG2 (5.0), H264 (5.2), H265 — **no encode**.
+  - **Hardware encode is real but out-of-tree.** Bootlin shipped an open-source V4L2 H.264
+    **encoder** driver in 2023 — but **only for the Allwinner *V3 / V3s / S3* camera SoCs**, and
+    not mainlined (no stable stateless-encoder uAPI yet; rate-control absent, QP-only). Older
+    community PoCs exist for A10/A13/A20/H3 H.264 **and JPEG** encode. So yes — the Allwinner VE
+    **can** encode H.264 + JPEG/MJPEG; the capability is well established.
+  - **BUT that driver is for a different VE than ours.** Naming trap: the "**S3**" in *T113-S3*
+    is Allwinner's **stacked-DRAM package suffix** (the SoC is **sun8iw20p1**, D1/D1s family) —
+    **unrelated** to the V-series "**S3 / V3s**" camera SoCs Bootlin's encoder targets. The T113
+    VE is the newer (H265-capable, D1-class) generation. The emerging cedrus-encode work is
+    moving toward newer parts (there's an **H616 cedrus-encoder** test effort + a FOSDEM-2024
+    stateless-encode uAPI push), and T113≈D1 may eventually ride that — but **no open V4L2
+    encoder exists for the T113 today**. Porting Bootlin's approach to this VE = dedicated work.
+  - **What works on the T113 right now is the proprietary `cedarx`/`libvenc` blob** — the device
+    already ships `libvenc_h264.so` / `libvenc_jpeg.so` / `libVE.so`, and the stock camera app
+    uses exactly that stack. `rosimildo/videoenc` is a working example of Cedar H.264 encode via
+    `libvenc` on Allwinner.
+- Net: the off-the-shelf Klipper tools **don't work out-of-box** —
+  `ayufan/camera-streamer` (HW MJPEG/H264/WebRTC) and `ustreamer` both target the **Raspberry Pi**
+  V4L2 stateful encoder, no Allwinner Cedar backend. The H.264 path therefore means either (a) a
+  **custom pipeline over the vendor `libvenc`** (works today, closed blob), or (b) **porting the
+  open cedrus stateless encoder** to the T113 VE generation (open, but real driver work). Either
+  way the transcode consumes VE/CMA buffers — bounded but non-trivial on the 16 MB CMA budget.
 
 ## Options summary
 
@@ -85,7 +99,10 @@ free. Two viable transport/decode options on the client:
 
 ## Sources
 - [ayufan/camera-streamer](https://github.com/ayufan/camera-streamer) (HW MJPEG/H.264/WebRTC; Pi-targeted) · [streaming.md](https://github.com/ayufan/camera-streamer/blob/main/docs/streaming.md)
-- [rosimildo/videoenc — Allwinner Cedar H.264 encoder demo](https://github.com/rosimildo/videoenc)
+- [rosimildo/videoenc — Allwinner Cedar H.264 encoder demo (libvenc)](https://github.com/rosimildo/videoenc)
+- [Bootlin — open-source V4L2 H.264 encoder for Allwinner V3/V3s/S3 (2023, out-of-tree)](https://bootlin.com/blog/open-source-linux-kernel-support-for-the-allwinner-v3-v3s-s3-h-264-video-encoder/) · [CNX coverage](https://www.cnx-software.com/2023/11/17/allwinner-vpu-open-source-h264-hardware-video-encoder-linux-driver/)
+- [linux-sunxi: Cedrus](https://linux-sunxi.org/Cedrus) (mainline = decode-only) · [VE encode JPEG/H264 (H3/A20 PoC thread)](https://linux-sunxi.narkive.com/dAlIku99/ve-encondig-jpeg-h264-for-h3)
+- [bootlin/v4l2-cedrus-enc-test — H616 Cedrus encoder issue](https://github.com/bootlin/v4l2-cedrus-enc-test/issues/1) · FOSDEM 2024 "V4L2 Stateless Video Encoding" (Kocialkowski)
 - [WebCodecs API (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/WebCodecs_API) · [w3c/webcodecs #732 (1-in-1-out latency)](https://github.com/w3c/webcodecs/issues/732)
 - [Mainsail/Crowsnest streaming backends](https://docs.mainsail.xyz/crowsnest/faq/backends/)
 - Device probe (this unit): `v4l2-ctl --list-formats-ext` → MJPG-only; `/dev/cedar_dev` + `libvenc_h264/h265/jpeg.so` present.
