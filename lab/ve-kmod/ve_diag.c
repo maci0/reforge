@@ -61,6 +61,13 @@ static int ve_diag_show(struct seq_file *m, void *v)
 			   c0, !!(c0&1), (c0&1)?"-NOT-mapped":"-mapped", c4, !!(c4&(1<<24)));
 	}
 	if (mbus) {
+		/* MBUS PMU: enable all counters (0x9c=1), read VE (id4) bandwidth counter @0xa0+4*4=0xb0.
+		 * If this moves across an encode, the VE IS issuing DRAM transactions (DMA works). */
+		writel(0x1, mbus + 0x9c);
+		seq_printf(m, "MBUS PMU cnteb@0x9c=%08x  VE_cnt@0xb0=%u  total@0xbc=%u  cpu@0xa0=%u\n",
+			   readl(mbus + 0x9c), readl(mbus + 0xb0), readl(mbus + 0xbc), readl(mbus + 0xa0));
+	}
+	if (mbus) {
 		u32 acen0 = readl(mbus + 0x20), acen1 = readl(mbus + 0x24), acen2 = readl(mbus + 0x28);
 		/* VE MBUS port = 26 -> ACEN reg0 bit26 */
 		seq_printf(m, "MBUS ACEN0@0x20=%08x (VE master4 enabled=%d) ACEN1@0x24=%08x ACEN2@0x28=%08x\n",

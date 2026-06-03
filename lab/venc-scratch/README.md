@@ -99,7 +99,30 @@ So the missing piece is in the T113-specific encode-engine programming that only
 `RecordCamera` pipeline performs — which never runs (USB-MJPEG camera) and is stripped. No
 reachable open or closed code on this device completes a VE codec op to copy from.
 
-## Deepest finding: VE counts bits internally but never writes DRAM
+## CORRECTED deepest finding: DMA works; VE reads input then hangs pre-MB-encode
+Using the MBUS PMU per-master bandwidth counter (VE = master 4, counter `0xb0`, enable `0x9c`)
+as a live signal — this **revises the "no DMA / never completes" conclusions above**:
+- At idle the VE PMU counter is 0; during an encode it jumps and **scales with frame size**
+  (16×16→1920, 64×64→2688, 320×240→3456, 640×480→4224 units ≈ ~850 KB). So **the VE genuinely
+  issues DRAM transactions and reads the full input frame** — DMA works, the engine is functional.
+- But after reading the input it **hangs before encoding any macroblock**: `VLE_LENGTH` stays at
+  the header size (224 bits), and a full cache-invalidated scan of every buffer shows **only the
+  input buffer has data** — the VE writes no reconstruction, no bitstream, nothing. So the stall
+  is at the **input-conversion → MB-encode transition** (the AVC engine's internal ISP step),
+  after a successful input DMA read.
+- A full register sweep (ISP bank 0xa10–0xafc, AVC bank 0xb20–0xbfc) writing a valid buffer IOVA
+  to each candidate output/rec/intermediate register changed nothing (status stays 0x80000260);
+  the only "hit" (0xb88) is an artifact — that's `VLE_OFFSET`, and an IOVA there just reflects
+  into `VLE_LENGTH`. So no single reachable register unblocks the pre-MB-encode stall.
+
+Net (accurate): the VE is **functional and does DMA**, reads the whole input frame, then stalls
+at the undocumented T113 input-conversion/ISP stage that bridges input→MB-encode. The vendor's
+own standalone `libvenc` stalls identically here. The missing piece is the correct T113 ISP
+register programming for that transition — undocumented, and not crackable by single-register
+brute force (likely a multi-register setup or an internal-SRAM handoff only the stock
+`RecordCamera` pipeline performs).
+
+## (superseded) earlier finding: VE counts bits internally but never writes DRAM
 A cache-invalidated read of the output buffer after a triggered encode: `VLE_LENGTH`=224
 bits counted, but the **DRAM output buffer is all zeros** — the VE's bitstream FIFO counter
 increments but nothing reaches DRAM. Consistent across encode (hangs on input DMA), ISP

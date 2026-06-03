@@ -379,6 +379,14 @@ static int h264enc_encode_picture(h264enc*c){
 		if(ms>pollms) break;
 	}
 	uint32_t vle_len=readl(c->regs+VE_AVC_VLE_LENGTH);
+	/* DECISIVE: did the bitstream the VE counted (VLE_LENGTH) actually reach DRAM?
+	 * invalidate cache, read the output buffer. H.264 starts 00 00 00 01. */
+	{ struct dma_buf_sync s={3}; for(int i=0;i<nbufs;i++) ioctl(bufs[i].fd,DMA_BUF_IOCTL_SYNC,&s);
+	  fprintf(stderr,"[output DRAM] vle_bits=%u — scanning ALL buffers (full) for VE output:\n",vle_len);
+	  for(int i=0;i<nbufs;i++){ uint8_t*b=bufs[i].cpu; int nz=0,first=-1;
+	    for(size_t k=0;k<bufs[i].size;k++){ if(b[k]){nz++; if(first<0)first=k;} }
+	    if(nz) fprintf(stderr,"  buf[%d] iova=0x%08x sz=%zu: %d nonzero, first@%d = %02x %02x %02x %02x %02x %02x %02x %02x\n",
+	      i,bufs[i].iova,bufs[i].size,nz,first,b[first],b[first+1],b[first+2],b[first+3],b[first+4],b[first+5],b[first+6],b[first+7]); } }
 	if(getenv("DUMP")){
 		fprintf(stderr,"  VE_CTRL=%08x\n",readl(ve_regs+VE_CTRL));
 		fprintf(stderr,"  ISP size=%08x stride=%08x ctrl=%08x luma=%08x chroma=%08x\n",
