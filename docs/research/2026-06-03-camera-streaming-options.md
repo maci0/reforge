@@ -119,11 +119,24 @@ vencoderDemo -h        # options:
 
 Staged plan (each stage independently verifiable):
 
-- **Stage 0 — prove HW H.264 encode.** Feed a known NV12 frame set and encode:
-  `vencoderDemo -i test.nv12 -if 0 -f 0 -s 640x480 -d 640x480 -b 1500 -n 300 -o out.h264`.
-  Pull `out.h264` off device, `ffprobe`/`ffplay` on host → confirms the Cedar H.264-baseline
-  encoder works and the output is standards-decodable. (Also try `-f 1` for JPEG as a sanity
-  check — simplest VE path.)
+- **Stage 0 — prove HW H.264 encode.** *Attempted live 2026-06-03 — partial result, documented
+  so the next attempt starts ahead:*
+  - VE hardware + driver **init OK**: `vencoderDemo` triggers `enable_cedar_hw_clk` (dmesg), and
+    `/dev/cedar_dev` + `/dev/ion` (the VE memory backend) are present; CMA had 27 MB free (not a
+    limiter).
+  - **But `vencoderDemo` segfaults inside the encode call** — for **both** `-f 0` (H264) and `-f 1`
+    (JPEG). gdb: `SIGSEGV in H264EncEncode (libvenc_codec.so)` at `ldr r4,[r3,#40]` with **`r3=0`**
+    → a **NULL encoder-context member** at encode time. So the generic Tina sample does **not**
+    fully initialize *this* BSP's `libvenc` build (almost certainly the input frame needs an
+    **ION physical address** the demo's CLI path doesn't wire — both codecs share the same
+    buffer-setup, hence both crash). `/etc/cedarx.conf`/`cedarc.conf` are decoder-only, no help.
+  - The path that **does** drive this VE successfully is FlashForge's stock **`libsdk_camera.so`**
+    — an **Android camera HAL** (`android::V4L2CameraDevice`, `Libve_*`) that allocates via ION.
+  - **Revised next step:** don't rely on the stock demo. Either (a) trace how `libsdk_camera`
+    sets up the ION input buffer + VENC init and mirror it, or (b) go straight to the Stage-2
+    custom app using the VENC API with **explicit ION-allocated input** (`VencQueueInputBuffer`
+    with both virtual *and* physical addrs). The hardware is proven reachable; the gap is the
+    correct ION buffer init, not the encoder itself.
 - **Stage 1 — camera MJPEG → NV12.** The sensor is MJPEG-only, so decode to NV12 first. Device
   `ffmpeg` has **no cedar encoder and no hwaccels** (minimal build), but it can CPU-decode MJPEG
   cheaply at 640×480: `ffmpeg -f v4l2 -input_format mjpeg -i /dev/video0 -pix_fmt nv12 -f rawvideo - `.
