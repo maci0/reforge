@@ -5,7 +5,7 @@
 # Produces a .tar.gz holding (at the archive root): the live launcher, three BSP
 # kernel modules (loop+crc32+f2fs), and the ReForge rootfs as an F2FS image. NO dd
 # and no dedicated stick needed — the stock FlashForge auto_run.sh scans ANY FAT USB
-# for /flashforge_init.sh (see docs/specs/2026-06-02-reforge-live-mode.md), so the
+# for /flashforge_init.sh (see docs/live-mode.md), so the
 # trial is just: extract this tarball onto the root of a FAT32 stick, insert it, and
 # power on. The launcher insmods the three modules and loop-mounts the F2FS rootfs.
 # Pull the stick + reboot to return to pristine stock. NOTHING touches eMMC.

@@ -118,8 +118,7 @@ Findings from the trial — **all three since resolved** (same day):
   script) that `killall`s udhcpc — net-up uses busybox's default lease script instead.
   Plus `ensure_sshd` (start dropbear if stock hasn't) and a `net_only` debug mode (wifi
   + sshd, skip the stack). **Proven on hardware: the box joined WiFi (got a DHCP lease),
-  SSH reachable.** See `docs/reverse-engineering/ad5m-mcu-firmware-and-config.md` and
-  `docs/specs/2026-06-02-live-mode-wifi.md`.
+  SSH reachable.** See `docs/reverse-engineering/ad5m-mcu-firmware-and-config.md`.
 - **klippy "waiting to initialize" — was a CONFIG error, not a host↔MCU version wall.**
   The stall was klippy aborting config parse on FlashForge-fork sections vanilla Klipper
   lacks (`flashforge_loadcell`/`flashforge_tvoc`) + a missing `[extruder] rotation_distance`
@@ -143,6 +142,6 @@ Findings from the trial — **all three since resolved** (same day):
 
 ## See also
 
-- `docs/specs/2026-06-02-reforge-live-mode.md` — the design spec (archival snapshot)
 - `docs/architecture.md` — the overlay-on-stock chroot model live mode mirrors
+- `packaging/live/flashforge_init.sh` + `net-up.sh` — the launcher + WiFi bring-up (source of truth)
 - `tests/qemu-harness/README.md` — the qemu gates

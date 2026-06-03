@@ -144,7 +144,7 @@ REFORGE_LIVE=1 TERM=linux chroot "${ROOT}" /usr/bin/reforge-banner > "${LIVE_LOG
 # Bring up the network (best-effort) BEFORE the chroot: in live mode we block stock's
 # auto_run, so the stock WiFi init never runs and the box has no LAN. net-up.sh reuses
 # the stock driver + /etc/wpa_supplicant.conf creds (read-only) to join, so Moonraker /
-# Mainsail / SSH are reachable. See docs/specs/2026-06-02-live-mode-wifi.md. wlan0 is in
+# Mainsail / SSH are reachable. See docs/live-mode.md. wlan0 is in
 # the host net namespace; the chroot shares it. Never blocks the boot.
 if [ -f "${USB_MNT}/net-up.sh" ]; then
     # shellcheck source=/dev/null
