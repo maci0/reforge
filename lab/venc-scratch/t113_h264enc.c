@@ -318,6 +318,12 @@ static int h264enc_encode_picture(h264enc*c){
 	char*so=getenv("SCANOFF");
 	if(so){ unsigned off=strtoul(so,0,16); writel(ve_virt2phys(c->ref_picture[0].luma_buffer),c->regs+off); }
 
+	/* experimental: fire a separate ISP/input trigger before the AVC trigger
+	 * (ISPREG=offset hex, ISPVAL=value hex) — newer VE may need the ISP started */
+	char*ir=getenv("ISPREG");
+	if(ir){ unsigned o=strtoul(ir,0,16); uint32_t v=getenv("ISPVAL")?strtoul(getenv("ISPVAL"),0,16):0x1;
+	        writel(v,c->regs+o); }
+
 	/* trigger + POLL status (no IRQ on this unit) */
 	uint32_t trig=getenv("TRIG")?strtoul(getenv("TRIG"),0,16):0x8;
 	unsigned trigreg=getenv("TRIGREG")?strtoul(getenv("TRIGREG"),0,16):VE_AVC_TRIGGER;
