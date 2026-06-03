@@ -38,13 +38,37 @@ the VE clock is on, and `h264EncFrame` submits the encode.
   does (the full **ISP + VE** pipeline). A `rc_init_frame` float (`ctx+4`) divide is bypassed
   here with a gdb poke; even bypassed, the VE still times out — so it's not the blocker.
 
+## libsdk_camera trace (what actually drives the VE) + why it's blocked
+
+Traced `libsdk_camera.so` (the stock Android camera HAL):
+- It uses the **same `libvenc` API** (`VideoEncSetParameter`/`VideoEncDestroy`/`VideoEncUnInit`/
+  `VideoEncoderReset`) — not a different mechanism — via class **`RecordCamera`**
+  (`RecordCamera::setVideoEncParm` / `::encode` / `::encode_rtsp`). Those are **imported** by
+  libsdk_camera, i.e. **defined in the stock `firmwareExe`** (the QT app at
+  `/opt/PROGRAM/software/5.1.4/firmwareExe`, 9.5 MB, **stripped**).
+- libvenc also has an **ISP integration** (`VideoEncIspCreate`, `pEncIsp`, `nJustIspFlag`,
+  `bUseCsiColorFormat`) — the stock encode feeds the VE from the camera/ISP, and supports
+  `V4L2_PIX_FMT_H264` capture.
+
+Decisive hardware fact: **`/proc/interrupts` IRQ 44 `cedar_dev` = 0 since boot** — the VE has
+**never** raised a completion IRQ on this device. The VE clocks run (pll-ve/ve @ 402 MHz), but
+the engine is dormant: forge-x runs `guppyscreen` + `mjpg_streamer` (USB-UVC **MJPEG**), the
+stock `firmwareExe`/`RecordCamera` (the only thing that drives VE encode) is **not running**,
+and a hung leftover `demoVencVdec` holding `/dev/cedar_dev` was ruled out (killed, no change).
+
+So: my from-scratch app reaches a valid VE encode **submission**, but the VE never completes —
+the same `wait interrupt overtime` that breaks every standalone vendor demo. The working config
+lives in the stripped, non-running `firmwareExe::RecordCamera::setVideoEncParm`.
+
 ## Conclusion / next steps
-Standalone HW H264/H265 encode is blocked on this firmware at the **VE-completion** level.
-Achieving it requires the **`libsdk_camera` HAL** path (ISP+VE camera pipeline) — a
-categorically larger effort than this standalone app, and likely needs the camera service
-context. **MJPEG (`mjpg_streamer`) remains the working camera path.** If revisited: drive the
-stock camera service / `libsdk_camera` to encode, or bring up the ISP→VE pipeline so the VE
-gets its completion IRQ.
+Standalone HW H264/H265 encode does **not** complete on this firmware — the VE only ever runs
+under the stock `firmwareExe`/`RecordCamera` pipeline (with ISP), which forge-x doesn't run.
+**MJPEG (`mjpg_streamer`) remains the working camera path.** To actually get HW encode:
+1. Extract `RecordCamera::setVideoEncParm`'s exact param sequence + VE/ISP setup from
+   `firmwareExe` (stripped — locate the `VideoEncSetParameter` call sites via PLT/relocs), or
+2. Run the stock `firmwareExe` camera/record path and trace it live so the VE fires its IRQ,
+   then mirror whatever ISP/online-mode setup makes the VE actually execute.
+Both are large efforts and likely depend on the ISP pipeline, not just the encoder config.
 
 ## Files
 - `enc_nv12_h264.c` — the encoder app (NV12 file → H.264 file). Header comment has the full
