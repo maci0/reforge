@@ -104,6 +104,7 @@ switch_root, not `auto_run`.
 
 So forge-x's takeover mechanism = **own the S00init symlink**, with `SKIP_MOD`
 soft/hard escape hatches. (ReForge's installer mirrors this `SKIP_MOD` pattern.)
+Full forge-x chroot/service teardown: [board-notes/forge-x-boot-architecture.md](board-notes/forge-x-boot-architecture.md).
 
 Note `/opt/auto_run.sh` (rcS:50) is the *stock* script and **still runs** even with
 forge-x installed — which is exactly why ReForge live-mode (a USB `flashforge_init.sh`)

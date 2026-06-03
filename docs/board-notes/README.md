@@ -1,8 +1,8 @@
 # Board Notes — FlashForge AD5M Pro (Allwinner T113-S3)
 
-Reference data captured from the live unit (`root@192.168.0.158`, hostname `kunos`)
-for the Plan 5 (P4) kernel + U-Boot + genimage work. **Reference for parameter
-extraction — not shipped.**
+Device/platform reference captured from the live unit (`root@192.168.0.158`, hostname
+`kunos`): hardware inventory, the forge-x mod boot stack, and the raw kernel artifacts the
+Plan 5 kernel + U-Boot + genimage work extracts parameters from. **Reference — not shipped.**
 
 ## Captured artifacts (this dir)
 

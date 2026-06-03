@@ -13,7 +13,7 @@
 | [`BACKLOG.md`](BACKLOG.md) | unscheduled ideas (e.g. the Zig microgit; reforge OTA design) |
 | `specs/` | design specs (dated) — archival snapshots |
 | `plans/` | implementation plans (dated) — archival snapshots |
-| `research/` | findings: memory experiments, T113 mainline support, stock recovery images, stock-UI spike, buildroot-vs-alpine, etc. |
+| `research/` | dated findings: memory experiments, T113 mainline support, stock recovery images, stock-UI spike, buildroot-vs-alpine, etc. (index: `research/README.md`) |
 | `reverse-engineering/` | stock-firmware RE finding reports — full teardown of the `firmwareExe` UI app + stock Klipper pin map (start at `reverse-engineering/README.md`) |
 | `board-notes/` | device/hardware reference: device overview, forge-x boot architecture, captured kernel config / unit probe |
 | `screenshots/` | qemu-captured renders + the boot console / bootsplash (see its README) |
