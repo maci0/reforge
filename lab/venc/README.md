@@ -60,15 +60,36 @@ So: my from-scratch app reaches a valid VE encode **submission**, but the VE nev
 the same `wait interrupt overtime` that breaks every standalone vendor demo. The working config
 lives in the stripped, non-running `firmwareExe::RecordCamera::setVideoEncParm`.
 
-## Conclusion / next steps
-Standalone HW H264/H265 encode does **not** complete on this firmware — the VE only ever runs
-under the stock `firmwareExe`/`RecordCamera` pipeline (with ISP), which forge-x doesn't run.
-**MJPEG (`mjpg_streamer`) remains the working camera path.** To actually get HW encode:
-1. Extract `RecordCamera::setVideoEncParm`'s exact param sequence + VE/ISP setup from
-   `firmwareExe` (stripped — locate the `VideoEncSetParameter` call sites via PLT/relocs), or
-2. Run the stock `firmwareExe` camera/record path and trace it live so the VE fires its IRQ,
-   then mirror whatever ISP/online-mode setup makes the VE actually execute.
-Both are large efforts and likely depend on the ISP pipeline, not just the encoder config.
+## Levers exhausted against the VE-completion wall
+Every standalone encode (mine + all 3 vendor demos) hits `wait interrupt overtime`, VE IRQ=0:
+- ✅ full software init solved (codec=2, no `-lvenc_codec`, `__GetIonMemOpsS`, `GetVeOpsS(0)`, RC fields)
+- ✅ valid ION input (phyY=0x2c00000), VE clocks @402 MHz, `VideoEncoderSetFreq(402)`
+- ❌ **no V4L2 M2M encoder** exists (only `uvcvideo` + `cedar_dev`); the kernel offers no
+  alternative encode API.
+- ❌ killing a hung `demoVencVdec` holding `/dev/cedar_dev` → no change.
+- ❌ `VideoEncIspCreate` is **not** the missing step — `demoVencVdec` (which passes init) never
+  calls it and still fails; `h264EncFrame` calls `set_isp_info`/`SetIspRegister` unconditionally.
+
+## Where it stands (accurate, not over-claimed)
+The VE is fully **powered, clocked (402 MHz), reset-deasserted** (cedar driver
+`reset_control_deassert`), **configured and kicked** (`h264_config_registers` + `_StartSlice`/
+`SetH264RegVer2` write the encode + start registers), fed a **valid ION input** — yet it
+**never raises its completion IRQ** (`cedar_dev` count = 0 since boot). Every standalone encode
+(this app + all 3 vendor demos) fails identically; no userspace config or kernel lever I can
+reach changes it, and `/dev/mem` is absent so the VE register state can't be read back.
+
+So the blocker is at the **VE-encode-completion level**, below userspace — the engine is told to
+encode but doesn't signal done. The only code that has ever driven this VE to completion is the
+stock `firmwareExe`/`RecordCamera` pipeline (with ISP), which forge-x doesn't run; and the AD5M's
+camera is **USB-UVC** (no MIPI sensor), so both stock and forge-x stream it as **MJPEG** and the
+VE encoder is effectively unused on this unit. Whether the standalone path is missing a final
+register/IOMMU/ISP step the HAL does, or the VE encode is simply non-operational for the USB
+camera, can't be resolved without VE register access or the running stock pipeline.
+
+**Practical outcome:** HW H.264/H.265 encode is not achievable standalone here. **MJPEG
+(`mjpg_streamer`) is the working camera path** and is already in place. A genuine future attempt
+would have to run/trace the stock `firmwareExe` camera-record path live (so the VE fires its IRQ)
+and mirror its full setup — a large, hardware-coupled effort beyond this POC.
 
 ## Files
 - `enc_nv12_h264.c` — the encoder app (NV12 file → H.264 file). Header comment has the full
