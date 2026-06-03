@@ -51,3 +51,12 @@ disp_reserve=1536000,0x448ee000 androidboot.dramsize=128
 - The `dsp0@p5` partition holds DSP firmware; the partition map must be preserved
   by genimage so the DSP and boot chain are not disturbed.
 </content>
+
+## firmwareExe reverse-engineering (stock UI app)
+- [firmwareexe-reverse-engineering.md](firmwareexe-reverse-engineering.md) — overview + architecture.
+- [gdb-firmwareexe-injection.md](gdb-firmwareexe-injection.md) — drive the UI from shell via gdb.
+- [ad5m-pro-klipper-hardware-config.md](ad5m-pro-klipper-hardware-config.md) — pin map / printer.cfg.
+- [firmwareexe-orcaserver-lan-api.md](firmwareexe-orcaserver-lan-api.md) — LAN HTTP API (:8898).
+- [firmwareexe-ota-update.md](firmwareexe-ota-update.md) — OTA path (MD5-only, unsigned).
+- [firmwareexe-cloud-command-surface.md](firmwareexe-cloud-command-surface.md) — remote-control surface.
+- [firmwareexe-lan-protocol-and-crypto.md](firmwareexe-lan-protocol-and-crypto.md) — TCP 8899 + crypto/keys.

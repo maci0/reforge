@@ -2,8 +2,14 @@
 
 Reverse-engineered from the on-device binary (pulled to `/tmp/firmwareExe`) with the
 `arm-linux-gnueabi` toolchain (`readelf -sW`, `c++filt`, `objdump -d`, `strings`). Every symbol,
-address, and string below was verified against the binary. Companion: the focused gdb cookbook in
-[`gdb-firmwareexe-injection.md`](gdb-firmwareexe-injection.md).
+address, and string below was verified against the binary. This is the **overview**; deep-dive
+references:
+- [`gdb-firmwareexe-injection.md`](gdb-firmwareexe-injection.md) — gdb method-injection cookbook.
+- [`ad5m-pro-klipper-hardware-config.md`](ad5m-pro-klipper-hardware-config.md) — full pin map / printer.cfg.
+- [`firmwareexe-orcaserver-lan-api.md`](firmwareexe-orcaserver-lan-api.md) — LAN HTTP API (:8898).
+- [`firmwareexe-ota-update.md`](firmwareexe-ota-update.md) — OTA path (**MD5-only, unsigned**).
+- [`firmwareexe-cloud-command-surface.md`](firmwareexe-cloud-command-surface.md) — remote-control surface.
+- [`firmwareexe-lan-protocol-and-crypto.md`](firmwareexe-lan-protocol-and-crypto.md) — TCP 8899, discovery, keys.
 
 ## 0. What it is
 
@@ -207,6 +213,20 @@ display/GPIO via `/sys/class/gpio/gpio203` + `dispdbg setbl`; packaging `tar -xv
 6. **Wi-Fi passphrases in cleartext** via shell echo into `/etc/rtl_hostapd_2G.conf`.
 7. On-disk signing keypair `/opt/key.priv`/`/opt/key.pub` (`create-rsa.sh`), pubkey `/usr/share/public.pem`.
 8. Third-party data routing through **NetEase IM (China)** + **Alibaba OSS** beyond FlashForge.
+
+Added by the deep-dives (see linked docs):
+9. **OTA is MD5-only — NO firmware signature.** `system("tar -xvf")` + in-package `system(".../run.sh")`
+   as root → a tampered/MITM'd package = arbitrary root code-exec. Dev HTTP update server
+   (`http://10.33.11.172:32112`) shipped. (The embedded RSA private key is a **default qrc blob used
+   for Polar Cloud challenge signing**, not firmware — correcting item 1's framing.)
+10. **Unauthenticated LAN raw-TCP protocol on :8899** (`ServerListener`): take-control (M601),
+    arbitrary gcode upload+print (M28/M23), identity leak (M115). **Unauthenticated UDP discovery**
+    (225.0.0.9:8899 / bcast 19000) broadcasts serial/MAC/model/IP/cloud-bind status in cleartext.
+11. **Cloud command path (MQTT) is plaintext `ws://:8083/mqtt`, no TLS, no per-command auth** — any
+    broker/MITM can drive heaters/motion/power. LAN HTTP API (:8898) is the only path with an access
+    check (weak serial+code).
+12. **Shell-interpolated crypto** (`echo -n '<challenge>' | openssl dgst -sign`, `curl -F 'X-Amz-Signature=..'`)
+    with cloud-supplied fields → command-injection surface.
 
 (No secret values reproduced here — presence + location only.)
 
