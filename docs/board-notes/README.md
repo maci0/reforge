@@ -65,3 +65,7 @@ disp_reserve=1536000,0x448ee000 androidboot.dramsize=128
 - [firmwareexe-filesystem-and-system.md](firmwareexe-filesystem-and-system.md) — ffsdk, FS map, USB, PWM, display.
 - [firmwareexe-network-wifi.md](firmwareexe-network-wifi.md) — wifi/eth/AP/static.
 - [firmwareexe-ui-classes.md](firmwareexe-ui-classes.md) — UI/i18n/Guider/dialogs/QR.
+
+## Device & mod architecture
+- [device-overview.md](device-overview.md) — hardware/stack inventory + full doc index.
+- [forge-x-boot-architecture.md](forge-x-boot-architecture.md) — mod boot/chroot/service stack.
