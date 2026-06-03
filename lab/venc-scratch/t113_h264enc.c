@@ -166,9 +166,20 @@ typedef struct h264enc_internal {
 #define SLICE_I 2
 enum { H264_FMT_NV12=0, H264_FMT_NV16=1 };
 
+/* cedarx status bits (video_enc_reg.h): SYNC_IDLE=1<<8, PUTBITS_STATUS=1<<9 */
+static int g_pbwait=0;
+static void pb_sync(void*regs){
+	if(!g_pbwait) return;
+	/* wait for the put-bits unit to be idle before the next op (T113 needs this; A20 didn't) */
+	int t=0; while(t++<200000){ uint32_t s=readl(regs+VE_AVC_STATUS);
+		if(g_pbwait==1 && (s&(1<<8))) return;   /* SYNC_IDLE set */
+		if(g_pbwait==2 && !(s&(1<<9))) return;  /* PUTBITS_STATUS clear */
+	}
+}
 static void put_bits(void*regs,uint32_t x,int num){
 	writel(x,regs+VE_AVC_BASIC_BITS);
 	writel(0x1|((num&0x1f)<<8),regs+VE_AVC_TRIGGER);
+	pb_sync(regs);
 }
 static void put_ue(void*regs,uint32_t x){ x++; put_bits(regs,x,(32-__builtin_clz(x))*2-1); }
 static void put_se(void*regs,int x){ x=2*x-1; x^=(x>>31); put_ue(regs,x); }
@@ -432,6 +443,7 @@ int main(int argc,char**argv){
 	const char*inf=argv[1],*outf=argv[2];
 	unsigned W=atoi(argv[3]),H=atoi(argv[4]),N=atoi(argv[5]);
 	unsigned qp=argc>6?atoi(argv[6]):26; int cabac=argc>7?atoi(argv[7]):0;
+	g_pbwait=getenv("PBWAIT")?atoi(getenv("PBWAIT")):0;
 	if(!ve_open()){ fprintf(stderr,"ve_open failed\n"); return 1; }
 	h264enc*c=h264enc_new(W,H,qp,cabac);
 	if(!c){ fprintf(stderr,"h264enc_new failed\n"); return 1; }
