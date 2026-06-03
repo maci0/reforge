@@ -16,7 +16,7 @@
 > firmware) is **optional** and only restores adxl345/input-shaper calibration. Likewise the
 > `flashforge_loadcell`/`flashforge_tvoc` references (steps below) are **xblax's v13 modules**,
 > not the stock config (stock uses vanilla `MAX31856`/`MAX31865`). See
-> `docs/2026-06-02-ad5m-mcu-firmware-and-config.md` + `reference/ad5m-factory-config/`.
+> `docs/reverse-engineering/ad5m-mcu-firmware-and-config.md` + `reference/ad5m-factory-config/`.
 
 **Scope boundary:** Plan 3 = userland installer + validation + spike. NO device flash. The `control-` (MCU) subpackage is an **empty stub** (Plan 4 fills it) — a flashed ReForge boots + is web-reachable but won't drive the printer until Plan 4. No motion/print simulation.
 

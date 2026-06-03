@@ -15,7 +15,7 @@
 >    `MAX31865` TVOC, `[adxl345]`, `[probe] pin:!PB4`) — see `reference/ad5m-factory-config/`.
 >    `flashforge_loadcell`/`flashforge_tvoc` (referenced in §6.2 / spike) are **xblax's v13
 >    custom modules**, NOT the stock dependency. Full analysis:
->    `docs/2026-06-02-ad5m-mcu-firmware-and-config.md`.
+>    `docs/reverse-engineering/ad5m-mcu-firmware-and-config.md`.
 
 ---
 

@@ -118,7 +118,7 @@ Findings from the trial — **all three since resolved** (same day):
   script) that `killall`s udhcpc — net-up uses busybox's default lease script instead.
   Plus `ensure_sshd` (start dropbear if stock hasn't) and a `net_only` debug mode (wifi
   + sshd, skip the stack). **Proven on hardware: the box joined WiFi (got a DHCP lease),
-  SSH reachable.** See `docs/2026-06-02-ad5m-mcu-firmware-and-config.md` and
+  SSH reachable.** See `docs/reverse-engineering/ad5m-mcu-firmware-and-config.md` and
   `docs/specs/2026-06-02-live-mode-wifi.md`.
 - **klippy "waiting to initialize" — was a CONFIG error, not a host↔MCU version wall.**
   The stall was klippy aborting config parse on FlashForge-fork sections vanilla Klipper
@@ -127,7 +127,7 @@ Findings from the trial — **all three since resolved** (same day):
   `MAX31856`/`MAX31865` sensors), **klippy reaches `ready` and drives BOTH stock v11 MCUs**
   (`mcu` + `eboard`, real temps) — no MCU reflash / Plan 4 needed. The only version-locked
   piece is `[adxl345]` input-shaper *calibration* (`query_adxl345` format changed v11→v13),
-  left gated. Full analysis: `docs/2026-06-02-ad5m-mcu-firmware-and-config.md`.
+  left gated. Full analysis: `docs/reverse-engineering/ad5m-mcu-firmware-and-config.md`.
 
 ## Caveats
 

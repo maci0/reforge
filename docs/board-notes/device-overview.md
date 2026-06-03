@@ -16,7 +16,7 @@ Top-level map of the FlashForge Adventurer 5M Pro hardware/software stack (this 
 - **Camera**: USB-UVC, **MJPEG-native** 640×480/1280×720.
 - **MCUs**: 2× **Nationstech N32G455** (GD32/STM32-F4 work-alike) — main board `/dev/ttyS5` +
   toolhead `eboard` `/dev/ttyS1`, both Klipper @ 230400. Stock MCU fw = Klipper 0.11; mods flash
-  0.13. See [`../2026-06-02-ad5m-mcu-firmware-and-config.md`](../2026-06-02-ad5m-mcu-firmware-and-config.md).
+  0.13. See [`../reverse-engineering/ad5m-mcu-firmware-and-config.md`](../reverse-engineering/ad5m-mcu-firmware-and-config.md).
 - **Display**: SPI/RGB LCD via Allwinner `dispdbg` backlight + GPIO203; touch via `libts`.
 
 ## Software stack

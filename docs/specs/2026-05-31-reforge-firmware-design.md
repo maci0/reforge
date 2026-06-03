@@ -8,7 +8,7 @@
 > - **MCU link works on stock firmware.** ReForge's host Klipper drives the stock v11 MCUs as-is
 >   (proven on hardware: both MCUs, real temps, `ready`). The MCU phase (below) is therefore
 >   **optional** — it only restores the version-locked adxl345/input-shaper calibration, or moves
->   to Klipper v13. See `docs/2026-06-02-ad5m-mcu-firmware-and-config.md`.
+>   to Klipper v13. See `docs/reverse-engineering/ad5m-mcu-firmware-and-config.md`.
 > - **Phase-numbering map** (this doc's labels → canonical plan numbers used everywhere else):
 >   `P3.5 / MCU` → **Plan 4**; `P4 / full image+kernel+display` → **Plan 5**. (Treat the §-internal
 >   "Plan 5 (P4)" / "P3.5" labels accordingly; the stock-UI spike in the installer spec is a

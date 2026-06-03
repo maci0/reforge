@@ -26,5 +26,5 @@ config. All findings were verified against the on-device binary (`arm-linux-gnue
 ## Related (not stock-fw RE)
 - [`../board-notes/device-overview.md`](../board-notes/device-overview.md) — hardware/stack inventory + consolidated security findings.
 - [`../board-notes/forge-x-boot-architecture.md`](../board-notes/forge-x-boot-architecture.md) — the forge-x **mod** boot/chroot stack.
-- [`../2026-06-02-ad5m-mcu-firmware-and-config.md`](../2026-06-02-ad5m-mcu-firmware-and-config.md) — MCU firmware (v11/v13, N32G455) + config diff vs mods.
+- [`ad5m-mcu-firmware-and-config.md`](ad5m-mcu-firmware-and-config.md) — MCU firmware (v11/v13, N32G455) + config diff vs mods.
 - `../../lab/venc-scratch/` — Cedar VE H.264 encode investigation (HW encode non-functional; stock uses x264 software).

@@ -60,7 +60,7 @@ feasibility-confirmed). **The MCUs are Nationstech N32G455 running FlashForge's 
 firmware — ReForge's host Klipper drives them as-is** (proven on hardware: both MCUs connect, real
 temps, klippy `ready`). Plan 4 (matching MCU firmware) is **not** required to move the printer; it
 only restores the version-locked adxl345/input-shaper *calibration* (the `query_adxl345` command
-format changed v11→v13). See [MCU firmware & config](2026-06-02-ad5m-mcu-firmware-and-config.md).
+format changed v11→v13). See [MCU firmware & config](reverse-engineering/ad5m-mcu-firmware-and-config.md).
 
 ## Control / data flow (a print command)
 

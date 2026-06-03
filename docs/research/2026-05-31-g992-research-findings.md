@@ -4,7 +4,7 @@ Mined from `g992/flashforge-ad5m-5mpro-research` (+ issue #25) and the linked
 `xblax/flashforge_ad5m_klipper_mod`. Date: 2026-05-31.
 
 > **CORRECTIONS (2026-06-02, vs the verified factory config + hardware trial — see
-> `docs/2026-06-02-ad5m-mcu-firmware-and-config.md` + `reference/ad5m-factory-config/`):**
+> `docs/reverse-engineering/ad5m-mcu-firmware-and-config.md` + `reference/ad5m-factory-config/`):**
 > - **Fan pins transposed (§7):** factory is `internal_fan = PB8`, `external_fan = PB6`.
 > - **`flashforge_loadcell`/`flashforge_tvoc`** are **xblax's v13** custom modules (what g992
 >   mined). The stock/factory config reads the load cell as `MAX31856` (`weightValue`) and TVOC

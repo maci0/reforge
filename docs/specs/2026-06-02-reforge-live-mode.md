@@ -13,7 +13,7 @@ rebooting returns to pristine stock. No brick risk.
 >   host↔MCU version wall. After rebasing the config on the stock/ZMod form, klippy reaches
 >   `ready` and **drives both stock v11 MCUs** — no reflash. Only adxl345 input-shaper
 >   *calibration* is version-locked. WiFi works (`net-up.sh`). See
->   `docs/2026-06-02-ad5m-mcu-firmware-and-config.md`.
+>   `docs/reverse-engineering/ad5m-mcu-firmware-and-config.md`.
 > - Panel: the framebuffer is `800×480` (the physical panel is a 480×800 presented as an
 >   800×480 fb) — match the fb spec, not "480×800".
 

@@ -67,4 +67,4 @@ reports** (firmwareExe analysis + the stock Klipper pin map) live in
 
 ### Related
 - MCU firmware + config-baseline detail:
-  [`../2026-06-02-ad5m-mcu-firmware-and-config.md`](../2026-06-02-ad5m-mcu-firmware-and-config.md).
+  [`../reverse-engineering/ad5m-mcu-firmware-and-config.md`](../reverse-engineering/ad5m-mcu-firmware-and-config.md).

@@ -9,7 +9,7 @@
 > Also: the load-cell SPI pins in the printer.cfg snippet near the end of this doc are
 > **wrong** (they are the *adxl345* eboard soft-SPI pins). The factory load cell
 > (`MAX31856 weightValue`) is on the **mainboard**: `sensor_pin PD5`, sclk `PD6`, mosi
-> `PD7`, miso `PD8` — see `docs/2026-06-02-ad5m-mcu-firmware-and-config.md` §4.
+> `PD7`, miso `PD8` — see `docs/reverse-engineering/ad5m-mcu-firmware-and-config.md` §4.
 
 **Date:** 2026-06-01  
 **Spike question:** Can the stock FlashForge `firmwareExe` (Qt4/QWS touchscreen UI) run as a

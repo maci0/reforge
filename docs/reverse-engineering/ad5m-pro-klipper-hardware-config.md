@@ -11,7 +11,7 @@ map + all mechanical/electrical values are IDENTICAL across them — see "Config
 Live on-device paths: `/opt/config/printer.cfg`, `/opt/config/printer.base.cfg`
 (`[include printer.base.cfg]`), `/opt/config/levelPrint.cfg`. Needed to author a from-scratch
 ReForge `printer.cfg`. **MCU firmware versions (v11/v13, N32G455) + the stock-vs-mod config diff:**
-[`../2026-06-02-ad5m-mcu-firmware-and-config.md`](../2026-06-02-ad5m-mcu-firmware-and-config.md).
+[`ad5m-mcu-firmware-and-config.md`](ad5m-mcu-firmware-and-config.md).
 
 ## Dual-MCU topology
 Two MCUs, both **230400 baud**, `restart_method: command`:
