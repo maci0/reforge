@@ -52,6 +52,24 @@ Findings that pin it:
   (verified: `firmwareExe` holds `/dev/video0` as `MJPG`, loads no venc/cedar libs, never
   opens `/dev/cedar_dev`).
 
+## Root cause: the VE codec engine never completes ANY op on this unit
+Converging evidence that this is the **VE revision / unit**, not the code:
+- **jemk's register sequence is PROVEN on the A20 (VE 0x1625); it hangs identically here
+  (VE 0x1667).** Same register layout, different revision — the T113 encode-completion path
+  needs something the A20 doesn't, and it's undocumented.
+- **`cedar_dev` IRQ = 0 since boot**, across *every* attempt: my encoder, all three vendor
+  encode demos, **and decode** (`demoVdecoder -i test.h264` produces 0 frames, IRQ stays 0).
+  The engine goes *busy* but **never signals completion for encode OR decode** — and we poll
+  the status register directly (not just the IRQ), so it's the engine, not IRQ routing.
+- Per-frame `RESET_VE` (the vendor's exact per-frame procedure) does not change it.
+- `firmwareExe` **doesn't even load `libvenc`** — RecordCamera's encode path is dead code in
+  this firmware; the VE codec is genuinely unused on this unit (clocks on, engine powered —
+  it goes busy — but no codec op ever completes).
+
+So the missing piece is in the T113-specific encode-engine programming that only the stock
+`RecordCamera` pipeline performs — which never runs (USB-MJPEG camera) and is stripped. No
+reachable open or closed code on this device completes a VE codec op to copy from.
+
 ## Practical conclusion
 HW H.264 encode does **not** complete in any standalone configuration reachable on this
 unit — the vendor's own tools fail identically, and the missing piece (T113 rec/ref setup

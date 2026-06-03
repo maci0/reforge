@@ -256,6 +256,7 @@ static h264enc *h264enc_new(unsigned w,unsigned h,unsigned qp,int cabac){
 
 static int h264enc_encode_picture(h264enc*c){
 	c->current_slice_type = c->current_frame_num ? SLICE_P : SLICE_I;
+	if(getenv("RST")){ ioctl(cedar_fd,IOCTL_RESET_VE,0); writel(0x00130007,ve_regs+VE_CTRL); }
 	c->regs=ve_get(VE_ENGINE_AVC,0);
 
 	ve_flush_cache(c->bytestream_buffer,c->bytestream_buffer_size);
