@@ -16,8 +16,8 @@ set -eu
 CC="${CC:-arm-linux-gnueabi-gcc}"   # soft-float cross gcc (override with CC=/path/...-gcc)
 "$CC" -O2 -march=armv7-a -mfloat-abi=soft -o enc_nv12_h264 enc_nv12_h264.c \
   -Ldevlibs -Wl,-rpath-link,devlibs \
-  -lvencoder -lMemAdapter -lVE -lvenc_base -lvenc_codec -lvenc_common \
-  -lvenc_h264 -lvenc_h265 -lvenc_jpeg -lcdc_base \
+  -lvencoder -lMemAdapter -lVE -lvenc_base -lvenc_h264 -lvenc_common \
+  -lvenc_h265 -lvenc_jpeg -lcdc_base \
   -Wl,--allow-shlib-undefined -Wl,--unresolved-symbols=ignore-in-shared-libs \
   -lpthread -lm -lrt
 echo "built enc_nv12_h264 ($("$CC" -dumpmachine))"

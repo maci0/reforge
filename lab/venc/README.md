@@ -5,30 +5,46 @@ encoder** via the vendor `libvenc` stack — to prototype a low-bandwidth camera
 (H.264 → browser WebCodecs) instead of MJPEG. Background + the full options analysis:
 [`docs/research/2026-06-03-camera-streaming-options.md`](../../docs/research/2026-06-03-camera-streaming-options.md).
 
-## Status: runs, VE inits, blocked at encoder memory init
+## Status: software init fully SOLVED; blocked at the VE hardware completion (BSP-level)
 
-Working so far:
-- Soft-float build matches the device ABI (the device libs are `0x5000202` soft-float).
-- Binary runs; **Cedar VE initializes** (`VeInitialize: ic_version=0x1301000010210`).
-- The full cedarc VENC API + struct layouts were recovered from the on-device libs' DWARF
-  (`gdb ptype`/`sizeof`/`offsetof`), so the structs are driven by byte-offset = ABI-exact.
+**The entire libvenc software layer was reverse-engineered and works** — this app reaches a
+valid HW encode submission. The VE encode hardware then never signals completion, the **same
+wall that breaks every vendor encode demo** on this firmware.
 
-Blocker:
-- `VideoEncInit` fails inside `H264InitMemory` with `h264Context->pBSMamager == NULL`
-  (`venc_init_fail`). Ruled out: `memops` choice (`MemAdapterGetOpsS` vs the ION ops
-  `__GetIonMemOpsS`), VBV size (matched the demo's 12 MB), every `VencH264Param` value
-  (matched the demo's profile=High/CABAC), and `memops->open()`.
-- The differentiator vs the stock `vencoderDemo` (which inits fine, then crashes later in
-  `H264EncEncode`): the demo's **first `VENC_IndexParamProcSet` (1027)** call passes an
-  internal **context pointer** (a lib address) that can't be reconstructed from outside the
-  closed lib.
+### Solved (undocumented anywhere — recovered by RE)
+- **ABI:** device libs are **soft-float** (`0x5000202`, `/lib/ld-linux.so.3`); the ReForge
+  hard-float toolchain can't link them — built with a **Linaro `arm-linux-gnueabi`** gcc.
+- **`pBSManager==NULL` wall:** `VideoEncCreate(codecType)` **dlopen's the codec plugin by
+  type**. `0` (`VENC_CODEC_H264`) → `libvenc_codec.so` = **broken** on this BSP (the stock
+  `vencoderDemo` crashes here too). `2` (`VENC_CODEC_H264_VER2`) → `libvenc_h264.so` = the
+  **working** encoder. Must **also not link `-lvenc_codec`** (its broken `H264Init` interposes).
+- **Ops:** `VencBaseConfig.memops = __GetIonMemOpsS()` (the ION ops, not `MemAdapterGetOpsS`),
+  `veOpsS = GetVeOpsS(0)` (`0` = `getVeAwOpsS`; the **type arg is required** — garbage → wrong
+  ops → VE never completes).
+- **RC config:** `VencH264Param.sRcParam` framerates (`uInputFrmRate@176`, `uOutputFrmRate@180`)
+  + post-init `VENC_IndexParamFramerate`/`Bitrate`, else divide-by-zero in init / `rc_init_frame`.
+- All struct layouts/offsets recovered from the libs' DWARF.
 
-## Next steps
-1. **Trace `libsdk_camera.so`** (the stock Android camera HAL) — it drives this exact VE
-   successfully; capture its VENC init order + what the ProcSet pointer references, mirror it.
-2. Or RE the `libvenc_codec.so` `H264InitMemory` path (what `pBSManager` actually needs).
-3. Then finish the pipeline: camera MJPEG → NV12 → this encoder → Annex-B over WebSocket →
-   browser `WebCodecs VideoDecoder`.
+Result: `VideoEncInit` succeeds, the input ION buffer has valid phys addrs (`phyY=0x2c00000`),
+the VE clock is on, and `h264EncFrame` submits the encode.
+
+### Blocked (kernel/BSP, not a config tweak)
+- `h264EncFrame: "h264 encoder wait interrupt overtime"` — the VE encode HW never raises its
+  completion IRQ (no kernel fault in dmesg). `VideoEncodeOneFrame` → -1, 0 bytes.
+- **Identical across all vendor demos**: `vencoderDemo` (crashes on the pBSManager bug),
+  `demoVencVdec` and `encoderTest` (reach encode, produce 0 bytes). The cedar driver *does*
+  support encode IRQs (`en_irq_flag`), so the VE itself isn't completing — the standalone
+  `libvenc` path doesn't set up what the integrated camera HAL (`libsdk_camera.so`, Android)
+  does (the full **ISP + VE** pipeline). A `rc_init_frame` float (`ctx+4`) divide is bypassed
+  here with a gdb poke; even bypassed, the VE still times out — so it's not the blocker.
+
+## Conclusion / next steps
+Standalone HW H264/H265 encode is blocked on this firmware at the **VE-completion** level.
+Achieving it requires the **`libsdk_camera` HAL** path (ISP+VE camera pipeline) — a
+categorically larger effort than this standalone app, and likely needs the camera service
+context. **MJPEG (`mjpg_streamer`) remains the working camera path.** If revisited: drive the
+stock camera service / `libsdk_camera` to encode, or bring up the ISP→VE pipeline so the VE
+gets its completion IRQ.
 
 ## Files
 - `enc_nv12_h264.c` — the encoder app (NV12 file → H.264 file). Header comment has the full

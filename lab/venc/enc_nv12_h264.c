@@ -10,17 +10,39 @@
  * without rebuilding the nested cedarc structs by hand. See
  * docs/research/2026-06-03-camera-streaming-options.md (Stage 2).
  *
- * STATUS (2026-06-03): builds (soft-float, matches device ABI) and RUNS — the Cedar VE
- * initializes (VeInitialize: ic_version=0x1301000010210) and the encoder reaches
- * H264InitMemory, but init fails there with `h264Context->pBSMamager == NULL`
- * (venc_init_fail). Ruled out as causes: memops choice (MemAdapterGetOpsS vs the ION ops
- * __GetIonMemOpsS), VBV size (matched the demo's 12 MB), all VencH264Param values (matched
- * the demo's profile=High/CABAC), and memops->open(). The remaining differentiator is the
- * stock demo's FIRST `VENC_IndexParamProcSet` (1027) call, which passes an internal context
- * POINTER (a lib address) that can't be reconstructed from outside the closed lib. Next
- * step: trace/mirror the stock `libsdk_camera.so` (Android HAL) init, which drives this same
- * VE successfully, or RE what that ProcSet pointer references. See
- * docs/research/2026-06-03-camera-streaming-options.md (Stage 2).
+ * STATUS (2026-06-03): the ENTIRE software init layer is SOLVED (a from-scratch result not
+ * documented anywhere) — but the VE encode HARDWARE does not complete on this BSP, the same
+ * wall that breaks every vendor encode demo. Detail:
+ *
+ *  SOLVED (this file gets all the way to a valid HW encode submission):
+ *   - ABI: device libs are SOFT-float (0x5000202) -> built with Linaro arm-linux-gnueabi.
+ *   - pBSManager==NULL wall: VideoEncCreate(codec) dlopen's the codec plugin BY TYPE.
+ *     0 (VENC_CODEC_H264) -> libvenc_codec.so == BROKEN on this BSP. 2 (VENC_CODEC_H264_VER2)
+ *     -> libvenc_h264.so == the working encoder. ALSO must NOT link -lvenc_codec (else its
+ *     broken H264Init interposes). [codec is set to 2 below]
+ *   - VencBaseConfig.memops = __GetIonMemOpsS() (the ION ops), veOpsS = GetVeOpsS(0)
+ *     (0 = getVeAwOpsS; the type arg is REQUIRED — garbage -> wrong ops).
+ *   - RC config: VencH264Param.sRcParam framerates (uInputFrmRate@176/uOutputFrmRate@180)
+ *     + post-init VENC_IndexParamFramerate/Bitrate, else divide-by-zero in init/rc_init_frame.
+ *   - Struct layouts/offsets all recovered from the libs' DWARF (sizeof/offsetof).
+ *   Result: VideoEncInit succeeds, the input ION buffer has valid phys addrs (phyY=0x2c00000),
+ *   the VE clock is enabled, and h264EncFrame is reached and submits the encode to the VE.
+ *
+ *  BLOCKED (kernel/BSP level, NOT a config tweak):
+ *   - h264EncFrame: "h264 encoder wait interrupt overtime" — the VE encode hardware never
+ *     raises its completion IRQ (no kernel fault in dmesg). VideoEncodeOneFrame returns -1,
+ *     0 bytes out. This is IDENTICAL across ALL vendor demos (vencoderDemo crashes earlier on
+ *     the same pBSManager bug; demoVencVdec and encoderTest both reach encode and produce 0
+ *     bytes). The cedar driver DOES support encode IRQs (en_irq_flag), so the VE simply isn't
+ *     completing — the standalone libvenc path doesn't set up whatever the integrated camera
+ *     HAL (libsdk_camera.so, Android) does (ISP + VE pipeline). The remaining rc_init_frame
+ *     float (ctx+4) divide is bypassed here only by a gdb poke; even bypassed, the VE still
+ *     times out, so it is not the blocker.
+ *
+ *  CONCLUSION: standalone HW H264/H265 encode is blocked on this firmware at the VE-completion
+ *  level. Getting it working requires the libsdk_camera HAL path (full ISP+VE camera pipeline),
+ *  not this standalone app. MJPEG (mjpg_streamer) remains the working camera path. See
+ *  docs/research/2026-06-03-camera-streaming-options.md (Stage 2).
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,13 +63,24 @@ extern int   ReturnOneAllocInputBuffer(void *enc, void *inputBuffer);
 extern int   GetOneBitstreamFrame(void *enc, void *outputBuffer);
 extern int   FreeOneBitStreamFrame(void *enc, void *outputBuffer);
 extern void  VideoEncDestroy(void *enc);
+extern void  VideoEncoderSetFreq(void *enc, int freqMHz);
 extern void *MemAdapterGetOpsS(void);
 extern void *__GetIonMemOpsS(void);   /* returns &_ionMemOpsS — the ops the encoder needs
                                          (MemAdapterGetOpsS returns a different table whose
                                          alloc can't back the H264 bitstream buffer) */
+extern void *GetVeOpsS(int type);     /* type 0 -> getVeAwOpsS (&_veAwOpsS, the AW VE ops for
+                                         H264); type 1 -> VP9. MUST pass 0 — calling with
+                                         garbage returns NULL/wrong ops -> the VE encode HW
+                                         never completes ("wait interrupt overtime"). */
 
 /* ---- enums (from DWARF) ---- */
-#define VENC_CODEC_H264            0
+/* IMPORTANT: VideoEncCreate(codecType) dlopen's the codec plugin BY TYPE:
+ *   0 (VENC_CODEC_H264)      -> libvenc_codec.so  — BROKEN on this BSP (BitStreamCreate
+ *                              returns NULL -> pBSManager NULL; stock vencoderDemo crashes too)
+ *   2 (VENC_CODEC_H264_VER2) -> libvenc_h264.so   — WORKS (what demoVencVdec uses)
+ * Use VER2. Also do NOT link -lvenc_codec (build.sh): if it's loaded at startup its broken
+ * H264Init interposes over libvenc_h264's even when codec=2. */
+#define VENC_CODEC_H264            2      /* = VENC_CODEC_H264_VER2 (the WORKING plugin) */
 #define VENC_PIXEL_YUV420SP        0      /* NV12 */
 #define VENC_IndexParamBitrate     0
 #define VENC_IndexParamFramerate   1
@@ -71,6 +104,7 @@ extern void *__GetIonMemOpsS(void);   /* returns &_ionMemOpsS — the ops the en
 #define O_BC_STRIDE 20
 #define O_BC_FMT    24
 #define O_BC_MEMOPS 28
+#define O_BC_VEOPS  32
 /* VencH264Param */
 #define O_H_PROFILE 0
 #define O_H_LEVEL   4
@@ -138,6 +172,15 @@ int main(int argc, char **argv)
     SETI(h264, O_H_BITRATE, kbps * 1000);
     SETI(h264, O_H_KEYINT,  fps);               /* 1 keyframe/sec */
     SETI(h264, O_H_CODING,  VENC_FRAME_CODING);
+    /* rate-control frame rates (VencH264Param.sRcParam @68: uInputFrmRate @+108=176,
+     * uOutputFrmRate @+112=180). Left 0 they cause a divide-by-zero (bitrate/framerate)
+     * inside libvenc_h264. */
+    SETI(h264, 176, fps);
+    SETI(h264, 180, fps);
+    /* eRcMode = AW_CBR (0): rc_init_frame skips the float-framerate divide for modes <=2
+     * (FIXQP=4 hits it). uStatTime kept non-zero. */
+    SETI(h264, 68, 0);        /* eRcMode = AW_CBR */
+    SETI(h264, 112, 1000);    /* uStatTime */
     VideoEncSetParameter(enc, VENC_IndexParamH264Param, h264);
     /* VBV (bitstream) buffer size — without it H264InitMemory's pBSManager is NULL.
      * Match the demo's 12 MB. */
@@ -154,7 +197,15 @@ int main(int argc, char **argv)
     SETI(bc, O_BC_STRIDE, w);
     SETI(bc, O_BC_FMT, VENC_PIXEL_YUV420SP);
     SETP(bc, O_BC_MEMOPS, memops);
+    SETP(bc, O_BC_VEOPS, GetVeOpsS(0));     /* 0 = AW VE ops (_veAwOpsS) for H264 */
     if (VideoEncInit(enc, bc) != 0) { fprintf(stderr, "VideoEncInit failed\n"); return 1; }
+
+    /* RC framerate/bitrate set AFTER init (cedarc convention) — the encoder's framerate
+     * float is otherwise 0 -> /0 in rc_init_frame. */
+    int fr = fps, br = kbps * 1000;
+    VideoEncSetParameter(enc, VENC_IndexParamFramerate, &fr);
+    VideoEncSetParameter(enc, VENC_IndexParamBitrate,   &br);
+    VideoEncoderSetFreq(enc, 402);   /* VE engine clock — unset => HW stalls, never IRQs */
 
     /* internal ION input pool: {nBufferNum, nSizeY, nSizeC} */
     struct { uint32_t n, y, c; } alloc = { 4, (uint32_t)ysz, (uint32_t)csz };
@@ -162,8 +213,11 @@ int main(int argc, char **argv)
 
     long long pts = 0, dt = 1000000LL / (fps > 0 ? fps : 15);
     long total = 0;
+    fprintf(stderr, "init+alloc OK; fin=%p frame=%p fsz=%d nframes=%d\n", (void*)fin, (void*)frame, fsz, nframes);
     for (int i = 0; i < nframes; i++) {
-        if (fread(frame, 1, fsz, fin) != (size_t)fsz) break;
+        size_t got = fread(frame, 1, fsz, fin);
+        fprintf(stderr, "iter %d: fread=%zu/%d\n", i, got, fsz);
+        if (got != (size_t)fsz) break;
 
         char in[SZ_INPUTBUF]; memset(in, 0, sizeof(in));
         if (GetOneAllocInputBuffer(enc, in) != 0) { fprintf(stderr, "GetOneAllocInputBuffer @%d\n", i); break; }
@@ -176,7 +230,8 @@ int main(int argc, char **argv)
         FlushCacheAllocInputBuffer(enc, in);
         AddOneInputBuffer(enc, in);
 
-        if (VideoEncodeOneFrame(enc) != 0) { fprintf(stderr, "encode fail @%d\n", i); break; }
+        int er = VideoEncodeOneFrame(enc);
+        if (er != 0) fprintf(stderr, "VideoEncodeOneFrame rc=%d @%d (continuing)\n", er, i);
         AlreadyUsedInputBuffer(enc, in);
         ReturnOneAllocInputBuffer(enc, in);
 
