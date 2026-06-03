@@ -207,7 +207,7 @@ int main(int argc, char **argv)
     VideoEncSetParameter(enc, VENC_IndexParamBitrate,   &br);
     VideoEncoderSetFreq(enc, 402);   /* VE engine clock — unset => HW stalls, never IRQs */
 
-    /* internal ION input pool: {nBufferNum, nSizeY, nSizeC} */
+    /* internal ION input pool */
     struct { uint32_t n, y, c; } alloc = { 4, (uint32_t)ysz, (uint32_t)csz };
     AllocInputBuffer(enc, &alloc);
 
@@ -222,7 +222,6 @@ int main(int argc, char **argv)
         char in[SZ_INPUTBUF]; memset(in, 0, sizeof(in));
         if (GetOneAllocInputBuffer(enc, in) != 0) { fprintf(stderr, "GetOneAllocInputBuffer @%d\n", i); break; }
         unsigned char *vy = GETP(in, O_IN_VIRY), *vc = GETP(in, O_IN_VIRC);
-        if (!vy || !vc) { fprintf(stderr, "null vir buffer @%d (vy=%p vc=%p)\n", i, (void*)vy, (void*)vc); break; }
         memcpy(vy, frame, ysz);
         memcpy(vc, frame + ysz, csz);
         SETI(in, O_IN_ID, i);

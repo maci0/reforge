@@ -70,6 +70,31 @@ Every standalone encode (mine + all 3 vendor demos) hits `wait interrupt overtim
 - ❌ `VideoEncIspCreate` is **not** the missing step — `demoVencVdec` (which passes init) never
   calls it and still fails; `h264EncFrame` calls `set_isp_info`/`SetIspRegister` unconditionally.
 
+## Hardware-level diagnosis (kernel module — `../ve-kmod/`)
+Built a vermagic-matched diagnostic kernel module (`ve_diag.ko`, `5.4.61 SMP preempt ...
+ARMv7 p2v8`) that ioremaps the VE registers (`0x01C0E000`) + GIC and dumps them during an
+encode. Findings:
+- **The VE is fully alive but STALLS:** during the encode `MACC_VE_STATUS` (enc int_sts
+  @0xb1c) = `0x80000260` — the busy/working bit (31) is set, but the "done" bits (the `&0xf`
+  the cedar ISR checks) **never set**. So the engine starts the op and hangs; it never reaches
+  completion, so it never asserts its IRQ. **GIC irq98 = enabled, pending=0** (delivery is
+  fine), VE **MMU regs @0xe00 = all 0 (MMU off)**, clocks @402 MHz, reset deasserted.
+- **Root cause = a memory-address mismatch the VE can't resolve.** Register dump during encode
+  (decoded via linux-sunxi VE_Register_guide: ISP bank @0xa00, AVC-encoder bank @0xb00):
+  ISP/internal buffer addrs `ra78=0x01e00000 ra7c=0x01e80000` are **below DRAM base
+  `0x40000000`** (System RAM = `0x40000000-0x47ffffff`), while another buffer `r0b4=0x40c7d000`
+  is **full-physical**. The encoder's allocators hand the VE addresses in **two different
+  spaces** (some DRAM-relative, some full-physical); with the VE MMU off and no DRAM-base offset
+  applied, the relative ones point at nonexistent memory → the VE reads garbage and hangs.
+- Fix attempts that did NOT resolve it: `LD_PRELOAD` shim forcing `address_macc=0x40000000`
+  (`macc_shim.c` — the lib doesn't use it for buffer addrs); self-allocating the input via the
+  ION memops (`palloc` needs the encoder's internal VE context, returns garbage standalone);
+  the driver's `set_sys_cfg_by_self` SRAM-remap is "for codec test", not the DRAM base.
+- **Resumable next step:** the exact per-buffer address computation lives in the **T113
+  `libcedarc` source** (100ASK TinaSDK `package/allwinner/.../libcedarc/`). Reading how it
+  derives each buffer's VE address (relative vs full, any shift/offset) pins the one allocator
+  to make consistent. The diagnostic module gives live register read/poke to verify a fix.
+
 ## Proven from every angle: the VE never completes ANY operation
 - **Encode:** `wait interrupt overtime`, `GetOneBitstreamFrame` → `gr=5, nSize0=0, pData0=NULL`
   (no output produced, not just unread).
