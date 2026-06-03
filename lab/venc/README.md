@@ -70,6 +70,21 @@ Every standalone encode (mine + all 3 vendor demos) hits `wait interrupt overtim
 - ❌ `VideoEncIspCreate` is **not** the missing step — `demoVencVdec` (which passes init) never
   calls it and still fails; `h264EncFrame` calls `set_isp_info`/`SetIspRegister` unconditionally.
 
+## Proven from every angle: the VE never completes ANY operation
+- **Encode:** `wait interrupt overtime`, `GetOneBitstreamFrame` → `gr=5, nSize0=0, pData0=NULL`
+  (no output produced, not just unread).
+- **Decode:** fed a valid H.264/MP4 to the vendor `demoVdecoder` — parses the stream, but
+  produces **no decoded frames** and the IRQ stays 0.
+- **`/proc/interrupts` IRQ 44 `cedar_dev` = 0 across both** and **since boot** — the VE has never
+  raised a completion interrupt for encode *or* decode on this unit.
+- All three vendor demos (`vencoderDemo`/`demoVencVdec`/`encoderTest`) fail identically.
+
+So this is **not** encode-specific and **not** a config bug — the Cedar VE engine's completion
+IRQ simply never fires. (Notable: the driver `#define SUNXI_IRQ_VE 90` but `cedar_dev` registers
+at GIC hwirq **98** — a possible DT/IRQ-mapping mismatch, unverifiable without kernel access.)
+Fixing it is a kernel/DT/VE-register effort (no `/dev/mem` here; production printer) — below
+userspace, beyond this POC.
+
 ## Where it stands (accurate, not over-claimed)
 The VE is fully **powered, clocked (402 MHz), reset-deasserted** (cedar driver
 `reset_control_deassert`), **configured and kicked** (`h264_config_registers` + `_StartSlice`/
