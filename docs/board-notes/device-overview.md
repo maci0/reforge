@@ -1,7 +1,7 @@
-# AD5M Pro — device overview & documentation index
+# AD5M Pro — device overview
 
-Top-level map of the FlashForge Adventurer 5M Pro hardware/software, and an index of the
-reverse-engineering corpus (this unit: `root@192.168.0.158`, hostname `kunos`).
+Top-level map of the FlashForge Adventurer 5M Pro hardware/software stack (this unit:
+`root@192.168.0.158`, hostname `kunos`). Doc index: [README.md](README.md).
 
 ## Hardware
 - **SoC**: Allwinner **T113** (`sun8iw20`, D1-class), dual Cortex-A7 ARMv7, soft-float userland.
@@ -14,7 +14,9 @@ reverse-engineering corpus (this unit: `root@192.168.0.158`, hostname `kunos`).
 - **Video Engine (Cedar)** @ `0x01C0E000`, ver 0x1667 — **does not complete codec ops on this unit**
   (see `../../lab/venc-scratch/`); stock uses x264 **software** H.264.
 - **Camera**: USB-UVC, **MJPEG-native** 640×480/1280×720.
-- **MCUs**: main board `/dev/ttyS5` + toolhead `eboard` `/dev/ttyS1`, both Klipper @ 230400.
+- **MCUs**: 2× **Nationstech N32G455** (GD32/STM32-F4 work-alike) — main board `/dev/ttyS5` +
+  toolhead `eboard` `/dev/ttyS1`, both Klipper @ 230400. Stock MCU fw = Klipper 0.11; mods flash
+  0.13. See [`../2026-06-02-ad5m-mcu-firmware-and-config.md`](../2026-06-02-ad5m-mcu-firmware-and-config.md).
 - **Display**: SPI/RGB LCD via Allwinner `dispdbg` backlight + GPIO203; touch via `libts`.
 
 ## Software stack
@@ -26,24 +28,9 @@ reverse-engineering corpus (this unit: `root@192.168.0.158`, hostname `kunos`).
 - **Codec demos** present (all fail to complete on this VE): `demoVdecoder`, `demoVencVdec`,
   `encoderTest`, `vdecoderdemo`, `vencoderDemo`.
 
-## Documentation index
-**firmwareExe (stock UI) reverse-engineering** — 11 docs:
-- [firmwareexe-reverse-engineering.md](firmwareexe-reverse-engineering.md) — overview + architecture + security summary.
-- [gdb-firmwareexe-injection.md](gdb-firmwareexe-injection.md) — drive the UI from shell via gdb.
-- [firmwareexe-local-print-api.md](firmwareexe-local-print-api.md) — Klippy `/tmp/uds` ETX-framed API + print g-code.
-- [firmwareexe-cloud-rest-and-oss.md](firmwareexe-cloud-rest-and-oss.md) — cloud REST catalog + OSS upload.
-- [firmwareexe-cloud-command-surface.md](firmwareexe-cloud-command-surface.md) — MQTT/NIM remote-control surface.
-- [firmwareexe-orcaserver-lan-api.md](firmwareexe-orcaserver-lan-api.md) — LAN HTTP API (:8898).
-- [firmwareexe-lan-protocol-and-crypto.md](firmwareexe-lan-protocol-and-crypto.md) — TCP 8899, discovery, keys.
-- [firmwareexe-ota-update.md](firmwareexe-ota-update.md) — OTA path (MD5-only, unsigned).
-- [firmwareexe-network-wifi.md](firmwareexe-network-wifi.md) — wifi/eth/AP/static.
-- [firmwareexe-filesystem-and-system.md](firmwareexe-filesystem-and-system.md) — ffsdk, FS map, USB, PWM, display.
-- [firmwareexe-ui-classes.md](firmwareexe-ui-classes.md) — Keyboard/Language/Guider/dialogs/QR.
-
-**Hardware / mod / platform**:
-- [ad5m-pro-klipper-hardware-config.md](ad5m-pro-klipper-hardware-config.md) — pin map / printer.cfg.
-- [forge-x-boot-architecture.md](forge-x-boot-architecture.md) — the mod boot/chroot/service stack.
-- `../../lab/venc-scratch/README.md` — the Cedar VE H.264 encode investigation (HW encode non-functional).
+## Related
+- Full doc index: [README.md](README.md) (the 11 firmwareExe RE docs + hardware/mod docs).
+- `../../lab/venc-scratch/README.md` — Cedar VE H.264 encode investigation (HW encode non-functional).
 - `../../lab/ve-kmod/` — VE/IOMMU/MBUS diagnostic kernel module.
 
 ## Consolidated security findings (stock firmware)

@@ -14,7 +14,7 @@
 | `specs/` | design specs (dated) — archival snapshots |
 | `plans/` | implementation plans (dated) — archival snapshots |
 | `research/` | findings: memory experiments, T113 mainline support, stock recovery images, stock-UI spike, buildroot-vs-alpine, etc. |
-| `board-notes/` | hardware probes + the captured stock kernel config |
+| `board-notes/` | device/hardware reference + full reverse-engineering of the stock `firmwareExe` UI app + forge-x boot architecture (start at `board-notes/README.md`) |
 | `screenshots/` | qemu-captured renders + the boot console / bootsplash (see its README) |
 
 **Convention:** `specs/` and `plans/` are *snapshots* — they record paths/decisions as written

@@ -50,22 +50,30 @@ disp_reserve=1536000,0x448ee000 androidboot.dramsize=128
   is station-mode-solid (AP/monitor weaker than vendor, irrelevant for a printer).
 - The `dsp0@p5` partition holds DSP firmware; the partition map must be preserved
   by genimage so the DSP and boot chain are not disturbed.
-</content>
 
-## firmwareExe reverse-engineering (stock UI app)
+---
+
+## Documentation index
+
+Reverse-engineering of the stock firmware + the device/mod platform. Start with
+[device-overview.md](device-overview.md) (hardware/stack inventory + consolidated security
+findings). MCU firmware + config-baseline detail:
+[`../2026-06-02-ad5m-mcu-firmware-and-config.md`](../2026-06-02-ad5m-mcu-firmware-and-config.md).
+
+### firmwareExe reverse-engineering (stock UI app)
 - [firmwareexe-reverse-engineering.md](firmwareexe-reverse-engineering.md) — overview + architecture.
 - [gdb-firmwareexe-injection.md](gdb-firmwareexe-injection.md) — drive the UI from shell via gdb.
-- [ad5m-pro-klipper-hardware-config.md](ad5m-pro-klipper-hardware-config.md) — pin map / printer.cfg.
+- [firmwareexe-local-print-api.md](firmwareexe-local-print-api.md) — Klippy socket /tmp/uds + print g-code.
 - [firmwareexe-orcaserver-lan-api.md](firmwareexe-orcaserver-lan-api.md) — LAN HTTP API (:8898).
 - [firmwareexe-ota-update.md](firmwareexe-ota-update.md) — OTA path (MD5-only, unsigned).
 - [firmwareexe-cloud-command-surface.md](firmwareexe-cloud-command-surface.md) — remote-control surface.
 - [firmwareexe-lan-protocol-and-crypto.md](firmwareexe-lan-protocol-and-crypto.md) — TCP 8899 + crypto/keys.
-- [firmwareexe-local-print-api.md](firmwareexe-local-print-api.md) — Klippy socket /tmp/uds + print g-code.
 - [firmwareexe-cloud-rest-and-oss.md](firmwareexe-cloud-rest-and-oss.md) — cloud REST + OSS upload.
 - [firmwareexe-filesystem-and-system.md](firmwareexe-filesystem-and-system.md) — ffsdk, FS map, USB, PWM, display.
 - [firmwareexe-network-wifi.md](firmwareexe-network-wifi.md) — wifi/eth/AP/static.
 - [firmwareexe-ui-classes.md](firmwareexe-ui-classes.md) — UI/i18n/Guider/dialogs/QR.
 
-## Device & mod architecture
-- [device-overview.md](device-overview.md) — hardware/stack inventory + full doc index.
+### Device, hardware & mod architecture
+- [device-overview.md](device-overview.md) — hardware/stack inventory + security summary.
+- [ad5m-pro-klipper-hardware-config.md](ad5m-pro-klipper-hardware-config.md) — Klipper pin map / printer.cfg.
 - [forge-x-boot-architecture.md](forge-x-boot-architecture.md) — mod boot/chroot/service stack.
