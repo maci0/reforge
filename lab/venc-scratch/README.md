@@ -190,3 +190,19 @@ for any future attempt that obtains the T113 VE encode register map or a running
 python3.7 -c 'W,H,N=640,480,4; uv=b"\x80"*(W*H//2); f=open("in.nv12","wb"); [f.write(bytes(((x+n*20)&0xFF) for x in range(W))*H) or f.write(uv) for n in range(N)]'
 VENDOR=1 DUMP=1 ./t113_h264enc in.nv12 out.h264 640 480 1 10 1   # stalls at status 0x80000260
 ```
+
+## DEFINITIVE: stock firmware uses x264 SOFTWARE H.264 — VE HW encoder is unused
+Decisive evidence (firmwareExe + libsdk_camera are NOT stripped):
+- **No binary/lib on the device imports `VideoEncodeOneFrame` or `VideoEncInit`** — nothing in
+  the stock firmware ever runs the VE hardware encoder. (Only the broken standalone demos do.)
+- **`firmwareExe` links libx264** (`x264_encoder_open_148/encode/headers/close`) — the stock app
+  does H.264 in **software on the CPU**, not on the VE.
+- `libsdk_camera.so` imports only `VideoEncSetParameter/GetParameter/Reset/UnInit/Destroy` —
+  it sets VENC *parameters* but never calls Init/Encode/AddInput, so it never runs an encode.
+
+Conclusion: the VE H.264 hardware encoder is **non-functional in the standalone path AND used by
+nothing in the stock firmware** — the vendor encodes H.264 with x264 in software instead (likely
+*because* the VE encode doesn't work on this BSP, and because the camera is USB-MJPEG). There is
+no working VE-HW-encode reference anywhere on the device to copy, by design. "HW-accelerated H.264
+encode" is therefore not achievable on this unit; the vendor-equivalent path for H.264 is **x264
+software** (CPU), and for the local camera it's **MJPEG passthrough** (already working).
