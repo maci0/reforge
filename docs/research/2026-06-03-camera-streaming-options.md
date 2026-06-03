@@ -104,12 +104,89 @@ free. Two viable transport/decode options on the client:
 4. Low-effort interim: evaluate **ustreamer** in place of mjpg-streamer (more robust, lower
    latency, still MJPEG) — but it's not a codec change, so no bandwidth win.
 
+## Prototyping the vendor `libvenc` H.264 pipeline on the device (works today)
+
+The closed `cedarx`/`libvenc` stack is already installed, **and so is a ready-made CLI test
+tool** — `/usr/bin/vencoderDemo` (links `libvencoder.so`/`libvenc_h264.so`/`libVE.so`,
+`/dev/cedar_dev`). It is a complete **file→file hardware encoder**, so the HW H.264 path can be
+proven with **zero custom code**:
+
+```
+vencoderDemo -h        # options:
+#  -i input.yuv  -if 0(=YUV420SP/NV12)  -f 0(=h264 | 1=jpeg | 3=h265)
+#  -s 640x480 (src)  -d 640x480 (dst)  -b <kbps>  -qp_min/-qp_max  -n <frames>  -o out.h264
+```
+
+Staged plan (each stage independently verifiable):
+
+- **Stage 0 — prove HW H.264 encode.** Feed a known NV12 frame set and encode:
+  `vencoderDemo -i test.nv12 -if 0 -f 0 -s 640x480 -d 640x480 -b 1500 -n 300 -o out.h264`.
+  Pull `out.h264` off device, `ffprobe`/`ffplay` on host → confirms the Cedar H.264-baseline
+  encoder works and the output is standards-decodable. (Also try `-f 1` for JPEG as a sanity
+  check — simplest VE path.)
+- **Stage 1 — camera MJPEG → NV12.** The sensor is MJPEG-only, so decode to NV12 first. Device
+  `ffmpeg` has **no cedar encoder and no hwaccels** (minimal build), but it can CPU-decode MJPEG
+  cheaply at 640×480: `ffmpeg -f v4l2 -input_format mjpeg -i /dev/video0 -pix_fmt nv12 -f rawvideo - `.
+  (Later: replace CPU JPEG-decode with the VE's HW JPEG **decoder** via `cedrus`/`libvecore` to
+  drop CPU further.)
+- **Stage 2 — wire it.** Chain camera→decode→encode through a FIFO. `vencoderDemo` reads a file,
+  so either point `-i` at a named pipe fed by the ffmpeg rawvideo, or write a ~150-line C app
+  against the VENC API (`VencCreate/VencInit/VencQueueInputBuffer/VencDequeueOutputBuffer`,
+  headers from the Allwinner Tina `libcedarc/vencoder/` the demo is built from). Cross-compile
+  with the ReForge buildroot armhf toolchain, link the device's `libvenc*.so`.
+- **Stage 3 — transport + browser decode.** Emit the H.264 **Annex-B** elementary stream over a
+  WebSocket; a ~50-line HTML page feeds NAL units to **WebCodecs `VideoDecoder`**
+  (`codec:"avc1.42E01E"` = baseline). Alternatively reuse on-device gstreamer for RTP
+  (`gst-inspect-1.0` confirms `h264parse`, `rtph264pay` are present) toward a WebRTC bridge.
+  Validate end-to-end latency + bitrate vs the current MJPEG.
+
+This proves the win **today** on the closed blob; only Stage 2's glue app is new code. The
+result is a low-CPU, ~5–10× lower-bandwidth stream than MJPEG.
+
+## Open driver — porting / reverse-engineering plan
+
+Goal: replace the closed `libvenc` with an **open V4L2 (stateless) encoder** for the T113 VE, so
+ReForge can ship HW H.264/JPEG encode without the vendor blob. We start with a big head start —
+**the BSP ships the kernel-side VE driver source**: `vendor/kernels/tina-bsp-kernel/drivers/media/cedar-ve/`
+(`cedar_ve.c`, `cedar_ve.h`, `ve_mem_list.h`, `flush_cache.S`). That driver is the *plumbing*
+(VE MMIO mapping to userspace, clocks, reset, CMA/IOMMU buffers, the `/dev/cedar_dev` ioctls); the
+**encode register programming lives in the closed userspace `libvenc`** — that's the RE target.
+
+Plan:
+1. **Pin the VE generation.** Read `cedar_ve.c` for the compatible/variant, VE register base,
+   clock/reset, and ioctl set. The T113 (sun8iw20p1) is **D1-class**; map it against known gens
+   (legacy sun5i, V3/S3, H6/H616) to pick the closest open reference.
+2. **Trace the vendor encode.** Run `vencoderDemo -f 0` (deterministic via `-c` compare) and
+   capture the register sequence. The userspace lib `mmap`s the VE registers (not all via
+   ioctl), so use **MMIO tracing**: `mmiotrace`/ftrace on the VE region, or instrument `cedar_ve.c`
+   to log writes, or a devmem snapshot diff around `VencInit`/per-frame. Capture (a) init, (b)
+   reference-frame/buffer setup, (c) the per-frame encode kick + bitstream readout.
+3. **Warm up on JPEG, then H.264.** Do the **JPEG/MJPEG encoder first** — a far simpler register
+   sequence (no motion estimation, no inter-frame), ideal to learn this VE's encode block — then
+   tackle **H.264 baseline** (CAVLC, QP-only, no B-frames — which is also the HW's documented
+   limit, so the profile target matches exactly).
+4. **Cross-reference open work.** Map the captured sequence against Bootlin's **cedrus H.264
+   encoder** (V3/S3) source, the **H616 `v4l2-cedrus-enc-test`**, and the linux-sunxi
+   **VE_Register_guide** to interpret fields rather than blind-decode.
+5. **Implement + validate.** Write it as a V4L2 stateless M2M encoder modeled on Bootlin's
+   `cedrus-enc` (so it can ride the emerging stateless-encode uAPI and make
+   `ustreamer`/`camera-streamer` usable unmodified once they speak that uAPI). Validate
+   bit-exact / decodable against `vencoderDemo -c`.
+6. **Upstream.** Align with the Bootlin/Kocialkowski stateless-encoder effort so the T113/D1 VE
+   becomes a supported encoder variant rather than a private fork.
+
+Effort is real but bounded by two assets most RE efforts lack: the **vendor kernel driver
+source** (plumbing already solved) and a **deterministic reference encoder** (`vencoderDemo`) to
+diff against. Start with JPEG encode as the cheap proof-of-method.
+
 ## Sources
 - [ayufan/camera-streamer](https://github.com/ayufan/camera-streamer) (HW MJPEG/H.264/WebRTC; Pi-targeted) · [streaming.md](https://github.com/ayufan/camera-streamer/blob/main/docs/streaming.md)
 - [rosimildo/videoenc — Allwinner Cedar H.264 encoder demo (libvenc)](https://github.com/rosimildo/videoenc)
 - [Bootlin — open-source V4L2 H.264 encoder for Allwinner V3/V3s/S3 (2023, out-of-tree)](https://bootlin.com/blog/open-source-linux-kernel-support-for-the-allwinner-v3-v3s-s3-h-264-video-encoder/) · [CNX coverage](https://www.cnx-software.com/2023/11/17/allwinner-vpu-open-source-h264-hardware-video-encoder-linux-driver/)
 - [linux-sunxi: Cedrus](https://linux-sunxi.org/Cedrus) (mainline = decode-only) · [VE encode JPEG/H264 (H3/A20 PoC thread)](https://linux-sunxi.narkive.com/dAlIku99/ve-encondig-jpeg-h264-for-h3)
 - [bootlin/v4l2-cedrus-enc-test — H616 Cedrus encoder issue](https://github.com/bootlin/v4l2-cedrus-enc-test/issues/1) · FOSDEM 2024 "V4L2 Stateless Video Encoding" (Kocialkowski)
+- [linux-sunxi: VE_Register_guide](https://linux-sunxi.org/VE_Register_guide) · [milosladni/sunxi-tvin2jpeg_h264 (HW H264+JPEG encode PoC)](https://github.com/milosladni/sunxi-tvin2jpeg_h264)
+- On-device: `/usr/bin/vencoderDemo` (cedarx VENC sample, file→file HW H264/JPEG/H265 encode). In-repo: `vendor/kernels/tina-bsp-kernel/drivers/media/cedar-ve/` (kernel VE driver source — `cedar_ve.c`).
 - [WebCodecs API (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/WebCodecs_API) · [w3c/webcodecs #732 (1-in-1-out latency)](https://github.com/w3c/webcodecs/issues/732)
 - [Mainsail/Crowsnest streaming backends](https://docs.mainsail.xyz/crowsnest/faq/backends/)
 - Device probe (this unit): `v4l2-ctl --list-formats-ext` → MJPG-only; `/dev/cedar_dev` + `libvenc_h264/h265/jpeg.so` present.
