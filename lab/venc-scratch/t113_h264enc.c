@@ -284,9 +284,14 @@ static int h264enc_encode_picture(h264enc*c){
 		for(;;){ ist=readl(ve_regs+0xa10); if(ist&0x3) break;
 			clock_gettime(CLOCK_MONOTONIC,&b);
 			if((b.tv_sec-a.tv_sec)*1000+(b.tv_nsec-a.tv_nsec)/1000000>300) break; }
-		uint8_t*op=(uint8_t*)c->ref_picture[0].luma_buffer;
-		fprintf(stderr,"[ISP stage] a10 pre=0x%08x post=0x%08x  out_first8=%02x %02x %02x %02x %02x %02x %02x %02x\n",
-			pre, ist, op[0],op[1],op[2],op[3],op[4],op[5],op[6],op[7]);
+		/* invalidate caches on all buffers so CPU sees any device DMA writes */
+		for(int i=0;i<nbufs;i++){ struct dma_buf_sync s={3/*RW*/}; ioctl(bufs[i].fd,DMA_BUF_IOCTL_SYNC,&s); }
+		fprintf(stderr,"[ISP stage] a10 pre=0x%08x post=0x%08x\n",pre,ist);
+		/* scan ALL buffers for non-zero content (where did the ISP write?) */
+		for(int i=0;i<nbufs;i++){ uint8_t*p=bufs[i].cpu; int nz=0; uint32_t fb=0;
+			for(int k=0;k<4096&&k<(int)bufs[i].size;k++){ if(p[k]){nz++; if(!fb)fb=k;} }
+			if(nz) fprintf(stderr,"  buf[%d] iova=0x%08x: %d nonzero in first 4K, first@%u = %02x %02x %02x %02x\n",
+				i,bufs[i].iova,nz,fb,p[fb],p[fb+1],p[fb+2],p[fb+3]); }
 		writel(ist, ve_regs+0xa10);                           /* ack ISP status */
 		/* point AVC input at the ISP output */
 		c->luma_buffer=c->ref_picture[0].luma_buffer;

@@ -66,9 +66,16 @@ neither jemk's A20 code nor the standalone path runs. Implemented it (`ISP2=1`):
 
 So the encode is most likely a **solvable register-programming problem** (correct T113 ISP
 source/output mapping + ISP→AVC coupling), not dead silicon. Remaining RE: map the T113 ISP
-source/output registers (the guide is a different VE gen) and the ISP→AVC hand-off. This is the
-most promising open lead; the "never completes" framing below applies to the AVC engine and the
-naive single-stage flow, not the ISP trigger.
+source/output registers (the guide is a different VE gen) and the ISP→AVC hand-off.
+
+**Honest correction (follow-up):** the `a10 0→1` is a *shallow trigger-acknowledge, NOT real
+processing.* A cache-invalidated scan of **all** allocated buffers after the ISP trigger shows
+the input buffer holds its data (DRAM r/w confirmed) but the ISP wrote **nothing anywhere** — no
+converted output in any buffer. So the engine responds to the trigger register but does no actual
+frame work under any config I can reach; my source-register guesses are wrong and the correct
+T113 ISP source/output regs remain unknown (the guide is a different VE gen, and the vendor's own
+standalone code never runs a separate ISP stage). Net: a register-level response, but still **no
+reachable configuration produces actual VE output** (encode, ISP-convert, or decode).
 
 ## (earlier) The AVC engine / single-stage flow never completes ANY op
 Converging evidence that this is the **VE revision / unit**, not the code:
