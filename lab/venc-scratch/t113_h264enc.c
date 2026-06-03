@@ -318,7 +318,9 @@ static int h264enc_encode_picture(h264enc*c){
 	if(so){ unsigned off=strtoul(so,0,16); writel(ve_virt2phys(c->ref_picture[0].luma_buffer),c->regs+off); }
 
 	/* trigger + POLL status (no IRQ on this unit) */
-	writel(0x8,c->regs+VE_AVC_TRIGGER);
+	uint32_t trig=getenv("TRIG")?strtoul(getenv("TRIG"),0,16):0x8;
+	unsigned trigreg=getenv("TRIGREG")?strtoul(getenv("TRIGREG"),0,16):VE_AVC_TRIGGER;
+	writel(trig,c->regs+trigreg);
 	int pollms=getenv("POLLMS")?atoi(getenv("POLLMS")):2000;
 	uint32_t status=0; int done=0;
 	struct timespec t0,t1; clock_gettime(CLOCK_MONOTONIC,&t0);

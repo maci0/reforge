@@ -27,6 +27,17 @@ Identical stall across **all three**:
 2. the **vendor's own** captured register config (dumped live at its `WAIT_VE_EN` ioctl), and
 3. a faithful replication of the vendor config in this clean harness.
 
+**Instrumented to the floor (this is not a guess):**
+- **Memory path is PROVEN correct.** With the extended `../ve-kmod/ve_diag.ko` reading the
+  IOMMU (`0x02010000`) live during the stall: `ENABLE=1`, `BYPASS=0x72` (**bit 0 clear → the
+  VE, master 0 on sun8iw20, translates — not bypass**), `INT_STA=0`, fault-address `=0`. The
+  VE accesses its IOVAs through the IOMMU with **zero faults** — the input/output mappings are
+  valid and the hard part of the open port (memory) is solved.
+- The engine therefore hangs **internally**, not on memory. `IOCTL_WAIT_VE_EN` is passive
+  (just `wait_event_timeout` on the IRQ), so polling `STATUS` is equivalent.
+- **Even a single 16×16 macroblock hangs** (same `0x80000260`, no MB output) — structural, not
+  a scaling/edge issue. Trigger scan confirms `0x8` is the only value that starts the engine.
+
 Findings that pin it:
 - **T113 ISP encoding differs from jemk's A20** (recovered from the vendor lib's regs):
   `a00=(W/8)<<16|(H/8)`, `a14=mb_width`, `a2c=(H/8)<<16|(W/8)` — applied via `VENDOR=1`.

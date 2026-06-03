@@ -15,8 +15,10 @@
 #define GIC_DIST  0x03021000
 #define GIC_SIZE  0x1000
 #define VE_IRQ    98
+#define IOMMU_BASE 0x02010000
+#define IOMMU_SIZE 0x1000
 
-static void __iomem *ve, *gic;
+static void __iomem *ve, *gic, *iommu;
 
 static int ve_diag_show(struct seq_file *m, void *v)
 {
@@ -44,6 +46,16 @@ static int ve_diag_show(struct seq_file *m, void *v)
 		u32 val = readl(ve + o);
 		if (val) seq_printf(m, "  r%03x=%08x", o, val);
 	} seq_printf(m, "\n"); }
+	/* IOMMU state — is the VE (master 0 on sun8iw20) translating or in bypass?
+	 * and is there a fault (VE accessing an unmapped IOVA)? */
+	if (iommu) {
+		seq_printf(m, "IOMMU enable=%08x bypass=%08x ttb=%08x int_sta=%08x\n",
+			   readl(iommu + 0x020), readl(iommu + 0x030),
+			   readl(iommu + 0x050), readl(iommu + 0x108));
+		seq_printf(m, "IOMMU fault_addr[VE=0]=%08x data0=%08x a1=%08x a2=%08x a3=%08x\n",
+			   readl(iommu + 0x110), readl(iommu + 0x130),
+			   readl(iommu + 0x114), readl(iommu + 0x118), readl(iommu + 0x11c));
+	}
 	return 0;
 }
 
@@ -57,6 +69,7 @@ static int __init ve_diag_init(void)
 {
 	ve  = ioremap(VE_BASE, VE_SIZE);
 	gic = ioremap(GIC_DIST, GIC_SIZE);
+	iommu = ioremap(IOMMU_BASE, IOMMU_SIZE);
 	if (!ve || !gic) { pr_err("ve_diag: ioremap failed\n"); return -ENOMEM; }
 	proc_create("ve_diag", 0444, NULL, &ve_diag_fops);
 	pr_info("ve_diag: loaded (ve=%p gic=%p)\n", ve, gic);
@@ -67,6 +80,7 @@ static void __exit ve_diag_exit(void)
 	remove_proc_entry("ve_diag", NULL);
 	if (ve) iounmap(ve);
 	if (gic) iounmap(gic);
+	if (iommu) iounmap(iommu);
 }
 module_init(ve_diag_init);
 module_exit(ve_diag_exit);
