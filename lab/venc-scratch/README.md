@@ -99,6 +99,24 @@ So the missing piece is in the T113-specific encode-engine programming that only
 `RecordCamera` pipeline performs — which never runs (USB-MJPEG camera) and is stripped. No
 reachable open or closed code on this device completes a VE codec op to copy from.
 
+## Authoritative register map found (allwinner-zh/media-codec cedarx)
+`allwinner-zh/media-codec/sunxi-cedarx/SOURCE/vencoder/` is Allwinner's open cedarx encoder
+framework. `EncAdapter.c` confirms the register bases: **top-VE = Ve base, encoder = base+0xB00,
+ISP = base+0xA00** (matches our offsets). `include/video_enc_reg.h` gives the H264 encoder map
+(offsets relative to 0xB00): PICINFO 0x00, PARA0/1/2 0x04/08/0c, MEPARA 0x10, INT_ENABLE 0x14,
+**STARTTRIG 0x18 (VE_START=8)**, STATUS 0x1c (VE_FINISH=bit0, BS_STALL=bit1, MB_OVTIME=bit2,
+OVTIME=bit3, **PUTBITS_STATUS=bit9**), PUTBITS 0x20, STM* 0x80-0x90, REF/REC 0xa0-0xbc,
+MBINFO 0xc0, DBLK 0xc4, **SRAM port 0xe0(offset)/0xe4(data)**. (The actual encode loop is in the
+closed `libcedar_plugin_venc` blob — not in the open framework.)
+
+Key mechanism: the VE encoder has **internal SRAM accessed via a port** (`0xbe0`=index,
+`0xbe4`=data). Dumping it: my encoder leaves it all-zero, the **closed lib populates it**, with
+`sram[0]=sram[1]=0x00380000` (one of our buffer IOVAs) — so **frame-buffer addresses are loaded
+into VE SRAM, not the 0xbb0 MMIO regs** (explains why direct 0xbb0 writes never stuck). But
+writing rec/ref IOVAs into the SRAM (idx 0..15) did **not** unblock the encode — still
+0x80000260. And the closed lib populates the SRAM yet **also hangs** identically. So the SRAM
+addresses are necessary plumbing but not the completion key.
+
 ## CORRECTED deepest finding: DMA works; VE reads input then hangs pre-MB-encode
 Using the MBUS PMU per-master bandwidth counter (VE = master 4, counter `0xb0`, enable `0x9c`)
 as a live signal — this **revises the "no DMA / never completes" conclusions above**:

@@ -358,6 +358,20 @@ static int h264enc_encode_picture(h264enc*c){
 	char*so=getenv("SCANOFF");
 	if(so){ unsigned off=strtoul(so,0,16); writel(ve_virt2phys(c->ref_picture[0].luma_buffer),c->regs+off); }
 
+	/* NEW: load frame-buffer addresses into the encoder SRAM via the port (0xbe0=idx,0xbe4=val).
+	 * The closed lib puts buffer IOVAs in SRAM, not the 0xbb0 MMIO regs. SRAMSET enables. */
+	if(getenv("SRAMSET")){
+		uint32_t rec_y=ve_virt2phys(c->ref_picture[0].luma_buffer);
+		uint32_t rec_c=ve_virt2phys(c->ref_picture[0].chroma_buffer);
+		uint32_t ref_y=ve_virt2phys(c->ref_picture[1].luma_buffer);
+		uint32_t ref_c=ve_virt2phys(c->ref_picture[1].chroma_buffer);
+		uint32_t mbi=ve_virt2phys(c->extra_buffer_line), unb=ve_virt2phys(c->extra_buffer_frame);
+		uint32_t vals[16]={rec_y,rec_y,rec_c,ref_y,ref_c,mbi,unb,rec_y,rec_c,ref_y,ref_c,mbi,unb,rec_y,rec_c,0};
+		int base=getenv("SRAMBASE")?strtoul(getenv("SRAMBASE"),0,16):0;
+		for(int i=0;i<16;i++){ writel(base+i,c->regs+0xbe0); writel(vals[i],c->regs+0xbe4); }
+		fprintf(stderr,"[SRAMSET] wrote rec/ref IOVAs to SRAM idx %d..%d\n",base,base+15);
+	}
+
 	/* experimental: fire a separate ISP/input trigger before the AVC trigger
 	 * (ISPREG=offset hex, ISPVAL=value hex) — newer VE may need the ISP started */
 	char*ir=getenv("ISPREG");
