@@ -19,8 +19,13 @@
 #define IOMMU_SIZE 0x1000
 #define SYSCFG_BASE 0x03000000   /* VE node reg[1]: SRAM-to-MACC remap control */
 #define SYSCFG_SIZE 0x1000
+#define MBUS_BASE  0x03102000    /* sun8i-mbus controller; VE = port 26 */
+#define MBUS_SIZE  0x1000
 
-static void __iomem *ve, *gic, *iommu, *syscfg;
+static void __iomem *ve, *gic, *iommu, *syscfg, *mbus;
+
+static int ve_qos = 0;   /* if 1: set VE MBUS port26 to high pri + max QoS (driver's intent) */
+module_param(ve_qos, int, 0644);
 
 static int ve_diag_show(struct seq_file *m, void *v)
 {
@@ -55,6 +60,15 @@ static int ve_diag_show(struct seq_file *m, void *v)
 		seq_printf(m, "SYSCFG[0x00]=%08x (bit0=%d SRAM%s-to-VE) [0x04]=%08x (bit24=%d)\n",
 			   c0, !!(c0&1), (c0&1)?"-NOT-mapped":"-mapped", c4, !!(c4&(1<<24)));
 	}
+	if (mbus) {
+		u32 acen0 = readl(mbus + 0x20), acen1 = readl(mbus + 0x24), acen2 = readl(mbus + 0x28);
+		/* VE MBUS port = 26 -> ACEN reg0 bit26 */
+		seq_printf(m, "MBUS ACEN0@0x20=%08x (VE port26 enabled=%d) ACEN1@0x24=%08x ACEN2@0x28=%08x\n",
+			   acen0, !!(acen0 & (1u<<26)), acen1, acen2);
+		seq_printf(m, "MBUS VE cfg0@%03x=%08x cfg1@%03x=%08x  (port26 QoS/pri/bwl)\n",
+			   0x210+0x10*26, readl(mbus + 0x210 + 0x10*26),
+			   0x214+0x10*26, readl(mbus + 0x214 + 0x10*26));
+	}
 	if (iommu) {
 		seq_printf(m, "IOMMU enable=%08x bypass=%08x ttb=%08x int_sta=%08x\n",
 			   readl(iommu + 0x020), readl(iommu + 0x030),
@@ -78,7 +92,13 @@ static int __init ve_diag_init(void)
 	gic = ioremap(GIC_DIST, GIC_SIZE);
 	iommu = ioremap(IOMMU_BASE, IOMMU_SIZE);
 	syscfg = ioremap(SYSCFG_BASE, SYSCFG_SIZE);
+	mbus = ioremap(MBUS_BASE, MBUS_SIZE);
 	if (!ve || !gic) { pr_err("ve_diag: ioremap failed\n"); return -ENOMEM; }
+	if (ve_qos && mbus) {
+		u32 v = readl(mbus + 0x3b0);                 /* MBUS port26 (VE) CFG0 */
+		writel((v & ~0xe) | 0xe, mbus + 0x3b0);      /* pri=1 (bit1), qos=3 (bits2-3) */
+		pr_info("ve_diag: VE MBUS cfg0 0x%08x -> 0x%08x\n", v, readl(mbus + 0x3b0));
+	}
 	proc_create("ve_diag", 0444, NULL, &ve_diag_fops);
 	pr_info("ve_diag: loaded (ve=%p gic=%p)\n", ve, gic);
 	return 0;
@@ -90,6 +110,7 @@ static void __exit ve_diag_exit(void)
 	if (gic) iounmap(gic);
 	if (iommu) iounmap(iommu);
 	if (syscfg) iounmap(syscfg);
+	if (mbus) iounmap(mbus);
 }
 module_init(ve_diag_init);
 module_exit(ve_diag_exit);

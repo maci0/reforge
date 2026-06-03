@@ -99,6 +99,27 @@ So the missing piece is in the T113-specific encode-engine programming that only
 `RecordCamera` pipeline performs — which never runs (USB-MJPEG camera) and is stripped. No
 reachable open or closed code on this device completes a VE codec op to copy from.
 
+## Deepest finding: VE counts bits internally but never writes DRAM
+A cache-invalidated read of the output buffer after a triggered encode: `VLE_LENGTH`=224
+bits counted, but the **DRAM output buffer is all zeros** — the VE's bitstream FIFO counter
+increments but nothing reaches DRAM. Consistent across encode (hangs on input DMA), ISP
+(writes nothing), and decode (0 frames) — all with **no IOMMU fault** (transactions never
+reach DRAM). So the VE does internal logic but **no DMA completes**.
+
+SoC-level checks (via `../ve-kmod/ve_diag.ko`) — every layer verified correct/enabled:
+- MBUS master **access-enable** `ACEN0@0x20=0xffffffff` → VE (port 26) IS bus-enabled.
+- MBUS VE QoS/priority (`cfg0@0x3b0`) = 0 (lowest). The driver's own `mbus_port_setpri(26,1)`
+  is commented out ("kernel version not support"). A lowest-QoS real-time codec under the
+  always-active display master *could* be starved — but **writing the QoS register from a kmod
+  does not stick** (reads work, writes drop; the master-config reg is RO/locked without the
+  MBUS config clock or a bootloader-owned unlock). So this lead is plausible but **not
+  modifiable from any reachable interface**.
+- (also verified: all 6 VE clocks incl mbus-ve, IOMMU translation+no-fault, SRAM mapped.)
+
+Net: the VE acknowledges trigger-register writes but completes no DMA-backed codec op, and the
+one remaining plausible cause (MBUS QoS starvation) sits behind a locked register. The fix, if
+any, lives in bootloader/SoC init the stock pipeline performs — not reachable here.
+
 ## Practical conclusion
 HW H.264 encode does **not** complete in any standalone configuration reachable on this
 unit — the vendor's own tools fail identically, and the missing piece (T113 rec/ref setup
