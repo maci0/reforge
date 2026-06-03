@@ -58,7 +58,11 @@ Converging evidence that this is the **VE revision / unit**, not the code:
   (VE 0x1667).** Same register layout, different revision — the T113 encode-completion path
   needs something the A20 doesn't, and it's undocumented.
 - **`cedar_dev` IRQ = 0 since boot**, across *every* attempt: my encoder, all three vendor
-  encode demos, **and decode** (`demoVdecoder -i test.h264` produces 0 frames, IRQ stays 0).
+  encode demos, **and decode**. Decode confirmed with a *proper MP4 container*
+  (`demoVdecoder -i big.mp4`): awplayer parses it fine (H.264 320×240, `VeInitialize` runs,
+  ION opens), but over 200 frames / 14 s it produces **zero decoded frames and zero IRQs**.
+  Decode is an entirely separate, well-understood code path from encode — its identical
+  failure proves the codec *engine* completes nothing, independent of any encode-config theory.
   The engine goes *busy* but **never signals completion for encode OR decode** — and we poll
   the status register directly (not just the IRQ), so it's the engine, not IRQ routing.
 - Per-frame `RESET_VE` (the vendor's exact per-frame procedure) does not change it.
