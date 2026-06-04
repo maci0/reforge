@@ -17,7 +17,7 @@ write-ups: [`docs/research/`](research/).
 | **zram compressed swap** | zstd-compressed RAM swap on the stock kernel (loadable `.ko`) | ~**4× compression** of cold anon pages → effective RAM gain; high-prio over eMMC | `modules/zram-bsp/`, `S35zram` |
 | **zram VM tuning** | the runtime sysctls for the zram-as-primary-swap profile: `vm.page-cluster=0` (zram is RAM — no swap read-ahead), `vm.swappiness=100` (prefer compressed-RAM swap over eMMC file re-reads), `vm.vfs_cache_pressure=50`, `vm.watermark_scale_factor=40` (kswapd reclaims ahead of demand), `vm.dirty_ratio=10` / `vm.dirty_background_ratio=5` | makes zram actually get used + targets the measured direct-reclaim/throttle storm; **no fixed RAM cost** | `.shell/reforge-vmtune.sh`, sourced by `S35zram` right after `swapon` |
 | **single shared Python interpreter** | klippy + moonraker share one python3 → COW page sharing of code/libs | avoids a second interpreter's resident set | by design |
-| **Moonraker trimmed** | `update_manager`/`spoolman`/`notifier`/`ldap` off | smaller resident set; **avoids the `git` dependency** (tens of MB rootfs) | `moonraker.conf` |
+| **Moonraker trimmed** | `spoolman`/`notifier`/`ldap` off; `update_manager` configured with `provider: simple` + `type: web` (no `type: git_repo`) | smaller resident set; **avoids the `git` dependency** (tens of MB rootfs) | `moonraker.conf` |
 
 **Note on `MALLOC_ARENA_MAX=2`:** this was the prior allocator win (−2.7 MB/daemon vs glibc
 default) and is still what the **forge-x PRs** ship. ReForge has now **superseded it with jemalloc**
@@ -69,7 +69,7 @@ so they're out of reach for P1–P3. They become available when ReForge ships it
 | jemalloc **defaults** (untuned) | **−0.8 MB** (wash) | jemalloc defaults favor throughput (page caching); the win is entirely the zero-decay tuning |
 | jemalloc `background_thread:true` | **null at idle** | only helps async-purge latency under churn; costs a thread |
 | `transparent_hugepage=never` | **no-op** | stock 5.4.61 kernel has **no `CONFIG_TRANSPARENT_HUGEPAGE`** |
-| `[update_manager]` for OTA | kept **off** | needs `git` (tens of MB rootfs); +0.6 MB RAM. ReForge OTA uses zip/web instead |
+| `[update_manager]` git path (`type: git_repo`) | kept **off** | needs `git` (tens of MB rootfs); +0.6 MB RAM. ReForge OTA uses the patched SimpleProvider (`provider: simple`) + `type: web` for Mainsail — see [ota.md](ota.md) |
 
 ## Stacking & caveats
 

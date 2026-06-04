@@ -9,6 +9,8 @@ are folded into the reference docs (`../optimizations.md`, `../boot.md`, `../arc
 - [2026-05-31-buildroot-vs-alpine.md](2026-05-31-buildroot-vs-alpine.md) — why Buildroot over Alpine userspace + our own kernel/U-Boot.
 - [2026-06-01-stock-recovery-images.md](2026-06-01-stock-recovery-images.md) — stock firmware / recovery-image landscape.
 - [2026-05-31-g992-research-findings.md](2026-05-31-g992-research-findings.md) — findings mined from the g992 AD5M repo.
+- [2026-06-04-brick-safe-kernel-test-paths.md](2026-06-04-brick-safe-kernel-test-paths.md) — paths for testing a custom kernel **without** persistent eMMC writes (`kexec` status on stock; FEL via `xfel` over USB0; one-time `boot.img` reflash hybrid). Reference, **not rehearsed**.
+- [2026-06-04-bsp-kernel-rebuild-findings.md](2026-06-04-bsp-kernel-rebuild-findings.md) — ✅ host-only rebuild of the stock BSP kernel (vendor source + captured `.config` + GCC 9.5.0) compared against the on-device `Image` from the golden eMMC dump: functionally equivalent, vermagic byte-identical, 99.99% export coincidence. Unblocks `CONFIG_KEXEC=y` overlay (Path A).
 
 ## Memory (128 MB budget)
 - [2026-05-31-memory-and-testing.md](2026-05-31-memory-and-testing.md) — memory-optimization + testing strategies.

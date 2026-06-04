@@ -137,8 +137,13 @@ Findings from the trial — **all three since resolved** (same day):
   option (a writable dir on the FAT stick).
 - **Network works** (`net-up.sh` joins WiFi before the launcher blocks; `ensure_sshd`
   brings up SSH) — Moonraker/Mainsail/SSH are reachable. See the trial findings.
-- **klippy reaches `ready` and drives the stock v11 MCUs** with the rebased config; only
-  adxl345/input-shaper *calibration* is version-locked (gated). No MCU reflash needed to run.
+- **klippy reaches `ready` and drives the stock v11 MCUs** with the rebased config; the
+  `[adxl345]` / `[input_shaper]` sections stay enabled (matching stock 3.1.3 — see
+  [`reverse-engineering/ad5m-mcu-firmware-and-config.md`](reverse-engineering/ad5m-mcu-firmware-and-config.md)).
+  The only version-locked piece is the **`query_adxl345` calibration command** itself
+  (`oid=%c rest_ticks=%u` on v11 vs `oid=%c clock=%u rest_ticks=%u` on v13) — a v13 host
+  against a v11 MCU errors out on calibration. With ReForge's v0.11-matched host, calibration
+  works against the native MCU. No MCU reflash needed to run.
 
 ## See also
 

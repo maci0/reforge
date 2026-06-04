@@ -22,7 +22,12 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 HARNESS_DIR="${REPO_ROOT}/tests/qemu-harness"
 BUILD_DIR="${HARNESS_DIR}/build"
 ZIMAGE="${BUILD_DIR}/zImage"
+# Defaults match real AD5M Pro silicon (Allwinner T113-S3, dual Cortex-A7,
+# 128 MB DRAM). docs/optimizations.md quotes measurements at `-m 128 -smp 2`,
+# so the SMP default is 2 to match (override via env if you want a single-core
+# A/B). `MEM` and `SETTLE` are env-overridable for variant runs.
 MEM="${MEM:-128}"
+SMP="${SMP:-2}"
 SETTLE="${SETTLE:-25}"
 TIMEOUT="${TIMEOUT:-180}"
 
@@ -170,7 +175,7 @@ log "eMMC (overflow swap) ready: ${EMMC}"
 # --- boot under the virt kernel at -m MEM ------------------------------------
 log "Booting (MEM=${MEM} MiB, settle=${SETTLE}s) ..."
 timeout "${TIMEOUT}" qemu-system-arm \
-    -M virt,highmem=off -cpu cortex-a7 -smp "${SMP:-1}" -m "${MEM}" \
+    -M virt,highmem=off -cpu cortex-a7 -smp "${SMP}" -m "${MEM}" \
     -kernel "${ZIMAGE}" \
     -drive "file=${IMG},if=virtio,format=raw" \
     -drive "file=${EMMC},if=virtio,format=raw" \

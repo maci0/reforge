@@ -1,0 +1,464 @@
+Byte-identical reproduction patches for the AD5M Pro stock kernel build
+
+Applies on top of `iLotusK9/linux_kernel_aw_t113@5.4.61` (commit 349a0b9).
+
+What this patch does:
+
+ 1. Wires up CONFIG_CAN_SUN8I (Kconfig + Makefile) so the orphan
+    drivers/net/can/sunxi_can.c + sunxi_can_asm.S in the BSP source
+    actually build. Original wiring lived in the (NDA-only)
+    Allwinner T113-Linux-Auto-v1.1 SDK overlay; this patch reproduces
+    it from the canonical Allwinner Tina pattern.
+
+ 2. Adds a reconstructed drivers/net/can/sunxi_can_asm.h with 30
+    SUNXI_* register/bit-mask defines (derived from mainline
+    drivers/net/can/sun4i_can.c — same Allwinner CAN IP) and 12
+    can_asm_* function prototypes inferred from call-site analysis of
+    sunxi_can.c. The original header was closed-source from the
+    T113-Linux-Auto SDK; the public BSP omits it, leaving sunxi_can.c
+    uncompilable. See in-file commentary for the reconstruction method.
+
+ 3. Adds a stub drivers/staging/rtl8821cu/Kconfig (sourced from
+    drivers/staging/Kconfig right after rtl8188eu) so the captured stock
+    .config's `CONFIG_RTL8821CU=m` line resolves at the correct IKCONFIG
+    position. No corresponding Makefile target exists, so the symbol is
+    config-only — no module is produced.
+
+ 4. Hides 14 newer Kconfig entries that exist in the iLotusK9 BSP
+    snapshot but did NOT exist in the source FF built from (the
+    T113-Linux-Auto-v1.1 SDK shipped an older BSP). Without this, the
+    embedded IKCONFIG.gz contains 14 extra "# CONFIG_X is not set" lines
+    that don't appear in stock's IKCONFIG. The hidden entries are:
+      BT_HCIUART_RTL3WIRE       (drivers/bluetooth/Kconfig)
+      RTL8189FS                 (drivers/net/wireless/rtl8189fs/Kconfig)
+      PINCTRL_SUN55IW3 + _R     (drivers/pinctrl/sunxi/Kconfig)
+      MFD_ACX00                 (drivers/mfd/Kconfig)
+      SND_SOC_SUNXI_SPDIF/DMIC/DAUDIO/COMPONENTS + the menu header
+                                (sound/soc/sunxi_v2/Kconfig)
+      SND_SOC_TD100             (sound/soc/codecs/Kconfig)
+      RPMSG_SUNXI_TTY + _CLIENT_SAMPLE
+                                (drivers/rpmsg/Kconfig)
+    Each is gated behind `depends on FORCE_HIDE_NEWER_BSP`, an undefined
+    Kconfig symbol that Kconfig evaluates as `n`, so the stanzas are
+    invisible to olddefconfig.
+
+ 5. Forces CONFIG_PLUGIN_HOSTCC to "" so CONFIG_GCC_PLUGINS auto-vanishes
+    (it has `depends on PLUGIN_HOSTCC != ""`). Stock's build host had no
+    g++ on PATH, so PLUGIN_HOSTCC was detected empty by Kconfig's
+    $(shell,...) probe. Our build host DOES have g++ + plugin headers,
+    so Kconfig would normally fill in "g++" and enable the plugin
+    subsystem — leaking plugin-emitted code into the Image and diverging
+    from stock. Patch overrides the auto-detect to a hardcoded "".
+
+Generated for: tools/build/build-bsp-kernel-stock.sh
+Reference doc: docs/research/2026-06-04-byte-identical-kernel-reproduction.md
+
+---
+
+=== Modified files ===
+diff --git a/drivers/bluetooth/Kconfig b/drivers/bluetooth/Kconfig
+index 3992887f4..6b9a26eda 100644
+--- a/drivers/bluetooth/Kconfig
++++ b/drivers/bluetooth/Kconfig
+@@ -43,7 +43,7 @@ config BT_HCIBTUSB_AUTOSUSPEND
+ 
+ config BT_HCIUART_RTL3WIRE
+ 	bool "Realtek Three-wire UART (H5) protocol support"
+-	depends on BT_HCIUART
++	depends on BT_HCIUART && FORCE_HIDE_NEWER_BSP
+ 	help
+ 	  Realtek Three-wire UART (H5) transport layer makes it possible
+ 	  to use Realtek Bluetooth controller with Three-wire UART.
+diff --git a/drivers/mfd/Kconfig b/drivers/mfd/Kconfig
+index 7ccb39e6b..0d91d505d 100644
+--- a/drivers/mfd/Kconfig
++++ b/drivers/mfd/Kconfig
+@@ -24,7 +24,7 @@ config MFD_ACX00
+ 	select MFD_CORE
+ 	select REGMAP_I2C
+         select REGMAP_IRQ
+-	depends on I2C=y
++	depends on I2C=y && FORCE_HIDE_NEWER_BSP
+ 	default n
+ 	help
+ 	 Say yes here if you have ac100/ac200 chip on your board.
+diff --git a/drivers/net/can/Kconfig b/drivers/net/can/Kconfig
+index 8be5b071c..56b2db3d1 100644
+--- a/drivers/net/can/Kconfig
++++ b/drivers/net/can/Kconfig
+@@ -120,6 +120,15 @@ config CAN_JANZ_ICAN3
+ 	  This driver can also be built as a module. If so, the module will be
+ 	  called janz-ican3.ko.
+ 
++config CAN_SUN8I
++	tristate "Allwinner sun8i CAN bus controller"
++	depends on OF && HAS_IOMEM
++	help
++	  This is the Allwinner sun8i CAN bus driver, used by T113 / D1 /
++	  R528 SoCs. Imported from the Allwinner T113-Linux-Auto SDK
++	  vendor patch series; corresponds to drivers/net/can/sunxi_can.c
++	  + drivers/net/can/sunxi_can_asm.S in the BSP source tree.
++
+ config CAN_KVASER_PCIEFD
+ 	depends on PCI
+ 	tristate "Kvaser PCIe FD cards"
+diff --git a/drivers/net/can/Makefile b/drivers/net/can/Makefile
+index bfe26a59c..5b06d5ab8 100644
+--- a/drivers/net/can/Makefile
++++ b/drivers/net/can/Makefile
+@@ -26,6 +26,7 @@ obj-$(CONFIG_CAN_GRCAN)		+= grcan.o
+ obj-$(CONFIG_CAN_IFI_CANFD)	+= ifi_canfd/
+ obj-$(CONFIG_CAN_JANZ_ICAN3)	+= janz-ican3.o
+ obj-$(CONFIG_CAN_KVASER_PCIEFD)	+= kvaser_pciefd.o
++obj-$(CONFIG_CAN_SUN8I)		+= sunxi_can.o sunxi_can_asm.o
+ obj-$(CONFIG_CAN_MSCAN)		+= mscan/
+ obj-$(CONFIG_CAN_M_CAN)		+= m_can/
+ obj-$(CONFIG_CAN_PEAK_PCIEFD)	+= peak_canfd/
+diff --git a/drivers/net/wireless/rtl8189fs/Kconfig b/drivers/net/wireless/rtl8189fs/Kconfig
+index 458716611..16f8d715d 100755
+--- a/drivers/net/wireless/rtl8189fs/Kconfig
++++ b/drivers/net/wireless/rtl8189fs/Kconfig
+@@ -1,5 +1,6 @@
+ config RTL8189FS
+ 	tristate "Realtek 8189F SDIO or SPI WiFi"
++	depends on FORCE_HIDE_NEWER_BSP
+ 	---help---
+ 	  Help message of RTL8189FS
+ 	  
+\ No newline at end of file
+diff --git a/drivers/pinctrl/sunxi/Kconfig b/drivers/pinctrl/sunxi/Kconfig
+index b0cbb1083..0269cffa7 100644
+--- a/drivers/pinctrl/sunxi/Kconfig
++++ b/drivers/pinctrl/sunxi/Kconfig
+@@ -65,11 +65,13 @@ config PINCTRL_SUN50IW12_R
+ 
+ config PINCTRL_SUN55IW3
+ 	tristate "Pinctrl sun55iw3 PIO controller"
++	depends on FORCE_HIDE_NEWER_BSP
+ 	select PINCTRL_SUNXI
+ 	default ARCH_SUN55IW3
+ 
+ config PINCTRL_SUN55IW3_R
+ 	tristate "Pinctrl sun55iw3 R_PIO controller"
++	depends on FORCE_HIDE_NEWER_BSP
+ 	select PINCTRL_SUNXI
+ 	default ARCH_SUN55IW3
+ 
+diff --git a/drivers/rpmsg/Kconfig b/drivers/rpmsg/Kconfig
+index 788cc919f..2a5c211fc 100644
+--- a/drivers/rpmsg/Kconfig
++++ b/drivers/rpmsg/Kconfig
+@@ -73,6 +73,7 @@ config RPMSG_VIRTIO
+ 
+ config RPMSG_SUNXI_TTY
+ 	tristate "Allwinner RPMsg tty driver"
++	depends on FORCE_HIDE_NEWER_BSP
+ 	select RPMSG
+ 	help
+ 	  Say y here to export rpmsg endpoints as tty console, usually found
+@@ -82,6 +83,7 @@ config RPMSG_SUNXI_TTY
+ 
+ config RPMSG_SUNXI_CLIENT_SAMPLE
+ 	tristate "Allwinner RPMsg client sample"
++	depends on FORCE_HIDE_NEWER_BSP
+ 	select RPMSG
+ 	select RPMSG_VIRTIO
+ 	default n
+diff --git a/drivers/staging/Kconfig b/drivers/staging/Kconfig
+index 6f1fa4c84..febcd691f 100644
+--- a/drivers/staging/Kconfig
++++ b/drivers/staging/Kconfig
+@@ -40,6 +40,8 @@ source "drivers/staging/rtl8712/Kconfig"
+ 
+ source "drivers/staging/rtl8188eu/Kconfig"
+ 
++source "drivers/staging/rtl8821cu/Kconfig"
++
+ source "drivers/staging/rts5208/Kconfig"
+ 
+ source "drivers/staging/octeon/Kconfig"
+diff --git a/scripts/gcc-plugins/Kconfig b/scripts/gcc-plugins/Kconfig
+index e3569543b..51ef1abd7 100644
+--- a/scripts/gcc-plugins/Kconfig
++++ b/scripts/gcc-plugins/Kconfig
+@@ -3,7 +3,12 @@ preferred-plugin-hostcc := $(if-success,[ $(gcc-version) -ge 40800 ],$(HOSTCXX),
+ 
+ config PLUGIN_HOSTCC
+ 	string
+-	default "$(shell,$(srctree)/scripts/gcc-plugin.sh "$(preferred-plugin-hostcc)" "$(HOSTCXX)" "$(CC)")" if CC_IS_GCC
++	# Original default was $(shell,scripts/gcc-plugin.sh ...). Forced to "" for
++	# byte-identical reproduction of the T113-Linux-Auto-v1.1 stock build,
++	# which compiled with PLUGIN_HOSTCC="" (no g++ on the build host's PATH).
++	# See docs/research/2026-06-04-byte-identical-kernel-reproduction.md §
++	# "To close the residual +128 B".
++	default ""
+ 	help
+ 	  Host compiler used to build GCC plugins.  This can be $(HOSTCXX),
+ 	  $(HOSTCC), or a null string if GCC plugin is unsupported.
+diff --git a/sound/soc/codecs/Kconfig b/sound/soc/codecs/Kconfig
+index b2c95f6ba..a561fe9be 100644
+--- a/sound/soc/codecs/Kconfig
++++ b/sound/soc/codecs/Kconfig
+@@ -1505,7 +1505,7 @@ config SND_SOC_AC108
+ 
+ config SND_SOC_TD100
+ 	tristate "Sunxi TD100 Codec"
+-	depends on I2C
++	depends on I2C && FORCE_HIDE_NEWER_BSP
+ 	default n
+ 	help
+ 	  say Y or M if you want to add support for TD100.
+diff --git a/sound/soc/sunxi_v2/Kconfig b/sound/soc/sunxi_v2/Kconfig
+index 320458268..6ac5c759f 100644
+--- a/sound/soc/sunxi_v2/Kconfig
++++ b/sound/soc/sunxi_v2/Kconfig
+@@ -20,8 +20,14 @@ config SND_SOC_SUNXI_SUN50IW9_CODEC
+ 	tristate
+ 
+ # menu select
++# Original: menu "Allwinner SoC Audio support V2"
++# Hidden for byte-identical reproduction — stock's Kconfig didn't carry this
++# menu at all (newer addition to the BSP submodule). The menu's contents
++# (SND_SOC_SUNXI_{SPDIF,DMIC,DAUDIO,COMPONENTS}) are individually hidden
++# via `depends on FORCE_HIDE_NEWER_BSP`; the menu header itself is hidden
++# by adding FORCE_HIDE_NEWER_BSP to its dependencies.
+ menu "Allwinner SoC Audio support V2"
+-	depends on ARCH_SUNXI
++	depends on ARCH_SUNXI && FORCE_HIDE_NEWER_BSP
+ 
+ # aaudio
+ config SND_SOC_SUNXI_AAUDIO
+@@ -39,6 +45,7 @@ config SND_SOC_SUNXI_AAUDIO
+ # spdif
+ config SND_SOC_SUNXI_SPDIF
+ 	tristate "Allwinner SPDIF Support"
++	depends on FORCE_HIDE_NEWER_BSP
+ 	select REGMAP_MMIO
+ 	select SND_SOC_GENERIC_DMAENGINE_PCM
+ 	select SND_SOC_SUNXI_PCM
+@@ -60,6 +67,7 @@ config SND_SOC_SUNXI_SPDIF_RXIEC61937
+ # dmic
+ config SND_SOC_SUNXI_DMIC
+ 	tristate "Allwinner DMIC support"
++	depends on FORCE_HIDE_NEWER_BSP
+ 	select REGMAP_MMIO
+ 	select SND_SOC_GENERIC_DMAENGINE_PCM
+ 	select SND_SOC_SUNXI_PCM
+@@ -72,6 +80,7 @@ config SND_SOC_SUNXI_DMIC
+ # daudio
+ config SND_SOC_SUNXI_DAUDIO
+ 	tristate "Allwinner DAUDIO Support"
++	depends on FORCE_HIDE_NEWER_BSP
+ 	select REGMAP_MMIO
+ 	select SND_SOC_GENERIC_DMAENGINE_PCM
+ 	select SND_SOC_SUNXI_PCM
+@@ -113,7 +122,7 @@ endif
+ # Components
+ config SND_SOC_SUNXI_COMPONENTS
+ 	tristate "Allwinner Function Components"
+-	depends on (ARCH_SUN8IW20 || ARCH_SUN20IW1)
++	depends on (ARCH_SUN8IW20 || ARCH_SUN20IW1) && FORCE_HIDE_NEWER_BSP
+ 	help
+ 	    Select Y or M to support function components.
+ 
+
+=== New files ===
+
+diff --git a/drivers/net/can/sunxi_can_asm.h b/drivers/net/can/sunxi_can_asm.h
+new file mode 100644
+index 000000000..be401acd7
+--- /dev/null
++++ b/drivers/net/can/sunxi_can_asm.h
+@@ -0,0 +1,170 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * sunxi_can_asm.h — reconstructed header for the Allwinner sun8i CAN driver.
++ *
++ * BACKGROUND:
++ *   The Allwinner T113-Linux-Auto SDK shipped this header alongside
++ *   sunxi_can.c and sunxi_can_asm.S (the latter compiled from a closed
++ *   sunxi_can_asm.c). The public iLotusK9 BSP snapshot omits the header,
++ *   leaving sunxi_can.c uncompilable.
++ *
++ * RECONSTRUCTION SOURCES:
++ *   1. Call-site analysis of sunxi_can.c (locally in this tree):
++ *        - 30 SUNXI_* identifiers (registers + bit masks + a retry cap)
++ *        - 12 can_asm_* function prototypes (signatures inferred from
++ *          calling conventions + adjacent variable types)
++ *   2. Canonical sun4i/sun7i/sun8i CAN register map from mainline
++ *      drivers/net/can/sun4i_can.c (the Allwinner CAN IP is consistent
++ *      across these SoCs: T113-S3, D1, R528, R40, A20, etc.).
++ *   3. Bittiming bit packing read off sunxican_set_bittiming() in the
++ *      local sunxi_can.c: brp[9:0], sjw[15:14], prop+phase1[19:16],
++ *      phase2[22:20] — matches the standard register layout.
++ *
++ * VERIFICATION:
++ *   - All 30 SUNXI_* identifiers used in sunxi_can.c are defined.
++ *   - Function signatures match all call sites:
++ *       can_asm_write_cmdreg(u8, void __iomem *, void __iomem *)
++ *       can_asm_set_bittiming(void __iomem *, u32, u32 *, void __iomem *)
++ *       can_asm_clean_transfer_err(void __iomem *, u16 *, u16 *)
++ *       can_asm_start(void __iomem *, u32, int)
++ *       can_asm_start_xmit(void __iomem *, void __iomem *, canid_t, u32 *, u32 *, u8 *)
++ *       can_asm_rx(void __iomem *, u8 *, u32 *, canid_t *)
++ *       can_asm_probe(struct device_node *, int) -> int
++ *       can_asm_fun0/fun1/fun2(int) — no-ret init helpers
++ *       can_asm_fun5(int) -> void __iomem * (with IS_ERR check)
++ *
++ * NOT VERIFIED AT RUNTIME:
++ *   This driver is built for binary-comparison purposes against the stock
++ *   FlashForge AD5M Pro kernel. ReForge does not deploy the resulting
++ *   sunxi_can.ko (no CAN bus on the AD5M Pro). The reconstruction is
++ *   close enough to compile cleanly; small discrepancies in field offsets
++ *   or behaviour would surface only if the driver were loaded on hardware,
++ *   which is not in our use case.
++ */
++
++#ifndef __SUNXI_CAN_ASM_H__
++#define __SUNXI_CAN_ASM_H__
++
++#include <linux/bitops.h>
++#include <linux/io.h>
++#include <linux/can.h>
++#include <linux/of.h>
++
++/* -----------------------------------------------------------------------
++ * Register offsets (matches mainline sun4i_can.c — same IP across sun4i/8i)
++ * ---------------------------------------------------------------------- */
++#define SUNXI_REG_MSEL_ADDR              0x0000  /* CAN Mode Select */
++#define SUNXI_REG_CMD_ADDR               0x0004  /* CAN Command */
++#define SUNXI_REG_STA_ADDR               0x0008  /* CAN Status */
++#define SUNXI_REG_INT_ADDR               0x000c  /* CAN Interrupt Flag */
++#define SUNXI_REG_INTEN_ADDR             0x0010  /* CAN Interrupt Enable */
++#define SUNXI_REG_BTIME_ADDR             0x0014  /* CAN Bus Timing 0 */
++#define SUNXI_REG_TEWL_ADDR              0x0018  /* CAN Tx Error Warning Limit */
++#define SUNXI_REG_ERRC_ADDR              0x001c  /* CAN Error Counter */
++#define SUNXI_REG_RMCNT_ADDR             0x0020  /* CAN Rx Message Counter */
++#define SUNXI_REG_RBUFSA_ADDR            0x0024  /* CAN Rx Buffer Start Address */
++#define SUNXI_REG_BUF0_ADDR              0x0040  /* CAN Tx/Rx Buffer 0 */
++#define SUNXI_REG_ACPC_ADDR              0x0040  /* CAN Acceptance Code */
++#define SUNXI_REG_ACPM_ADDR              0x0044  /* CAN Acceptance Mask */
++#define SUNXI_REG_RBUF_RBACK_START_ADDR  0x0180  /* CAN Rx buffer playback start */
++#define SUNXI_REG_RBUF_RBACK_END_ADDR    0x01b0  /* CAN Rx buffer playback end */
++
++/* Mode-select register bits */
++#define SUNXI_MSEL_RESET_MODE            BIT(0)
++#define SUNXI_MSEL_LISTEN_ONLY           BIT(1)
++#define SUNXI_MSEL_LOOPBACK_MODE         BIT(2)
++#define SUNXI_MSEL_SLEEP_MODE            BIT(4)
++
++/* Command-register bits */
++#define SUNXI_CMD_BUS_OFF_REQ            BIT(5)
++#define SUNXI_CMD_SELF_RCV_REQ           BIT(4)
++#define SUNXI_CMD_CLEAR_OR_FLAG          BIT(3)
++#define SUNXI_CMD_RELEASE_RBUF           BIT(2)
++#define SUNXI_CMD_ABORT_REQ              BIT(1)
++#define SUNXI_CMD_TRANS_REQ              BIT(0)
++
++/* Interrupt-enable / interrupt-flag bits */
++#define SUNXI_INT_BUS_ERR                BIT(7)
++#define SUNXI_INT_ARB_LOST               BIT(6)
++#define SUNXI_INT_ERR_PASSIVE            BIT(5)
++#define SUNXI_INT_WAKEUP                 BIT(4)
++#define SUNXI_INT_DATA_OR                BIT(3)
++#define SUNXI_INT_ERR_WRN                BIT(2)
++#define SUNXI_INT_TBUF_VLD               BIT(1)
++#define SUNXI_INT_RBUF_VLD               BIT(0)
++
++/* Status-register bits (mainline naming) */
++#define SUNXI_STA_BUS_OFF                BIT(7)
++#define SUNXI_STA_ERR_STA                BIT(6)
++#define SUNXI_STA_TRANS_BUSY             BIT(5)
++#define SUNXI_STA_RCV_BUSY               BIT(4)
++#define SUNXI_STA_TRANS_OK               BIT(3)
++#define SUNXI_STA_RCV_OK                 BIT(2)
++#define SUNXI_STA_DATA_ORUN              BIT(1)
++#define SUNXI_STA_RBUF_RDY               BIT(0)
++
++/* Error-segment code field (bits [20:16]) */
++#define SUNXI_STA_ERR_SEG_CODE           (0x1f << 16)
++/* Error direction: 0 = transmit, 1 = receive */
++#define SUNXI_STA_ERR_DIR                BIT(21)
++/* Error type field (bits [23:22]) */
++#define SUNXI_STA_BIT_ERR                (0x00 << 22)
++#define SUNXI_STA_FORM_ERR               (0x01 << 22)
++#define SUNXI_STA_STUFF_ERR              (0x02 << 22)
++#define SUNXI_STA_OTHER_ERR              (0x03 << 22)
++#define SUNXI_STA_MASK_ERR               (0x03 << 22)
++
++/* Message-info Remote-Transmission-Request flag */
++#define SUNXI_MSG_RTR_FLAG               BIT(6)
++
++/* BSP-specific retry/IRQ caps */
++#define SUNXI_MODE_MAX_RETRIES           100
++#define SUNXI_CAN_MAX_IRQ                20
++
++/* -----------------------------------------------------------------------
++ * Functions provided by sunxi_can_asm.S (closed-source delivery from the
++ * Allwinner Auto SDK; signatures reconstructed from call sites in
++ * sunxi_can.c).
++ * ---------------------------------------------------------------------- */
++
++void can_asm_write_cmdreg(u8 val, void __iomem *base, void __iomem *iomem_t);
++
++/* Sets the bittiming. cfg is a pre-packed u32 register value:
++ *    bits [9:0]    BRP - 1
++ *    bits [15:14]  SJW - 1
++ *    bits [19:16]  prop_seg + phase_seg1 - 1
++ *    bits [22:20]  phase_seg2 - 1
++ */
++void can_asm_set_bittiming(void __iomem *base, u32 ctrlmode,
++			   u32 *cfg, void __iomem *iomem_t);
++
++void can_asm_clean_transfer_err(void __iomem *base, u16 *txerr, u16 *rxerr);
++
++void can_asm_start(void __iomem *base, u32 ctrlmode, int num);
++
++/* Frames a CAN frame for transmit: writes id + flag-n + dreg + data to the
++ * controller's TX buffer registers. */
++void can_asm_start_xmit(void __iomem *base, void __iomem *iomem_t,
++			canid_t id, u32 *msg_flag_n, u32 *dreg, u8 *data);
++
++/* Reads a received CAN frame from the controller's RX buffer.
++ * fi  : frame info byte (RTR + DLC)
++ * dreg: data length + data words register snapshot
++ * id  : decoded CAN id (with SFF/EFF flags) */
++void can_asm_rx(void __iomem *base, u8 *fi, u32 *dreg, canid_t *id);
++
++/* Per-instance probe helper: parse DT node, return IRQ number on success
++ * or -errno on failure. */
++int can_asm_probe(struct device_node *node, int num);
++
++/* Internal helpers called by sunxi_can.c — best-effort signatures. */
++void can_asm_fun0(int num);
++void can_asm_fun1(int num);
++void can_asm_fun2(int num);
++void can_asm_fun3(void);
++void can_asm_fun4(void);
++
++/* Returns a void __iomem * (with IS_ERR check at the call site). */
++void __iomem *can_asm_fun5(int num);
++
++#endif /* __SUNXI_CAN_ASM_H__ */
+
+diff --git a/drivers/staging/rtl8821cu/Kconfig b/drivers/staging/rtl8821cu/Kconfig
+new file mode 100644
+index 000000000..dd0916d5d
+--- /dev/null
++++ b/drivers/staging/rtl8821cu/Kconfig
+@@ -0,0 +1,15 @@
++# SPDX-License-Identifier: GPL-2.0
++config RTL8821CU
++	tristate "Realtek 8821C USB WiFi (stub for byte-identical reproduction)"
++	depends on USB && CFG80211
++	help
++	  Stub Kconfig entry to allow the captured stock .config's
++	  CONFIG_RTL8821CU=m line to resolve at the canonical IKCONFIG
++	  position (right after R8188EU). The real Realtek vendor source
++	  lives in the T113-Linux-Auto SDK overlay at this path; only
++	  the Kconfig stub is reconstructed here. No object file is
++	  built because no obj-$(CONFIG_RTL8821CU) Makefile target exists.
++
++	  Importing the real source from morrownr/8821cu-20210916 + a
++	  matching Makefile target would activate it; see
++	  docs/research/2026-06-04-byte-identical-kernel-reproduction.md.

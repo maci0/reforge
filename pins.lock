@@ -7,6 +7,11 @@ tina-bsp-kernel  submodule  5.4.61   349a0b9fe63a03ea21198d104e5e9e01e7c068a6  h
 # Cross toolchain (kernel.org crosstool GCC 9.5.0 arm-linux-gnueabi, nolibc) — tarball, fetched by vendor/fetch.sh.
 # Pinned by content hash of the exact artifact we build with (not a mutable mirror).
 gcc-crosstool    tarball    9.5.0    81669db4e5adc1ff1c35e7d939ebcb6a5793c9b39202a7251d9210396ea533ce  https://mirrors.edge.kernel.org/pub/tools/crosstool/files/bin/x86_64/9.5.0/x86_64-gcc-9.5.0-nolibc-arm-linux-gnueabi.tar.xz
+# Linaro GCC 5.3-2016.05 (arm-linux-gnueabi) — tarball, OPTIONAL, fetched only by
+# tools/build/build-bsp-kernel-stock.sh (the byte-identical-reproduction build).
+# Exact toolchain stock FlashForge used to build the AD5M Pro kernel.
+# Not required for the ReForge shipping image (which uses GCC 9.5.0 above).
+gcc-linaro-5.3.1  tarball   5.3.1    77cccd433d680251c8b9bfa01890cb6921548513a39fac35c1f4b9f0a47e5aa4  https://releases.linaro.org/components/toolchain/binaries/5.3-2016.05/arm-linux-gnueabi/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi.tar.xz
 # u-boot added in later plans
 mainsail   tag     v2.17.0  d010f4df25557d520ccdbb8e42fc381df2288e6a5c72d3838a5a2433c7a31d4e
 klipper    commit  master  b7c0329f1dcc159bb20148afa65b113a34c51efa

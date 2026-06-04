@@ -1,6 +1,7 @@
 BUILD := tools/build/build.sh
 .PHONY: lint unit rootfs defconfig clean smoke repro integration smoke-guppy tgz live-usb validate-loopback \
         run-from-mod \
+        bsp-kernel-rebuild bsp-kernel-stock \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
         qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-guppy qemu-live qemu-live-ota qemu-mem qemu-ota shots-reforge vmtune-bench
 # lint: shellcheck our own shell scripts (skips cleanly if shellcheck absent)
@@ -17,6 +18,30 @@ integration:       ; tests/smoke/chroot_integration.sh
 smoke-guppy:       ; tests/smoke/smoke_guppy.sh
 tgz:               ; packaging/build-tgz.sh
 live-usb:          ; tools/release/build-live-usb.sh
+
+# --- BSP kernel rebuild + diff against the on-device kernel ----------------
+# Pure host-side: rebuild stock 5.4.61 from the pinned BSP submodule + the
+# captured /proc/config.gz + the pinned GCC 9.5.0 toolchain. Compare against
+# the kernel extracted from the golden eMMC dump. Output:
+#   build/bsp-kernel-rebuild/artifacts/{Image.ours,Image.stock,vmlinux.ours,...}
+# Findings: docs/research/2026-06-04-bsp-kernel-rebuild-findings.md
+# Plan:     docs/plans/2026-06-04-bsp-kernel-rebuild-and-diff.md
+bsp-kernel-rebuild: ; tools/build/build-bsp-kernel.sh
+
+# --- byte-identical-attempt build (Linaro 5.3.1 + stock build path + patches) -
+# Same kernel but compiled with the EXACT toolchain stock FF used and from the
+# EXACT source path stock baked into __FILE__ strings. Applies the
+# byte-identical-reproduction patches on top of the pinned BSP submodule and
+# reverts them on exit (submodule stays clean).
+# Output:  build/bsp-kernel-rebuild-stock/artifacts/Image.ours-linaro
+# Findings: docs/research/2026-06-04-byte-identical-kernel-reproduction.md
+# Prerequisite (run once):
+#   FETCH_LINARO=1 ./vendor/fetch.sh
+#   sudo mkdir -p /home/linux/work/hard_t113_s3/t113/T113/T113-Linux-Auto-v1.1/kernel
+#   sudo chown -R $$USER /home/linux
+#   sudo mount --bind $$(pwd)/vendor/kernels/tina-bsp-kernel \
+#       /home/linux/work/hard_t113_s3/t113/T113/T113-Linux-Auto-v1.1/kernel/linux-5.4
+bsp-kernel-stock:   ; tools/build/build-bsp-kernel-stock.sh
 validate-loopback: ; sudo tests/loopback-install-test.sh
 # run-from-mod: structural test of the self-contained mod/ + run-in-place model
 run-from-mod:      ; tests/release/run-from-mod-test.sh

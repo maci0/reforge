@@ -65,6 +65,25 @@ fi
 echo "[reforge-boot] screen mode: ${SCREEN_MODE}"
 
 # ---------------------------------------------------------------------------
+# SCREEN_MODE=STOCK — yield to stock firmwareExe via the SKIP_MOD escape hatch.
+#
+# Documented dual-boot value (architecture.md: "SCREEN_MODE ... STOCK = the stock
+# firmwareExe, feasibility-confirmed"). We implement it by routing through the
+# SKIP_MOD path: touch /tmp/SKIP_MOD so any later ReForge entry point in this
+# boot also bails, log the choice, and exit 0 so the stock /etc/rcS continues
+# past S01reforge and reaches the stock auto_run.sh / firmwareExe launch.
+#
+# Reversible: the marker is on tmpfs, so the *next* boot reads SCREEN_MODE
+# again from $CONF. To make the stock choice persistent, write SCREEN_MODE=STOCK
+# to ${CONF}; to clear it, write GUPPY or HEADLESS (or `rm ${CONF}`).
+# ---------------------------------------------------------------------------
+if [ "${SCREEN_MODE}" = "STOCK" ]; then
+    echo "[reforge-boot] SCREEN_MODE=STOCK — touching /tmp/SKIP_MOD, booting stock firmware"
+    : > /tmp/SKIP_MOD || true
+    exit 0
+fi
+
+# ---------------------------------------------------------------------------
 # Mount /data if not already mounted (mirrors forge-x common.sh:47-64)
 # The stock auto_run.sh mounts mmcblk0p7 → /data before calling rcS, but
 # we guard here in case we run in a test env without that.

@@ -1,6 +1,15 @@
 # ReForge OTA / updates
 
-> **Status: designed, not yet implemented.** Full design + rationale:
+> **Status: implemented.** SimpleProvider patch applied to the shipped Moonraker
+> (`br-external/package/moonraker/0001-add-simple-service-provider.patch`); five
+> `[update_manager <component>]` blocks configured in
+> `etc/reforge/moonraker.conf` (`provider: simple` for klipper/moonraker/
+> guppyscreen/reforge; `type: web` for mainsail; `enable_auto_refresh: False`);
+> trial / last-known-good rollback live in `.shell/reforge-lkg.sh` +
+> `reforge-boot` + `S99ok` sentinel; release pipeline in `tools/release/build-release.sh`
+> + `.github/workflows/release.yml`. End-to-end gate `make qemu-ota`
+> (`tests/qemu-harness/ota-test.sh`) exercises both the Moonraker update path
+> and the N=3 brick-rollback. Full design + rationale:
 > [`docs/specs/2026-06-01-reforge-ota-design.md`](specs/2026-06-01-reforge-ota-design.md);
 > implementation plan: [`docs/plans/2026-06-01-reforge-ota.md`](plans/2026-06-01-reforge-ota.md).
 

@@ -23,6 +23,13 @@ config. All findings were verified against the on-device binary (`arm-linux-gnue
 - [ad5m-pro-klipper-hardware-config.md](ad5m-pro-klipper-hardware-config.md) — complete pin map / printer.cfg
   (cross-validated against firmwareExe 5.1.4, factory 3.1.3, and the forge-x live config).
 
+## Stock kernel / modules
+- [stock-kernel-modules-packaging.md](stock-kernel-modules-packaging.md) — how FF packages
+  and loads kernel modules: standard `/lib/modules/5.4.61/` kbuild layout + a flat duplicate
+  of `8821cu.ko` at `/lib/modules/8821cu.ko` (insmod'd by `auto_run.sh`); the unstripped
+  DWARF is a build-pipeline artifact, not a runtime gdb capability; the `comp_dir`
+  identifies the SDK as Allwinner's proprietary **T113-Linux-Auto-v1.1** Auto distribution.
+
 ## Related (not stock-fw RE)
 - [`../board-notes/device-overview.md`](../board-notes/device-overview.md) — hardware/stack inventory + consolidated security findings.
 - [`../board-notes/forge-x-boot-architecture.md`](../board-notes/forge-x-boot-architecture.md) — the forge-x **mod** boot/chroot stack.

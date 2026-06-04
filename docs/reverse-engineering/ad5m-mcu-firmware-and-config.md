@@ -1,21 +1,51 @@
 # AD5M MCU firmware (v11 / v13) & config baselines
 
-**Date:** 2026-06-02
+**Date:** 2026-06-02 (revised 2026-06-04: stock-config source corrected to the
+3.1.3 OTA tar root; verified against 5.0.3 / 5.1.2 / 5.1.4 OTAs which dropped it)
 **Status:** reference — informs ReForge's printer config + the v11↔v13 switch design.
 **See also:** [`ad5m-pro-klipper-hardware-config.md`](ad5m-pro-klipper-hardware-config.md)
 — the complete MCU pin map / printer.cfg section values (cross-validated 3 sources).
 
 This documents (1) what the "v11" / "v13" MCU firmware versions are and how the two
 reference mods (xblax, ZMod) handle them, (2) the authoritative **stock** AD5M Klipper
-config extracted from the factory eMMC, and (3) a parameter-level diff of stock vs
-xblax (v13) vs ZMod (v11) vs ReForge — so ReForge's config can be put on a correct,
-deliberate footing instead of the hybrid it inherited.
+config — pulled directly from the stock **3.1.3 OTA tarball** and cross-validated
+against the eMMC dump — and (3) a parameter-level diff of stock vs xblax (v13) vs
+ZMod (v11) vs ReForge — so ReForge's config can be put on a correct, deliberate
+footing instead of the hybrid it inherited.
 
-Sources: on-device forge-x config (`192.168.0.158:/opt/config`), the golden eMMC dump
-(`tools/recovery/golden.img.gz` → `p6:/opt/config/`), the stock OTA firmware
-(`tools/recovery/archive/ff-pro-5.1.2-factory.tgz`), and the upstream repos
-`xblax/flashforge_ad5m_klipper_mod` + `ghzserg/zmod` (cloned 2026-06-02) + Klipper
-`docs/Config_Changes.md` @ `v0.13.0`.
+Sources (in order of authority for the stock config):
+1. **The stock 3.1.3 OTA tarball** (`pro-3.1.3.tgz`, FlashForge production image) —
+   ships `printer.cfg` + `printer.base.cfg` at the **tarball root**, alongside
+   `software-3.1.3.tar.xz` / `control-2.2.3.tar.xz` / `kernel-2.1.6.tar.xz` /
+   `library-2.3.0.tar.xz`. This is the **authoritative stock AD5M MCU config** —
+   no eMMC dump required. (See §2 below for how to pull it.)
+2. The full factory rootfs `tools/recovery/archive/Adventurer5M-factory.tar.xz`
+   (`opt/config/printer.cfg` + `printer.cfg.tmp` + `printer.base.cfg`) — agrees
+   byte-for-byte with (1).
+3. The golden eMMC dump `tools/recovery/golden.img.gz` (`p6:/opt/config/`) —
+   agrees with (1) and (2).
+4. The local pristine snapshot at `reference/ad5m-factory-config/` (extracted
+   from (2)) — also byte-identical to (1).
+5. On-device forge-x config at `192.168.0.158:/opt/config` (the same stock config,
+   restructured + recalibrated — see §5).
+6. Upstream repos `xblax/flashforge_ad5m_klipper_mod` + `ghzserg/zmod`
+   (cloned 2026-06-02) + Klipper `docs/Config_Changes.md` @ `v0.13.0`.
+
+The **later** stock OTAs **dropped** the root-level `printer.cfg`/`printer.base.cfg` —
+they only ship the executable + library + control bundles, expecting the config
+already on the device's eMMC. Verified by `tar -tf` across every Pro OTA we hold
+(2026-06-04):
+
+| OTA | Ships `printer.cfg` at tar root? | Inside `software-*`/`library-*`/`control-*`? |
+|---|---|---|
+| `pro-3.1.3.tgz` | **yes** (`./printer.cfg` + `./printer.base.cfg`) | n/a (already at root) |
+| `pro-5.0.3.tgz` | no | no |
+| `pro-5.1.2.tgz` / `ff-pro-5.1.2-factory.tgz` | no | no |
+| `pro-5.1.4.tgz` | no | no |
+
+So 3.1.3 is the **only** OTA that carries the config standalone — the
+canonical pull-from-tarball source. From 5.0.3 onward the Klipper config has
+to come from the eMMC dump or from this 3.1.3 baseline.
 
 ---
 
@@ -68,18 +98,44 @@ mismatch.
 
 ## 2. Where the stock printer config actually is
 
-**Not in the OTA firmware.** The factory `.tgz`/`.tar.xz` images contain `firmwareExe` +
-web UI (`software-`), the MCU binaries (`control-`), libs (`library-`), and `opt/klipper`
-(the host Klipper) — but **no `printer.cfg`**. The Klipper printer config is **factory-seeded
-onto the eMMC `/data`/rootfs**, so the only pristine source is an **eMMC dump**
-(`golden.img.gz` → `p6:/opt/config/printer.base.cfg` + `printer.cfg`).
-`ff-pro-unbrick.tgz:img/factory-config.raw` is a **proprietary per-unit calibration blob**
-(not Klipper).
+**The authoritative source is the stock 3.1.3 OTA tarball.** `pro-3.1.3.tgz`
+ships `printer.cfg` + `printer.base.cfg` at the **root** of the outer tar
+(alongside `boot.img`, `flashforge_init.sh`, `software-3.1.3.tar.xz`,
+`control-2.2.3.tar.xz`, `kernel-2.1.6.tar.xz`, `library-2.3.0.tar.xz`). Pull it
+standalone with no eMMC reader / no `dd`:
+
+```sh
+tar -xf pro-3.1.3.tgz ./printer.cfg ./printer.base.cfg
+```
+
+Verified byte-identical against (a) the eMMC dump at `p6:/opt/config/` and
+(b) the full rootfs at `tools/recovery/archive/Adventurer5M-factory.tar.xz`
+`opt/config/{printer,printer.base}.cfg`. The committed pristine snapshot at
+`reference/ad5m-factory-config/` is also byte-identical to the 3.1.3 OTA copy
+(verified `2026-06-04`).
+
+**Why 3.1.3 specifically:** FlashForge **dropped** the root-level `printer.cfg`
+in every later OTA — verified by `tar -tf` on `pro-5.0.3.tgz`, `pro-5.1.2.tgz`,
+`ff-pro-5.1.2-factory.tgz`, and `pro-5.1.4.tgz`: **none of them** contain a
+`printer.cfg` or `printer.base.cfg`, at the tar root or inside any of the inner
+`software-*` / `library-*` / `control-*.tar.xz` bundles. Those packages ship
+only `firmwareExe` + libs + control (MCU binaries) and expect the config already
+on the eMMC. 3.1.3 is therefore the **only** self-contained tarball that carries
+the printer config standalone, and the canonical recoverable-without-an-eMMC-reader
+stock baseline.
+
+`ff-pro-unbrick.tgz:img/factory-config.raw` is a **proprietary per-unit
+calibration blob** (not Klipper) — not what we want here.
 
 **Config structure on device:** `printer.cfg` = `[include printer.base.cfg]` +
 `[include ./mod/config/stock.cfg]` + `[heater_bed]`/`[extruder]` overrides +
 `[include ./mod_data/user.cfg]` + a `SAVE_CONFIG` block (calibrated PID / bed_mesh /
 input_shaper). The big hardware definition lives in `printer.base.cfg`.
+
+Note: on-disk `printer.cfg` is the v11 native variant; the 3.1.3 tar root also
+carries `printer.cfg.tmp` (intermediate SAVE_CONFIG temp file). The tarball does
+not include the USB-serial variant `printer111.cfg` — that lives only in the
+factory rootfs (`reference/ad5m-factory-config/printer111.cfg`).
 
 ---
 
@@ -135,9 +191,12 @@ bed-mesh come back **without any custom module**, against the native v11 MCU.
 
 ---
 
-## 4. Authoritative stock AD5M config (golden eMMC dump)
+## 4. Authoritative stock AD5M config (3.1.3 OTA, cross-validated)
 
 Verbatim key values (`printer.base.cfg` unless noted; `printer.cfg` = the override layer).
+Extracted from `pro-3.1.3.tgz` (root-level `printer.cfg` + `printer.base.cfg`) and
+cross-checked against the eMMC dump (`p6:/opt/config/`) and the factory rootfs
+(`Adventurer5M-factory.tar.xz:opt/config/`) — all three byte-identical.
 
 | Section | Stock value |
 |---|---|

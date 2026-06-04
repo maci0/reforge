@@ -33,7 +33,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: no proprietary blobs tracked
         run: |
-          if git ls-files | grep -iE \
+          # Case-SENSITIVE: the tokens we forbid are fixed-case binary names
+          # (firmwareExe, libQtCore.so.5, /opt/PROGRAM/, lab/spike-stockui/extracted/).
+          # Earlier this used `grep -iE`, which false-positived against the
+          # tracked RE write-ups under docs/reverse-engineering/firmwareexe-*.md
+          # (lowercase filenames). Anchored, case-sensitive match avoids that.
+          if git ls-files | grep -E \
             'firmwareExe|libQt(Core|Gui|Network)|lab/spike-stockui/extracted/|/opt/PROGRAM/'; then
             echo "ERROR: proprietary blob(s) found in tracked files — see above"
             exit 1

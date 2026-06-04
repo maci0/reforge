@@ -1,5 +1,10 @@
 # proprietary device blobs — fetch from the printer per build.sh
 devlibs/
+# proprietary Allwinner camera/venc SDK headers + libsdk_camera.so etc.
+# Pulled locally from the device or vendor BSP; NEVER commit.
+sdk/
+*.so
+*.a
 # build output
 enc_nv12_h264
 *.nv12

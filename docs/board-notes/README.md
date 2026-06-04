@@ -44,9 +44,20 @@ disp_reserve=1536000,0x448ee000 androidboot.dramsize=128
   authoritative list of which subsystems/drivers this board actually uses — start
   from a board-minimal config and cross-check against it, rather than shipping a
   generic sunxi defconfig.
-- `8821cu` (RTL8821CU) is out-of-tree in the stock BSP, but **mainline covers it**:
-  `CONFIG_RTW88_8821CU` (rtw88 family) since kernel 6.2, flaky early but solid by
-  6.12 (our target LTS); BT via `btusb`+`btrtl`. **No vendor module needed.** rtw88
+- `8821cu` (RTL8821CU) is **Realtek's proprietary vendor driver** (origin: never
+  upstreamed to mainline Linux). The Allwinner T113-Linux-Auto SDK imports the
+  Realtek source into the kernel tree at `drivers/staging/rtl8821cu/` and wires it
+  via `CONFIG_RTL8821CU=m`, so the kernel build produces `8821cu.ko` as an in-tree
+  module (`modinfo` says `intree:Y`). FF installs it twice: a stripped copy at the
+  standard kbuild path `/lib/modules/5.4.61/8821cu.ko`, and a debug-info-retaining
+  flat copy at `/lib/modules/8821cu.ko` that `auto_run.sh` `insmod`s explicitly
+  (the OTA only refreshes the flat copy). Our public iLotusK9 BSP snapshot **lacks**
+  the `drivers/staging/rtl8821cu/` source, so our rebuild does not produce a `.ko`
+  — but the **stock `.ko` loads unchanged on our rebuilt kernel** (`vermagic`
+  matches: `5.4.61 SMP preempt mod_unload ARMv7 p2v8`). Full analysis:
+  [`../reverse-engineering/stock-kernel-modules-packaging.md`](../reverse-engineering/stock-kernel-modules-packaging.md).
+  For **mainline** (Plan 5, kernel 6.x LTS): `CONFIG_RTW88_8821CU` (rtw88 family)
+  since 6.2, solid by 6.12; BT via `btusb`+`btrtl`. No vendor module needed. rtw88
   is station-mode-solid (AP/monitor weaker than vendor, irrelevant for a printer).
 - The `dsp0@p5` partition holds DSP firmware; the partition map must be preserved
   by genimage so the DSP and boot chain are not disturbed.
