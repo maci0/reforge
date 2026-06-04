@@ -117,14 +117,37 @@ def version_gt(a: str, b: str) -> bool:
 # --- request building --------------------------------------------------------
 
 
+def build_check_query(ident: Identity) -> list:
+    """The v2 check GET query, as ordered (key, value) pairs.
+
+    Verified against the live server (update.voxelshare.com/api/updates/check): it is a
+    GET, and the validator requires non-empty numeric ``appId`` + ``platform`` plus
+    ``version`` (it rejects POST with 405 and rejects non-numeric appId as not a
+    java.lang.Long). ``entityId``/``hardwareVersion`` are accepted but optional.
+    """
+    return [
+        ("appId", ident.app_id),
+        ("platform", ident.platform),
+        ("version", ident.version),
+        ("entityId", ident.entity_id),
+        ("hardwareVersion", ident.hardware_version),
+    ]
+
+
 def build_check_param(ident: Identity) -> dict:
-    """The v2 CheckParam JSON body (param vocabulary per the documented download query)."""
+    """The stock 5.1.4 CheckParam body keys (SN/VID/PID/...) — the OLDER scheme.
+
+    These are the exact JSON keys ``ffupserver::getCheckParamJson`` emits in the shipping
+    binary. The live server no longer accepts this scheme on /api/updates/check (it answers
+    405 to POST); kept for reference / older endpoints.
+    """
     return {
-        "app_id": ident.app_id,
-        "platform": ident.platform,
-        "version": ident.version,
-        "entity_id": ident.entity_id,
-        "hardware_version": ident.hardware_version,
+        "SN": ident.sn,
+        "Name": ident.name,
+        "OEMName": ident.oem,
+        "Version": ident.version,
+        "BuildTime": ident.build_time,
+        "HardwareVersion": ident.hardware_version,
     }
 
 
@@ -183,12 +206,22 @@ def _coerce_bool(v) -> bool:
     return False
 
 
+def _first(d: dict, *keys):
+    for k in keys:
+        v = d.get(k)
+        if v not in (None, ""):
+            return v
+    return ""
+
+
 def parse_check_response(raw, current_version: str) -> Result:
     """Parse a v2 check response (dict or JSON text) into a Result.
 
-    Tolerant of missing/extra keys and of the server wrapping the payload in
-    {"data": {...}} / {"result": {...}}. Never raises on shape; raises only on
-    genuinely undecodable JSON text.
+    The live server replies with a ``{"code", "message", "data"}`` envelope: ``code`` 0/200
+    + a ``data`` object means a release was found; ``code`` 1306 ("Latest release version
+    not found") + ``data: null`` means none for that appId/platform. Also tolerates a bare
+    payload (no envelope) and {"data"/"result"/"body": {...}} wrapping. Never raises on
+    shape; raises only on undecodable JSON text.
     """
     if isinstance(raw, (bytes, bytearray)):
         raw = raw.decode("utf-8", "replace")
@@ -197,24 +230,33 @@ def parse_check_response(raw, current_version: str) -> Result:
     if not isinstance(raw, dict):
         raw = {}
 
-    body = raw
-    for wrap in ("data", "result", "body"):
-        inner = body.get(wrap)
-        if isinstance(inner, dict) and any(
-            k in inner for k in ("version", "force_update", "changelist", "message")
-        ):
-            body = inner
-            break
+    # envelope: {code, message, data}
+    if "code" in raw and ("data" in raw or "message" in raw):
+        code = raw.get("code")
+        data = raw.get("data")
+        envelope_msg = str(raw.get("message", "") or "")
+        ok = code in (0, 200, "0", "200")
+        body = data if (ok and isinstance(data, dict)) else {}
+    else:
+        envelope_msg = ""
+        body = raw
+        for wrap in ("data", "result", "body"):
+            inner = body.get(wrap)
+            if isinstance(inner, dict) and any(
+                k in inner for k in ("version", "force_update", "forceUpdate", "changelist", "message")
+            ):
+                body = inner
+                break
 
-    latest = str(body.get("version", "") or "")
+    latest = str(_first(body, "version", "latestVersion", "newVersion", "softwareVersion", "SoftwareVersion"))
     res = Result(
         current_version=current_version,
         latest_version=latest,
-        force_update=_coerce_bool(body.get("force_update")),
-        message=str(body.get("message", "") or ""),
-        detail=str(body.get("detail", "") or ""),
-        changelist=str(body.get("changelist", "") or ""),
-        raw=raw if isinstance(raw, dict) else {},
+        force_update=_coerce_bool(_first(body, "force_update", "forceUpdate")),
+        message=str(_first(body, "message") or envelope_msg),
+        detail=str(_first(body, "detail", "description")),
+        changelist=str(_first(body, "changelist", "changelog", "releaseNote", "changeList")),
+        raw=raw,
     )
     res.update_available = bool(latest) and version_gt(latest, current_version)
     if res.force_update and latest and latest != current_version:
@@ -318,16 +360,27 @@ def check_update(
     transport: Optional[Transport] = None,
     timeout: int = DEFAULT_TIMEOUT,
 ) -> Result:
-    """Query one channel and return a Result. Pure given the transport (injectable for tests)."""
+    """Query one channel and return a Result. Pure given the transport (injectable for tests).
+
+    v2/v2-cn/dev use a GET with an ``appId/platform/version`` query (the live scheme).
+    legacy channels POST the old SN/Name/OEM body. The transport is called as
+    (url, body_or_None, headers): a None body means GET.
+    """
     if channel not in ENDPOINTS:
         raise ValueError(f"unknown channel {channel!r}; choose from {sorted(ENDPOINTS)}")
     transport = transport or (lambda u, b, h: http_transport(u, b, h, timeout))
-    headers = {"User-Agent": USER_AGENT, "Content-Type": "application/json", "Accept": "application/json"}
-    url = ENDPOINTS[channel]["check"]
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+    base = ENDPOINTS[channel]["check"]
     legacy = channel.startswith("legacy")
-    body = build_legacy_param(ident) if legacy else build_check_param(ident)
-    text = transport(url, body, headers)
-    return (parse_legacy_response if legacy else parse_check_response)(text, ident.version)
+    if legacy:
+        headers["Content-Type"] = "application/json"
+        text = transport(base, build_legacy_param(ident), headers)
+        return parse_legacy_response(text, ident.version)
+    from urllib.parse import urlencode
+
+    url = base + "?" + urlencode([(k, v) for k, v in build_check_query(ident)])
+    text = transport(url, None, headers)
+    return parse_check_response(text, ident.version)
 
 
 # --- CLI ---------------------------------------------------------------------
@@ -352,8 +405,8 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Check the FlashForge server for an AD5M firmware update (read-only).")
     p.add_argument("--channel", default="v2", choices=sorted(ENDPOINTS), help="update channel (default: v2)")
     p.add_argument("--version", help="current firmware version (else --auto / required)")
-    p.add_argument("--app-id", dest="app_id", default="")
-    p.add_argument("--platform", default="")
+    p.add_argument("--app-id", dest="app_id", default="", help="FlashForge product id (numeric/Long, required by v2)")
+    p.add_argument("--platform", default="", help="FlashForge platform id (numeric/Long, required by v2)")
     p.add_argument("--entity-id", dest="entity_id", default="")
     p.add_argument("--hardware-version", dest="hardware_version", default="")
     p.add_argument("--sn", default="", help="serial number (legacy channel)")
@@ -373,6 +426,14 @@ def main(argv=None) -> int:
     ident = build_identity_from_args(args)
     if not ident.version:
         print("no current version: pass --version or run on the device with --auto", file=sys.stderr)
+        return 1
+    if not args.channel.startswith("legacy") and not (ident.app_id and ident.platform):
+        print(
+            "v2 check needs --app-id and --platform (FlashForge numeric product/platform ids).\n"
+            "These are not present in the 5.1.4 firmware (it used the older SN/VID/PID scheme) and\n"
+            "must be captured from a live printer's update request. See tools/ota/README.md.",
+            file=sys.stderr,
+        )
         return 1
 
     try:

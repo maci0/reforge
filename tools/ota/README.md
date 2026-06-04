@@ -28,10 +28,21 @@ is **blocked** unless you pass `--allow-dev`.
 
 Exit codes: `0` up to date · `10` update available · `1` error.
 
-The optional identity flags (`--app-id`, `--platform`, `--entity-id`, `--hardware-version`,
-`--sn`, `--oem`, `--build-time`) map to the documented CheckParam / legacy request fields.
-The `check` POST body uses the documented param vocabulary; FlashForge can change it
-server-side, in which case adjust `build_check_param`.
+## Live API (probed 2026-06-04)
+
+The current server is **`GET https://update.voxelshare.com/api/updates/check?appId=&platform=&version=&entityId=&hardwareVersion=`**
+(POST → `405`). It answers a `{"code","message","data"}` envelope: `code` `0`/`200` + a
+`data` object = a release; `code` `1306` ("Latest release version not found") + `data:null`
+= no release for that `appId`/`platform`. `appId` and `platform` must be **non-empty
+numbers** (the backend casts them to `java.lang.Long`).
+
+**Blocker:** `appId`/`platform` are FlashForge product ids that are **not in the 5.1.4
+firmware** — that build still used the older `SN/VID/PID/Name/OEMName/Version/...` POST
+scheme the server now rejects. A bounded probe (appId 1–400 × several platforms) only ever
+returned `1306`, so the AD5M Pro id wasn't found by brute force. To use the v2 channel you
+must supply the real ids via `--app-id`/`--platform`; get them by capturing a live update
+check from a running printer (tcpdump / mitmproxy on the device). The legacy `sz3dp`
+endpoints are unreachable (connection refused).
 
 ## Security
 

@@ -90,11 +90,19 @@ class TestVersionGt(unittest.TestCase):
 
 
 class TestBuilders(unittest.TestCase):
-    def test_check_param_keys(self):
-        ident = ff.Identity(version="3.1.3", app_id="7", platform="linux", entity_id="e", hardware_version="hw")
+    def test_check_query_order_and_keys(self):
+        ident = ff.Identity(version="3.1.3", app_id="7", platform="2", entity_id="e", hardware_version="hw")
+        q = ff.build_check_query(ident)
+        self.assertEqual([k for k, _ in q], ["appId", "platform", "version", "entityId", "hardwareVersion"])
+        self.assertEqual(dict(q)["appId"], "7")
+        self.assertEqual(dict(q)["version"], "3.1.3")
+
+    def test_check_param_stock_keys(self):
+        # the older stock CheckParam body (kept for reference)
+        ident = ff.Identity(version="3.1.3", sn="SN1", name="Adventurer5Mpro", oem="flashforge")
         body = ff.build_check_param(ident)
-        self.assertEqual(set(body), {"app_id", "platform", "version", "entity_id", "hardware_version"})
-        self.assertEqual(body["version"], "3.1.3")
+        self.assertEqual(set(body), {"SN", "Name", "OEMName", "Version", "BuildTime", "HardwareVersion"})
+        self.assertEqual(body["SN"], "SN1")
 
     def test_legacy_param_keys(self):
         ident = ff.Identity(version="3.1.3", sn="SN1", name="Adventurer5Mpro", oem="flashforge")
@@ -151,6 +159,21 @@ class TestParseCheckResponse(unittest.TestCase):
         r = ff.parse_check_response({"data": {"version": "9.9.9"}}, "3.1.3")
         self.assertTrue(r.update_available)
         self.assertEqual(r.latest_version, "9.9.9")
+
+    def test_envelope_ok_with_data(self):
+        r = ff.parse_check_response({"code": 0, "message": "ok", "data": {"version": "5.1.4", "changelog": "x"}}, "3.1.3")
+        self.assertTrue(r.update_available)
+        self.assertEqual(r.changelist, "x")
+
+    def test_envelope_1306_means_none(self):
+        r = ff.parse_check_response({"code": 1306, "message": "Latest release version not found", "data": None}, "3.1.3")
+        self.assertFalse(r.update_available)
+        self.assertEqual(r.latest_version, "")
+        self.assertIn("not found", r.message)
+
+    def test_envelope_camel_force(self):
+        r = ff.parse_check_response({"code": 200, "data": {"version": "3.1.3", "forceUpdate": True}}, "3.1.3")
+        self.assertFalse(r.update_available)  # same version, nothing to do
 
     def test_text_and_bytes_input(self):
         self.assertTrue(ff.parse_check_response('{"version":"4.0"}', "3.1").update_available)
@@ -276,13 +299,23 @@ class TestCheckUpdate(unittest.TestCase):
 
         return t, calls
 
-    def test_v2_flow(self):
-        t, calls = self._transport('{"version":"5.1.4"}')
-        ident = ff.Identity(version="3.1.3", app_id="1")
+    def test_v2_flow_is_get_with_query(self):
+        # envelope form the live server uses
+        t, calls = self._transport('{"code":0,"message":"ok","data":{"version":"5.1.4"}}')
+        ident = ff.Identity(version="3.1.3", app_id="42", platform="2")
         r = ff.check_update(ident, channel="v2", transport=t)
         self.assertTrue(r.update_available)
-        self.assertEqual(calls["url"], ff.ENDPOINTS["v2"]["check"])
-        self.assertEqual(calls["body"]["version"], "3.1.3")
+        self.assertTrue(calls["url"].startswith(ff.ENDPOINTS["v2"]["check"] + "?"))
+        self.assertIn("appId=42", calls["url"])
+        self.assertIn("version=3.1.3", calls["url"])
+        self.assertIsNone(calls["body"])  # GET, no body
+
+    def test_v2_no_release_envelope(self):
+        t, _ = self._transport('{"code":1306,"message":"Latest release version not found","data":null}')
+        r = ff.check_update(ff.Identity(version="3.1.3", app_id="1", platform="1"), channel="v2", transport=t)
+        self.assertFalse(r.update_available)
+        self.assertEqual(r.latest_version, "")
+        self.assertIn("not found", r.message)
 
     def test_legacy_flow(self):
         t, calls = self._transport('{"SoftwarePackage":"sw.tar.xz"}')
@@ -314,11 +347,15 @@ class TestCLI(unittest.TestCase):
     def test_main_blocks_dev(self):
         self.assertEqual(ff.main(["--channel", "dev", "--version", "1.0"]), 1)
 
+    def test_main_v2_requires_ids(self):
+        # v2 needs app-id + platform; without them main bails before any network call
+        self.assertEqual(ff.main(["--version", "3.1.3"]), 1)
+
     def test_main_update_available(self):
         orig = ff.http_transport
         try:
-            ff.http_transport = lambda url, body, headers, timeout=15: '{"version":"9.9.9"}'
-            rc = ff.main(["--version", "3.1.3", "--json"])
+            ff.http_transport = lambda url, body, headers, timeout=15: '{"code":0,"data":{"version":"9.9.9"}}'
+            rc = ff.main(["--version", "3.1.3", "--app-id", "42", "--platform", "2", "--json"])
             self.assertEqual(rc, 10)
         finally:
             ff.http_transport = orig
@@ -326,8 +363,8 @@ class TestCLI(unittest.TestCase):
     def test_main_up_to_date(self):
         orig = ff.http_transport
         try:
-            ff.http_transport = lambda url, body, headers, timeout=15: '{"version":"3.1.3"}'
-            self.assertEqual(ff.main(["--version", "3.1.3"]), 0)
+            ff.http_transport = lambda url, body, headers, timeout=15: '{"code":1306,"data":null}'
+            self.assertEqual(ff.main(["--version", "3.1.3", "--app-id", "42", "--platform", "2"]), 0)
         finally:
             ff.http_transport = orig
 

@@ -74,3 +74,16 @@ types `CheckParam/ResponseResult/PackageUpdateInfo/DownloadParam/PackageType`. N
 `tools/ota/check-ff-update.py` — read-only checker built from this teardown: queries the
 v2/legacy endpoints above, compares the advertised version against the running one, reports
 availability (never downloads/flashes). See `tools/ota/README.md`.
+
+## Live server probe (2026-06-04)
+Confirmed against the running production server:
+- `getCheckParamJson` (the shipping 5.1.4 client) posts JSON keyed
+  **`SN/VID/PID/Name/OEMName/Version/BuildTime/HardwareVersion/{Kernel,Control,Library,Software}Version`**
+  (`Version` formatted `%d.%d.%d`, `BuildTime` `%Y-%m-%d %H:%M:%S`).
+- The **live** server has migrated past that scheme: update check is now
+  **`GET /api/updates/check?appId=&platform=&version=…`** (POST → `405`), replying a
+  `{"code","message","data"}` envelope. `appId`/`platform` are required **numeric** ids
+  (`java.lang.Long`); `code 1306` = "Latest release version not found".
+- The AD5M Pro `appId`/`platform` are **not** in the 5.1.4 binary (older scheme) and a
+  bounded brute (appId 1–400) didn't surface them — needs a captured live request.
+- Legacy `update[.cn].sz3dp.com:10443` + `hz.sz3dp.com:11002` are unreachable (refused).
