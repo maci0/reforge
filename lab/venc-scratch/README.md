@@ -1,5 +1,17 @@
 # venc-scratch — from-scratch T113 Cedar VE H.264 encoder (open, no closed blob)
 
+> ## Re-attempt 2026-06-04 — clock-rate lever ruled out with live `clk_summary`
+> Re-ran `t113_h264enc` on the live unit (VE ver `0x1667`): **same stall** — `status=0x80000260`,
+> `done=0`, `vle_len=240` bits (slice header only), `out.h264` = 0 bytes. New, decisive datum:
+> the kernel's `clk_summary` shows **every VE clock present at the correct rate and enabled** —
+> `pll-ve`=402 MHz, `ve` (core)=402 MHz (enable-count 3), `bus-ve` (AHB)=200 MHz, `mbus-ve`
+> (DMA)=396 MHz. So the "VE module clock might be off / wrong rate" hypothesis is **closed**: the
+> compute core, AHB, and MBUS-DMA clocks are all correctly clocked, yet the engine still hangs at
+> the input-conversion→MB-encode transition. Confirms the conclusion below — the missing piece is
+> the undocumented T113 VE encode register programming (only the stock `RecordCamera` pipeline runs
+> it, and it never does: USB-MJPEG camera). Camera re-confirmed `/dev/video0` = **MJPG-only** (UVC
+> module `U0AS01A-0`, `ab20:1276`, bcdDevice `0x2011`, rev `01.00.00` — fixed, no FW update).
+
 A from-scratch userspace H.264 encoder for the AD5M's Allwinner T113 Cedar VE,
 **bypassing the closed `libvenc` stack entirely**. Ported from Jens Kuske's
 reverse-engineered `cedrus/h264enc` (GPLv2) and adapted to the T113 BSP driver.
