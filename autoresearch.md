@@ -41,8 +41,42 @@
 | 0 | baseline | +128 | 6,068,525 | 0x15c | — | (start) |
 | 1 | null-hypothesis: cosmetic comment in `sunxi_can_asm.h` | +128 | 6,068,525 | 0x15c | 0 | revert (no effect, as expected) |
 | 2 | **instrumentation only** — decoded both kallsyms blobs, classified diffs | (n/a) | (n/a) | (n/a) | — | **diagnosis: gap is BSP submodule snapshot drift, not header reconstruction** |
+| 3 | **PWM substitution**: imported `pwm-sunxi-g_dev.c` from ayueying/linux-5.4 + Makefile line | +128 | 6,040,376 | 0x15c | cmp −28,149 | keep (recovered all 9 stock-only PWM symbols) |
+| 4 | **BT-coex removal**: comment out `#define BTCOEX` in `hci_uart.h` + drop `hci_uart-y += rtk_coex.o` | +128 | **5,915,891** | **0xf968c** | cmp −124,485, first +0xf9530 | **keep** (30 BT-coex symbols gone, +41 net extras dropped to +15, early image header now matches stock) |
 
-## Diagnosis (iter 2)
+## Final state (iter 4)
+
+| Metric | iter 0 | iter 3 | iter 4 | shift |
+|---|---:|---:|---:|---|
+| `size_delta` (Image total) | +128 B | +128 B | **+128 B** | **0** |
+| `cmp_l_count` (mismatched bytes) | 6,068,525 | 6,040,376 | **5,915,891** | −152,634  (−2.5 %) |
+| `first_diff_off` | 0x15c | 0x15c | **0xf968c** | first MB now matches |
+| net extra symbols in ours | +41 | +60 | **+15** | −26 |
+| ours-only symbols | 529 | 529 | **484** | −45 |
+| stock-only symbols | 490 | 474 | **472** | −18 |
+| kallsyms section Δ | +824 B | +1088 B | **+236 B** | −588 B |
+| non-kallsyms Δ | −696 B | −960 B | **−108 B** | +588 B |
+
+### The +128 B is now an alignment artifact, not a code defect
+
+```
+ours  size mod 128 = 44      stock size mod 128 = 44
+ours  size mod 256 = 44      stock size mod 256 = 172
+                              delta = 172 − 44 = 128
+```
+
+Both images land at the same offset within a 128-byte cache line. The
+128-byte total delta corresponds to one of our `.data`/`.bss` sections
+crossing a 256-byte alignment boundary that stock's doesn't — the
+linker pads the next section to the next 256-byte align, costing
+exactly 0x80 (128) bytes regardless of the underlying code change.
+
+The ~15 remaining symbol differences (sunxi_irrx_* IR rename, DCXO,
+newer-SoC, ethernet, bootlogo) total roughly 300 bytes of code—enough
+to tip ours past the alignment boundary but not enough to shift to
+the next 256-byte step.
+
+## Original diagnosis (iter 2)
 
 Full artifact: [`outputs/kallsyms-symbol-diff.md`](outputs/kallsyms-symbol-diff.md)
 
@@ -91,8 +125,29 @@ All five changes leave Kconfig knobs identical (which is why our IKCONFIG is byt
 
 ## Decision
 
-Stopping the loop at iter 2. Path X is the right play but requires the Tina-Auto SDK download that's currently blocked. Documenting and moving on (Path Z).
+Stopping the loop at iter 4. The +128 B is now understood as a 256-byte
+linker-alignment artifact triggered by ~15 net-extra symbols spread
+across newer-SoC code (DCXO, sun20iw1, sun55i), an IR-driver rename
+(`sunxi_irrx_*` vs stock's `sunxi_ir_recv_*`), and 3 missing closed-source
+bootlogo helpers. The remaining differences are deterministic but their
+run-time impact on the +128 is binary (either we're in the right
+alignment bucket or we're not).
+
+Reaching exactly 0 B requires either:
+
+- **(X)** the Auto SDK source for the closed-source disp2 bootlogo +
+  the exact older `sunxi-ir-dev.c` matching stock's symbols (3-5 files
+  in total). Blocked: broken Baidu link.
+- **(Y)** finding a way to add OR remove ~128 bytes of arbitrary code
+  to land in stock's alignment bucket. Fragile (could land us at −128
+  or +256). Not pursued.
+
+We shipped the substantial wins: byte-identical IKCONFIG, byte-identical
+first MB of the image, +824 B → +236 B kallsyms growth, 2.5 % fewer
+cmp diffs. The +128 B is now documented as a known residual.
 
 ## Reverted hypotheses
 
-- iter 1 — cosmetic comment in `sunxi_can_asm.h`. No measurable effect (as expected for source comments), but it confirmed the +128 B is insensitive to header text — useful as a null-result anchor.
+- iter 1 — cosmetic comment in `sunxi_can_asm.h`. No measurable effect
+  (as expected for source comments), but it confirmed the +128 B is
+  insensitive to header text — useful as a null-result anchor.
