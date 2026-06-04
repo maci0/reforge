@@ -1,0 +1,15 @@
+# Phase 2 iter 8 — gcc 15.x + section-level dead code elimination.
+#
+# -ffunction-sections / -fdata-sections put each function/data in its own ELF
+# section.  -Wl,--gc-sections drops unreferenced sections at link time.  In an
+# LTO build (already on, BR2_ENABLE_LTO=y) this is largely redundant for
+# in-package dead code, but it does help cross-package: per-package libraries
+# carry fewer never-called helpers into the final binary.  Should also shrink
+# the rootfs slightly.
+BR2_GCC_VERSION_15_X=y
+BR2_TARGET_OPTIMIZATION="-ffunction-sections -fdata-sections"
+# Note: Buildroot uses BR2_TARGET_LDFLAGS for runtime linker flags but does
+# not have a clean "all packages add --gc-sections" knob.  Most packages
+# already pass --gc-sections when *_GC_SECTIONS=y or via per-package overrides.
+# For a quick experiment we rely on the BR default behavior — if the win is
+# small we'll iterate.

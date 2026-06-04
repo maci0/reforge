@@ -20,6 +20,11 @@ BR2_GENERATE_LOCALE="C"
 # against this file, or re-add this line afterward.
 BR2_TOOLCHAIN_BUILDROOT_GLIBC=y
 BR2_TOOLCHAIN_BUILDROOT_CXX=y
+# gcc 15.2 (up from BR LTS default gcc 14.3). Measured -17.0% sum(Pss) across
+# the stack at -m 128 -smp 2 cortex-a7 under qemu virt (no swap), driven by
+# 25-50% size reductions in libpython3.14 / numpy / libcrypto / libc / libsqlite.
+# Loop: autoresearch.md (2026-06-04). Per-iter data: autoresearch.jsonl.
+BR2_GCC_VERSION_15_X=y
 # Kernel headers pinned to EXACTLY match the stock kernel the rootfs runs on in
 # P1-P3 (stock 5.4.61). glibc bakes in a min-kernel ELF note at build time; if
 # userspace is built against newer headers than the runtime kernel, the dynamic

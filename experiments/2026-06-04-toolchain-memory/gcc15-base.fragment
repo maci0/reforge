@@ -1,0 +1,4 @@
+# Phase 2 iter 7 — gcc 15.x variant (up from default gcc 14.x).
+# Buildroot 2026.02.2 LTS ships gcc 13.4/14.3/15.2 internally; flip to 15.x.
+# Everything else inherits from reforge_defconfig.
+BR2_GCC_VERSION_15_X=y

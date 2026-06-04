@@ -1,0 +1,29 @@
+[mem-probe] Staging rootfs from /home/maci/Desktop/Projects/flashforge/reforge/build/output-gcc15-funcsec/images/rootfs.tar ...
+[mem-probe] NOSWAP=1: zram + eMMC swap disabled for this run
+[mem-probe] ext4 ready: /home/maci/Desktop/Projects/flashforge/reforge/tests/qemu-harness/build/mem-probe-rootfs.ext4
+[mem-probe] eMMC (overflow swap) ready: /home/maci/Desktop/Projects/flashforge/reforge/tests/qemu-harness/build/mem-probe-emmc.ext4
+[mem-probe] Booting (MEM=128 MiB, settle=25s) ...
+
+========================= MEM SUMMARY: iter8-gcc15-funcsec (-m 128) =========================
+NOSWAP=1
+--- meminfo (kB) ---
+MemTotal:         108332 kB
+MemFree:           13992 kB
+MemAvailable:      47928 kB
+Buffers:            2008 kB
+Cached:            32312 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+--- zram ---
+zram0 disksize: 0
+zram0 mm_stat :        0        0        0        0        0        0        0        0
+--- swaps (real device: zram primary + eMMC overflow) ---
+Filename				Type		Size	Used	Priority
+--- per-process Pss/Rss (kB) ---
+PID 175 Pss=12732 Rss=15992 JEM=yes CMD=/usr/bin/python3 /opt/klipper/klippy/klippy.py /etc/reforge/printer.cfg -a /tmp/klippy_uds -l /var/log/klippy.log 
+PID 182 Pss=36589 Rss=39868 JEM=yes CMD=/usr/bin/python3 /opt/moonraker/moonraker/moonraker.py -d /var/lib/moonraker -c /etc/reforge/moonraker.conf 
+PID 189 Pss=182 Rss=640 JEM=no CMD=/usr/sbin/httpd -p 80 -h /var/www/mainsail 
+
+SUMMARY  MemAvailable=47928 kB   sum(tracked Pss)=49503 kB
+serial log: /home/maci/Desktop/Projects/flashforge/reforge/tests/qemu-harness/build/mem-probe-iter8-gcc15-funcsec.log
+================================================================================

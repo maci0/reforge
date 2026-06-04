@@ -60,30 +60,88 @@ mkdir -p "${MNT}"
 tar -C "${MNT}" -xf "${ROOTFS_TAR}"
 
 # Optional runtime tweaks applied in-place (A/B against the same baseline rootfs).
-#   TWEAKS=oo       -> run klippy+moonraker with python -OO (drop docstrings/asserts)
-#   TWEAKS=arena1   -> MALLOC_ARENA_MAX=1 (tighter than the default 2)
-#   TWEAKS=oo,arena1
-K="${MNT}/etc/init.d/S60klipper"; M="${MNT}/etc/init.d/S65moonraker"
+# The real klippy/moonraker init scripts live at /mod/init.d/ (NOT /etc/init.d/);
+# the old harness sed targeted the wrong path and silently no-op'd — fixed 2026-06-04.
+# Available knobs:
+#   TWEAKS=oo            klippy+moonraker run with python -OO (drop docstrings/asserts)
+#   TWEAKS=klippy-oo     only klippy with python -OO
+#   TWEAKS=arena1        MALLOC_ARENA_MAX=1 (tighter than the default 2) — ONLY meaningful
+#                        if the init script uses glibc malloc (production currently uses
+#                        jemalloc by default, so this tweak is largely vestigial)
+#   TWEAKS=noarena       remove the MALLOC_ARENA_MAX export entirely
+#   TWEAKS=jemalloc-conf override the existing MALLOC_CONF to JEMALLOC_CONF env value
+#                        (production already preloads jemalloc; this only swaps tuning)
+#   TWEAKS=no-jemalloc   strip the LD_PRELOAD=libjemalloc + MALLOC_CONF lines entirely
+#                        (baseline-vs-glibc comparison)
+#   TWEAKS=moonraker-min strip optional moonraker sections ([history], [announcements],
+#                        [update_manager], [octoprint_compat]) from the staged conf
+K="${MNT}/mod/init.d/S60klipper"
+M="${MNT}/mod/init.d/S65moonraker"
+assert_sed() {  # <description> <file> <expected-substring-after>
+    grep -q "$3" "$2" 2>/dev/null && return 0
+    echo "[mem-probe] ERROR: tweak '$1' did not take effect on $2" >&2
+    return 1
+}
 case ",${TWEAKS:-}," in *,oo,*)
-    log "tweak: python -OO"
-    sed -i 's#DAEMON_ARGS="/opt#DAEMON_ARGS="-OO /opt#' "$K" "$M" 2>/dev/null || true
+    log "tweak: python -OO (klippy + moonraker)"
+    sed -i 's#DAEMON_ARGS="/opt#DAEMON_ARGS="-OO /opt#' "$K" "$M" || die "oo sed failed"
+    assert_sed oo "$K" 'DAEMON_ARGS="-OO /opt' || die "oo: klippy sed missed"
+    assert_sed oo "$M" 'DAEMON_ARGS="-OO /opt' || die "oo: moonraker sed missed"
+;; esac
+case ",${TWEAKS:-}," in *,klippy-oo,*)
+    log "tweak: python -OO (klippy only)"
+    sed -i 's#DAEMON_ARGS="/opt#DAEMON_ARGS="-OO /opt#' "$K" || die "klippy-oo sed failed"
+    assert_sed klippy-oo "$K" 'DAEMON_ARGS="-OO /opt' || die "klippy-oo: sed missed"
 ;; esac
 case ",${TWEAKS:-}," in *,arena1,*)
     log "tweak: MALLOC_ARENA_MAX=1"
     sed -i 's/MALLOC_ARENA_MAX=2/MALLOC_ARENA_MAX=1/' "$K" "$M" 2>/dev/null || true
 ;; esac
 case ",${TWEAKS:-}," in *,noarena,*)
-    log "tweak: remove arena cap (glibc default = 8*ncpu) — simulates forge-x"
+    log "tweak: remove MALLOC_ARENA_MAX cap"
     sed -i '/export MALLOC_ARENA_MAX=/d' "$K" "$M" 2>/dev/null || true
 ;; esac
-case ",${TWEAKS:-}," in *,jemalloc,*)
-    # Requires a jemalloc-enabled rootfs (build/output-jemalloc). LD_PRELOAD it into
-    # klippy + moonraker; MALLOC_CONF from JEMALLOC_CONF env (jemalloc reads it).
-    log "tweak: LD_PRELOAD jemalloc (MALLOC_CONF='${JEMALLOC_CONF:-defaults}')"
-    [ -e "${MNT}/usr/lib/libjemalloc.so.2" ] || log "  WARN: libjemalloc.so.2 not in rootfs — build with build-jemalloc-variant.sh"
-    for f in "$K" "$M"; do
-        sed -i "s#export MALLOC_ARENA_MAX=2#export LD_PRELOAD=/usr/lib/libjemalloc.so.2\n        export MALLOC_CONF='${JEMALLOC_CONF:-}'#" "$f" 2>/dev/null || true
-    done
+case ",${TWEAKS:-}," in *,no-jemalloc,*)
+    log "tweak: strip jemalloc preload + MALLOC_CONF (baseline-vs-glibc)"
+    # init script lines are tab-indented — anchor on whitespace, not column 0
+    sed -i -E '/^[[:space:]]*export LD_PRELOAD=.*libjemalloc/d;/^[[:space:]]*export MALLOC_CONF=/d' \
+        "$K" "$M" || die "no-jemalloc sed failed"
+    grep -q 'libjemalloc' "$K" && die "no-jemalloc: klippy still has libjemalloc"
+    grep -q 'libjemalloc' "$M" && die "no-jemalloc: moonraker still has libjemalloc"
+;; esac
+case ",${TWEAKS:-}," in *,jemalloc-conf,*)
+    log "tweak: override MALLOC_CONF -> '${JEMALLOC_CONF:-}'"
+    [ -n "${JEMALLOC_CONF:-}" ] || die "jemalloc-conf needs JEMALLOC_CONF set"
+    # init script lines are tab-indented — the regex must accept leading whitespace.
+    # Substitution preserves the original indentation.
+    sed -i -E "s#^([[:space:]]*)export MALLOC_CONF=.*#\\1export MALLOC_CONF=${JEMALLOC_CONF}#" \
+        "$K" "$M" || die "jemalloc-conf sed failed"
+    grep -q "export MALLOC_CONF=${JEMALLOC_CONF}" "$K" \
+        || die "jemalloc-conf: klippy missed (line: $(grep MALLOC_CONF "$K"))"
+    grep -q "export MALLOC_CONF=${JEMALLOC_CONF}" "$M" \
+        || die "jemalloc-conf: moonraker missed (line: $(grep MALLOC_CONF "$M"))"
+;; esac
+case ",${TWEAKS:-}," in *,moonraker-min,*)
+    log "tweak: drop optional moonraker sections from staged moonraker.conf"
+    # moonraker.conf lives under /mod/etc/reforge/ (not /etc/reforge/) in this rootfs.
+    MR_CFG="${MNT}/mod/etc/reforge/moonraker.conf"
+    [ -f "${MR_CFG}" ] || MR_CFG="${MNT}/etc/reforge/moonraker.conf"
+    [ -f "${MR_CFG}" ] || die "moonraker-min: moonraker.conf not in rootfs (tried /mod/etc/reforge/ and /etc/reforge/)"
+    python3 - "${MR_CFG}" <<'PYMIN' || die "moonraker-min: conf trim failed"
+import sys, re
+p = sys.argv[1]
+txt = open(p).read()
+DROP = ('history', 'announcements', 'update_manager', 'octoprint_compat', 'job_state', 'analysis')
+out, skip = [], False
+for line in txt.splitlines(True):
+    m = re.match(r'\s*\[([^\]]+)\]', line)
+    if m:
+        skip = any(m.group(1).split(' ', 1)[0] == d for d in DROP)
+    if not skip:
+        out.append(line)
+open(p, 'w').write(''.join(out))
+print('moonraker-min: stripped sections')
+PYMIN
 ;; esac
 case ",${TWEAKS:-}," in *,updmgr,*)
     log "tweak: enable Moonraker [update_manager] + web updaters (measure its cost)"
@@ -106,6 +164,17 @@ primary_branch: master
 UMG
 ;; esac
 
+# NOSWAP=1: disable zram + eMMC-overflow swap entirely (autoresearch experiments
+# that want to measure raw RAM pressure without swap-relief noise).  We blank the
+# zram init script and skip writing the eMMC swapfile script below; the probe also
+# runs `swapoff -a` defensively before the measurement.
+if [ "${NOSWAP:-0}" = 1 ]; then
+    log "NOSWAP=1: zram + eMMC swap disabled for this run"
+    for f in "${MNT}/etc/init.d/S35zram" "${MNT}/mod/init.d/S35zram"; do
+        [ -f "$f" ] && : > "$f" && chmod 0755 "$f" || true
+    done
+fi
+
 # Probe init: runs last (S98), after klipper/moonraker/httpd/guppyscreen.
 cat > "${MNT}/etc/init.d/S98memprobe" <<PROBE
 #!/bin/sh
@@ -115,7 +184,11 @@ cat > "${MNT}/etc/init.d/S98memprobe" <<PROBE
 [ -x /mod/start.sh ] && /mod/start.sh > /dev/console 2>&1
 (
   sleep ${SETTLE}
+  # NOSWAP defensive: even if some package brought swap up, kill it now so the
+  # measurement reflects pure RAM pressure.
+  [ "${NOSWAP:-0}" = "1" ] && swapoff -a 2>/dev/null
   echo "===MEMPROBE-BEGIN==="
+  echo "NOSWAP=${NOSWAP:-0}"
   echo "--- meminfo (kB) ---"
   grep -E '^(MemTotal|MemFree|MemAvailable|Cached|Buffers|SwapTotal|SwapFree)' /proc/meminfo
   echo "--- zram ---"
@@ -160,6 +233,10 @@ mkswap /data/swap >/dev/null 2>&1
 swapon /data/swap 2>/dev/null   # default (low) priority = overflow under zram(prio 100)
 EMMCSWAP
 chmod +x "${MNT}/etc/init.d/S36emmcswap"
+if [ "${NOSWAP:-0}" = 1 ]; then
+    : > "${MNT}/etc/init.d/S36emmcswap"   # blank out: no eMMC overflow swap
+    chmod 0755 "${MNT}/etc/init.d/S36emmcswap"
+fi
 
 # Bake the staging tree into an ext4 image (rootless, no loop mount).
 mke2fs -q -F -t ext4 -d "${MNT}" "${IMG}" 768M

@@ -1,0 +1,30 @@
+[mem-probe] Staging rootfs from /home/maci/Desktop/Projects/flashforge/reforge/build/output/images/rootfs.tar ...
+[mem-probe] tweak: override MALLOC_CONF -> 'narenas:1,tcache:false,dirty_decay_ms:0,muzzy_decay_ms:0'
+[mem-probe] NOSWAP=1: zram + eMMC swap disabled for this run
+[mem-probe] ext4 ready: /home/maci/Desktop/Projects/flashforge/reforge/tests/qemu-harness/build/mem-probe-rootfs.ext4
+[mem-probe] eMMC (overflow swap) ready: /home/maci/Desktop/Projects/flashforge/reforge/tests/qemu-harness/build/mem-probe-emmc.ext4
+[mem-probe] Booting (MEM=128 MiB, settle=25s) ...
+
+========================= MEM SUMMARY: iter3-tcache-off (-m 128) =========================
+NOSWAP=1
+--- meminfo (kB) ---
+MemTotal:         108332 kB
+MemFree:           11992 kB
+MemAvailable:      34980 kB
+Buffers:            2044 kB
+Cached:            30320 kB
+SwapTotal:             0 kB
+SwapFree:              0 kB
+--- zram ---
+zram0 disksize: 0
+zram0 mm_stat :        0        0        0        0        0        0        0        0
+--- swaps (real device: zram primary + eMMC overflow) ---
+Filename				Type		Size	Used	Priority
+--- per-process Pss/Rss (kB) ---
+PID 176 Pss=20151 Rss=26072 JEM=yes CMD=/usr/bin/python3 /opt/klipper/klippy/klippy.py /etc/reforge/printer.cfg -a /tmp/klippy_uds -l /var/log/klippy.log 
+PID 183 Pss=38318 Rss=44316 JEM=yes CMD=/usr/bin/python3 /opt/moonraker/moonraker/moonraker.py -d /var/lib/moonraker -c /etc/reforge/moonraker.conf 
+PID 189 Pss=214 Rss=816 JEM=no CMD=/usr/sbin/httpd -p 80 -h /var/www/mainsail 
+
+SUMMARY  MemAvailable=34980 kB   sum(tracked Pss)=58683 kB
+serial log: /home/maci/Desktop/Projects/flashforge/reforge/tests/qemu-harness/build/mem-probe-iter3-tcache-off.log
+================================================================================

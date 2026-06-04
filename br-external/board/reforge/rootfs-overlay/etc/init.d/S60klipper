@@ -20,7 +20,9 @@ case "$1" in
 	start)
 		echo "Starting $NAME..."
 		export LD_PRELOAD=/usr/lib/libjemalloc.so.2
-		export MALLOC_CONF=narenas:1,dirty_decay_ms:0,muzzy_decay_ms:0
+		# tcache:false adds ~0.9 MB Pss back to the OS faster (jemalloc's per-thread
+		# cache otherwise hoards memory). Measured 2026-06-04 under qemu virt -m 128.
+		export MALLOC_CONF=narenas:1,tcache:false,dirty_decay_ms:0,muzzy_decay_ms:0
 		mkdir -p /var/log /run
 		start-stop-daemon -S -b -m -p "$PIDFILE" \
 			-x "$DAEMON" -- $DAEMON_ARGS
