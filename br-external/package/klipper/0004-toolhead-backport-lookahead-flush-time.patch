@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000004 Mon Sep 17 00:00:00 2001
+From: ReForge <reforge@flashforge>
+Date: Fri, 05 Jun 2026 00:00:00 +0000
+Subject: [PATCH] toolhead: backport upstream LOOKAHEAD_FLUSH_TIME 0.250 -> 0.150
+
+Backport of upstream Klipper commit 16fc46fe5 ("toolhead: Reduce
+LOOKAHEAD_FLUSH_TIME to 0.150 seconds", Kevin O'Connor, 2025-09-30).
+
+Upstream rationale (from the commit message):
+    The current code is likely to perform a lazy flush of the lookahead
+    queue around 4 times a second.  Increase that to around 6-7 times a
+    second.  This change may slightly improve the responsiveness to user
+    requests mid-print (eg, changing extrusion ratio) and may make a
+    "print stall" less likely in some corner cases.
+
+Forge-x has independently been shipping the same value on AD5M/AD5M-Pro
+units (.shell/commands/ztune_klipper.sh `fix_enable_e17`) as a
+workaround for the E0017 "Move Queue Overflow" error — which is one of
+the "print stall corner cases" Kevin's commit message refers to.  So
+this single value is supported both by an upstream maintainer change
+and by months of forge-x field deployment on this exact hardware
+class.
+
+We carry it as a patch (not by waiting to move the klipper pin forward
+from v0.11.0) because the v0.11 pin is intentional — it matches the
+AD5M v11 MCU firmware era and avoids the host<->MCU protocol-skew
+risk documented in docs/reverse-engineering/ad5m-mcu-firmware-and-config.md.
+
+Signed-off-by: ReForge <reforge@flashforge>
+---
+ klippy/toolhead.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/klippy/toolhead.py b/klippy/toolhead.py
+--- a/klippy/toolhead.py
++++ b/klippy/toolhead.py
+@@ -106,7 +106,7 @@
+         self.cruise_t = cruise_d / cruise_v
+         self.decel_t = decel_d / ((end_v + cruise_v) * 0.5)
+ 
+-LOOKAHEAD_FLUSH_TIME = 0.250
++LOOKAHEAD_FLUSH_TIME = 0.150
+ 
+ # Class to track a list of pending move requests and to facilitate
+ # "look-ahead" across moves to reduce acceleration between moves.
+-- 
+2.47.0

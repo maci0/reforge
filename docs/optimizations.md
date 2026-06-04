@@ -10,14 +10,15 @@ write-ups: [`docs/research/`](research/).
 
 | lever | what it does | measured impact | where |
 |---|---|---|---|
-| **jemalloc (tuned)** | `LD_PRELOAD` jemalloc with `MALLOC_CONF=narenas:1,dirty_decay_ms:0,muzzy_decay_ms:0` — single arena + zero-decay (return freed pages to the OS immediately) | **−6.5 MB Σ Pss (−11.2 %)**; klippy Rss 26.3→23.4, moonraker 43.5→38.2; MemAvail +2.2 MB | `reforge_defconfig` (`BR2_PACKAGE_JEMALLOC`) + `S60klipper`/`S65moonraker`/`S75guppyscreen` |
+| **gcc 15.2 (toolchain)** | flip `BR2_GCC_VERSION_15_X=y` (up from BR 2026.02.2 LTS's default gcc 14.3); newer optimizer + tuned glibc give 25–50 % smaller shared libraries that get mmap'd into every process | **−10.16 MB Σ Pss (−17.0 %)** at `-m 128` under qemu virt, NOSWAP. Per-binary: libpython3.14.so −29.5 %, numpy `_multiarray_umath` −34.4 %, libcrypto.so.3 −27.0 %, libc.so.6 −36.8 %, libsqlite3 −48.4 %, klippy `c_helper.so` −26.6 %. rootfs.tar 157 MB → 144 MB (−8.3 %). Loop: [`autoresearch.md`](../autoresearch.md). | `reforge_defconfig` (`BR2_GCC_VERSION_15_X`) |
+| **jemalloc (tuned)** | `LD_PRELOAD` jemalloc with `MALLOC_CONF=narenas:1,tcache:false,dirty_decay_ms:0,muzzy_decay_ms:0` — single arena + **no thread-cache** + zero-decay (return freed pages to the OS immediately) | **−6.5 MB Σ Pss (−11.2 %)** vs glibc (the original 2026-05 measurement), plus **another −0.9 MB** from adding `tcache:false` (autoresearch iter 3, 2026-06-04 — jemalloc's per-thread cache otherwise hoards memory) | `reforge_defconfig` (`BR2_PACKAGE_JEMALLOC`) + `S60klipper`/`S65moonraker`/`S75guppyscreen` |
 | **Thumb-2 + -Os + locale purge** | smaller code → fewer resident code pages across every process; smaller rootfs | **−4.9 MB Σ Pss (−8.2 %)**, **−1.08 MB** rootfs | `reforge_defconfig` (`BR2_ARM_INSTRUCTIONS_THUMB2`, `BR2_OPTIMIZE_S`, `BR2_ENABLE_LOCALE_PURGE`) |
-| **LTO (all packages)** | link-time cross-TU dead-code elimination + inlining → smaller `.text`/rootfs on top of -Os/Thumb-2 | _not yet measured — just enabled; expected small (the `.so` are COW-shared, so the win is mostly code pages/rootfs)_ | `reforge_defconfig` (`BR2_ENABLE_LTO`) |
-| **nginx → busybox httpd** | serve the Mainsail SPA statically; browser hits Moonraker `:7125` direct (no reverse proxy) | **−~3 MB RSS** (httpd Pss 0.19 MB vs nginx ~2–4 MB) | `S70httpd`, mainsail package |
+| **LTO (all packages)** | link-time cross-TU dead-code elimination + inlining → smaller `.text`/rootfs on top of -Os/Thumb-2 | _enabled; cross-package effect overlaps with LTO so the marginal `-ffunction-sections -fdata-sections` win is null (autoresearch iter 8: +75 kB, noise)_ | `reforge_defconfig` (`BR2_ENABLE_LTO`) |
+| **nginx → busybox httpd** | serve the Mainsail SPA statically; browser hits Moonraker `:7125` direct (no reverse proxy) | **−~3 MB RSS** (httpd Pss 0.19 MB vs nginx ~2–4 MB); also −~0.6 MB vs forge-x's full httpd (Pss 0.7 MB) | `S70httpd`, mainsail package |
 | **zram compressed swap** | zstd-compressed RAM swap on the stock kernel (loadable `.ko`) | ~**4× compression** of cold anon pages → effective RAM gain; high-prio over eMMC | `modules/zram-bsp/`, `S35zram` |
 | **zram VM tuning** | the runtime sysctls for the zram-as-primary-swap profile: `vm.page-cluster=0` (zram is RAM — no swap read-ahead), `vm.swappiness=100` (prefer compressed-RAM swap over eMMC file re-reads), `vm.vfs_cache_pressure=50`, `vm.watermark_scale_factor=40` (kswapd reclaims ahead of demand), `vm.dirty_ratio=10` / `vm.dirty_background_ratio=5` | makes zram actually get used + targets the measured direct-reclaim/throttle storm; **no fixed RAM cost** | `.shell/reforge-vmtune.sh`, sourced by `S35zram` right after `swapon` |
 | **single shared Python interpreter** | klippy + moonraker share one python3 → COW page sharing of code/libs | avoids a second interpreter's resident set | by design |
-| **Moonraker trimmed** | `spoolman`/`notifier`/`ldap` off; `update_manager` configured with `provider: simple` + `type: web` (no `type: git_repo`) | smaller resident set; **avoids the `git` dependency** (tens of MB rootfs) | `moonraker.conf` |
+| **Moonraker trimmed** | `[octoprint_compat]` removed; `spoolman`/`notifier`/`ldap`/`announcements`/`job_state`/`analysis` off; `update_manager` configured with `provider: simple` + `type: web` (no `type: git_repo`) | smaller resident set; `[octoprint_compat]` removal is ~100 kB Pss (autoresearch iter 4 subset). Going further — dropping `[history]` + `[update_manager]` too — measures at −1.4 MB but breaks OTA; documented in-conf as opt-in. | `moonraker.conf` |
 
 **Note on `MALLOC_ARENA_MAX=2`:** this was the prior allocator win (−2.7 MB/daemon vs glibc
 default) and is still what the **forge-x PRs** ship. ReForge has now **superseded it with jemalloc**
@@ -64,27 +65,54 @@ so they're out of reach for P1–P3. They become available when ReForge ships it
 
 | lever | result | why |
 |---|---|---|
-| `MALLOC_ARENA_MAX=1` (vs 2) | **null** (≈noise) | low arena pressure at our thread counts |
-| `python -OO` | **null** | docstrings/asserts are a tiny fraction of the heap |
+| `MALLOC_ARENA_MAX=1` (vs 2) | **null** (≈noise) | low arena pressure at our thread counts; already implied by jemalloc's `narenas:1` |
+| `python -OO` | **− −0.27 % regression** (+160 kB Pss, +5σ above baseline, autoresearch iter 1, 2026-06-04) | Python recompiles every imported module's `.pyc` → `.opt-2.pyc` on first run, doubling the bytecode cache pressure on the page cache. The docstring-strip win is real but tiny; the recompile churn overwhelms it on a cold-cache boot. |
 | jemalloc **defaults** (untuned) | **−0.8 MB** (wash) | jemalloc defaults favor throughput (page caching); the win is entirely the zero-decay tuning |
 | jemalloc `background_thread:true` | **null at idle** | only helps async-purge latency under churn; costs a thread |
+| jemalloc `metadata_thp:never` | **+180 kB** vs `metadata_thp:auto` (autoresearch iter 6, 2026-06-04) | small but real pessimization; the default is the right answer |
+| `-ffunction-sections -fdata-sections` (per-package) | **null** (+75 kB, ~2σ, autoresearch iter 8) | overlaps almost entirely with `BR2_ENABLE_LTO=y` (LTO already does cross-TU dead-code elimination within each LTO scope); the residual cross-package gain is in the noise floor |
+| **clang as system toolchain** | **blocked** (no measurement) | BR 2026.02.2 LTS has no `BR2_TOOLCHAIN_USES_CLANG`. The `BR2_PACKAGE_CLANG` target package builds clang as a binary that ships ON the rootfs — it is **not** a system-compiler choice. Implementing it would mean patching Buildroot's toolchain layer (multi-day). Parked. |
 | `transparent_hugepage=never` | **no-op** | stock 5.4.61 kernel has **no `CONFIG_TRANSPARENT_HUGEPAGE`** |
 | `[update_manager]` git path (`type: git_repo`) | kept **off** | needs `git` (tens of MB rootfs); +0.6 MB RAM. ReForge OTA uses the patched SimpleProvider (`provider: simple`) + `type: web` for Mainsail — see [ota.md](ota.md) |
 
 ## Stacking & caveats
 
-- The wins target **independent** memory: jemalloc = heap, Thumb-2/-Os = code pages, httpd = a
-  whole process. They largely **stack** — combined, the shipped stack is roughly **−14 MB** vs the
-  original glibc/-O2/nginx baseline (each delta measured against its own baseline; not a single
-  end-to-end run).
+- The wins target **independent** memory regions: gcc 15.2 = code pages of every mmap'd .so,
+  jemalloc = heap, Thumb-2/-Os = code pages of stock packages, httpd = a whole process. They
+  largely **stack** — the autoresearch loop measured the cumulative impact end-to-end:
+
+  | stage | Σ Pss (kB) | Δ vs original baseline | cumulative Δ % |
+  |---|---:|---:|---:|
+  | original baseline (gcc 14.3, jemalloc-tight, full moonraker.conf) | 59 587 | — | — |
+  | + Phase 1 runtime tweaks (`tcache:false` + moonraker `[octoprint_compat]` drop) | 57 515 | −2 072 | −3.5 % |
+  | + Phase 2 (gcc 14.3 → gcc 15.2) | 49 428 | −10 159 | −17.0 % |
+  | + Phase 1 × Phase 2 stack (**PRODUCTION**) | **47 488** | **−12 099** | **−20.3 %** |
+
+  Noise floor: σ(Σ Pss) = 33.5 kB over 3 warm reruns; 3σ signal threshold = 100 kB.
+  Full per-iter log: [`autoresearch.jsonl`](../autoresearch.jsonl), dashboard:
+  [`autoresearch.md`](../autoresearch.md).
+
 - Measurements are **idle** (klippy in no-MCU state, Moonraker threadpool quiescent). jemalloc's
   advantage typically **grows under load** (allocation churn), so −6.5 MB is a floor.
 - Numbers are from qemu at the real `-m 128`; zram `.ko` don't load under the qemu virt kernel
   (vermagic preempt mismatch), so swap is absent in-probe — Pss/Rss deltas are unaffected
   (swap-independent), but in-probe `MemAvailable` understates the on-device zram benefit.
+- **vs forge-x default install (UI-less, same qemu rig):** ReForge production saves
+  **−7 014 kB / −14.5 %** on the klippy+moonraker+httpd subtotal, **−9 107 kB / −18.2 %** on
+  all userspace, **−11 155 kB / −22.3 %** counting forge-x's already-swapped pages. The big delta
+  is klippy (−42 %) and is almost entirely toolchain (gcc 15.2 + Python 3.14 + glibc 2.42 +
+  LTO vs forge-x's stock FF toolchain + Python 3.7.11). Full breakdown:
+  [`docs/research/2026-06-05-reforge-vs-forgex-memory.md`](research/2026-06-05-reforge-vs-forgex-memory.md).
 
 ## Reproduce
 
-`sudo make qemu-mem [TWEAKS=...]` runs the probe; `lab/mem-experiment/build-*-variant.sh` builds
-the A/B variants (Thumb-2, jemalloc). See [`docs/research/2026-06-01-memory-savings-experiments.md`](research/2026-06-01-memory-savings-experiments.md)
-and [`…-jemalloc-test-plan.md`](research/2026-06-01-jemalloc-test-plan.md) for the raw runs.
+- `sudo make qemu-mem [TWEAKS=...]` runs the probe; `lab/mem-experiment/build-*-variant.sh` builds
+  the A/B variants (Thumb-2, jemalloc). See [`docs/research/2026-06-01-memory-savings-experiments.md`](research/2026-06-01-memory-savings-experiments.md)
+  and [`…-jemalloc-test-plan.md`](research/2026-06-01-jemalloc-test-plan.md) for the raw runs.
+- `./autoresearch.sh <variant>` is the wrapper used by the 2026-06-04 toolchain loop;
+  pass `NOSWAP=0` for production-realistic measurements (zram + eMMC overflow ON) or `NOSWAP=1`
+  for clean RAM-pressure A/B. Variant fragments under
+  [`experiments/2026-06-04-toolchain-memory/`](../experiments/2026-06-04-toolchain-memory/).
+- For a forge-x comparison run: `tests/qemu-harness/mem-probe-forgex.sh <label>` (slices the
+  forge-x rootfs from `tools/recovery/forge-x-*.img.gz`, patches out `ffstartup-arm`, launches
+  klippy directly, snapshots like the ReForge probe).

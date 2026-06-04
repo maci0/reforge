@@ -26,6 +26,9 @@ mainsail   tag     v2.17.0  d010f4df25557d520ccdbb8e42fc381df2288e6a5c72d3838a5a
 #     removal blocker; backport of upstream Klipper PR #6388)
 #   0003-py3-gcode-regex-raw-string.patch            (Python 3.14 SyntaxError
 #     blocker on gcode.py's m112 regex; matches upstream master)
+#   0004-toolhead-backport-lookahead-flush-time.patch (backport of upstream
+#     commit 16fc46fe5: LOOKAHEAD_FLUSH_TIME 0.250 -> 0.150; same value
+#     forge-x ships as fix_enable_e17; reduces 'print stall' corner cases)
 # Parked but not applied:
 #   disabled-patches/0002-relax-TRSYNC_TIMEOUT-ffad5m.patch  (re-enable on
 #     E0011 communication-timeout shutdowns).

@@ -30,6 +30,12 @@
 #     string for the m112 regex (`'^...\s...'`); Python 3.14 promoted the
 #     unknown-escape from SyntaxWarning to SyntaxError, so the module fails
 #     to import. Matches master's gcode.py:432 (raw-string prefix).
+#   0004-toolhead-backport-lookahead-flush-time.patch — backport of upstream
+#     commit 16fc46fe5 by Kevin O'Connor (2025-09-30): LOOKAHEAD_FLUSH_TIME
+#     0.250 → 0.150. Reduces "print stall" corner cases (which is what
+#     forge-x's `fix_enable_e17` workaround addresses on this exact hardware).
+#     Upstream took this change for general responsiveness; forge-x users have
+#     been running the same value for months. Low-risk one-line change.
 KLIPPER_VERSION = e02b725602067a2cd098a62be9a4bb10fc74a9bd
 KLIPPER_SITE = https://github.com/Klipper3d/klipper.git
 KLIPPER_SITE_METHOD = git
