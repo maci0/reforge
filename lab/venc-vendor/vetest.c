@@ -24,6 +24,7 @@ int main(int argc,char**argv){
     int W=argc>1?atoi(argv[1]):640,H=argc>2?atoi(argv[2]):480,N=argc>3?atoi(argv[3]):6;
     const char*outp=argc>4?argv[4]:"out.h264";
     unsigned int fmt=argc>5?atoi(argv[5]):0;
+    int codec=argc>7?atoi(argv[7]):0; /* 0=h264 1=jpeg */
     setvbuf(stdout,0,_IONBF,0);
     FILE*out=fopen(outp,"wb");
 
@@ -39,11 +40,12 @@ int main(int argc,char**argv){
     h264.sQPRange.nMinqp=10; h264.sQPRange.nMaxqp=40;
     h264.nFramerate=15; h264.nBitrate=2000000; h264.nMaxKeyInterval=30;
 
-    VideoEncoder*enc=VideoEncCreate(VENC_CODEC_H264);
+    VideoEncoder*enc=VideoEncCreate((VENC_CODEC_TYPE)codec);
+    printf("codec=%s\n",codec==1?"JPEG":"H264");
     printf("enc=%p\n",(void*)enc); if(!enc)return 1;
-    VideoEncSetParameter(enc,VENC_IndexParamH264Param,&h264);
-    int z=0; VideoEncSetParameter(enc,VENC_IndexParamIfilter,&z);
-    VideoEncSetParameter(enc,VENC_IndexParamRotation,&z);
+    int z=0;
+    if(codec==1){ int q=80; VideoEncSetParameter(enc,VENC_IndexParamJpegQuality,&q); }
+    else { VideoEncSetParameter(enc,VENC_IndexParamH264Param,&h264); VideoEncSetParameter(enc,VENC_IndexParamIfilter,&z); VideoEncSetParameter(enc,VENC_IndexParamRotation,&z); }
     int vefreq=argc>6?atoi(argv[6]):0;
     if(vefreq){ int fr=VideoEncoderSetFreq(enc,vefreq); printf("SetFreq(%d)->%d\n",vefreq,fr); }
     int r=VideoEncInit(enc,(VencBaseConfig*)&cfg);

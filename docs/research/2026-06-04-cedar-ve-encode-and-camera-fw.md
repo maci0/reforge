@@ -63,18 +63,26 @@ contradicting the earlier "completes no codec op / dead silicon" conclusion. The
 encoder is functional at the init/pipeline level. Details + the `vetest.c` harness:
 [`../../lab/venc-vendor/`](../../lab/venc-vendor/).
 
-### Status / next steps
+### RESOLVED: the T113-S3 has NO H.264 encoder — JPEG/MJPEG only (and that works)
 
-HW H.264 encode is **not yet producing output**, but the blocker is now identified as
-**userspace cedarx ABI/buffer setup**, not the silicon:
+After recovering the correct T113 `VencBaseConfig` ABI (leading `bEncH264Nalu` flag + `memops`
+pointer), the device's **own vendor library** runs the full H.264 encode — `VideoEncInit -> 0`,
+`AllocInputBuffer -> 0` — then `H264EncFrame: wait interrupt overtime`. Live VE registers
+(`ve_diag.ko`) show it frozen at `int_sts=0x80000260` (no FINISH bit), the `cedar_dev` IRQ
+never increments, zero IOMMU faults, invariant across VE freq 200–576 MHz.
 
-- The H3-era `vencoder.h` is the wrong ABI for the newer T113 cedarx (`VencBaseConfig` has a
-  `memops` pointer and a different `eInputFormat` offset) — recovering the exact T113
-  `VencBaseConfig` (matching Tina/T113 header or full RE of `libvencoder.so:VideoEncInit`)
-  lets the high-level API manage the bitstream buffer internally, sidestepping the demo's
-  NULL.
-- The shipped FF demo crashes for both h264 and jpeg → a demo/ABI bug, not codec-specific.
+The reason is the silicon: **the Allwinner T113-S3 hardware video encoder does JPEG/MJPEG
+only — not H.264** (it *decodes* H.264/H.265, but the encode block is JPEG/MJPEG; the H.264
+encoder lives on the V3/V3s/S3, not the T113-S3). So driving `libvenc_h264` waits forever for
+an interrupt that has no hardware to raise it.
 
-Until then, the deployed path remains **x264 software** (what stock firmwareExe uses) +
-**MJPEG passthrough** for the camera (MJPEG-native sensor — see
+**Proof the VE encoder is functional (HW JPEG completes):** same harness with
+`VENC_CODEC_JPEG` → `encode -> 0`, **63 516-byte valid JPEG** (decodes as `mjpeg 640×480
+yuvj420p`), and the **`cedar_dev` completion IRQ increments (2→3)** — which never happens for
+H.264. Full detail: [`../../lab/venc-vendor/FINDINGS.md`](../../lab/venc-vendor/FINDINGS.md).
+
+**Conclusion:** HW H.264 encode is **physically impossible** on the AD5M (no encoder silicon)
+— stock FF uses **libx264 software** for this reason. The HW encoder this chip *does* have is
+**JPEG/MJPEG**, which works; and the camera is MJPEG-native, so the HW-supported camera path
+is MJPEG (passthrough today — see
 [`2026-06-03-camera-streaming-options.md`](2026-06-03-camera-streaming-options.md)).

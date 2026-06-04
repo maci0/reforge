@@ -54,3 +54,36 @@ changes the `0x80000260` stall.
 
 `vetest.c` here is the working harness (correct ABI) for any future attempt that has a
 known-good T113 VE-encode reference or a kernel/silicon fix to compare against.
+
+## RESOLVED (2026-06-04): T113-S3 has NO H.264 encoder — only JPEG/MJPEG, and that WORKS
+
+The Allwinner **T113-S3 datasheet/specs confirm the hardware video encoder does JPEG/MJPEG
+only** — it *decodes* H.264/H.265/MPEG/VC1, but its independent HW **encoder is JPEG/MJPEG,
+not H.264**. So the `0x80000260` H.264 stall is not a defect or a software bug: **there is no
+H.264 encode block in this silicon.** The `libvenc_h264.so` blob exists (Allwinner ships it
+family-wide), but on the T113-S3 the H.264 encode path has no hardware to drive, so triggering
+it waits forever for an interrupt that can never come.
+
+**Proof the VE encoder itself is functional — HW JPEG encode completes:** the same harness
+(`vetest.c codec=1`) with `VENC_CODEC_JPEG`:
+
+```
+codec=JPEG
+VideoEncInit -> 0
+AllocInputBuffer -> 0
+f0 encode -> 0              # SUCCESS (vs -1 / "wait interrupt overtime" for H.264)
+f0 bytes=63516             # valid JPEG: ff d8 ff e0 .. JFIF, decodes as mjpeg 640x480 yuvj420p
+cedar_dev IRQ: 2 -> 3      # the VE raised its completion interrupt (NEVER happens for H.264)
+```
+
+So: the VE hardware encoder works and fires its completion IRQ for **JPEG/MJPEG**; for H.264
+the IRQ never fires and the engine sits at `0x80000260` — because the H.264 encoder block is
+absent. (`bbs.aw-ol.com` T113-S3 datasheet; linux-sunxi T113-s3; Bootlin V3/V3s/S3 H.264
+encoder — the H.264 encoder is on the V3/V3s/S3, **not** the T113-S3.)
+
+### Bottom line
+- **HW H.264 encode is not achievable on the AD5M (T113-S3) — the silicon has no H.264
+  encoder.** Stock FF uses libx264 software for this reason.
+- The HW encoder this chip *does* have is **JPEG/MJPEG**, and it works (proven above). Since
+  the AD5M camera is MJPEG-native, the HW-supported camera path is MJPEG (passthrough today;
+  HW re-encode possible but unnecessary for an already-MJPEG sensor).
