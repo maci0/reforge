@@ -36,16 +36,19 @@ The current server is **`GET https://update.voxelshare.com/api/updates/check?app
 = no release for that `appId`/`platform`. `appId` and `platform` must be **non-empty
 numbers** (the backend casts them to `java.lang.Long`).
 
-**Blocker (reverse-engineered, not guessed):** `app_id`/`platform`/`entity_id` are runtime
-`int` members of `PackageUpdateInfo` (`%d` in the URL), **initialised to `-1` and
-cloud-provisioned** via device registration — they are *not* constants in the firmware, not
-in its cloud config, and not parsed from any JSON key. The binary only hardcodes the
-printer's **USB VID `0x2B71` / PID `0x0024`** (Adventurer 5M Pro, in
-`UpdateManager::checkUpdate`); the voxelshare backend maps a registered device's `app_id`
-server-side. So the version list **cannot be enumerated offline** — supply the real ids via
-`--app-id`/`--platform` read off a registered AD5M Pro (or captured from its check request).
-Full teardown: `../../docs/reverse-engineering/firmwareexe-ota-update.md`. The legacy `sz3dp`
-endpoints are unreachable (connection refused).
+**AD5M Pro ids (captured from a live unit, 2026-06-04):** `app_id=38`, `platform=29`,
+`hardware_version=2.0.0` (FlashForge product constants baked into firmwareExe), `entity_id` =
+the printer **serial number**. Use `--model ad5m-pro` to apply them:
+
+```sh
+python3 check-ff-update.py --model ad5m-pro --version 2.1.6 --entity-id <your-serial>
+```
+
+Replaying the exact request the printer sends returns `code 1306` ("Latest release version
+not found") for every version — **FlashForge currently publishes no AD5M Pro release on
+voxelshare**, so the printer itself shows no update. (Not an auth gate — a parsed `1306`, not
+a `401`.) The legacy `sz3dp` endpoints are unreachable. Full teardown incl. the captured URL:
+`../../docs/reverse-engineering/firmwareexe-ota-update.md`.
 
 ## Security
 

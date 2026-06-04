@@ -64,6 +64,13 @@ DEFAULT_TIMEOUT = 15
 STOCK_VERSION_GLOB = "/opt/PROGRAM/software"
 STOCK_MACHINE_JSON = "/opt/config/Adventurer5M.json"
 
+# FlashForge product constants (app_id/platform), captured from live boot-time update
+# checks. These are baked into firmwareExe per model; entity_id is the printer serial.
+MODELS = {
+    "ad5m-pro": {"app_id": "38", "platform": "29", "hardware_version": "2.0.0", "name": "Adventurer5Mpro"},
+    # add other models here as their (app_id, platform) get captured
+}
+
 
 # --- identity ----------------------------------------------------------------
 
@@ -120,17 +127,19 @@ def version_gt(a: str, b: str) -> bool:
 def build_check_query(ident: Identity) -> list:
     """The v2 check GET query, as ordered (key, value) pairs.
 
-    Verified against the live server (update.voxelshare.com/api/updates/check): it is a
-    GET, and the validator requires non-empty numeric ``appId`` + ``platform`` plus
-    ``version`` (it rejects POST with 405 and rejects non-numeric appId as not a
-    java.lang.Long). ``entityId``/``hardwareVersion`` are accepted but optional.
+    Snake_case, exactly as captured from a live AD5M Pro's boot-time check (2026-06-04):
+    ``?app_id=38&platform=29&version=2.1.6&entity_id=<serial>&hardware_version=2.0.0``.
+    ``app_id``/``platform`` are FlashForge product constants (38/29 for the AD5M Pro, baked
+    into firmwareExe); ``entity_id`` is the printer **serial number** (a string, not a cloud
+    id — which is why the check works with no cloud account). The server is a GET (POST →
+    405) and replies a {code,message,data} envelope; ``code 1306`` = no release.
     """
     return [
-        ("appId", ident.app_id),
+        ("app_id", ident.app_id),
         ("platform", ident.platform),
         ("version", ident.version),
-        ("entityId", ident.entity_id),
-        ("hardwareVersion", ident.hardware_version),
+        ("entity_id", ident.entity_id),
+        ("hardware_version", ident.hardware_version),
     ]
 
 
@@ -388,6 +397,10 @@ def check_update(
 
 def build_identity_from_args(args) -> Identity:
     ident = Identity()
+    # model presets (app_id/platform/hardware_version) come first; explicit flags override
+    if getattr(args, "model", None):
+        for k, v in MODELS.get(args.model, {}).items():
+            setattr(ident, k, v)
     if args.auto:
         for k, v in detect_identity_from_machine_json().items():
             setattr(ident, k, v)
@@ -404,9 +417,10 @@ def build_identity_from_args(args) -> Identity:
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description="Check the FlashForge server for an AD5M firmware update (read-only).")
     p.add_argument("--channel", default="v2", choices=sorted(ENDPOINTS), help="update channel (default: v2)")
+    p.add_argument("--model", choices=sorted(MODELS), help="preset app_id/platform/hw for a known model (e.g. ad5m-pro)")
     p.add_argument("--version", help="current firmware version (else --auto / required)")
-    p.add_argument("--app-id", dest="app_id", default="", help="FlashForge product id (numeric/Long, required by v2)")
-    p.add_argument("--platform", default="", help="FlashForge platform id (numeric/Long, required by v2)")
+    p.add_argument("--app-id", dest="app_id", default="", help="FlashForge product id (numeric); preset by --model")
+    p.add_argument("--platform", default="", help="FlashForge platform id (numeric); preset by --model")
     p.add_argument("--entity-id", dest="entity_id", default="")
     p.add_argument("--hardware-version", dest="hardware_version", default="")
     p.add_argument("--sn", default="", help="serial number (legacy channel)")
@@ -429,11 +443,9 @@ def main(argv=None) -> int:
         return 1
     if not args.channel.startswith("legacy") and not (ident.app_id and ident.platform):
         print(
-            "v2 check needs --app-id and --platform (numeric).\n"
-            "RE finding: app_id/platform/entity_id are runtime ints (default -1), cloud-provisioned\n"
-            "via device registration — NOT firmware constants. The binary only hardcodes the printer's\n"
-            "USB VID 0x2B71 / PID 0x0024. Read the real ids off a registered AD5M Pro (or capture its\n"
-            "check request) and pass them here. See tools/ota/README.md + the OTA RE doc.",
+            "v2 check needs app_id + platform. Use --model ad5m-pro (presets app_id=38 platform=29\n"
+            "hardware_version=2.0.0), or pass --app-id/--platform for another model. entity_id is the\n"
+            f"printer serial (--entity-id). Known models: {', '.join(sorted(MODELS))}.",
             file=sys.stderr,
         )
         return 1

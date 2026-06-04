@@ -91,11 +91,12 @@ class TestVersionGt(unittest.TestCase):
 
 class TestBuilders(unittest.TestCase):
     def test_check_query_order_and_keys(self):
-        ident = ff.Identity(version="3.1.3", app_id="7", platform="2", entity_id="e", hardware_version="hw")
+        # snake_case, matching the captured live AD5M Pro request
+        ident = ff.Identity(version="3.1.3", app_id="38", platform="29", entity_id="SN1", hardware_version="2.0.0")
         q = ff.build_check_query(ident)
-        self.assertEqual([k for k, _ in q], ["appId", "platform", "version", "entityId", "hardwareVersion"])
-        self.assertEqual(dict(q)["appId"], "7")
-        self.assertEqual(dict(q)["version"], "3.1.3")
+        self.assertEqual([k for k, _ in q], ["app_id", "platform", "version", "entity_id", "hardware_version"])
+        self.assertEqual(dict(q)["app_id"], "38")
+        self.assertEqual(dict(q)["entity_id"], "SN1")
 
     def test_check_param_stock_keys(self):
         # the older stock CheckParam body (kept for reference)
@@ -306,7 +307,7 @@ class TestCheckUpdate(unittest.TestCase):
         r = ff.check_update(ident, channel="v2", transport=t)
         self.assertTrue(r.update_available)
         self.assertTrue(calls["url"].startswith(ff.ENDPOINTS["v2"]["check"] + "?"))
-        self.assertIn("appId=42", calls["url"])
+        self.assertIn("app_id=42", calls["url"])
         self.assertIn("version=3.1.3", calls["url"])
         self.assertIsNone(calls["body"])  # GET, no body
 
@@ -346,6 +347,24 @@ class TestCLI(unittest.TestCase):
 
     def test_main_blocks_dev(self):
         self.assertEqual(ff.main(["--channel", "dev", "--version", "1.0"]), 1)
+
+    def test_model_preset_ad5m_pro(self):
+        # --model fills the captured product constants
+        orig = ff.http_transport
+        captured = {}
+        try:
+            def t(url, body, headers, timeout=15):
+                captured["url"] = url
+                return '{"code":1306,"data":null}'
+            ff.http_transport = t
+            rc = ff.main(["--model", "ad5m-pro", "--version", "2.1.6", "--entity-id", "SN9"])
+            self.assertEqual(rc, 0)
+            self.assertIn("app_id=38", captured["url"])
+            self.assertIn("platform=29", captured["url"])
+            self.assertIn("hardware_version=2.0.0", captured["url"])
+            self.assertIn("entity_id=SN9", captured["url"])
+        finally:
+            ff.http_transport = orig
 
     def test_main_v2_requires_ids(self):
         # v2 needs app-id + platform; without them main bails before any network call
