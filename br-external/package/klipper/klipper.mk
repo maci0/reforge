@@ -15,12 +15,21 @@
 # Why upstream Klipper3d/klipper rather than the FlashForge fork:
 #   github.com/FlashForge/AD5M_Series_Klipper is byte-identical to upstream v0.11.0
 #   except for 6 trivial files — see docs/research/2026-06-04-klipper-v0.11-fork-deltas.md
-#   for the full deltas. We use upstream for cleaner provenance; the only FF delta we
-#   carry is the chelper runtime-build-check disable (matches the FF fork exactly),
-#   shipped as patches/0001-chelper-disable-runtime-build-check.patch. Empirically
-#   the install ordering already makes the .so newer than every source, but the
-#   patch is cheap insurance against any future post-install / OTA flow that
-#   re-touches a chelper source (verified adversarial, 2026-06-04).
+#   for the full deltas. We use upstream for cleaner provenance.
+#
+# Patches carried on top of v0.11.0:
+#   0001-chelper-disable-runtime-build-check.patch — chelper.so is pre-compiled
+#     by the cross toolchain at Buildroot time; matches the FF fork's only
+#     meaningful change; defensive guard against future flows that re-touch
+#     chelper sources after install.
+#   0002-py3-configfile-read_file.patch — Python 3.12 removed configparser's
+#     readfp() method; klippy/configfile.py calls it unconditionally and so
+#     aborts at first config load on our Python 3.14. Backport of upstream
+#     Klipper PR #6388 (which landed on master at klippy/configfile.py:165-169).
+#   0003-py3-gcode-regex-raw-string.patch — klippy/gcode.py:396 uses a non-raw
+#     string for the m112 regex (`'^...\s...'`); Python 3.14 promoted the
+#     unknown-escape from SyntaxWarning to SyntaxError, so the module fails
+#     to import. Matches master's gcode.py:432 (raw-string prefix).
 KLIPPER_VERSION = e02b725602067a2cd098a62be9a4bb10fc74a9bd
 KLIPPER_SITE = https://github.com/Klipper3d/klipper.git
 KLIPPER_SITE_METHOD = git

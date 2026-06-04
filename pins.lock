@@ -18,12 +18,17 @@ mainsail   tag     v2.17.0  d010f4df25557d520ccdbb8e42fc381df2288e6a5c72d3838a5a
 # AD5M / AD5M Pro stock MCU firmware (Klipper v0.11 build, 2023-03-17). Switched
 # from master 2026-06-04. The FlashForge fork at FlashForge/AD5M_Series_Klipper
 # is byte-identical to this commit except for 6 trivial files (documented in
-# docs/research/2026-06-04-klipper-v0.11-fork-deltas.md). One patch carried:
-# br-external/package/klipper/0001-chelper-disable-runtime-build-check.patch
-# (defensive guard — matches the FF fork's only meaningful change). One patch
-# parked but not applied:
-# br-external/package/klipper/disabled-patches/0002-relax-TRSYNC_TIMEOUT-ffad5m.patch
-# (re-enable trigger: E0011 communication-timeout shutdowns on hardware).
+# docs/research/2026-06-04-klipper-v0.11-fork-deltas.md). Patches carried on
+# top of v0.11.0:
+#   0001-chelper-disable-runtime-build-check.patch  (defensive guard, matches
+#     the FF fork's only meaningful change)
+#   0002-py3-configfile-read_file.patch              (Python 3.12+ readfp
+#     removal blocker; backport of upstream Klipper PR #6388)
+#   0003-py3-gcode-regex-raw-string.patch            (Python 3.14 SyntaxError
+#     blocker on gcode.py's m112 regex; matches upstream master)
+# Parked but not applied:
+#   disabled-patches/0002-relax-TRSYNC_TIMEOUT-ffad5m.patch  (re-enable on
+#     E0011 communication-timeout shutdowns).
 klipper    tag     v0.11.0  e02b725602067a2cd098a62be9a4bb10fc74a9bd
 moonraker  commit  master  9008485843740c93e0154ccbdac1fc2b02b03aaa
 # consp/guppyscreen fork (FF5M-specific): flashforge_ad5m branch HEAD 2025-07

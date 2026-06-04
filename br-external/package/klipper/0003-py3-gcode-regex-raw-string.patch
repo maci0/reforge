@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000003 Mon Sep 17 00:00:00 2001
+From: ReForge <reforge@flashforge>
+Date: Fri, 05 Jun 2026 00:00:00 +0000
+Subject: [PATCH] gcode: raw-string the m112 regex (Python 3.12+ DeprecationWarning, 3.14 SyntaxError)
+
+`re.compile('^(?:[nN][0-9]+)?\s*[mM]112(?:\s|$)')` contains a `\s`
+escape inside a NON-raw string.  Behaviour by Python version:
+
+  3.6 - 3.11: silently accepted (a non-existent string escape, in a
+              bytes/str literal, decays to the literal backslash + 's'
+              — which the regex engine then re-interprets as \s, so
+              the regex still does what the author intended).
+  3.12 - 3.13: SyntaxWarning at module import (deprecated behaviour).
+  3.14+: SyntaxError — module fails to import at all.
+
+We ship Python 3.14 (BR 2026.02.2 LTS default).  Klippy v0.11.0 won't
+even load `klippy.gcode` without this fix, and klippy.py imports gcode
+unconditionally, so the whole stack fails before reaching the config
+parser.
+
+Matches upstream master's fix exactly (klippy/gcode.py:432 on master
+is `r'^(?:[nN][0-9]+)?\s*[mM]112(?:\s|$)'` — same raw-string prefix).
+The other two re.compile() literals in gcode.py
+(args_r line 174, extended_r line 241) are already escape-free /
+raw-stringed.
+
+Signed-off-by: ReForge <reforge@flashforge>
+---
+ klippy/gcode.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/klippy/gcode.py b/klippy/gcode.py
+--- a/klippy/gcode.py
++++ b/klippy/gcode.py
+@@ -393,7 +393,7 @@ class GCodeIO:
+         self._dump_debug()
+         if self.is_fileinput:
+             self.printer.request_exit('error_exit')
+-    m112_r = re.compile('^(?:[nN][0-9]+)?\s*[mM]112(?:\s|$)')
++    m112_r = re.compile(r'^(?:[nN][0-9]+)?\s*[mM]112(?:\s|$)')
+     def _process_data(self, eventtime):
+         # Read input, separate by newline, and add to pending_commands
+         try:
+-- 
+2.47.0
