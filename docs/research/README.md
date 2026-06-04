@@ -23,6 +23,7 @@ are folded into the reference docs (`../optimizations.md`, `../boot.md`, `../arc
 - [stock-ui-spike.md](stock-ui-spike.md) — P3 Task 8 stock-UI feasibility spike.
 - [2026-06-02-qemu-ui-rendering.md](2026-06-02-qemu-ui-rendering.md) — rendering the printer UIs under qemu.
 - [2026-06-03-camera-streaming-options.md](2026-06-03-camera-streaming-options.md) — camera streaming beyond MJPEG.
+- [2026-06-04-cedar-ve-encode-and-camera-fw.md](2026-06-04-cedar-ve-encode-and-camera-fw.md) — Cedar VE H.264 HW-encode re-attempt (vendor pipeline runs, reaches the codec) + camera native format/firmware.
 
 **Consolidated tuning results live in [`../optimizations.md`](../optimizations.md)** — these
 files are the backing experiments, not the canonical numbers.
