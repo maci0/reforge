@@ -69,3 +69,8 @@ types `CheckParam/ResponseResult/PackageUpdateInfo/DownloadParam/PackageType`. N
 4. `system("tar")` + `system("run.sh")` is root RCE by design — signing must cover `run.sh`.
 5. Use SHA-256+ (MD5 is broken) and only as a post-signature corruption check.
 6. Consider dual-bank A/B with rollback (current flow can brick on a bad swap).
+
+## Companion tool
+`tools/ota/check-ff-update.py` — read-only checker built from this teardown: queries the
+v2/legacy endpoints above, compares the advertised version against the running one, reports
+availability (never downloads/flashes). See `tools/ota/README.md`.
