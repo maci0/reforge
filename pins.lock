@@ -29,9 +29,9 @@ mainsail   tag     v2.17.0  d010f4df25557d520ccdbb8e42fc381df2288e6a5c72d3838a5a
 #   0004-toolhead-backport-lookahead-flush-time.patch (backport of upstream
 #     commit 16fc46fe5: LOOKAHEAD_FLUSH_TIME 0.250 -> 0.150; same value
 #     forge-x ships as fix_enable_e17; reduces 'print stall' corner cases)
-# Parked but not applied:
-#   disabled-patches/0002-relax-TRSYNC_TIMEOUT-ffad5m.patch  (re-enable on
-#     E0011 communication-timeout shutdowns).
+#   0005-relax-TRSYNC_TIMEOUT-ffad5m.patch (doubles MCU sync ack window
+#     from 25 ms to 50 ms; preempts E0011 communication-timeout shutdowns;
+#     same value forge-x ships as fix_enable_e11; no upstream support).
 klipper    tag     v0.11.0  e02b725602067a2cd098a62be9a4bb10fc74a9bd
 moonraker  commit  master  9008485843740c93e0154ccbdac1fc2b02b03aaa
 # consp/guppyscreen fork (FF5M-specific): flashforge_ad5m branch HEAD 2025-07

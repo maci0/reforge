@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000005 Mon Sep 17 00:00:00 2001
+From: ReForge <reforge@flashforge>
+Date: Fri, 05 Jun 2026 00:00:00 +0000
+Subject: [PATCH] mcu: relax TRSYNC_TIMEOUT for AD5M (preempts E0011)
+
+The AD5M/Pro carries two Nationstech N32G455 MCUs (mainboard +
+toolhead) speaking Klipper-11 protocol over UART at 230400.  Multiple
+forge-x users have reported sporadic E0011 ("MCU communication
+timeout") shutdowns mid-print on this hardware, traced to the host's
+trsync acknowledgement deadline expiring before the toolhead MCU can
+reply across the shared bus.
+
+Doubling TRSYNC_TIMEOUT from 25 ms to 50 ms gives the MCU enough
+headroom without measurably affecting responsiveness -- trsync
+deadlines guard stepper-sync correctness, not user-facing latency.
+forge-x has shipped this same value in
+.shell/commands/ztune_klipper.sh's fix_enable_e11 for years across
+the AD5M user base without regressions.
+
+We carry it as a preemptive default (2026-06-05) instead of waiting
+for an E0011 to be observed on our specific test unit -- the
+hardware class is identical and the field evidence is strong enough.
+If we ever do hit a hard-to-diagnose problem that traces back to a
+longer trsync window, this single patch reverts it.
+
+Upstream Klipper master still ships 0.025; no PR thread to back-link.
+
+Signed-off-by: ReForge <reforge@flashforge>
+---
+ klippy/mcu.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/klippy/mcu.py b/klippy/mcu.py
+--- a/klippy/mcu.py
++++ b/klippy/mcu.py
+@@ -125,7 +125,7 @@
+             s.note_homing_end()
+         return params['trigger_reason']
+ 
+-TRSYNC_TIMEOUT = 0.025
++TRSYNC_TIMEOUT = 0.05
+ TRSYNC_SINGLE_MCU_TIMEOUT = 0.250
+ 
+ class MCU_endstop:
+-- 
+2.47.0

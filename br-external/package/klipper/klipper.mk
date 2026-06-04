@@ -36,6 +36,11 @@
 #     forge-x's `fix_enable_e17` workaround addresses on this exact hardware).
 #     Upstream took this change for general responsiveness; forge-x users have
 #     been running the same value for months. Low-risk one-line change.
+#   0005-relax-TRSYNC_TIMEOUT-ffad5m.patch — doubles MCU sync ack window
+#     from 25 ms (TRSYNC_TIMEOUT = 0.025) to 50 ms. Preemptive default to
+#     stop sporadic E0011 communication-timeout shutdowns observed across
+#     the AD5M user base on forge-x. Same value forge-x ships as
+#     fix_enable_e11. No upstream support.
 KLIPPER_VERSION = e02b725602067a2cd098a62be9a4bb10fc74a9bd
 KLIPPER_SITE = https://github.com/Klipper3d/klipper.git
 KLIPPER_SITE_METHOD = git
