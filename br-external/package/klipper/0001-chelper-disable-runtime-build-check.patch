@@ -1,30 +1,55 @@
 From 0000000000000000000000000000000000000001 Mon Sep 17 00:00:00 2001
 From: ReForge <reforge@flashforge>
-Date: Sat, 31 May 2026 00:00:00 +0000
+Date: Thu, 04 Jun 2026 00:00:00 +0000
 Subject: [PATCH] chelper: disable runtime build check
 
 Embedded target has no gcc; chelper is pre-compiled by the cross
-toolchain at Buildroot build time. Skip the timestamp-based rebuild
-check so klippy does not attempt to invoke gcc at runtime.
+toolchain at Buildroot build time (see KLIPPER_BUILD_CMDS in
+klipper.mk).  Comment out the runtime mtime-based rebuild attempt so
+klippy never tries to invoke gcc on the target.
+
+Empirically the happy path (KLIPPER_INSTALL_TARGET_CMDS: cp -r the
+source tree, then INSTALL c_helper.so last) already leaves the .so
+strictly newer than every source file, so check_build_code returns
+False and no gcc invocation occurs.  This patch is a defensive guard
+against future post-install hooks, OTA scripts, or `find -exec touch`
+flows that could re-touch a chelper source AFTER the .so install,
+which WOULD trigger a rebuild attempt (verified by adversarial test,
+2026-06-04).
+
+Identical change is present in github.com/FlashForge/AD5M_Series_Klipper
+(see docs/research/2026-06-04-klipper-v0.11-fork-deltas.md §2.1).
 
 Signed-off-by: ReForge <reforge@flashforge>
 ---
- klippy/chelper/__init__.py | 3 +++
- 1 file changed, 3 insertions(+)
+ klippy/chelper/__init__.py | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
 
 diff --git a/klippy/chelper/__init__.py b/klippy/chelper/__init__.py
-index 60ba91e..abcd123 100644
 --- a/klippy/chelper/__init__.py
 +++ b/klippy/chelper/__init__.py
-@@ -285,6 +285,9 @@ def check_build_c_library():
-     srcfiles = get_abs_files(srcdir, SOURCE_FILES)
-     ofiles = get_abs_files(srcdir, OTHER_FILES)
-     destlib = get_abs_files(srcdir, [DEST_LIB])[0]
-+    # Pre-compiled by cross toolchain; skip runtime rebuild (no gcc on target).
-+    return destlib
-+
-     if not check_build_code(srcfiles+ofiles+[__file__], destlib):
-         # Code already built
-         return destlib
---
+@@ -266,12 +266,14 @@ def get_ffi():
+         srcfiles = get_abs_files(srcdir, SOURCE_FILES)
+         ofiles = get_abs_files(srcdir, OTHER_FILES)
+         destlib = get_abs_files(srcdir, [DEST_LIB])[0]
+-        if check_build_code(srcfiles+ofiles+[__file__], destlib):
+-            if check_gcc_option(SSE_FLAGS):
+-                cmd = "%s %s %s" % (GCC_CMD, SSE_FLAGS, COMPILE_ARGS)
+-            else:
+-                cmd = "%s %s" % (GCC_CMD, COMPILE_ARGS)
+-            logging.info("Building C code module %s", DEST_LIB)
+-            do_build_code(cmd % (destlib, ' '.join(srcfiles)))
++        # ReForge: pre-compiled by cross toolchain at Buildroot time; skip the
++        # runtime mtime-based rebuild (no gcc on target).  See klipper.mk.
++        # if check_build_code(srcfiles+ofiles+[__file__], destlib):
++        #     if check_gcc_option(SSE_FLAGS):
++        #         cmd = "%s %s %s" % (GCC_CMD, SSE_FLAGS, COMPILE_ARGS)
++        #     else:
++        #         cmd = "%s %s" % (GCC_CMD, COMPILE_ARGS)
++        #     logging.info("Building C code module %s", DEST_LIB)
++        #     do_build_code(cmd % (destlib, ' '.join(srcfiles)))
+         FFI_main = cffi.FFI()
+         for d in defs_all:
+             FFI_main.cdef(d)
+-- 
 2.47.0

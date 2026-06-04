@@ -83,6 +83,41 @@ S80dnsmasq`. Mod (symlinks into `.shell/`): **`S00init` → `S55boot` → `S60dr
 `ztune_klipper` (tuning), `zsend`/`zprint`/`zclear`. `ff_run.sh` = an env-file loader
 (`%(var)s`/`%var%` substitution) used to launch services with their env.
 
+## Install footprint — which stock files it touches
+
+forge-x is mostly an **overlay**: almost everything lives in its own `/opt/config/mod`,
+`/opt/*`, and the `/data/.mod` chroot, so it touches **few stock-rootfs files directly** — and
+the installer/uninstaller (`.shell/uninstall.sh`, `cfg_backup.py`) reverts them cleanly. No
+bootloader / kernel / partition writes (low brick risk). The stock-rootfs intrusions:
+
+**Replaced / modified (stock files):**
+- `/etc/init.d/S00init` — stock script replaced by a **symlink → `.shell/S00init`** (the boot hook).
+- `/etc/init.d/S60dropbear` — replaced with the mod's version.
+- `/etc/hosts` — rewritten with the cloud/update **blackhole** (`*.sz3dp / voxelshare /
+  flashforge / netease / polar → 127.0.0.1`); uninstall restores `localhost`+hostname.
+- `/etc/motd` — mod banner.
+- `/opt/config/printer.cfg` + `printer.base.cfg` — patched (backed up; restored via `cfg_backup.py`).
+- `/opt/klipper/klippy/extras/*` — klipper patched: adds extras (e.g. `gcode_shell_command.py`)
+  and edits stock klippy files (saved `.bak`, restored on uninstall).
+- `/root/.profile`, `/root/.zshrc` — zsh auto-exec on interactive SSH (`exec zsh -l` when `SSH_TTY`).
+
+**Init scripts added (symlinks into `/etc/init.d/`):**
+`S00fix, S55boot, S98camera, S98zssh, S99root, S99moon, K99root, K99moon, S50sshd, S55date`
+(+ the replaced `S00init` / `S60dropbear`).
+
+**Binaries / dirs added:**
+- SSH: `/bin/{dropbear,dropbearmulti,dropbearkey,scp}`, `/etc/dropbear`.
+- Entware-style userland under `/opt/` (zsh + oh-my-zsh, busybox tools, python libs):
+  `/opt/{bin,etc,home,lib,libexec,root,sbin,share,tmp,usr,var}`.
+- Audio: `/usr/bin/audio`, `audio_midi.sh`, `python3.7/site-packages/audio.py` + `mido`.
+
+**Mod-owned data (added, not stock):** `/opt/config/mod/`, `/opt/config/mod_data/`,
+**`/data/.mod/`** (the buildroot chroot `.forge-x` where Moonraker/Mainsail/guppy run),
+`/root/printer_data`, `/root/.oh-my-zsh`.
+
+Net: the only real stock-rootfs hooks are **S00init**, **`/etc/hosts`**, **dropbear/SSH**,
+**klipper config + extras**, and **motd/profile** — everything else is overlay.
+
 ## ReForge relevance
 - The failsafe LKG (BOOT_FLAG_FAILURE → SKIP_MOD_HARD → stock) is the model for ReForge's
   trial/rollback OTA safety.
