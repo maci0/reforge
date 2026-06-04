@@ -6,23 +6,34 @@
 # root, directly from /mnt, on every boot:
 #     /mnt/flashforge_init.sh <MACHINE> <PID>
 #     if [ $? -eq 0 ]; then umount /mnt; sleep 100000; fi
-# So we mirror reforge-boot — but root the chroot on the USB's reforge-live.ext4
+# So we mirror reforge-boot — but root the chroot on the USB's F2FS partition
 # and give it a **tmpfs /data** instead of binding the eMMC (mmcblk0p7). We then
 # block forever, so the stock flow never reaches `umount /mnt` and never installs
 # or launches the stock UI. The eMMC is never touched: pull the USB + reboot →
 # pristine stock.
 #
-# Layout on the FAT USB:  /flashforge_init.sh  (this)  +  /reforge-live.ext4
+# USB layout (MBR, 2 partitions):
+#   p1 vfat  — /flashforge_init.sh (this) + net-up.sh + crc32_generic.ko + f2fs.ko
+#              (stock auto_run mounts this at /mnt and runs the launcher from it)
+#   p2 f2fs  — the ReForge rootfs as a real block device (no loopback). Labelled
+#              "reforge-live" so we can find it without parsing partition tables.
+# Replaces the earlier model (single FAT partition + loop-mounted reforge-live.f2fs
+# image file): no `loop.ko`, no DISCARD-on-loop log spam, no 4 GiB FAT file cap.
 # =============================================================================
 set -u
 
-# The stock auto_run.sh already mounted the USB and runs us *from* it
-# (`/mnt/flashforge_init.sh`), so we never need to find/mount a device ourselves —
-# the rootfs image sits right next to this script. Derive the USB dir from $0 so
-# it's correct wherever stock mounts the stick (falls back to /mnt).
+# The stock auto_run.sh already mounted the USB's FAT partition and runs us *from*
+# it (`/mnt/flashforge_init.sh`), so we never need to find/mount the FAT side
+# ourselves. Derive the USB dir from $0 so it's correct wherever stock mounts the
+# stick (falls back to /mnt).
 SELF_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd || true)"
 USB_MNT="${USB_MNT:-${SELF_DIR:-/mnt}}"
-LIVE_IMG="${LIVE_IMG:-${USB_MNT}/reforge-live.f2fs}"
+# The F2FS rootfs lives on the sibling partition (p2). The launcher finds it by
+# label "reforge-live" via blkid, falling back to derive-from-p1 (e.g. /dev/sda1
+# -> /dev/sda2). Test rigs can set F2FS_DEV (or legacy LIVE_IMG) to a block device
+# directly. LIVE_IMG kept for backwards-compat with the qemu gates.
+F2FS_DEV="${F2FS_DEV:-${LIVE_IMG:-}}"
+F2FS_LABEL="${F2FS_LABEL:-reforge-live}"
 
 # Logging goes to the console AND a persistent log file ON THE USB, so a pulled stick is
 # debuggable with no network. Writing to the USB is fine — it is the live medium, NOT the
@@ -80,20 +91,20 @@ if [ "${NET_ONLY:-0}" = 1 ]; then
     done
 fi
 
-log "starting (img=${LIVE_IMG}, screen=${SCREEN_MODE})"
-# -e, not -f: LIVE_IMG is a regular file on the FAT USB, but may be a raw block
-# device (e.g. the qemu zero-write gate presents the rootfs as /dev/vdb).
-[ -e "${LIVE_IMG}" ] || { log "ERROR: ${LIVE_IMG} not found on USB"; exit 1; }
+log "starting (screen=${SCREEN_MODE})"
 
 mkdir -p "${ROOT}" "${DATA}"
 
 # The stock 5.4.61 kernel (verified on hardware) ships NONE of what this needs:
-# no loop driver (to loop-mount the rootfs image off the FAT stick), no plain
-# 'crc32' crypto (F2FS needs it at mount; the kernel only has crc32c), and no
-# F2FS. Load the three matching-vermagic modules shipped next to us on the USB,
-# in dependency order. All are standalone (depends= empty), built against the
-# stock BSP — see modules/f2fs-bsp/. Each insmod is a no-op if already present
-# (e.g. a qemu gate kernel with these built in).
+# no plain 'crc32' crypto (F2FS needs it at mount; the kernel only has crc32c),
+# and no F2FS. Load the two matching-vermagic modules shipped next to us on the
+# USB FAT partition, in dependency order. Both are standalone (depends= empty),
+# built against the stock BSP — see modules/f2fs-bsp/. Each insmod is a no-op if
+# already present (e.g. a qemu gate kernel with these built in).
+#
+# Note: this used to also insmod loop.ko (to loop-mount a reforge-live.f2fs file
+# off the FAT stick). The new 2-partition layout puts the rootfs on a real F2FS
+# partition (p2), so the loop driver is no longer needed.
 MOD_DIR="${MOD_DIR:-${USB_MNT}}"
 insmod_ko() {  # <name-in-/proc> <file>
     # WORD match, not substring: the device exposes 'crc32c' but NOT plain 'crc32',
@@ -105,22 +116,54 @@ insmod_ko() {  # <name-in-/proc> <file>
     log "insmod $2"
     insmod "$2" 2>/dev/null || /sbin/insmod "$2" 2>/dev/null || log "WARN: insmod $2 failed"
 }
-insmod_ko 'loop'  "${MOD_DIR}/loop.ko"
 insmod_ko 'crc32' "${MOD_DIR}/crc32_generic.ko"
 insmod_ko 'f2fs'  "${MOD_DIR}/f2fs.ko"
 
-# Mount the ReForge rootfs image (the chroot root). A file on the FAT USB needs
-# a loop device; a raw block device (e.g. the qemu zero-write gate) mounts directly.
-# nodiscard: the loop device over a FAT-hosted image can't service DISCARD/TRIM, so
-# F2FS's discards fail (loop0 I/O error, ret -5) and spam the log — disable them.
-if [ -b "${LIVE_IMG}" ]; then
-    mount -t f2fs -o rw,nodiscard "${LIVE_IMG}" "${ROOT}" 2>/dev/null \
-        || mount -o rw "${LIVE_IMG}" "${ROOT}" 2>/dev/null \
-        || { log "ERROR: cannot mount ${LIVE_IMG}"; exit 1; }
-elif ! mount -t f2fs -o loop,rw,nodiscard "${LIVE_IMG}" "${ROOT}" 2>/dev/null; then
-    mount -o loop,rw "${LIVE_IMG}" "${ROOT}" 2>/dev/null \
-        || { log "ERROR: cannot loop-mount ${LIVE_IMG}"; exit 1; }
-fi
+# Discover the F2FS rootfs partition (p2 on the USB stick). Order:
+#   1. F2FS_DEV / LIVE_IMG env override (test rigs pass a raw block device here).
+#   2. blkid -L reforge-live  (label baked in by tools/release/build-live-usb.sh).
+#   3. Derive from the FAT partition we were launched off of: /proc/mounts says
+#      what's backing USB_MNT (e.g. /dev/sda1); the sibling partition is /dev/sda2.
+#   4. Brute-force scan /dev/sd[a-z][2-4] for an F2FS magic (last-ditch fallback).
+find_f2fs_dev() {
+    [ -n "${F2FS_DEV}" ] && [ -e "${F2FS_DEV}" ] && { echo "${F2FS_DEV}"; return 0; }
+    if command -v blkid >/dev/null 2>&1; then
+        _d="$(blkid -L "${F2FS_LABEL}" 2>/dev/null || true)"
+        [ -n "${_d}" ] && [ -e "${_d}" ] && { echo "${_d}"; return 0; }
+        _d="$(blkid -t TYPE=f2fs -o device 2>/dev/null | head -n1 || true)"
+        [ -n "${_d}" ] && [ -e "${_d}" ] && { echo "${_d}"; return 0; }
+    fi
+    _usb_dev="$(awk -v m="${USB_MNT}" '$2==m {print $1; exit}' /proc/mounts 2>/dev/null || true)"
+    case "${_usb_dev}" in
+        *[0-9])
+            _sibling="${_usb_dev%[0-9]}2"
+            [ -e "${_sibling}" ] && { echo "${_sibling}"; return 0; }
+            ;;
+    esac
+    # F2FS superblock magic 0xF2F52010 sits at offset 0x400 (1024) on the partition.
+    for _d in /dev/sd[a-z]2 /dev/sd[a-z]3 /dev/sd[a-z]4; do
+        [ -b "${_d}" ] || continue
+        # busybox dd + od; check for 10 20 f5 f2 (little-endian) at offset 1024.
+        _magic="$(dd if="${_d}" bs=1 skip=1024 count=4 2>/dev/null | od -An -tx1 | tr -d ' \n' || true)"
+        [ "${_magic}" = "1020f5f2" ] && { echo "${_d}"; return 0; }
+    done
+    return 1
+}
+F2FS_DEV="$(find_f2fs_dev || true)"
+[ -n "${F2FS_DEV}" ] && [ -e "${F2FS_DEV}" ] || {
+    log "ERROR: could not find ReForge F2FS rootfs (label=${F2FS_LABEL}); is the USB partitioned correctly?"
+    exit 1
+}
+log "rootfs device: ${F2FS_DEV}"
+
+# Mount the F2FS rootfs (the chroot root). Real block device — no `loop` mount
+# option, DISCARD/TRIM works (USB sticks ignore it but no -EIO spam), and the
+# rootfs is no longer capped by the FAT 4 GiB file size limit. The fallback to
+# auto-detected FS type keeps the qemu gates working (they present an ext4 image
+# on /dev/vdb instead of F2FS — the launcher-level gate is filesystem-agnostic).
+mount -t f2fs -o rw "${F2FS_DEV}" "${ROOT}" 2>/dev/null \
+    || mount -o rw "${F2FS_DEV}" "${ROOT}" 2>/dev/null \
+    || { log "ERROR: cannot mount ${F2FS_DEV}"; exit 1; }
 [ -x "${ROOT}/mod/start.sh" ] || { log "ERROR: ${ROOT}/mod/start.sh missing — bad image"; exit 1; }
 
 # Chroot filesystems (mirrors reforge-boot) — but /data is tmpfs, NOT the eMMC.

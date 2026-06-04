@@ -523,8 +523,9 @@ order). Concretely:
 - Install: copied into ReForge's `/mod/modules/` directly — no
   `modules_install`, no `depmod`
 - Load: explicit `insmod` from `S35zram` (for `zram.ko` + `zsmalloc.ko`) and
-  from `packaging/live/flashforge_init.sh` (for `loop.ko` +
-  `crc32_generic.ko` + `f2fs.ko`)
+  from `packaging/live/flashforge_init.sh` (for `crc32_generic.ko` +
+  `f2fs.ko`; the earlier loop-mounted layout also loaded `loop.ko`, dropped
+  with the 2-partition USB layout)
 - Vermagic: built against the **stock 5.4.61 BSP** so the resulting `.ko`
   carries `5.4.61 SMP preempt mod_unload ARMv7 p2v8` and loads on the stock
   device unchanged

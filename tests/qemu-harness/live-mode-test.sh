@@ -74,8 +74,8 @@ mount -t sysfs sysfs /sys 2>/dev/null
 mount -t devtmpfs dev /dev 2>/dev/null
 mount -t tmpfs tmpfs /tmp 2>/dev/null
 mkdir -p /mnt
-echo "[live-gate] starting live launcher (LIVE_IMG=/dev/vdb, eMMC=/dev/vdc untouched)"
-USB_MNT=/mnt LIVE_IMG=/dev/vdb SCREEN_MODE=HEADLESS /flashforge_init.sh AD5MPro 0024
+echo "[live-gate] starting live launcher (F2FS_DEV=/dev/vdb, eMMC=/dev/vdc untouched)"
+USB_MNT=/mnt F2FS_DEV=/dev/vdb SCREEN_MODE=HEADLESS /flashforge_init.sh AD5MPro 0024
 EOF
 chmod 0755 "${HOSTSTAGE}/sbin/reforge-live-init"
 rm -f "${HOST_IMG}"; mke2fs -q -F -t ext4 -L live-host -d "${HOSTSTAGE}" "${HOST_IMG}" 1843M

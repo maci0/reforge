@@ -7,7 +7,7 @@ hardware with **no brick risk**.
 
 | | Live mode | Install (`.tgz`) |
 |---|---|---|
-| Where it runs | USB stick (loop-mounted image) | eMMC (`/data/.reforge`) |
+| Where it runs | USB stick (real F2FS partition) | eMMC (`/data/.reforge`) |
 | eMMC writes | **none** | overlay + LKG bookkeeping |
 | Persistence | none (USB only; `/data` is tmpfs) | survives reboot |
 | Revert | pull USB + reboot | OTA rollback / recovery |
@@ -28,13 +28,15 @@ fi
 
 ReForge's live launcher (`packaging/live/flashforge_init.sh`) uses that hook. It:
 
-1. **insmods three kernel modules** shipped next to it on the stick — the stock
-   5.4.61 kernel has **none** of them (verified on hardware): `loop.ko` (to
-   loop-mount an image file), `crc32_generic.ko` (the `crc32` algo F2FS checks at
-   mount — the kernel only has `crc32c`), and `f2fs.ko`. Each insmod is a no-op if
-   the symbol is already present.
-2. **loop-mounts `reforge-live.f2fs`** (the ReForge rootfs as an F2FS image — FAT
-   can't host a Linux rootfs's symlinks/perms) as the chroot root.
+1. **insmods two kernel modules** shipped on the FAT partition — the stock 5.4.61
+   kernel has neither (verified on hardware): `crc32_generic.ko` (the `crc32` algo
+   F2FS checks at mount — the kernel only has `crc32c`), and `f2fs.ko`. Each
+   insmod is a no-op if the symbol is already present.
+2. **finds the sibling F2FS partition** on the same USB stick (by label
+   `reforge-live` via `blkid`, falling back to deriving p2 from p1's device path,
+   falling back to an F2FS-magic scan of `/dev/sd?[2-4]`) and **mounts it directly
+   as a real block device** as the chroot root. No loop driver, no loop file: the
+   rootfs is just partition 2.
 3. binds `proc`/`sys`/`dev`/`run` + a **tmpfs `/data`** into the chroot — the
    install path binds the eMMC `/data` (mmcblk0p7); live mode uses tmpfs so **no
    eMMC partition is touched**.
@@ -44,45 +46,72 @@ ReForge's live launcher (`packaging/live/flashforge_init.sh`) uses that hook. It
 `REFORGE_LIVE=1` tells the boot/LKG scripts to skip the persistent trial/LKG
 bookkeeping (that's for installs; live mode reboots clean by removing the USB).
 
-## The three modules
+## The two modules
 
 Built by `modules/f2fs-bsp/build.sh` against the Tina BSP — exact vermagic
 `5.4.61 SMP preempt mod_unload ARMv7 p2v8`, `depends=` empty (standalone), same
 recipe as `modules/zram-bsp`. Committed prebuilt under `modules/f2fs-bsp/dist/`.
 
-The `loop.ko` build also patches `loop.c` with
-`MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver)` — it
-calls `vfs_getattr`, which this Android-GKI kernel exports into that namespace; the
-BSP source omits the import because loop was never built as a module here.
+**Verified end-to-end on real hardware:**
 
-**Verified end-to-end on real hardware:** all three load and an F2FS image
-loop-mounts read-write.
+- *2026-06-02 (loop-on-FAT layout, three modules):* `loop.ko` + `crc32_generic.ko`
+  + `f2fs.ko` all loaded clean; the loop-mounted F2FS image came up read-write.
+- *2026-06-04 (2-partition layout, two modules):* `crc32_generic.ko` + `f2fs.ko`
+  load clean; `loop.ko` is no longer built or shipped (its `MODULE_IMPORT_NS(VFS_internal_…)`
+  patch on `loop.c` is gone with it). On `kunos` (AD5M Pro), stock auto_run picked
+  up the FAT p1, the launcher's `find_f2fs_dev()` resolved `/dev/sda2`, and the
+  F2FS partition mounted with `discard` enabled (the old loop-on-FAT path had to
+  pass `nodiscard` to silence `loop0 I/O error, ret -5` spam). Captured evidence:
+  `[reforge-live] rootfs device: /dev/sda2`, `F2FS-fs (sda2): Mounted with
+  checkpoint version = 6a79795b`, no `loop` in `lsmod`, no `loop.ko` in the
+  insmod log.
 
 ## Build & use
 
 ```sh
 make rootfs                       # the ReForge image (build/output/images/rootfs.tar)
-make live-usb                     # -> packaging/dist/reforge-live-<ver>.tar.gz
-# extract onto the root of any FAT32 USB stick (no dd, no dedicated stick):
-tar xzf packaging/dist/reforge-live-<ver>.tar.gz -C /path/to/usb/
+make live-usb                     # -> packaging/dist/reforge-live-<ver>.img.gz
 ```
 
-Then: insert the stick, power on the printer — ReForge boots from USB. To return to
-stock, **pull the stick and reboot**. The build is fully rootless (`mkfs.f2fs` +
-`sload.f2fs` bake the F2FS image, `tar`+`gzip` pack it); extracting onto a FAT32 stick
-needs no `dd` and no dedicated stick — the stock `auto_run` picks up `flashforge_init.sh`
-off any FAT USB.
+Flash the disk image onto a USB stick (≥ ~600 MiB) and insert it:
 
-USB layout (FAT32):
+```sh
+# Linux:
+zcat packaging/dist/reforge-live-<ver>.img.gz | sudo dd of=/dev/sdX bs=4M status=progress && sync
+# Cross-platform: open the .img.gz in balenaEtcher / Rufus / GNOME Disks "Restore Disk Image".
+```
+
+Then: power on the printer — ReForge boots from USB. To return to stock, **pull the
+stick and reboot**. The build itself is fully rootless (`sfdisk` writes the MBR to a
+plain file, `mtools` (`mformat`/`mcopy`) builds the FAT partition, `mkfs.f2fs` +
+`sload.f2fs` build the F2FS partition, `dd` splices them into the disk image).
+
+USB layout (MBR, 2 partitions):
 
 ```
-/flashforge_init.sh    the live launcher
-/net-up.sh             best-effort WiFi bring-up (sourced by the launcher)
-/loop.ko               loop block driver
-/crc32_generic.ko      the 'crc32' algo F2FS needs at mount
-/f2fs.ko               F2FS filesystem
-/reforge-live.f2fs     the ReForge rootfs (loop-mounted chroot root)
+p1 vfat  (label REFORGE_LIV, ~64 MiB)   stock auto_run mounts this at /mnt
+  /flashforge_init.sh    the live launcher (the stock auto_run hook)
+  /net-up.sh             best-effort WiFi bring-up (sourced by the launcher)
+  /crc32_generic.ko      the 'crc32' algo F2FS needs at mount
+  /f2fs.ko               F2FS filesystem
+p2 f2fs  (label reforge-live, rootfs + slack)   the ReForge rootfs (chroot root)
 ```
+
+### Why two partitions instead of a loop-mounted image
+
+The original layout was a single FAT32 partition that held a `reforge-live.f2fs`
+image file the launcher loop-mounted. That worked on hardware (after the `crc32`
+module-skip bug fix) but had three real costs:
+
+1. needed `loop.ko` (with a custom `MODULE_IMPORT_NS(VFS_internal_…)` patch on
+   `loop.c`, because loop was never a module in this BSP)
+2. F2FS DISCARD/TRIM over a loop-on-FAT failed with `loop0 I/O error, ret -5` and
+   spammed the log — the launcher had to pass `nodiscard` to silence it
+3. the FAT 4 GiB file size cap held the rootfs ceiling
+
+The 2-partition layout removes all three: the rootfs is a real F2FS block device.
+Cost: the stick has to be flashed with a partitioned `.img` (`dd` or Etcher) rather
+than an "extract a tarball onto an existing FAT stick" tarball.
 
 ## The brick-safe invariant
 
