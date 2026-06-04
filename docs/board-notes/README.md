@@ -75,6 +75,7 @@ reports** (firmwareExe analysis + the stock Klipper pin map) live in
 - [device-overview.md](device-overview.md) — hardware/stack inventory + consolidated security findings.
 - [forge-x-boot-architecture.md](forge-x-boot-architecture.md) — the forge-x mod boot/chroot/service stack.
 - [forge-x-camera.md](forge-x-camera.md) — the mod camera (mjpg_streamer MJPEG passthrough) + how to configure it.
+- [usb-serial-kmod.md](usb-serial-kmod.md) — building out-of-tree USB-serial kmods (ftdi_sio/ch341/pl2303) against the 5.4.61 BSP + sources.
 - `stock-kernel-config-5.4.61.txt.gz`, `running-unit-probe.txt` — captured kernel config + unit probe.
 
 ### Related
