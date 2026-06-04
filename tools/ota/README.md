@@ -36,12 +36,15 @@ The current server is **`GET https://update.voxelshare.com/api/updates/check?app
 = no release for that `appId`/`platform`. `appId` and `platform` must be **non-empty
 numbers** (the backend casts them to `java.lang.Long`).
 
-**Blocker:** `appId`/`platform` are FlashForge product ids that are **not in the 5.1.4
-firmware** — that build still used the older `SN/VID/PID/Name/OEMName/Version/...` POST
-scheme the server now rejects. A bounded probe (appId 1–400 × several platforms) only ever
-returned `1306`, so the AD5M Pro id wasn't found by brute force. To use the v2 channel you
-must supply the real ids via `--app-id`/`--platform`; get them by capturing a live update
-check from a running printer (tcpdump / mitmproxy on the device). The legacy `sz3dp`
+**Blocker (reverse-engineered, not guessed):** `app_id`/`platform`/`entity_id` are runtime
+`int` members of `PackageUpdateInfo` (`%d` in the URL), **initialised to `-1` and
+cloud-provisioned** via device registration — they are *not* constants in the firmware, not
+in its cloud config, and not parsed from any JSON key. The binary only hardcodes the
+printer's **USB VID `0x2B71` / PID `0x0024`** (Adventurer 5M Pro, in
+`UpdateManager::checkUpdate`); the voxelshare backend maps a registered device's `app_id`
+server-side. So the version list **cannot be enumerated offline** — supply the real ids via
+`--app-id`/`--platform` read off a registered AD5M Pro (or captured from its check request).
+Full teardown: `../../docs/reverse-engineering/firmwareexe-ota-update.md`. The legacy `sz3dp`
 endpoints are unreachable (connection refused).
 
 ## Security

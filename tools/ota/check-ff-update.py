@@ -429,9 +429,11 @@ def main(argv=None) -> int:
         return 1
     if not args.channel.startswith("legacy") and not (ident.app_id and ident.platform):
         print(
-            "v2 check needs --app-id and --platform (FlashForge numeric product/platform ids).\n"
-            "These are not present in the 5.1.4 firmware (it used the older SN/VID/PID scheme) and\n"
-            "must be captured from a live printer's update request. See tools/ota/README.md.",
+            "v2 check needs --app-id and --platform (numeric).\n"
+            "RE finding: app_id/platform/entity_id are runtime ints (default -1), cloud-provisioned\n"
+            "via device registration — NOT firmware constants. The binary only hardcodes the printer's\n"
+            "USB VID 0x2B71 / PID 0x0024. Read the real ids off a registered AD5M Pro (or capture its\n"
+            "check request) and pass them here. See tools/ota/README.md + the OTA RE doc.",
             file=sys.stderr,
         )
         return 1

@@ -75,15 +75,39 @@ types `CheckParam/ResponseResult/PackageUpdateInfo/DownloadParam/PackageType`. N
 v2/legacy endpoints above, compares the advertised version against the running one, reports
 availability (never downloads/flashes). See `tools/ota/README.md`.
 
-## Live server probe (2026-06-04)
-Confirmed against the running production server:
-- `getCheckParamJson` (the shipping 5.1.4 client) posts JSON keyed
-  **`SN/VID/PID/Name/OEMName/Version/BuildTime/HardwareVersion/{Kernel,Control,Library,Software}Version`**
-  (`Version` formatted `%d.%d.%d`, `BuildTime` `%Y-%m-%d %H:%M:%S`).
-- The **live** server has migrated past that scheme: update check is now
-  **`GET /api/updates/check?appId=&platform=&version=…`** (POST → `405`), replying a
-  `{"code","message","data"}` envelope. `appId`/`platform` are required **numeric** ids
-  (`java.lang.Long`); `code 1306` = "Latest release version not found".
-- The AD5M Pro `appId`/`platform` are **not** in the 5.1.4 binary (older scheme) and a
-  bounded brute (appId 1–400) didn't surface them — needs a captured live request.
-- Legacy `update[.cn].sz3dp.com:10443` + `hz.sz3dp.com:11002` are unreachable (refused).
+## Update-check request — full RE (2026-06-04)
+
+Two request generations live in the binary; the live server only honours the newer one.
+
+**Old scheme** — `ffupserver::UpdateServerImpl::getCheckParamJson` POSTs JSON keyed
+`SN / VID / PID / Name / OEMName / Version / BuildTime / HardwareVersion /
+{Kernel,Control,Library,Software}Version` (`Version` = `%d.%d.%d`, `BuildTime` =
+`%Y-%m-%d %H:%M:%S`). The production server now answers **`405`** to POST, so this path is dead.
+
+**New scheme** — `ffupserver::UpdateServerImpl::checkUpdateForNewServer` builds a **GET**:
+
+```
+/api/updates/check?app_id=%d&platform=%d&version=%d.%d.%d&entity_id=%d&hardware_version=%s
+```
+
+(internal validation string: `invalid params(vid|pid|packageVersions)`.) Response is a
+`{code,message,data{list[{version, changelist, force_update, language(zh-CN/en), detail}]}}`
+envelope; `code 1306` = "Latest release version not found".
+
+**Where the ids come from (the key finding).** `app_id`, `platform`, `entity_id` are **`int`
+members** of `PackageUpdateInfo` (formatted `%d`), **initialised to `-1` (`0xffffffff`)** at
+the top of `checkUpdateForNewServer` and populated **at runtime**. They are **not** literals
+in the binary, **not** in `Config::initFlashCloudConfig` / `initPrinterosCloudConfig` /
+`initPolarCloudConfig` (those only set the cloud name + `https://cloud.sz3dp.com`), and
+**not** parsed from any named JSON key. They are **cloud-provisioned** via the account/
+registration flow (`FlashClient`/`FlashConfig`, `setRegisterCode`, keyed by `deviceId`).
+
+The only printer identity the firmware hardcodes is the **USB VID `0x2B71` / PID `0x0024`**
+(Adventurer 5M Pro), set in `UpdateManager::checkUpdate(current_version&)` alongside name
+`Flashforge Adventurer 5M Pro` and hw `2.0.0`. The voxelshare backend maps a bound device's
+`app_id` server-side from its registration; **it cannot be synthesised offline**, even from
+the un-stripped binary, because it simply isn't there.
+
+**Consequence for tooling:** enumerating the version list needs a real provisioned AD5M Pro's
+`app_id`/`platform`/`entity_id` — read them off a registered unit (or capture its check
+request). Legacy `update[.cn].sz3dp.com:10443` + `hz.sz3dp.com:11002` are unreachable (refused).
