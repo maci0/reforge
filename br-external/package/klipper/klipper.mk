@@ -4,9 +4,24 @@
 #
 ################################################################################
 
-# Pinned to Klipper master SHA — recorded in pins.lock.
-# Python 3.12+ / numpy 2.x compatible (verified against master 2025-12-xx).
-KLIPPER_VERSION = b7c0329f1dcc159bb20148afa65b113a34c51efa
+# Pinned to upstream Klipper v0.11.0 (release tag, 2022-11-29) — recorded in pins.lock.
+#
+# Why v0.11.0: the AD5M / AD5M Pro stock MCU firmware was built from Klipper v0.11
+# (build string `?-20230317_182329-…` matches the v0.11 era), and the canonical
+# printer.cfg in reference/ad5m-factory-config/ (extracted verbatim from the 3.1.3
+# factory image) was authored against the v0.11 host. Running a newer host against
+# the v11 MCU risks protocol skew on the more dynamic commands (input shaper, ADXL).
+#
+# Why upstream Klipper3d/klipper rather than the FlashForge fork:
+#   github.com/FlashForge/AD5M_Series_Klipper is byte-identical to upstream v0.11.0
+#   except for 6 trivial files — see docs/research/2026-06-04-klipper-v0.11-fork-deltas.md
+#   for the full deltas. We use upstream for cleaner provenance; the only FF delta we
+#   carry is the chelper runtime-build-check disable (matches the FF fork exactly),
+#   shipped as patches/0001-chelper-disable-runtime-build-check.patch. Empirically
+#   the install ordering already makes the .so newer than every source, but the
+#   patch is cheap insurance against any future post-install / OTA flow that
+#   re-touches a chelper source (verified adversarial, 2026-06-04).
+KLIPPER_VERSION = e02b725602067a2cd098a62be9a4bb10fc74a9bd
 KLIPPER_SITE = https://github.com/Klipper3d/klipper.git
 KLIPPER_SITE_METHOD = git
 
@@ -23,14 +38,15 @@ KLIPPER_DEPENDENCIES = \
 	python-markupsafe
 
 # ---------------------------------------------------------------------------
-# chelper source files — match exactly what klippy/chelper/__init__.py lists
-# in SOURCE_FILES at this pinned commit (see klippy/chelper/__init__.py).
+# chelper source files — match SOURCE_FILES in klippy/chelper/__init__.py at
+# the pinned v0.11.0 commit (not master). v0.11.0 does NOT have steppersync.c,
+# kin_idex.c, or kin_generic.c — those were added in v0.12+. If the pin moves
+# forward this list must be re-synced.
 # ---------------------------------------------------------------------------
 KLIPPER_CHELPER_SRCS = \
 	pyhelper.c \
 	serialqueue.c \
 	stepcompress.c \
-	steppersync.c \
 	itersolve.c \
 	trapq.c \
 	pollreactor.c \
@@ -45,9 +61,7 @@ KLIPPER_CHELPER_SRCS = \
 	kin_rotary_delta.c \
 	kin_winch.c \
 	kin_extruder.c \
-	kin_shaper.c \
-	kin_idex.c \
-	kin_generic.c
+	kin_shaper.c
 
 # ---------------------------------------------------------------------------
 # Build chelper with cross compiler + Cortex-A7 NEON flags at BUILD time so

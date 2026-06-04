@@ -62,13 +62,21 @@ to come from the eMMC dump or from this 3.1.3 baseline.
 - The stock MCU firmware reports build `?-20230317_182329-ubuntu20-virtual-machine` — that
   string **identifies native v11/v12**. Our device reports exactly this ⇒ **the AD5M Pro is
   on native v11.**
-- **The protocol skew that bit us:** `query_adxl345` changed between v11 and v13:
-  - v11 MCU: `query_adxl345 oid=%c rest_ticks=%u`
-  - v13 host: `query_adxl345 oid=%c clock=%u rest_ticks=%u`
-  - A **v13 host against a v11 MCU** throws `MCU Protocol error: Command format mismatch`
-    the moment Klipper configures the accelerometer. This is the single loudest canary of a
-    host↔MCU version mismatch. Everything else (steppers, heaters, thermocouples, both MCUs'
-    105 commands) matches fine across the boundary.
+- **The protocol skew that bit us:** `query_adxl345` parameter list changed between
+  Klipper v0.10 and v0.11 — a `clock=%u` parameter was inserted before `rest_ticks=%u`:
+  - v0.10 MCU: `query_adxl345 oid=%c rest_ticks=%u`
+  - v0.11+ host/MCU: `query_adxl345 oid=%c clock=%u rest_ticks=%u`
+  - **Corrected 2026-06-04** (see `docs/research/2026-06-04-klipper-v0.11-fork-deltas.md`
+    §3 for the source-level verification): an earlier version of this note had v0.11 and
+    v0.13 on opposite sides of the change. They are not — the `clock=%u rest_ticks=%u`
+    format has been the protocol since v0.11.0 (verified in both upstream Klipper3d/klipper
+    v0.11.0 `klippy/extras/adxl345.py` and `src/sensor_adxl345.c`, and identical in the
+    FlashForge AD5M fork). A v0.13 host against a v0.11 MCU does **not** mismatch on
+    `query_adxl345`.
+  - Whatever "Command format mismatch" was historically observed against the AD5M
+    MCU likely came from running a v0.10-era host (or a fork carrying an old
+    sensor_adxl345 cmd registration). Everything else (steppers, heaters, thermocouples,
+    both MCUs' 105 commands) matches fine across the v0.11→v0.13 boundary.
 
 ### Where the stock MCU firmware lives (we hold it)
 The stock OTA `control-2.2.3.tar.xz` ships the **MCU firmware binaries + the N32G455

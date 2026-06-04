@@ -14,7 +14,17 @@ gcc-crosstool    tarball    9.5.0    81669db4e5adc1ff1c35e7d939ebcb6a5793c9b3920
 gcc-linaro-5.3.1  tarball   5.3.1    77cccd433d680251c8b9bfa01890cb6921548513a39fac35c1f4b9f0a47e5aa4  https://releases.linaro.org/components/toolchain/binaries/5.3-2016.05/arm-linux-gnueabi/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi.tar.xz
 # u-boot added in later plans
 mainsail   tag     v2.17.0  d010f4df25557d520ccdbb8e42fc381df2288e6a5c72d3838a5a2433c7a31d4e
-klipper    commit  master  b7c0329f1dcc159bb20148afa65b113a34c51efa
+# klipper: pinned to upstream v0.11.0 (release tag, 2022-11-29) to match the
+# AD5M / AD5M Pro stock MCU firmware (Klipper v0.11 build, 2023-03-17). Switched
+# from master 2026-06-04. The FlashForge fork at FlashForge/AD5M_Series_Klipper
+# is byte-identical to this commit except for 6 trivial files (documented in
+# docs/research/2026-06-04-klipper-v0.11-fork-deltas.md). One patch carried:
+# br-external/package/klipper/0001-chelper-disable-runtime-build-check.patch
+# (defensive guard — matches the FF fork's only meaningful change). One patch
+# parked but not applied:
+# br-external/package/klipper/disabled-patches/0002-relax-TRSYNC_TIMEOUT-ffad5m.patch
+# (re-enable trigger: E0011 communication-timeout shutdowns on hardware).
+klipper    tag     v0.11.0  e02b725602067a2cd098a62be9a4bb10fc74a9bd
 moonraker  commit  master  9008485843740c93e0154ccbdac1fc2b02b03aaa
 # consp/guppyscreen fork (FF5M-specific): flashforge_ad5m branch HEAD 2025-07
 # NOTE: task spec says ballaswag/guppyscreen; using consp fork because xblax's
