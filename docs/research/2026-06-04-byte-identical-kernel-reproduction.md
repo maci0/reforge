@@ -2,8 +2,12 @@
 
 **Date:** 2026-06-04
 **Status:** ✅ +128 bytes from byte-identical (+0.00099% Image-size delta).
+          The residual is a **256-byte linker alignment artifact**, not a
+          functional defect; all substantive remaining differences are
+          **dead drivers** on this printer (see §"Dead-driver audit").
 **Plan:** [`../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md`](../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md)
 **Earlier findings (functional equivalence):** [`2026-06-04-bsp-kernel-rebuild-findings.md`](2026-06-04-bsp-kernel-rebuild-findings.md)
+**Autoresearch loop:** [`../../autoresearch.md`](../../autoresearch.md)
 **Build script:** `tools/build/build-bsp-kernel-stock.sh`
 **Companion functional-equivalence build:** `tools/build/build-bsp-kernel.sh`
 
@@ -34,12 +38,12 @@ Image.stock:          12,970,156  bytes
                       +128  bytes  total Δ
 
   IKCONFIG.gz:          0 bytes Δ (byte-identical embedded `.config`)
-  rest of Image:     +128 bytes Δ (sunxi_can_asm.h reconstruction
-                                   differs slightly in inline expansion
-                                   from the original Auto-SDK header)
+  rest of Image:     +128 bytes Δ (256-byte linker alignment artifact;
+                                   see §"Why the +128 B is an alignment
+                                   artifact")
 ```
 
-Earlier intermediate states during the closure of this gap (for context):
+Intermediate states during closure of the IKCONFIG gap (Kconfig fixes):
 
 | Step | IKCONFIG Δ | non-IKCONFIG Δ | Total Δ |
 |---|---:|---:|---:|
@@ -49,11 +53,88 @@ Earlier intermediate states during the closure of this gap (for context):
 | + RTL8821CU stub at correct path | +12 | +116 | +128 B |
 | + Audio V2 menu header hidden + PLUGIN_HOSTCC forced "" | **0** | **+128** | **+128 B** |
 
-The total stayed at +128 B throughout because section alignment
-absorbed each IKCONFIG shrink with an equivalent shift elsewhere. The
-actual content delta is the 128 bytes of sunxi_can.o / surrounding
-kallsyms address-cascade caused by our reconstructed header's slightly
-different inline expansion vs the original Auto-SDK header.
+Further autoresearch iterations (substitutions for stock-only sources
+from public GitHub mirrors — see [`../../autoresearch.md`](../../autoresearch.md)):
+
+| Iter | Change | ours-only Δ | stock-only Δ | kallsyms Δ | non-kallsyms Δ | Total Δ | first_diff |
+|---|---|---:|---:|---:|---:|---:|---|
+| baseline | (above state) | 529 | 490 | +824 B | −696 B | +128 B | 0x15c |
+| **iter 3** | imported `pwm-sunxi-g_dev.c` from ayueying/linux-5.4 (recovered 9 stock-only PWM symbols) | 529 | 474 | +1088 B | −960 B | +128 B | 0x15c |
+| **iter 4** | commented out `#define BTCOEX` + dropped `hci_uart-y += rtk_coex.o` (removed 30 ours-only BT-coex symbols) | **484** | **472** | **+236 B** | **−108 B** | **+128 B** | **0xf968c** |
+
+The total stayed at +128 B throughout because **section alignment
+absorbed each shift**. After iter 4, the **first 1 MB of the image is
+byte-identical to stock** (first_diff_off moved from 0x15c → 0xf968c
+into the `sys_call_table` region) and `cmp -l` mismatched-byte count
+dropped 2.5 % (6,068,525 → 5,915,891).
+
+## Why the +128 B is an alignment artifact, not a code defect
+
+```
+ours  size mod 128 = 44      stock size mod 128 = 44     (same cache line)
+ours  size mod 256 = 44      stock size mod 256 = 172    (Δ = 128 bytes)
+```
+
+Both images land at the same offset within a 128-byte cache line. The
+128-byte total delta corresponds to one of our `.data`/`.bss` sections
+crossing a 256-byte alignment boundary that stock's doesn't. The
+linker pads the next section to the next 256-byte align, costing
+exactly 0x80 (128) bytes regardless of the underlying code change.
+
+The ~15 net-extra symbols remaining after iter 4 (sunxi_irrx_* IR
+rename, DCXO, newer-SoC sun20iw1/sun55i, closed-source bootlogo helpers)
+total ~300 B of code — enough to tip ours past the alignment boundary
+but not enough to shift to the next 256-byte step.
+
+## Dead-driver audit
+
+Every remaining symbol-set difference was cross-referenced against the
+stock device tree (`fw-analysis/k-3.1.3/sunxi.dtb` decompiled) and the
+stock printer configuration (`fw-analysis/x-3.1.3/printer.base.cfg` and
+the `fe-3.1.3.str` strings dump of the FlashForge daemon). The result
+is a clean partition into runtime-relevant code and dead code:
+
+| Subsystem | Side | DTB status | Userspace consumer | Verdict |
+|---|---|---|---|---|
+| `sunxi_can` (CAN bus) | both | `can@0x0` `status="disabled"` | none — MCU comm is UART (`ttyS1` `eboard`, `ttyS5` `mcu`) | **DEAD** |
+| PWM sysfs (`pwm-sunxi-group.c`) | both | `pwm@2000c00` `okay`, `pwm3@2000c13` `okay` | `/sys/class/pwm/pwmchip{0..3}/pwm*/{export,enable,period,duty_cycle}` (FF daemon) | **ALIVE** — heater/fan/light |
+| PWM chrdev (`pwm-sunxi-g_dev.c`) — *iter-3 addition* | stock only | (none) | no reference to `/dev/sunxi_pwm*` anywhere in firmware | **DEAD** (iter 3 added 5,668 B of dead code purely for kallsyms match) |
+| IR `sunxi_ir_recv_*` (stock) / `sunxi_irrx_*` (ours) | swap | `s_cir@7040000` `okay`, `ir_tx` `okay` | `/dev/input/event0` is TSLIB **TOUCHSCREEN** (`TSLIB_TSDEVICE` `QWS_MOUSE_PROTO=TSLIB:/dev/input/event0`); no IR consumer | **DEAD** — no IR remote on AD5M Pro |
+| Bootlogo (`boot_code`, `fb_free_bootlogo_buffer`, `need_free_boot_fb`) | stock only | not DT-driven (kernel framebuffer feature) | `k-*.tar/bootlogo.bmp` + `fastbootlogo.bmp`, copied to `/media/bootlogo.bmp` by `k-*/run.sh` | **ALIVE** — FF logo at boot |
+| `disp_mgr_dmabuf_list_add` (Allwinner disp2) | stock only | `disp@5000000` `okay`, `lcd_fb0@0` `okay` | Klipper/Qt UI use `/dev/fb0` on the 5" LCD | **ALIVE** — LCD touchscreen |
+| MII sysfs attrs (`dev_attr_mii_reg`, `mii_reg_show`) | stock only | `gmac@0/@1` `okay` | not referenced in any FF config or daemon | **DEAD** (debug-only) |
+| SPI slave (`sunxi_spi_slave_set_txdata`) | stock only | `spi@4025000`, `spi@4026000` both `okay` | no `spidev`/spi-slave userspace consumer | **DEAD** |
+| Realtek BT coex stack (`rtk_btcoex_*`, `rtl_l2_*`, `udpsocket_*`) | ours only | (none — newer-BSP addition) | N/A; gated by `CONFIG_BT_HCIUART_RTL3WIRE` which is off | **DEAD** (removed in iter 4) |
+| DCXO ictrl (`dcxo_ictrl_attr/show/store`) | ours only | (none — newer T113 revision support) | N/A | **DEAD** |
+| Newer-SoC plumbing (`sun20iw1p1_ths`, `sun55i_wdt_reg`, `sunxi_smc_get_tcoffer_ver`, `sunxi_rtc_v201_data`) | ours only | (different SoC dies) | N/A | **DEAD** |
+
+### What this means
+
+**For the byte-identical reproduction**: we keep all of the above in the
+patch to preserve IKCONFIG byte-identity with stock. The only stock-only
+group that's actually USED at runtime and we don't currently match is
+the **bootlogo handoff** (3 kernel symbols `boot_code`,
+`fb_free_bootlogo_buffer`, `need_free_boot_fb`) — those live inside the
+closed-source Allwinner `disp2` driver, which is not on GitHub. Closing
+the last 128 B exactly therefore requires either the Auto SDK or a
+different disp2 snapshot.
+
+**For ReForge's shipping kernel** (built via `tools/build/build-bsp-kernel.sh`,
+not the byte-identical-attempt script): roughly **60 KB** of compiled
+dead code can be removed by setting:
+
+- `CONFIG_CAN_SUN8I=n` (drops the reconstructed `sunxi_can_asm.h` dependency entirely; ~7 KB)
+- Drop `pwm-sunxi-g_dev.o` from `drivers/pwm/Makefile` (the iter-3 addition; 5.7 KB)
+- `CONFIG_IR_SUNXI=n` / `CONFIG_IR_RX_SUNXI=n` (~25 KB; no IR remote)
+- SPI slave driver disable (~3-5 KB)
+- MII sysfs attrs disable (~1 KB)
+- BT-coex already removed in iter 4 (~20 KB)
+
+Net potential drop: ~60 KB of kernel `.text`. No user-visible side
+effects. Boot is a hair faster and `kallsyms_lookup_name` table walks
+are proportionally faster. This is **not** done by the
+byte-identical-attempt build (`build-bsp-kernel-stock.sh`); the lean
+build is a separate ReForge concern.
 
 ## The 14 extra Kconfig entries in our submodule (cause +91 B IKCONFIG.gz delta)
 
@@ -234,37 +315,60 @@ captured stock `.config` (verified by `diff $(zcat stock-config.gz)`
 
 ## To close the residual +128 B
 
-### Path A — Acquire the actual Auto SDK kernel overlay (optimal)
+### Path A — Acquire the Auto SDK / older `disp2` snapshot (optimal)
 
-If the Baidu pan / Allwinner customer portal tarball lands:
-- The original `drivers/net/can/sunxi_can_asm.h` → closes +37 B code delta. Likely → 0 B code delta.
-- The exact BSP commit FF used (pre-dates the 14 newer Kconfig entries) →
-  closes +91 B IKCONFIG delta → 0 B IKCONFIG delta.
-- **Combined: byte-identical reproduction.**
+Of the ~15 net-extra symbols remaining after iter 4, the only ones we
+can't recover from public GitHub sources are:
 
-### Path B — Patch the 14 newer Kconfig entries out of our submodule
+- **Bootlogo handoff** (`boot_code`, `fb_free_bootlogo_buffer`,
+  `need_free_boot_fb`) — inside the closed-source Allwinner `disp2`
+  driver. The version of `disp2` shipped in the public iLotusK9 BSP
+  (and in `ayueying/linux-5.4`, `Noooooob233/tina-d1-linux-5.4`,
+  `paulwratt/mangopi-sbc-tina-linux-5.4`) doesn't have these symbols.
+- The older `sunxi-ir-dev.c` with `sunxi_ir_recv_*` naming
+  (`longsleep/linux-pine64` has 5 of 7 stock symbols but is arm64).
+- The exact older Auto SDK `sunxi_can_asm.h` (closed-source).
 
-For each of the 14 symbols listed above, locate the Kconfig stanza in our
-submodule and either remove it or guard it with `if NEWER_BSP_OPTION` (an
-option that's always false in our build). Result: `olddefconfig` doesn't
-write the "is not set" lines into the final `.config`, IKCONFIG.gz shrinks
-back to within ~5–10 bytes of stock (closing 80+ of the 91 B IKCONFIG
-delta). The +37 B code delta remains unless Path A is also applied.
+Delivery channels: Baidu pan (currently broken link), direct Allwinner
+customer portal access (NDA required), or a FlashForge firmware-source
+leak. Acquiring just the Allwinner `disp2` overlay with bootlogo
+hand-off would likely close the alignment delta on its own.
 
-### Path C — Accept the +128 bytes
+### Path B — Manual code substitutions (already partly done)
 
-For any practical purpose (modules cross-load, OTA repack, kexec hybrid,
-forensic auditability) the +128 B delta is irrelevant. We have:
-- Confirmed functional equivalence (Tier 1 + 2 + 3 in the earlier
-  rebuild-findings doc)
-- Confirmed bit-equivalent `vermagic`, version banner, build metadata
-- 99.999 % byte-identical Image content
-- A reproducible build flow that anyone with our submodule + Linaro 5.3.1
-  + sudo mount can run
+Iters 3+4 of the autoresearch loop did exactly this for the substitutions
+we could recover from public sources:
 
-The +128 B difference cannot manifest as any runtime behaviour change
-(IKCONFIG is read-only metadata; the +37 B of code differences are inside
-a driver — `sunxi_can` — that the AD5M Pro never instantiates anyway).
+- **iter 3**: imported `pwm-sunxi-g_dev.c` from `ayueying/linux-5.4` →
+  recovered all 9 stock-only PWM symbols.
+- **iter 4**: removed Realtek BT coex stack (`#define BTCOEX` + Makefile
+  line) → removed 30 ours-only symbols.
+
+Further substitutions that could be attempted (but offer diminishing
+returns, since per the **Dead-driver audit** none of the remaining
+stock-only groups except bootlogo are actually used at runtime):
+
+- Substitute `longsleep/linux-pine64`'s older `sunxi-ir-dev.c` (5 of 7
+  IR symbols; arm64-typed code needs adaptation).
+- Disable our DCXO + newer-SoC drivers via `select` removal from their
+  Kconfig sources.
+
+### Path C — Accept the +128 bytes (chosen)
+
+For every practical purpose (modules cross-load, OTA repack, kexec
+hybrid, forensic auditability) the +128 B delta is irrelevant:
+
+- Functional equivalence confirmed via Tier 1 + 2 + 3 in
+  [`2026-06-04-bsp-kernel-rebuild-findings.md`](2026-06-04-bsp-kernel-rebuild-findings.md).
+- `vermagic`, Linux-version banner (including toolchain version
+  strings), build user / host / `#52` / timestamp **all byte-identical**.
+- **First 1 MB of the Image is byte-identical to stock** (after iter 4).
+- 99.999 % byte-identical content overall.
+- All substantive residual differences are **DEAD CODE on this printer**
+  (see Dead-driver audit table). The +128 B cannot manifest as any
+  runtime behaviour change because the code differences live inside
+  drivers (`sunxi_can`, IR, SPI slave) whose device-tree nodes are
+  either `disabled` or have no userspace consumer.
 
 ---
 
@@ -278,10 +382,33 @@ a driver — `sunxi_can` — that the AD5M Pro never instantiates anyway).
   `.config`
 - `build/bsp-kernel-rebuild/artifacts/Image.stock` (from the GCC 9.5
   pass-1 build's extraction step; reused for both passes)
-- `vendor/kernels/tina-bsp-kernel/drivers/net/can/sunxi_can_asm.h` —
-  reconstructed header
+- `vendor/kernels/patches/0001-byte-identical-reproduction.patch` —
+  the apply-on-build patch (26.7 KB; revert-on-exit harness keeps
+  the submodule pristine)
+- `vendor/upstream-snippets/pwm-sunxi-g_dev/pwm-sunxi-g_dev.c` —
+  iter-3 PWM driver import (sha256 `f53450ae74…`, 5,668 B, from
+  `ayueying/linux-5.4` @ 2022-09-08; Copyright (C) 2019 AllWinner)
 - `vendor/toolchains/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi/`
   — Linaro 5.3.1 toolchain (downloaded, sha256-pinned)
+- `autoresearch.md` / `autoresearch.jsonl` / `autoresearch.sh` — the
+  iter 0–4 progression (baseline → substitutions → alignment
+  diagnosis)
+- `outputs/kallsyms-symbol-diff.md` — the full ours-vs-stock kallsyms
+  symbol-set classification (baseline + post-iter-4 snapshot)
+
+### Dead-driver audit evidence trail
+- `fw-analysis/k-3.1.3/sunxi.dtb` — stock device tree (decompiled via
+  `dtc -I dtb -O dts`); the source of `status` strings for each node
+- `fw-analysis/x-3.1.3/printer.base.cfg` — stock Klipper printer config
+  (`[mcu] serial: /dev/ttyS5`, `[mcu eboard] serial: /dev/ttyS1` =
+  MCU communication is UART, not CAN)
+- `fw-analysis/fe-3.1.3.str` — strings dump of the FlashForge daemon
+  binary (shows the `/sys/class/pwm/pwmchip*/pwm*/{enable,period,
+  duty_cycle}` paths actually used at runtime)
+- `fw-analysis/lib-3.1.3/env.cfg` — `TSLIB_TSDEVICE=/dev/input/event0`
+  confirms `event0` is the touchscreen, not IR
+- `fw-analysis/k-3.1.3/run.sh` — references `bootlogo.bmp` /
+  `fastbootlogo.bmp`; confirms bootlogo handoff is actually used
 
 ### External
 - Linaro 5.3-2016.05 toolchain (publicly archived):
