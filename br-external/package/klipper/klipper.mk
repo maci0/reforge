@@ -41,6 +41,11 @@
 #     stop sporadic E0011 communication-timeout shutdowns observed across
 #     the AD5M user base on forge-x. Same value forge-x ships as
 #     fix_enable_e11. No upstream support.
+#   0006-stepcompress-bump-queue-start-size.patch — matches the FlashForge
+#     fork: QUEUE_START_SIZE 1024 -> 2048 in stepcompress.c. Saves one
+#     realloc-and-memcpy per stepper queue at the cost of allocating twice
+#     as many initial slots upfront (~5-10 KB across the AD5M's 5 steppers,
+#     trivial). No upstream support.
 KLIPPER_VERSION = e02b725602067a2cd098a62be9a4bb10fc74a9bd
 KLIPPER_SITE = https://github.com/Klipper3d/klipper.git
 KLIPPER_SITE_METHOD = git
