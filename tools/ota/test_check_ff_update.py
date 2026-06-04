@@ -176,6 +176,30 @@ class TestParseCheckResponse(unittest.TestCase):
         r = ff.parse_check_response({"code": 200, "data": {"version": "3.1.3", "forceUpdate": True}}, "3.1.3")
         self.assertFalse(r.update_available)  # same version, nothing to do
 
+    def test_real_server_list_shape(self):
+        # exact shape the live voxelshare server returns (data.list[].version + v-prefix)
+        resp = {"code": 0, "message": "OK", "data": {"list": [{
+            "version": "v5.1.4",
+            "detail": [{"language": "zh-CN", "changelist": "中文"}, {"language": "en", "changelist": "english notes"}],
+            "force_update": 0,
+        }]}}
+        r = ff.parse_check_response(resp, "5.1.2")
+        self.assertTrue(r.update_available)
+        self.assertEqual(r.latest_version, "v5.1.4")
+        self.assertEqual(r.changelist, "english notes")
+        # on the current version, same payload -> not an update
+        self.assertFalse(ff.parse_check_response(resp, "5.1.4").update_available)
+
+    def test_v_prefix_ordering(self):
+        self.assertTrue(ff.version_gt("v5.1.4", "5.1.2"))
+        self.assertFalse(ff.version_gt("v5.1.4", "5.1.4"))
+        self.assertEqual(ff.parse_version("v5.1.4"), ff.parse_version("5.1.4"))
+
+    def test_list_picks_newest(self):
+        resp = {"code": 0, "data": {"list": [{"version": "5.0.0"}, {"version": "5.2.0"}, {"version": "5.1.0"}]}}
+        r = ff.parse_check_response(resp, "4.9.0")
+        self.assertEqual(r.latest_version, "5.2.0")
+
     def test_text_and_bytes_input(self):
         self.assertTrue(ff.parse_check_response('{"version":"4.0"}', "3.1").update_available)
         self.assertTrue(ff.parse_check_response(b'{"version":"4.0"}', "3.1").update_available)
@@ -359,7 +383,7 @@ class TestCLI(unittest.TestCase):
             ff.http_transport = t
             rc = ff.main(["--model", "ad5m-pro", "--version", "2.1.6", "--entity-id", "SN9"])
             self.assertEqual(rc, 0)
-            self.assertIn("app_id=38", captured["url"])
+            self.assertIn("app_id=35", captured["url"])
             self.assertIn("platform=29", captured["url"])
             self.assertIn("hardware_version=2.0.0", captured["url"])
             self.assertIn("entity_id=SN9", captured["url"])

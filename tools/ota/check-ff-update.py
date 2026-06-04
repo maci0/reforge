@@ -67,7 +67,10 @@ STOCK_MACHINE_JSON = "/opt/config/Adventurer5M.json"
 # FlashForge product constants (app_id/platform), captured from live boot-time update
 # checks. These are baked into firmwareExe per model; entity_id is the printer serial.
 MODELS = {
-    "ad5m-pro": {"app_id": "38", "platform": "29", "hardware_version": "2.0.0", "name": "Adventurer5Mpro"},
+    # app_id 35 = main firmware package (the one that carries v5.1.x). The stock UI also
+    # checks 36/37/38 (control/library/software, e.g. software=38 reports a 2.1.x version);
+    # those rarely have releases. platform 29 = AD5M Pro. entity_id is the printer serial.
+    "ad5m-pro": {"app_id": "35", "platform": "29", "hardware_version": "2.0.0", "name": "Adventurer5Mpro"},
     # add other models here as their (app_id, platform) get captured
 }
 
@@ -107,6 +110,7 @@ def parse_version(s: str) -> tuple:
     """
     if not isinstance(s, str):
         s = str(s)
+    s = re.sub(r"^[vV](?=\d)", "", s.strip())  # drop a leading "v" tag (server sends "v5.1.4")
     out = []
     for tok in _VER_TOKEN.findall(s):
         if tok.isdigit():
@@ -257,14 +261,31 @@ def parse_check_response(raw, current_version: str) -> Result:
                 body = inner
                 break
 
-    latest = str(_first(body, "version", "latestVersion", "newVersion", "softwareVersion", "SoftwareVersion"))
+    # the live server nests the release in data.list[]; pick the newest entry. detail is a
+    # per-language list of {language, changelist}.
+    release = body
+    changelist = str(_first(body, "changelist", "changelog", "releaseNote", "changeList"))
+    items = body.get("list") if isinstance(body, dict) else None
+    if isinstance(items, list) and items:
+        release = max(
+            (it for it in items if isinstance(it, dict)),
+            key=lambda it: parse_version(str(it.get("version", ""))),
+            default=body,
+        )
+        detail = release.get("detail")
+        if isinstance(detail, list):
+            bylang = {str(d.get("language", "")).lower(): d for d in detail if isinstance(d, dict)}
+            pick = bylang.get("en") or bylang.get("en-us") or (detail[0] if detail else {})
+            changelist = str(pick.get("changelist", "") or changelist)
+
+    latest = str(_first(release, "version", "latestVersion", "newVersion", "softwareVersion", "SoftwareVersion"))
     res = Result(
         current_version=current_version,
         latest_version=latest,
-        force_update=_coerce_bool(_first(body, "force_update", "forceUpdate")),
+        force_update=_coerce_bool(_first(release, "force_update", "forceUpdate")),
         message=str(_first(body, "message") or envelope_msg),
-        detail=str(_first(body, "detail", "description")),
-        changelist=str(_first(body, "changelist", "changelog", "releaseNote", "changeList")),
+        detail=str(_first(release, "detail", "description")) if not isinstance(release.get("detail"), list) else "",
+        changelist=changelist,
         raw=raw,
     )
     res.update_available = bool(latest) and version_gt(latest, current_version)
@@ -470,7 +491,7 @@ def main(argv=None) -> int:
     elif res.update_available:
         print(f"UPDATE AVAILABLE: {res.current_version} -> {res.latest_version}"
               + ("  [FORCED]" if res.force_update else ""))
-        if res.message:
+        if res.message and res.message.strip().lower() != "ok":
             print(f"  {res.message}")
         if res.changelist:
             print(f"  changelog: {res.changelist}")

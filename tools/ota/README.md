@@ -36,19 +36,23 @@ The current server is **`GET https://update.voxelshare.com/api/updates/check?app
 = no release for that `appId`/`platform`. `appId` and `platform` must be **non-empty
 numbers** (the backend casts them to `java.lang.Long`).
 
-**AD5M Pro ids (captured from a live unit, 2026-06-04):** `app_id=38`, `platform=29`,
-`hardware_version=2.0.0` (FlashForge product constants baked into firmwareExe), `entity_id` =
-the printer **serial number**. Use `--model ad5m-pro` to apply them:
+**AD5M Pro ids (captured from a live unit, 2026-06-04):** `app_id=35` (main **firmware**
+package), `platform=29`, `hardware_version=2.0.0`; `entity_id` = the printer **serial**.
+`--model ad5m-pro` applies them:
 
 ```sh
-python3 check-ff-update.py --model ad5m-pro --version 2.1.6 --entity-id <your-serial>
+python3 check-ff-update.py --model ad5m-pro --version 5.1.2 --entity-id <your-serial>
+#  -> UPDATE AVAILABLE: 5.1.2 -> v5.1.4   (exit 10)
+python3 check-ff-update.py --model ad5m-pro --version 5.1.4 --entity-id <your-serial>
+#  -> up to date                          (exit 0)
 ```
 
-Replaying the exact request the printer sends returns `code 1306` ("Latest release version
-not found") for every version — **FlashForge currently publishes no AD5M Pro release on
-voxelshare**, so the printer itself shows no update. (Not an auth gate — a parsed `1306`, not
-a `401`.) The legacy `sz3dp` endpoints are unreachable. Full teardown incl. the captured URL:
-`../../docs/reverse-engineering/firmwareexe-ota-update.md`.
+The **latest AD5M Pro firmware is `v5.1.4`**. The stock UI checks four component packages
+(`app_id` 35/36/37/38 = firmware/control/library/software); only `35` carries the `5.1.x`
+firmware release. The server nests it in `data.list[].version` (with a `v` prefix). Note: a
+real printer on the forge-x mod can't reach the server — the mod blackholes
+`update.voxelshare.com` in `/etc/hosts` — so run this tool from a host with WAN. Full
+teardown: `../../docs/reverse-engineering/firmwareexe-ota-update.md`.
 
 ## Security
 

@@ -94,26 +94,37 @@ Two request generations live in the binary; the live server only honours the new
 `{code,message,data{list[{version, changelist, force_update, language(zh-CN/en), detail}]}}`
 envelope; `code 1306` = "Latest release version not found".
 
-**The real request — captured from a live AD5M Pro (2026-06-04).** Resolved by preloading a
-libcurl `CURLOPT_URL` logger into the stock firmwareExe (`LD_PRELOAD` via its `env.cfg`) and
-reading the boot-time check it logs:
+**The real request — captured from a live AD5M Pro (2026-06-04).** Preloaded a libcurl
+`CURLOPT_URL`/`CURLOPT_HTTPHEADER` logger into stock firmwareExe (`LD_PRELOAD` via its
+`env.cfg`) and read the boot-time check. The wire request is a bare GET (snake_case params,
+**no auth headers** — the hook logged zero `HDR:` lines):
 
 ```
-https://update.voxelshare.com/api/updates/check?app_id=38&platform=29&version=2.1.6&entity_id=SNMOME9701306&hardware_version=2.0.0
+GET …/api/updates/check?app_id=<id>&platform=29&version=<ver>&entity_id=<serial>&hardware_version=2.0.0
 ```
 
-So for the **AD5M Pro**: `app_id=38`, `platform=29` (FlashForge **product constants** baked
-into firmwareExe — they are the `38`/`29` immediates visible in
-`UpdateManager::checkUpdate`, alongside the printer's USB **VID `0x2B71` / PID `0x0024`**,
-name `Flashforge Adventurer 5M Pro`, and `hardware_version=2.0.0`). `entity_id` is the
-printer **serial number** (`SNMOME…`, a *string*) — **not** a cloud-assigned int, which is
-why the check needs no cloud account. Params are **snake_case** in the wire request even
-though the server's Spring validator also accepts the camelCase `appId`/`platform` names.
-(This corrects an earlier hypothesis that the ids were cloud-provisioned `-1` defaults.)
+- `platform=29` = AD5M Pro. `hardware_version=2.0.0`. `entity_id` = the printer **serial**
+  (a *string*, not a cloud id — which is why the check needs no cloud account). `38`/`29`
+  are the `checkUpdate` immediates next to the USB **VID `0x2B71` / PID `0x0024`**.
+- The stock UI checks **four component packages**, each with its own `app_id` + version:
+  **`app_id=35` = the main firmware** (carries the `v5.1.x` release), `36/37/38` =
+  control/library/software (e.g. software=`38` reports a `2.1.x` version). The boot log
+  showed only the `38` check because the forge-x **`/etc/hosts` blackhole**
+  (`update.voxelshare.com → 127.0.0.1`, rewritten each boot by the mod's `S00init`) failed
+  that first connect fast and the rest never ran.
 
-**Server answer.** Replaying the exact request returns `{"code":1306,"message":"Latest
-release version not found","data":null}` for every `version` (incl. `0.0.1`) — i.e.
-FlashForge currently publishes **no release on voxelshare for `app_id=38`/`platform=29`**, so
-the printer's own check shows "no update". A parsed `1306` (not a `401`) confirms it isn't an
-auth/header gate. Legacy `update[.cn].sz3dp.com:10443` + `hz.sz3dp.com:11002` are unreachable
-(refused). The companion tool bakes these constants in: `check-ff-update.py --model ad5m-pro`.
+**Server answer (the firmware package, `app_id=35`/`platform=29`):**
+
+```json
+{"code":0,"message":"OK","data":{"list":[{"version":"v5.1.4",
+  "detail":[{"language":"zh-CN","changelist":"…"},{"language":"en","changelist":"…Flash Studio…"}],
+  "force_update":0,"update_type":0}]}}
+```
+
+So the **latest AD5M Pro firmware is `v5.1.4`**: querying `app_id=35` with `version` ≤ 5.1.3
+returns it (`update_available`), with 5.1.4+ returns `code 1306` ("Latest release version not
+found" = up to date). The version axis is the `5.1.x` build (the `/opt/PROGRAM/software/<ver>`
+dir). `app_id=38` (software, the one the boot check logged first) genuinely has no release →
+1306; that earlier dead end was the wrong package id, not a missing header. Legacy
+`update[.cn].sz3dp.com:10443` + `hz.sz3dp.com:11002` are unreachable (refused). Companion
+tool: `check-ff-update.py --model ad5m-pro` (presets `app_id=35 platform=29 hw=2.0.0`).
