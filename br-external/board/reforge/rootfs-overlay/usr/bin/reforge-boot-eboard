@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+"""reforge-boot-eboard — boot the AD5M(Pro) toolhead ("eboard") MCU.
+
+The toolhead MCU (/dev/ttyS1) powers up into a serial *bootloader* that loops
+emitting "Ready." at 115200 baud and waits for the host to send 'A' (0x41)
+before jumping to its Klipper application (which then talks 230400). The
+mainboard MCU (/dev/ttyS5) auto-boots and needs no trigger; the eboard does.
+
+Stock firmware does this handshake via firmwareExe ("bootserial eboard:");
+forge-x does it via its own boot_mcu binary (run from boot.sh — so it works in
+any screen mode, not just when firmwareExe is up). ReForge must do it too, or
+Klipper can never identify the eboard ("Serial connection closed") and the
+toolhead stays dark. Run this ONCE, early in boot, before klippy starts.
+
+Protocol (matches forge-x boot_mcu/main.cpp):
+
+    open /dev/ttyS1 @115200 raw
+    read until a chunk contains b"Ready."            (<= READY_RETRIES reads)
+    write b"A" (0x41); read reply                     (<= BOOT_RETRIES tries)
+    reply containing 0x01 (RESP_OK) or 0x06 (RESP_ACK) == MCU starting -> done
+
+If the eboard is *already* running (warm reboot), it answers 230400 app
+traffic, never "Ready." — the handshake then no-ops and returns ERR_NOT_READY.
+That is not fatal: callers run this best-effort and continue.
+
+The byte-protocol decisions (has_ready / is_boot_ack / run_handshake) are split
+out as pure, I/O-injected functions so they are unit- and fuzz-testable without
+a serial port (see tests/release/test_boot_eboard.py).
+"""
+
+import os
+import sys
+import termios
+
+TTY = "/dev/ttyS1"
+BAUD = termios.B115200
+READY_TOKEN = b"Ready."
+CMD_BOOT = b"A"               # 0x41
+ACK_BYTES = (0x01, 0x06)      # RESP_OK / RESP_ACK
+READY_RETRIES = 15
+BOOT_RETRIES = 15
+READ_SIZE = 32
+READ_TIMEOUT_DS = 5           # VTIME, tenths of a second -> 0.5s per read
+
+# Exit / status codes.
+OK = 0
+ERR_NO_TTY = 1
+ERR_NOT_READY = 2
+ERR_NO_BOOT = 3
+
+_MSG = {
+    OK: "eboard MCU started",
+    ERR_NO_TTY: "serial device missing",
+    ERR_NOT_READY: "eboard never signalled 'Ready.' (already booted? bad cable?)",
+    ERR_NO_BOOT: "eboard did not confirm boot",
+}
+
+
+def has_ready(chunk, token=READY_TOKEN):
+    """True if a read chunk contains the bootloader's readiness token."""
+    return token in chunk
+
+
+def is_boot_ack(chunk, ack_bytes=ACK_BYTES):
+    """True if a reply chunk contains a boot-confirmation byte (0x01 / 0x06)."""
+    return any(b in chunk for b in ack_bytes)
+
+
+def run_handshake(read, write, ready_retries=READY_RETRIES,
+                  boot_retries=BOOT_RETRIES):
+    """Drive the eboard boot handshake over injected read()/write() callables.
+
+    ``read()`` returns a ``bytes`` chunk (``b""`` on timeout/EOF); ``write(b)``
+    sends bytes. Pure with respect to the serial port, so it is fully unit- and
+    fuzz-testable. Returns one of OK / ERR_NOT_READY / ERR_NO_BOOT and always
+    terminates within ``ready_retries + boot_retries`` I/O round-trips.
+    """
+    ready = False
+    for _ in range(ready_retries):
+        if has_ready(read()):
+            ready = True
+            break
+    if not ready:
+        return ERR_NOT_READY
+
+    for _ in range(boot_retries):
+        write(CMD_BOOT)
+        if is_boot_ack(read()):
+            return OK
+    return ERR_NO_BOOT
+
+
+def configure_tty(fd, baud=BAUD):
+    """Put an open serial fd into 115200 raw with a bounded read timeout.
+
+    Equivalent to cfmakeraw() + cfsetspeed(baud) + VMIN=0/VTIME, so a silent
+    MCU can't block a read forever (the retry loop above stays bounded).
+    """
+    iflag, oflag, cflag, lflag, _ispeed, _ospeed, cc = termios.tcgetattr(fd)
+    iflag &= ~(termios.IGNBRK | termios.BRKINT | termios.PARMRK | termios.ISTRIP
+               | termios.INLCR | termios.IGNCR | termios.ICRNL | termios.IXON)
+    oflag &= ~termios.OPOST
+    lflag &= ~(termios.ECHO | termios.ECHONL | termios.ICANON | termios.ISIG
+               | termios.IEXTEN)
+    cflag &= ~(termios.CSIZE | termios.PARENB)
+    cflag |= termios.CS8 | termios.CREAD | termios.CLOCAL
+    cc = list(cc)
+    cc[termios.VMIN] = 0
+    cc[termios.VTIME] = READ_TIMEOUT_DS
+    termios.tcsetattr(fd, termios.TCSANOW,
+                      [iflag, oflag, cflag, lflag, baud, baud, cc])
+
+
+def main(argv):
+    tty = argv[1] if len(argv) > 1 else TTY
+    if not os.path.exists(tty):
+        sys.stderr.write("reforge-boot-eboard: %s: %s\n" % (tty, _MSG[ERR_NO_TTY]))
+        return ERR_NO_TTY
+    # O_NONBLOCK on open avoids hanging if no carrier is asserted; CLOCAL +
+    # blocking-after-configure then lets VTIME govern reads.
+    fd = os.open(tty, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+    try:
+        os.set_blocking(fd, True)
+        configure_tty(fd)
+        rc = run_handshake(lambda: os.read(fd, READ_SIZE),
+                           lambda b: os.write(fd, b))
+    finally:
+        os.close(fd)
+    sys.stderr.write("reforge-boot-eboard: %s (rc=%d)\n"
+                     % (_MSG.get(rc, "unknown"), rc))
+    return rc
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

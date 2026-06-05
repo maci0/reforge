@@ -1,0 +1,96 @@
+From: ReForge <reforge@localhost>
+Date: Fri, 5 Jun 2026 00:00:00 +0000
+Subject: [PATCH] update_manager: allow zip updates for reserved klipper/moonraker
+
+Moonraker handles the "klipper" and "moonraker" updaters specially: their
+config is built from a hardcoded BASE_CONFIG plus only OPTION_OVERRIDES
+("channel", "pinned_commit", "refresh_interval", "report_anomalies"), and
+their `type` comes from AppType.detect() (NOT from the section's `type`
+option). Upstream detect() returns only GIT_REPO / PYTHON / NONE, so a
+zip-deployed klipper/moonraker is typed NONE and cannot be updated via
+update_manager. Any type/repo/path/managed_services set in those sections is
+silently dropped, producing "Unparsed config option" warnings.
+
+ReForge ships klipper and moonraker as prebuilt zip releases (the gcc-less
+device never recompiles), so they must be ZIP-type updaters like our other
+components. Three minimal changes:
+
+  1. detect(): a directory carrying release_info.json (how a zip deploy marks
+     itself - see net_deploy.py) is detected as ZIP. Git detection still wins;
+     the moonraker self path falls back to source_info.source_path().
+  2. OPTION_OVERRIDES: add "repo" so the reserved updaters read their repo from
+     the section (NetDeploy requires it; BASE_CONFIG has none). path is derived
+     (klippy connection / source_path) and managed_services defaults to the
+     updater name, so neither needs to be configured.
+  3. _configure_virtualenv(): skip the env->virtualenv derivation for ZIP
+     deploys. When the klipper updater is rebuilt on server:klippy_identified it
+     carries an 'env' (klippy's python_path, e.g. /usr/bin/python3, or the
+     default ~/klippy-env). A ZIP klipper is prebuilt on the system python with
+     a bundled c_helper.so - there is no virtualenv. Without this guard NetDeploy
+     derives a venv as python.parent.parent (e.g. /usr), finds no bin/activate,
+     and aborts the whole klipper updater ("Invalid virtualenv at path /usr").
+     Guarding the ZIP case makes klipper behave like any other zip updater.
+
+Signed-off-by: ReForge <reforge@localhost>
+--- a/moonraker/components/update_manager/common.py
++++ b/moonraker/components/update_manager/common.py
+@@ -42,7 +42,9 @@
+     }
+ }
+ 
+-OPTION_OVERRIDES = ("channel", "pinned_commit", "refresh_interval", "report_anomalies")
++OPTION_OVERRIDES = (
++    "channel", "pinned_commit", "refresh_interval", "report_anomalies", "repo"
++)
+ 
+ class AppType(ExtendedEnum):
+     NONE = 1
+@@ -59,10 +61,16 @@
+             app_path = pathlib.Path(app_path).expanduser()
+         if source_info.is_git_repo(app_path):
+             return AppType.GIT_REPO
+-        elif app_path is None and source_info.is_vitualenv_project():
++        # ReForge: a directory carrying release_info.json is a zip-deployed app.
++        # Upstream detect() yields only GIT_REPO/PYTHON/NONE, so the reserved
++        # 'klipper'/'moonraker' updaters (type comes from detect(), not config)
++        # could never be ZIP. Detect it so they can be OTA-updated like the rest.
++        ri_dir = app_path if app_path is not None else source_info.source_path()
++        if ri_dir is not None and (ri_dir / "release_info.json").exists():
++            return AppType.ZIP
++        if app_path is None and source_info.is_vitualenv_project():
+             return AppType.PYTHON
+-        else:
+-            return AppType.NONE
++        return AppType.NONE
+ 
+     @classmethod
+     def valid_types(cls) -> List[AppType]:
+--- a/moonraker/components/update_manager/app_deploy.py
++++ b/moonraker/components/update_manager/app_deploy.py
+@@ -89,7 +89,12 @@
+             if not venv_path.is_absolute():
+                 venv_path = self.path.joinpath(venv_path)
+             self._verify_path(config, 'virtualenv', venv_path, check_file=False)
+-        elif config.has_option("env"):
++        elif config.has_option("env") and self.type != AppType.ZIP:
++            # ReForge: skip the env->virtualenv derivation for ZIP deploys. A
++            # zip-deployed app (e.g. our reserved klipper) is prebuilt and runs
++            # on the system python with no virtualenv; get_base_configuration
++            # still injects a default/system 'env', and without this guard
++            # NetDeploy would build a bogus venv from it and abort the updater.
+             # Deprecated
+             if self.name != "klipper":
+                 self.log_info("Option 'env' is deprecated, use 'virtualenv' instead.")
+@@ -124,6 +129,12 @@
+     def _configure_dependencies(
+         self, config: ConfigHelper, node_only: bool = False
+     ) -> None:
++        if self.type == AppType.ZIP:
++            # ReForge: a ZIP deploy is prebuilt - no pip requirements, system
++            # dependencies, or install script to verify. Those are git/source
++            # install concepts that BASE_CONFIG injects for the reserved
++            # klipper/moonraker updaters and would otherwise abort the updater.
++            return
+         if config.getboolean("enable_node_updates", False):
+             self.npm_pkg_json = self.path.joinpath("package-lock.json")
+             self._verify_path(config, 'enable_node_updates', self.npm_pkg_json)
