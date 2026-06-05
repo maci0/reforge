@@ -3,7 +3,7 @@ BUILD := tools/build/build.sh
         run-from-mod \
         bsp-kernel-rebuild bsp-kernel-stock \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
-        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-guppy qemu-live qemu-live-ota qemu-pid1-pivot qemu-mem qemu-ota shots-reforge vmtune-bench
+        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-guppy qemu-live qemu-live-ota qemu-pid1-pivot qemu-stock-preinit qemu-mem qemu-ota shots-reforge vmtune-bench
 # lint: shellcheck our own shell scripts (skips cleanly if shellcheck absent)
 lint:              ; tools/lint/shellcheck.sh
 # Single image: `make rootfs` builds the full ReForge stack (klipper + moonraker
@@ -90,6 +90,11 @@ qemu-live-ota:     ; tests/qemu-harness/live-ota-test.sh
 qemu-pid1-pivot:   ; tests/qemu-harness/pid1-pivot-test.sh happy && \
                      tests/qemu-harness/pid1-pivot-test.sh skip-cmdline && \
                      tests/qemu-harness/pid1-pivot-test.sh no-install
+# qemu-stock-preinit: prove docs/boot.md §2 row #6 is real — the stock
+# /etc/inittab calls /etc/preinit as the FIRST sysinit entry. Test drops a
+# tiny marker script at /etc/preinit on a stock-shaped eMMC, boots, asserts
+# the marker hits the serial console BEFORE rcS markers.
+qemu-stock-preinit: ; tests/qemu-harness/stock-preinit-test.sh
 shots-reforge:     ; tests/qemu-harness/shots-reforge.sh
 vmtune-bench:      ; tests/qemu-harness/vmtune-bench.sh
 
