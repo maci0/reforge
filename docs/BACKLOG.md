@@ -143,6 +143,36 @@ mount cleanly, what's the per-mount RSS overhead, what's the cold-read penalty
 on a klippy startup) before any architectural commitment. Probably a half-day
 spike.
 
+## Mode 3 net stack: switch to iwd, skip ConnMan
+
+For Mode 3 (full replacement, Plan 5) the network daemon should switch from
+`wpa_supplicant` to `iwd`. Reasons aligned with the deployment-modes
+roadmap:
+
+- Mainline-LTS kernel + `rtw88` driver for the RTL8821CU (mainline since
+  5.16) has proper, well-tested cfg80211 support — unlike the current
+  Realtek-vendor staging driver, which has unknown nl80211 completeness for
+  iwd's full API surface.
+- iwd is genuinely smaller and cleaner: ~900 KB binary + ~150 KB `ell` lib,
+  no `libssl`/`libcrypto` dependency (vs wpa_supplicant ~1.2 MB + OpenSSL),
+  ~2–3 MB RSS at runtime (vs ~5–6 MB).
+- D-Bus interface is more uniform than `wpa_cli` action scripts for the
+  "am I online?" / "current SSID" / "signal strength" queries Mainsail and
+  GuppyScreen are likely to want eventually.
+
+**Skip ConnMan** even in Mode 3. A single-network printer doesn't need
+the full connection-manager state machine; the +3 MB glib2 dependency
+fully erases iwd's RSS savings and then some. A 30-line shell wrapper
+over `iwd` D-Bus calls is plenty for our use case.
+
+**Note (2026-06-05):** iwd was added to the Mode 2 rootfs as an
+*available* binary (not the default daemon), enabled via
+`BR2_PACKAGE_IWD=y` so we can A/B `iwctl` against `wpa_supplicant` on
+the AD5M's rtl8821cu USB driver and prove the staging driver's nl80211
+implementation supports iwd before committing to it in Mode 3. The
+default daemon in net-up.sh stays `wpa_supplicant -Dnl80211` until that
+experiment passes.
+
 ## wifi event marker: `[ -f /run/reforge-wifi-up ]` primitive
 
 Forge-x's `.shell/boot/wifi_reconnect.sh` maintains a `$WIFI_CONNECTED_F`

@@ -3,7 +3,7 @@
 #
 # Assembles the self-contained OTA `mod/` directory at the chroot root
 # (`${TARGET_DIR}/mod` == chroot-internal `/mod`).  The rootfs built here IS
-# the on-device `/data/.reforge` chroot, so `/mod` inside it is the OTA-updatable
+# the on-device `/data/.mod/.reforge` chroot, so `/mod` inside it is the OTA-updatable
 # overlay layer that holds ONLY ReForge-authored files (init scripts, default
 # configs, zram .ko, banner, service-control wrappers, start/stop).  It carries
 # no busybox/glibc/opt, so a future zip update's rmtree(/mod)+extract is safe.
@@ -231,3 +231,21 @@ rm -rf "${TARGET_DIR}/lkg"
 cp -a "${MOD}" "${TARGET_DIR}/lkg"
 
 echo "[post-build] mod/ assembled (version ${VER})"
+
+# ---------------------------------------------------------------------------
+# Disable iwd auto-start. Buildroot's iwd package installs /etc/init.d/S40iwd
+# which would start iwd at boot in parallel with our wpa_supplicant (launched
+# from net-up.sh). Two daemons on wlan0 collide.
+#
+# We ship the iwd BINARY (/usr/libexec/iwd, /etc/iwd/main.conf) so we can A/B
+# test on real hardware with the rtl8821cu USB driver, but the init script
+# itself is moved out of /etc/init.d/ so rcS's `S??*` glob doesn't pick it up.
+# To activate iwd as the default daemon later, move the file back to
+# /etc/init.d/S40iwd (and adjust net-up.sh to NOT launch wpa_supplicant).
+#
+# Tracked: docs/BACKLOG.md "Mode 3 net stack: switch to iwd, skip ConnMan".
+# ---------------------------------------------------------------------------
+if [ -f "${TARGET_DIR}/etc/init.d/S40iwd" ]; then
+    echo "[post-build] disabling iwd auto-start (S40iwd -> S40iwd.disabled)"
+    mv "${TARGET_DIR}/etc/init.d/S40iwd" "${TARGET_DIR}/etc/init.d/S40iwd.disabled"
+fi
