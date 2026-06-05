@@ -223,6 +223,15 @@ cat > "${MOD}/release_info.json" <<EOF
 }
 EOF
 
+# '.writeable' marker: Moonraker's update_manager will not overwrite a component
+# dir without it (else NetDeploy reserves the path -> "Invalid Installation" ->
+# OTA refused). Mark the first-install image paths so the very first OTA is
+# allowed; the OTA zips themselves carry the marker too (see build-release.sh).
+: > "${MOD}/.writeable"
+for _c in klipper moonraker guppyscreen; do
+    [ -d "${TARGET_DIR}/opt/${_c}" ] && : > "${TARGET_DIR}/opt/${_c}/.writeable"
+done
+
 # ---------------------------------------------------------------------------
 # Seed the last-known-good baseline (a verbatim copy of the shipped mod/).
 # ---------------------------------------------------------------------------
@@ -240,12 +249,18 @@ echo "[post-build] mod/ assembled (version ${VER})"
 # We ship the iwd BINARY (/usr/libexec/iwd, /etc/iwd/main.conf) so we can A/B
 # test on real hardware with the rtl8821cu USB driver, but the init script
 # itself is moved out of /etc/init.d/ so rcS's `S??*` glob doesn't pick it up.
-# To activate iwd as the default daemon later, move the file back to
-# /etc/init.d/S40iwd (and adjust net-up.sh to NOT launch wpa_supplicant).
+# IMPORTANT: rcS matches `S??*` (S, two chars, anything), so "S40iwd.disabled"
+# would STILL match. We move the script to /etc/init.d/disabled/iwd instead
+# (a subdir glob's loop doesn't recurse into). To activate iwd as the default
+# daemon later, move it back: `mv /etc/init.d/disabled/iwd /etc/init.d/S40iwd`
+# (and adjust net-up.sh to NOT launch wpa_supplicant).
 #
 # Tracked: docs/BACKLOG.md "Mode 3 net stack: switch to iwd, skip ConnMan".
 # ---------------------------------------------------------------------------
 if [ -f "${TARGET_DIR}/etc/init.d/S40iwd" ]; then
-    echo "[post-build] disabling iwd auto-start (S40iwd -> S40iwd.disabled)"
-    mv "${TARGET_DIR}/etc/init.d/S40iwd" "${TARGET_DIR}/etc/init.d/S40iwd.disabled"
+    echo "[post-build] disabling iwd auto-start (S40iwd -> disabled/iwd)"
+    mkdir -p "${TARGET_DIR}/etc/init.d/disabled"
+    mv "${TARGET_DIR}/etc/init.d/S40iwd" "${TARGET_DIR}/etc/init.d/disabled/iwd"
 fi
+# Also clean up any stale .disabled file from the prior (broken) approach.
+rm -f "${TARGET_DIR}/etc/init.d/S40iwd.disabled"

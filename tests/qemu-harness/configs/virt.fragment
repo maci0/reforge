@@ -62,6 +62,15 @@ CONFIG_CRYPTO_ZSTD=y
 CONFIG_EXT4_FS=y
 CONFIG_BLK_DEV_INITRD=y
 
+# --- ENABLE: eMMC + USB mass storage via PCI (production-look-alike) ---
+#   On the AD5M, /data is at /dev/mmcblk0p7 and the USB stick is /dev/sda1.
+#   To match those device names in qemu, we attach an emmc behind sdhci-pci
+#   (needs MMC_SDHCI_PCI) and a USB stick behind qemu-xhci -> usb-storage
+#   (needs USB_XHCI_PCI + USB_STORAGE + BLK_DEV_SD, all already enabled by
+#   multi_v7_defconfig). The eMMC bit is the gap multi_v7 leaves: it has
+#   platform SDHCI but not PCI SDHCI. Enabling it here gives /dev/mmcblk0.
+CONFIG_MMC_SDHCI_PCI=y
+
 # --- ENABLE: device management ---
 CONFIG_DEVTMPFS=y
 CONFIG_DEVTMPFS_MOUNT=y

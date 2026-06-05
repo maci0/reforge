@@ -3,7 +3,7 @@ BUILD := tools/build/build.sh
         run-from-mod \
         bsp-kernel-rebuild bsp-kernel-stock \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
-        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-guppy qemu-live qemu-live-ota qemu-mem qemu-ota shots-reforge vmtune-bench
+        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-guppy qemu-live qemu-live-ota qemu-pid1-pivot qemu-mem qemu-ota shots-reforge vmtune-bench
 # lint: shellcheck our own shell scripts (skips cleanly if shellcheck absent)
 lint:              ; tools/lint/shellcheck.sh
 # Single image: `make rootfs` builds the full ReForge stack (klipper + moonraker
@@ -46,7 +46,7 @@ validate-loopback: ; sudo tests/loopback-install-test.sh
 # run-from-mod: structural test of the self-contained mod/ + run-in-place model
 run-from-mod:      ; tests/release/run-from-mod-test.sh
 # unit: host unit + fuzz tests for the .shell helpers + the ff-update checker (no qemu, no root)
-unit:              ; tests/release/lkg-unit-test.sh && tests/release/vmtune-unit-test.sh && tests/release/netup-unit-test.sh && python3 tools/ota/test_check_ff_update.py
+unit:              ; tests/release/lkg-unit-test.sh && tests/release/vmtune-unit-test.sh && tests/release/netup-unit-test.sh && python3 tools/ota/test_check_ff_update.py && python3 tests/release/test_boot_eboard.py && python3 tests/release/test_moonraker_conf.py
 
 # --- P3 Task 4: qemu virt test kernel (vendor 5.4.61, ARCH_SUNXI=n, 800x480x32 fb) ---
 # build zImage + initramfs + run smoke test
@@ -84,6 +84,12 @@ qemu-render:       ; tests/qemu-harness/reforge-render-test.sh
 qemu-stockui:      ; tests/qemu-harness/stockui-render.sh
 qemu-live:         ; tests/qemu-harness/live-mode-test.sh
 qemu-live-ota:     ; tests/qemu-harness/live-ota-test.sh
+# qemu-pid1-pivot: validate the reforge-init PID-1 + pivot_root flow
+# (docs/boot.md §2 Option A, docs/research/2026-06-05-replacing-pid1.md §A1).
+# Runs three sub-cases: happy / skip-cmdline / no-install.
+qemu-pid1-pivot:   ; tests/qemu-harness/pid1-pivot-test.sh happy && \
+                     tests/qemu-harness/pid1-pivot-test.sh skip-cmdline && \
+                     tests/qemu-harness/pid1-pivot-test.sh no-install
 shots-reforge:     ; tests/qemu-harness/shots-reforge.sh
 vmtune-bench:      ; tests/qemu-harness/vmtune-bench.sh
 
@@ -108,3 +114,13 @@ qemu-mem:          ; TWEAKS="$(TWEAKS)" tests/qemu-harness/mem-probe.sh $(ROOTFS
 # after N=3 failed boots. Step 1 (e2e Moonraker update) is best-effort. Fully
 # rootless (mke2fs -d / debugfs), NO sudo.
 qemu-ota:          ; tests/qemu-harness/ota-test.sh
+
+# qemu-zipdetect: validate the 0002 reserved-updater ZIP-detect patch against the
+# REAL built armv7 Moonraker, run on the target Python via qemu-user (no boot, no
+# root). Skips cleanly if qemu-arm or the built target is absent.
+qemu-zipdetect:    ; tests/qemu-harness/moonraker-zip-detect-test.sh
+
+# qemu-klipper-ota: full qemu-system end-to-end of the RESERVED 'klipper' updater
+# (0002). GATE = klipper configures as a ZIP updater (impossible pre-patch);
+# version-bump download is best-effort. Skips cleanly if qemu/gvproxy/kernel absent.
+qemu-klipper-ota:  ; tests/qemu-harness/ota-klipper-e2e-test.sh

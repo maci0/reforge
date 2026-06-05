@@ -121,6 +121,7 @@ if ! $BB mount | grep -q ' /data '; then
     if ! $BB mount -t ext4 /dev/mmcblk0p7 /data 2>/dev/null; then
         fallback "cannot mount /dev/mmcblk0p7 at /data"
     fi
+    echo "[reforge-init] /data mounted from /dev/mmcblk0p7"
 fi
 
 # ---------------------------------------------------------------------------
@@ -144,6 +145,15 @@ log "found ReForge ${VER} at ${TARGET}; pivoting"
 for d in proc sys dev run tmp data oldroot; do
     mkdir -p "${TARGET}/${d}"
 done
+
+# pivot_root(2) requires new_root to be a mount point, not just a directory.
+# Our ${TARGET} (=/data/.mod/.reforge) is a sub-dir of the /data mount, so
+# pivot would fail with EINVAL otherwise. The standard fix is documented in
+# the kernel pivot_root(2) man page: "A path that is not already a mount
+# point can be converted into one by bind-mounting the path onto itself."
+if ! $BB mount --bind "${TARGET}" "${TARGET}"; then
+    fallback "self-bind on ${TARGET} failed (cannot make it a mount point)"
+fi
 
 # ---------------------------------------------------------------------------
 # 6. pivot_root: arg is "new root . oldroot" where oldroot is RELATIVE to the
