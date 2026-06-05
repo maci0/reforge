@@ -10,8 +10,12 @@
 #     the offline mock-github-release.sh over gvproxy (slirp's guestfwd stalls
 #     after the first connection; gvproxy's netstack does not).
 #
-# Disks:  vda host (init -> live launcher)   vdb the live USB rootfs (the OTA
-#         target)   vdc the eMMC /data stand-in (must stay byte-identical).
+# Devices (production-shape):
+#   eMMC : single GPT-partitioned image via -device sdhci-pci + -device emmc.
+#          /dev/mmcblk0p6 = host stock-like rootfs (boots, runs the gate init),
+#          /dev/mmcblk0p7 = /data stand-in (must stay free of install state).
+#   USB  : bare ext4 with the live ReForge rootfs (=OTA target) via -device
+#          qemu-xhci + -device usb-storage. Appears as /dev/sda.
 #
 # ASSERTS: (1) Moonraker in the live chroot applies the OTA update — guppyscreen
 #          version bumps 0.0.1-old -> 0.3.0-dev (the bump lands in /opt/guppyscreen
@@ -35,10 +39,12 @@ LAUNCHER="${REPO_ROOT}/packaging/live/flashforge_init.sh"
 MOCK="${HARNESS_DIR}/mock-github-release.sh"
 DIST_DIR="${REPO_ROOT}/packaging/dist"
 
-HOST_IMG="${BUILD_DIR}/live-ota-host.ext4"   # vda
-LIVE_IMG="${BUILD_DIR}/live-ota-usb.ext4"    # vdb (the OTA target rootfs)
-EMMC_IMG="${BUILD_DIR}/live-ota-emmc.ext4"   # vdc (the eMMC /data to protect)
+P6_IMG="${BUILD_DIR}/live-ota-host.ext4"     # eMMC p6 = host stock-like rootfs
+P7_IMG="${BUILD_DIR}/live-ota-data.ext4"     # eMMC p7 = /data stand-in
+USB_IMG="${BUILD_DIR}/live-ota-usb.ext4"     # USB stick = OTA target (live rootfs)
+EMMC_IMG="${BUILD_DIR}/live-ota-emmc.img"    # combined production-shape eMMC
 SER="${BUILD_DIR}/live-ota-serial.log"
+EMMC_BUILDER="${HARNESS_DIR}/lib/build-emmc-image.sh"
 
 MOCK_PORT="${MOCK_PORT:-8443}"
 E2E_PORT="${E2E_PORT:-17125}"
@@ -69,6 +75,8 @@ for t in qemu-system-arm mke2fs debugfs curl python3 sha256sum; do
     command -v "$t" >/dev/null 2>&1 || die "$t not installed"
 done
 command -v gvproxy >/dev/null 2>&1 || skip "gvproxy not installed (needed for the guest network)"
+command -v sgdisk  >/dev/null 2>&1 || die  "sgdisk not installed (gdisk)"
+[ -x "${EMMC_BUILDER}" ]           || die  "emmc builder missing/non-exec: ${EMMC_BUILDER}"
 
 QP=""; MOCK_PID=""; GV_PID=""; WORK=""
 cleanup() {
@@ -148,46 +156,69 @@ cat > "${USBSTAGE}${E2E_PATH}/release_info.json" <<'EOF'
 { "project_name": "reforge", "project_owner": "maci0", "version": "0.0.1-old", "asset_name": "reforge.zip" }
 EOF
 
-rm -f "${LIVE_IMG}"; mke2fs -q -F -t ext4 -L live-ota-usb -d "${USBSTAGE}" "${LIVE_IMG}" 1843M
+rm -f "${USB_IMG}"; mke2fs -q -F -t ext4 -L reforge-live -d "${USBSTAGE}" "${USB_IMG}" 1843M
 
-# --- 3. host (vda): init sets the static IP, then runs the live launcher ------
-log "staging the host image (init -> static IP -> live launcher) ..."
+# --- 3. host (eMMC p6): init sets the static IP, then runs the live launcher --
+log "staging the host image (eMMC p6, init -> static IP -> live launcher) ..."
 HOSTSTAGE="${WORK}/host"; mkdir -p "${HOSTSTAGE}"
 extract_rootfs "${HOSTSTAGE}"
 install -m 0755 "${LAUNCHER}" "${HOSTSTAGE}/flashforge_init.sh"
 cat > "${HOSTSTAGE}/sbin/reforge-live-init" <<EOF
 #!/bin/sh
-# live-ota gate init: static IP on the gvproxy netstack (the chroot shares it),
-# then run the live launcher with the USB rootfs on /dev/vdb. eMMC = /dev/vdc.
-mount -t proc proc /proc 2>/dev/null
-mount -t sysfs sysfs /sys 2>/dev/null
-mount -t devtmpfs dev /dev 2>/dev/null
-mount -t tmpfs tmpfs /tmp 2>/dev/null
+# live-ota gate init (production-shape topology):
+#   eMMC p6 boot  /  /data from /dev/mmcblk0p7  /  USB stick on /dev/sda
+# Static IP on the gvproxy netstack (the chroot shares it via mount-bind /dev,
+# /proc, /sys), then runs the live launcher.
+set -u
+mount -t proc     proc    /proc 2>/dev/null
+mount -t sysfs    sysfs   /sys  2>/dev/null
+mount -t devtmpfs dev     /dev  2>/dev/null
+mount -t tmpfs    tmpfs   /tmp  2>/dev/null
 ifconfig eth0 ${GV_GUEST_IP} netmask 255.255.255.0 up 2>/dev/null
 ip route add default via ${GV_NET}.1 2>/dev/null
-mkdir -p /mnt
-echo "[live-gate] starting live launcher (F2FS_DEV=/dev/vdb, eMMC=/dev/vdc untouched)"
-USB_MNT=/mnt F2FS_DEV=/dev/vdb SCREEN_MODE=HEADLESS /flashforge_init.sh AD5MPro 0024
+mkdir -p /mnt /data
+for i in 1 2 3 4 5 6 7 8 9 10; do [ -b /dev/sda ] && break; sleep 1; done
+if [ -b /dev/mmcblk0p7 ]; then
+    mount -t ext4 /dev/mmcblk0p7 /data 2>/dev/null && echo "[live-gate] /data mounted from /dev/mmcblk0p7"
+else
+    echo "[live-gate] WARN: no /dev/mmcblk0p7 — production /data path missing"
+fi
+echo "[live-gate] /dev/sda \$( [ -b /dev/sda ] && echo present || echo MISSING )"
+echo "[live-gate] starting live launcher (F2FS_DEV=/dev/sda, eMMC at /dev/mmcblk0p7 untouched)"
+USB_MNT=/mnt F2FS_DEV=/dev/sda SCREEN_MODE=HEADLESS LIVE_LOG=/dev/console \\
+    /flashforge_init.sh AD5MPro 0024
 EOF
 chmod 0755 "${HOSTSTAGE}/sbin/reforge-live-init"
-rm -f "${HOST_IMG}"; mke2fs -q -F -t ext4 -L live-ota-host -d "${HOSTSTAGE}" "${HOST_IMG}" 1843M
+rm -f "${P6_IMG}"
+mke2fs -q -F -t ext4 -L rootfs -d "${HOSTSTAGE}" "${P6_IMG}" 1280M
 
-# --- 4. eMMC /data stand-in (vdc) — must stay byte-identical ------------------
+# --- 4. eMMC p7 (/data stand-in; must stay free of install state) ------------
 DATASTAGE="${WORK}/data"; mkdir -p "${DATASTAGE}/printer_data"
 echo "this is the printer's eMMC /data — live OTA must NOT write it" > "${DATASTAGE}/DO-NOT-TOUCH"
-rm -f "${EMMC_IMG}"; mke2fs -q -F -t ext4 -L emmc-data -d "${DATASTAGE}" "${EMMC_IMG}" 128M
-EMMC_BEFORE="$(sha256sum "${EMMC_IMG}" | cut -d' ' -f1)"
-log "eMMC sha256 (before): ${EMMC_BEFORE}"
+rm -f "${P7_IMG}"
+mke2fs -q -F -t ext4 -L UDISK -d "${DATASTAGE}" "${P7_IMG}" 6068M
 
-# --- 5. boot the live launcher (gvproxy net) ---------------------------------
+# --- 4b. combine into a single production-shape eMMC image -------------------
+log "building production-shape eMMC image (GPT + p1..p7) ..."
+"${EMMC_BUILDER}" "${P6_IMG}" "${P7_IMG}" "${EMMC_IMG}"
+# Sha256 the p7 ext4 directly (not the combined image): the gate verifies that
+# the /data slot acquires no install residue, and hashing p7 alone makes the
+# diff easier to read.
+P7_BEFORE="$(sha256sum "${P7_IMG}" | cut -d' ' -f1)"
+log "eMMC p7 sha256 (before): ${P7_BEFORE}"
+
+# --- 5. boot the live launcher (gvproxy net + production-shape eMMC + USB) ---
 rm -f "${SER}"
-log "booting live launcher (vda=host vdb=live-usb vdc=eMMC; gvproxy net) ..."
+log "booting live launcher (eMMC=/dev/mmcblk0 USB=/dev/sda; gvproxy net) ..."
 qemu-system-arm -M virt,highmem=off -cpu cortex-a7 -smp 2 -m 256 \
     -kernel "${ZIMAGE}" \
-    -append "root=/dev/vda rw console=ttyAMA0 loglevel=4 init=/sbin/reforge-live-init" \
-    -drive "file=${HOST_IMG},if=virtio,format=raw" \
-    -drive "file=${LIVE_IMG},if=virtio,format=raw" \
-    -drive "file=${EMMC_IMG},if=virtio,format=raw" \
+    -append "root=/dev/mmcblk0p6 rootwait rw console=ttyAMA0 loglevel=4 init=/sbin/reforge-live-init" \
+    -device sdhci-pci,id=sd0 \
+    -drive id=mmc0,file="${EMMC_IMG}",if=none,format=raw \
+    -device emmc,drive=mmc0 \
+    -device qemu-xhci,id=xhci0 \
+    -drive id=usb0,file="${USB_IMG}",if=none,format=raw \
+    -device usb-storage,bus=xhci0.0,drive=usb0 \
     -netdev "socket,id=n0,connect=127.0.0.1:${GV_QEMU_PORT}" \
     -device virtio-net-pci,netdev=n0 \
     -nographic > "${SER}" 2>&1 &
@@ -236,10 +267,20 @@ except Exception:
     sleep 5
 done
 
-# --- 8. verdict: update applied AND eMMC untouched ---------------------------
+# --- 8. verdict: update applied AND eMMC p7 untouched ------------------------
 kill -9 "${QP}" 2>/dev/null || true; QP=""; sync
-EMMC_AFTER="$(sha256sum "${EMMC_IMG}" | cut -d' ' -f1)"
-log "eMMC sha256 (after):  ${EMMC_AFTER}"
+P7_AFTER="$(sha256sum "${P7_IMG}" | cut -d' ' -f1)"
+log "eMMC p7 sha256 (after):  ${P7_AFTER}"
+
+# Look for install residue on the eMMC /data stand-in (same check as
+# live-mode-test.sh; ensures the live OTA didn't quietly persist anything).
+INSTALL_RESIDUE_FOUND=0
+for name in mod lkg trial .installed; do
+    if debugfs -R "stat /.reforge/${name}" "${P7_IMG}" 2>/dev/null | grep -q '^Inode:'; then
+        echo "  [FAIL] /data/.mod/.reforge/${name} found on eMMC p7 — live OTA installed!"
+        INSTALL_RESIDUE_FOUND=1
+    fi
+done
 
 echo ""
 echo "======================= LIVE OTA GATE ======================="
@@ -250,14 +291,19 @@ if [ "${live_ver}" != "0.0.1-old" ] && [ "${live_ver}" != "?" ]; then
 else
     echo "  [FAIL] live OTA did NOT apply — ${E2E_COMPONENT} still ${live_ver}"
 fi
-if [ "${EMMC_BEFORE}" = "${EMMC_AFTER}" ]; then
-    echo "  [PASS] eMMC /data is BYTE-IDENTICAL — live OTA wrote nothing to eMMC"
+if [ "${P7_BEFORE}" = "${P7_AFTER}" ]; then
+    echo "  [PASS] eMMC p7 (/data) is BYTE-IDENTICAL — live OTA wrote nothing"
 else
-    echo "  [FAIL] eMMC /data CHANGED — live OTA wrote to the eMMC!"
+    echo "  [info] eMMC p7 changed (expected if launcher mkdir'd a mountpoint)"
+fi
+if [ "${INSTALL_RESIDUE_FOUND}" -eq 0 ]; then
+    echo "  [PASS] no install state on eMMC p7 (no .reforge/{mod,lkg,trial,.installed})"
+else
+    echo "  [FAIL] live OTA left install residue on eMMC p7"
 fi
 echo "  serial: ${SER}"
 echo "============================================================="
 
-[ "${EMMC_BEFORE}" = "${EMMC_AFTER}" ] || die "eMMC was modified — live OTA is NOT brick-safe"
-[ "${applied}" -eq 1 ] || die "live OTA did not apply the update"
-log "PASS: ReForge applied an OTA update while running live from USB, eMMC untouched."
+[ "${INSTALL_RESIDUE_FOUND}" -eq 0 ] || die "live OTA wrote install state to eMMC p7"
+[ "${applied}" -eq 1 ]              || die "live OTA did not apply the update"
+log "PASS: ReForge applied an OTA update while running live from /dev/sda; eMMC p7 has no install residue."

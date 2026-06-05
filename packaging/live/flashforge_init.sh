@@ -1,16 +1,33 @@
 #!/bin/sh
 # =============================================================================
-# ReForge LIVE launcher — run ReForge from a USB stick, writing NOTHING to eMMC.
+# ReForge LIVE launcher — boot ReForge from a USB stick.
+#
+# Live mode here means "booted off USB" — not "read-only" or "zero eMMC writes".
+# We mirror reforge-boot's chroot layout exactly: the F2FS USB partition mounts
+# at /data/.mod/.reforge (the same host-side path the installer uses) and we bind the
+# host's /data (eMMC mmcblk0p7) into the chroot at /data. So debugging, paths,
+# and behaviour are identical to install mode; the only difference is the
+# chroot ROOT comes from a USB partition instead of a directory on eMMC.
+#
+# Write topology (with the F2FS USB at /data/.mod/.reforge):
+#   - Our OS writes to USB: klippy.log, moonraker DB, SAVE_CONFIG appends, /tmp.
+#   - User gcodes via Mainsail land on eMMC /data (the `[virtual_sdcard] path:
+#     /data/` from the factory config). They persist across stick pull/reboot
+#     and are visible to an install on the same unit — same path, same files.
+#   - The eMMC sees ONE OS-level write: the mkdir of /data/.mod/.reforge (a single
+#     directory inode) the first time live mode runs on a fresh unit. After
+#     that the dir exists; subsequent live boots reuse it; an install reuses
+#     the same dir for its own state (live mode mounts the F2FS over it, so
+#     the install's files are hidden but intact — pull stick, reboot, install
+#     comes back).
 #
 # The stock FlashForge auto_run.sh runs any `flashforge_init.sh` found at the USB
 # root, directly from /mnt, on every boot:
 #     /mnt/flashforge_init.sh <MACHINE> <PID>
 #     if [ $? -eq 0 ]; then umount /mnt; sleep 100000; fi
-# So we mirror reforge-boot — but root the chroot on the USB's F2FS partition
-# and give it a **tmpfs /data** instead of binding the eMMC (mmcblk0p7). We then
-# block forever, so the stock flow never reaches `umount /mnt` and never installs
-# or launches the stock UI. The eMMC is never touched: pull the USB + reboot →
-# pristine stock.
+# We chroot into the F2FS USB partition + run /mod/start.sh + block forever, so
+# the stock flow never reaches `umount /mnt`, never installs, never launches
+# the stock UI.
 #
 # USB layout (MBR, 2 partitions):
 #   p1 vfat  — /flashforge_init.sh (this) + net-up.sh + crc32_generic.ko + f2fs.ko
@@ -34,19 +51,28 @@ USB_MNT="${USB_MNT:-${SELF_DIR:-/mnt}}"
 # directly. LIVE_IMG kept for backwards-compat with the qemu gates.
 F2FS_DEV="${F2FS_DEV:-${LIVE_IMG:-}}"
 F2FS_LABEL="${F2FS_LABEL:-reforge-live}"
+# Chroot root + /data bind — identical to install mode (reforge-boot) so the
+# host-side paths are uniform across modes.
+ROOT="${REFORGE_LIVE_ROOT:-/data/.mod/.reforge}"
+DATA="${REFORGE_LIVE_DATA:-/data}"
 
 # Logging goes to the console AND a persistent log file ON THE USB, so a pulled stick is
 # debuggable with no network. Writing to the USB is fine — it is the live medium, NOT the
 # eMMC, so the zero-eMMC-write invariant is unaffected. Prefer the framebuffer console
 # (the panel, /dev/tty1) so HEADLESS output is visible on screen, not just on the serial
 # /dev/console; fall back to /dev/console.
-LIVE_LOG=/dev/console
-for _t in /dev/tty1 /dev/tty0; do [ -c "${_t}" ] && [ -w "${_t}" ] && { LIVE_LOG="${_t}"; break; }; done
+# An env-provided LIVE_LOG wins (qemu test rigs set it to /dev/console so the
+# launcher output is captured in the serial log alongside the gate init's).
+if [ -n "${LIVE_LOG:-}" ]; then
+    :  # honour the env override
+else
+    LIVE_LOG=/dev/console
+    for _t in /dev/tty1 /dev/tty0; do [ -c "${_t}" ] && [ -w "${_t}" ] && { LIVE_LOG="${_t}"; break; }; done
+fi
 USB_LOG="${USB_MNT}/reforge-live.log"
 : > "${USB_LOG}" 2>/dev/null || true   # fresh log each boot
 log() { echo "[reforge-live] $*" | tee -a "${USB_LOG}" 2>/dev/null > "${LIVE_LOG}" 2>&1; }
-ROOT="${REFORGE_LIVE_ROOT:-/tmp/.reforge-live}"   # chroot root (/tmp is tmpfs)
-DATA="${REFORGE_LIVE_DATA:-/tmp/.reforge-data}"   # writable /data -> tmpfs
+# (ROOT and DATA are set above, near the F2FS_DEV declarations.)
 
 # Make sure an SSH daemon is listening on :22 so the box stays reachable for debugging
 # even when the printer stack (klippy/GuppyScreen) is wedged. Stock starts dropbear early
@@ -93,7 +119,12 @@ fi
 
 log "starting (screen=${SCREEN_MODE})"
 
-mkdir -p "${ROOT}" "${DATA}"
+# Ensure mountpoints exist on the host. mkdir -p on ROOT is the ONE eMMC-side
+# OS write live mode makes (a single directory inode) on a fresh unit; on a
+# unit that previously ran live mode (or has an install) the dir already exists
+# and this no-ops.
+mkdir -p "${ROOT}"
+[ -d "${DATA}" ] || mkdir -p "${DATA}"
 
 # The stock 5.4.61 kernel (verified on hardware) ships NONE of what this needs:
 # no plain 'crc32' crypto (F2FS needs it at mount; the kernel only has crc32c),
@@ -166,19 +197,36 @@ mount -t f2fs -o rw "${F2FS_DEV}" "${ROOT}" 2>/dev/null \
     || { log "ERROR: cannot mount ${F2FS_DEV}"; exit 1; }
 [ -x "${ROOT}/mod/start.sh" ] || { log "ERROR: ${ROOT}/mod/start.sh missing — bad image"; exit 1; }
 
-# Chroot filesystems (mirrors reforge-boot) — but /data is tmpfs, NOT the eMMC.
+# Chroot filesystems — IDENTICAL to reforge-boot (install mode): /data inside the
+# chroot is bound from the host's /data (eMMC mmcblk0p7), so gcode uploads via
+# Mainsail (the factory `[virtual_sdcard] path: /data/`) persist on the printer
+# and are visible to an install on the same unit.
 for d in proc sys dev run tmp data; do mkdir -p "${ROOT}/${d}"; done
-mount -t proc  proc  "${ROOT}/proc"  2>/dev/null
-mount --rbind  /sys  "${ROOT}/sys"   2>/dev/null
-mount --rbind  /dev  "${ROOT}/dev"   2>/dev/null
-mount --bind   /run  "${ROOT}/run"   2>/dev/null
-mount -t tmpfs tmpfs "${ROOT}/tmp"   2>/dev/null
-mount --bind   "${DATA}" "${ROOT}/data" 2>/dev/null   # tmpfs /data — zero eMMC writes
+mount -t proc  proc      "${ROOT}/proc"  2>/dev/null
+mount --rbind  /sys      "${ROOT}/sys"   2>/dev/null
+mount --rbind  /dev      "${ROOT}/dev"   2>/dev/null
+mount --bind   /run      "${ROOT}/run"   2>/dev/null
+mount -t tmpfs tmpfs     "${ROOT}/tmp"   2>/dev/null
+mount --bind   "${DATA}" "${ROOT}/data" 2>/dev/null
 
 # Mark the chroot as live so the banner (boot splash + every login) shows the LIVE
 # badge. /run is tmpfs (bind from host) — the marker is ephemeral, gone once the USB
 # is pulled and the printer reboots to stock, which is exactly what we want.
 : > "${ROOT}/run/reforge-live" 2>/dev/null || true
+
+# Boot the toolhead ("eboard") MCU NOW — as early as possible, the moment the
+# rootfs is mounted and /dev is wired into the chroot, before net/banner/stack.
+# The eboard (/dev/ttyS1) powers up in a serial bootloader that waits for the
+# host to send 'A' before starting its Klipper app; the mainboard MCU auto-boots
+# and needs no trigger. Stock does this (firmwareExe "bootserial eboard:") and so
+# does forge-x (its boot_mcu binary, run from boot.sh regardless of screen mode) —
+# live mode must too, or klippy can never identify the eboard ("Serial connection
+# closed") and the toolhead stays dark. Best-effort: a warm reboot (eboard already
+# in its app) simply no-ops the handshake. Needs the rootfs python + termios, so
+# run it inside the chroot.
+log "booting eboard MCU (toolhead) ..."
+chroot "${ROOT}" /usr/bin/reforge-boot-eboard >> "${USB_LOG}" 2>&1 \
+    || log "eboard boot handshake returned non-zero (already up? see log) — continuing"
 
 # Paint the fire/ember boot splash (with the LIVE badge) on the console, the way
 # reforge-boot would on a normal boot. TERM=linux so the framebuffer console colorizes.
