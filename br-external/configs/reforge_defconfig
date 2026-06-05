@@ -75,6 +75,12 @@ BR2_LINUX_KERNEL_DTS_SUPPORT=y
 BR2_LINUX_KERNEL_CUSTOM_DTS_PATH="$(BR2_EXTERNAL_REFORGE_PATH)/board/reforge/board.dts"
 BR2_PACKAGE_OVERRIDE_FILE="$(BR2_EXTERNAL_REFORGE_PATH)/local.mk"
 
+# Camera: ustreamer (pikvm) — lightweight MJPEG-HTTP streamer for the USB-UVC cam,
+# served on :8080 by S72camera (paths /stream + /snapshot). The cam is MJPG-native
+# so it's pure passthrough (no re-encode). Pulls jpeg (→ libjpeg-turbo, NEON SIMD,
+# already selected) + libevent + libbsd; host-pkgconf is build-only.
+BR2_PACKAGE_USTREAMER=y
+
 # ---------------------------------------------------------------------------
 # ReForge application stack (single image; SCREEN_MODE gates the on-screen GUI
 # at runtime, so there is ONE defconfig — headless and on-screen share it).

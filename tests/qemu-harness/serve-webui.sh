@@ -110,21 +110,15 @@ if [ -f "${CAM}" ]; then
 ) &
 EOF
     chmod 0755 "${stage}/mod/init.d/S71camera"
-    # Moonraker reads [webcam] from its config (/mod/etc/reforge/moonraker.conf,
-    # the symlink target). The browser reaches the stream via the host-forwarded
-    # camera port. Mainsail uses the "MJPEG-Streamer (adaptive)" service.
+    # The shipped moonraker.conf already has [webcam printer] -> ustreamer on :8080.
+    # In qemu there's no /dev/video0 (the device's S72camera/ustreamer no-ops) and
+    # the host remaps :8080 to Mainsail, so just repoint that webcam at the fake
+    # camera's forwarded port. fake-camera serves /stream + /snapshot (its
+    # "snapshot in path" check covers both the ustreamer and mjpg_streamer paths).
     MR_CONF="${stage}/mod/etc/reforge/moonraker.conf"
-    if [ -f "${MR_CONF}" ] && ! grep -q '^\[webcam ' "${MR_CONF}"; then
-        cat >> "${MR_CONF}" <<EOF
-
-[webcam sim]
-location: printer
-service: mjpegstreamer-adaptive
-target_fps: 5
-stream_url: http://localhost:${CAM_PORT}/?action=stream
-snapshot_url: http://localhost:${CAM_PORT}/?action=snapshot
-EOF
-    fi
+    [ -f "${MR_CONF}" ] && sed -i -E \
+        "s#((stream_url|snapshot_url): *http://)localhost:[0-9]+/#\1localhost:${CAM_PORT}/#" \
+        "${MR_CONF}"
 fi
 
 # Bring eth0 up (slirp DHCP) + launch the stack headless.

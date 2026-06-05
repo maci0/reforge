@@ -15,7 +15,7 @@
 #   mod/
 #     release_info.json
 #     start.sh stop.sh
-#     init.d/{S00cloudblock,S35zram,S60klipper,S65moonraker,S70httpd,S75guppyscreen,S99ok}
+#     init.d/{S00cloudblock,S35zram,S60klipper,S65moonraker,S70httpd,S72camera,S75guppyscreen,S99ok}
 #     etc/reforge/{printer.cfg,printer.base.cfg,moonraker.conf,zram.conf}
 #     modules/{zram.ko,zsmalloc.ko,swapon_prio}
 #     usr/bin/reforge-banner
@@ -51,7 +51,7 @@ mkdir -p "${MOD}/init.d" "${MOD}/etc/reforge" "${MOD}/modules" \
 # They were staged into ${TARGET_DIR}/etc/init.d by the rootfs overlay; move
 # them into mod/ and remove the originals so there is NO /etc/init.d mirror.
 # ---------------------------------------------------------------------------
-for s in S00cloudblock S35zram S60klipper S65moonraker S70httpd S75guppyscreen S99ok; do
+for s in S00cloudblock S35zram S60klipper S65moonraker S70httpd S72camera S75guppyscreen S99ok; do
     if [ -f "${TARGET_DIR}/etc/init.d/${s}" ]; then
         cp -a "${TARGET_DIR}/etc/init.d/${s}" "${MOD}/init.d/${s}"
         rm -f "${TARGET_DIR}/etc/init.d/${s}"

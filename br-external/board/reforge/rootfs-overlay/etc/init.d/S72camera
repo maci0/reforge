@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# S72camera — ustreamer MJPEG-HTTP camera on :8080.
+#
+# The AD5M(Pro) camera is a USB-UVC sensor that emits MJPEG natively, so
+# ustreamer does a 1:1 passthrough (no decode/re-encode) — cheap on the 128 MB
+# box. Endpoints: /stream (multipart MJPEG) + /snapshot (single JPEG); Moonraker
+# exposes it via [webcam] in moonraker.conf. Runs after httpd (S70).
+#
+# No-op if there is no camera (cameraless unit / qemu has no /dev/video0), so the
+# boot chain never blocks on it.
+#
+
+DEV="${CAMERA_DEV:-/dev/video0}"
+PORT="${CAMERA_PORT:-8080}"
+RES="${CAMERA_RES:-1280x720}"
+FPS="${CAMERA_FPS:-15}"
+PIDFILE=/run/ustreamer.pid
+NAME=ustreamer
+
+case "$1" in
+	start)
+		if [ ! -e "${DEV}" ]; then
+			echo "${NAME}: ${DEV} absent — no camera, skipping"
+			exit 0
+		fi
+		echo "Starting ${NAME} on :${PORT} (${DEV} ${RES} MJPEG passthrough)..."
+		# --format=MJPEG: grab the camera's native MJPEG (no re-encode).
+		# --drop-same-frames: skip duplicate frames on a static scene (bandwidth).
+		# --persistent: keep the device open / retry across unplugs.
+		start-stop-daemon -S -b -m -p "${PIDFILE}" -x /usr/bin/ustreamer -- \
+			--device="${DEV}" --format=MJPEG --resolution="${RES}" \
+			--desired-fps="${FPS}" --host=0.0.0.0 --port="${PORT}" \
+			--drop-same-frames=30 --persistent
+		;;
+	stop)
+		echo "Stopping ${NAME}..."
+		start-stop-daemon -K -p "${PIDFILE}" -x /usr/bin/ustreamer -o
+		rm -f "${PIDFILE}"
+		;;
+	restart)
+		"$0" stop
+		"$0" start
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+		;;
+esac
