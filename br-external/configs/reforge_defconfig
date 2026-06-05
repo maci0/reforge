@@ -85,8 +85,13 @@ BR2_PACKAGE_WPA_SUPPLICANT=y
 # AD5M's vendor-staging 8821cu, switch the Mode 3 default to iwd; otherwise
 # park iwd at "available but unused" and rely on wpa_supplicant for both modes.
 # See docs/BACKLOG.md "Mode 3 net stack: switch to iwd, skip ConnMan".
-# Cost: ~900 KB iwd binary + ~150 KB ell lib + a few hundred KB more for iwctl/iwmon.
+# Cost: ~620 KB iwd daemon + ~300 KB ell + ~150 KB iwctl + ~200 KB readline
+# (pulled in by iwctl) + ~80 KB iwmon. Total ~1.4 MB.
 BR2_PACKAGE_IWD=y
+BR2_PACKAGE_IWD_IWMON=y
+# Pulled in to enable iwd's `iwctl` interactive client (BR's iwd.mk conditions
+# --enable-client on readline being present in the build).
+BR2_PACKAGE_READLINE=y
 # zram compressed swap — prebuilt modules for stock 5.4.61 kernel (P1-P3)
 BR2_PACKAGE_JEMALLOC=y
 # tuned for low RSS via MALLOC_CONF in the init scripts (-6.5MB measured)
