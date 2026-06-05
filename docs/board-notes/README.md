@@ -6,6 +6,12 @@ Plan 5 kernel + U-Boot + genimage work extracts parameters from. **Reference —
 
 ## Captured artifacts (this dir)
 
+- [`partition-map.md`](partition-map.md) — **canonical eMMC partition layout**
+  (GPT offsets, sizes, filesystems, mountpoints, brick-safety tier for each
+  of the 7 partitions). The single source of truth for "what's at
+  `mmcblk0pN`".
+- [`device-overview.md`](device-overview.md) — hardware inventory (SoC,
+  DRAM, peripherals).
 - `stock-kernel-config-5.4.61.txt.gz` — the **exact stock kernel `.config`** (`/proc/config.gz`,
   1017 `CONFIG_` lines). The slim-down baseline for `reforge_t113_defconfig`.
 - `running-unit-probe.txt` — uname, cmdline, lsmod.

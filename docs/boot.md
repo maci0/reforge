@@ -1,5 +1,9 @@
 # ReForge boot — stock chain, hooks, intervention & the installed service chain
 
+> **For the eMMC partition layout** (GPT offsets, sizes, filesystems, mountpoints,
+> brick-safety tier per partition), see [`board-notes/partition-map.md`](board-notes/partition-map.md).
+> Section 5 below references partitions by name only; the canonical numbers live there.
+
 **Date:** 2026-06-02
 **SoC:** Allwinner T113-S3 (sun8iw20p1), dual Cortex-A7, 128 MB DRAM.
 **Status:** reference — verified read-only against the live printer + the eMMC dumps.
@@ -235,7 +239,8 @@ flowchart TD
     G --> H[Mount /data · read SCREEN_MODE]
     H --> T{"trial/LKG check (OTA era)"}
     T --> I["bind proc/sys/dev/run/tmp/data → /data/.reforge"]
-    I --> J["chroot /data/.reforge · exec mod init chain"]
+    I --> EB["boot eboard MCU (toolhead)<br/>reforge-boot-eboard · /dev/ttyS1"]
+    EB --> J["chroot /data/.reforge · exec mod init chain"]
     J --> K[S00cloudblock] --> L[S35zram] --> M[S60klipper] --> N[S65moonraker]
     N --> O[S70httpd] --> P{"SCREEN_MODE=GUPPY?"}
     P -- yes --> Q[S75guppyscreen] --> R[S99ok]
@@ -248,6 +253,7 @@ flowchart TD
 | `S01reforge` | boot hook — chroots into `/data/.reforge` | `…/rootfs-overlay/.shell/reforge-boot` |
 | `SKIP_MOD` gate | USB/`/tmp` marker → pure stock boot (escape hatch) | `reforge-boot` |
 | banner | fire/ember "ReForge" splash | `usr/bin/reforge-banner` |
+| **eboard boot** | **handshake the toolhead MCU into its app — before any klippy** (§8) | `usr/bin/reforge-boot-eboard` |
 | `S00cloudblock` | block FF cloud hosts in `/etc/hosts` | `etc/init.d/S00cloudblock` |
 | `S35zram` | insmod `zram.ko`/`zsmalloc.ko` + zstd swap; sources `reforge-vmtune.sh` (the VM sysctls) | `modules/zram-bsp/` + `.shell/reforge-vmtune.sh` |
 | `S60klipper` | klippy — **jemalloc** (`LD_PRELOAD` + `MALLOC_CONF=narenas:1,…decay:0`) | `etc/init.d/S60klipper` |
@@ -260,3 +266,55 @@ Memory tuning (jemalloc, zram, the VM sysctls) is detailed in
 [optimizations.md](optimizations.md). OTA adds a **trial/last-known-good** guard around
 the `mod` dir (trial counter; reaching `S99ok` promotes to LKG; N=3 failures restore the
 previous LKG) — see [ota.md](ota.md). Uninstall = remove the one `S01reforge` symlink.
+
+## 8. Toolhead (eboard) MCU boot — the handshake every path must do
+
+The AD5M(Pro) has **two** N32G455 MCUs running Klipper firmware: the mainboard (`/dev/ttyS5`)
+and the toolhead **"eboard"** (`/dev/ttyS1`). They differ at power-on:
+
+- **Mainboard** auto-boots straight into its Klipper app. No host action.
+- **eboard** powers up into a **serial bootloader** that loops emitting `Ready.` at **115200**
+  baud and **waits for the host to send `A` (0x41)** before jumping to its Klipper app (which
+  then talks 230400). No trigger → it sits in the bootloader forever, silent to klippy's
+  identify → `mcu 'eboard': Unable to connect` / `Serial connection closed`, and the
+  **toolhead stays dark** (no hotend, no toolhead steppers/probe).
+
+Stock and forge-x both perform this handshake at boot; ReForge had been missing it, which is
+why live mode reached klippy-ready on the mainboard but never the eboard:
+
+| firmware | who boots the eboard | works without firmwareExe? |
+|---|---|---|
+| stock | `firmwareExe … bootserial eboard:` | no — needs the stock app running |
+| forge-x | its own **`boot_mcu`** binary, run from `boot.sh` | **yes** — runs in any screen mode |
+| ReForge | **`reforge-boot-eboard`** (this) | yes |
+
+forge-x is the key precedent: it does **not** rely on firmwareExe — `boot_mcu`
+(`/opt/config/mod/.bin/exec/boot_mcu`, source `…/.bin/src/boot_mcu/main.cpp`) runs from
+`boot.sh` regardless of STOCK vs GUPPY screen mode. ReForge's `reforge-boot-eboard`
+(`rootfs-overlay/usr/bin/`) is a byte-exact port of it.
+
+**Protocol** (`reforge-boot-eboard`, mirrors `boot_mcu`):
+
+```
+open /dev/ttyS1 @115200 raw
+read until a chunk contains "Ready."        (<=15 reads)
+write 'A' (0x41); read reply                 (<=15 tries)
+reply contains 0x01 (RESP_OK) or 0x06 (RESP_ACK) -> eboard started
+```
+
+**Where it runs — as early as possible, once, before klippy:**
+
+- **live** (`packaging/live/flashforge_init.sh`): the instant the F2FS rootfs is mounted and
+  `/dev` is rbind'd into the chroot — **before** banner, network, and `/mod/start.sh`.
+- **installed** (`reforge-boot`, §7): right after the chroot mounts, before the LKG guard and
+  `start.sh`. Earlier than init.d, so it beats `S60klipper` by a wide margin — hence no
+  `S55mcu_boot` init slot is needed.
+
+It's **best-effort and non-fatal**: on a warm reboot the eboard is already in its app, so the
+115200 read sees 230400 app traffic, never `Ready.`, and the script no-ops (`rc=2`) — boot
+continues. **Not re-run on klippy restart**: forge-x doesn't either (`restart_klipper.sh` just
+calls `start.sh`), and the eboard's `restart_method: command` reset returns it to a bootable
+state without a fresh handshake. The byte protocol (`has_ready`/`is_boot_ack`/`run_handshake`)
+is pure + I/O-injected, unit- and fuzz-tested in `tests/release/test_boot_eboard.py` (incl. a
+real-`openpty` end-to-end), wired into `make unit`. Background:
+[research/2026-05-31-g992-research-findings.md](research/2026-05-31-g992-research-findings.md).
