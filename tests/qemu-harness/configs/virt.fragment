@@ -71,6 +71,19 @@ CONFIG_BLK_DEV_INITRD=y
 #   platform SDHCI but not PCI SDHCI. Enabling it here gives /dev/mmcblk0.
 CONFIG_MMC_SDHCI_PCI=y
 
+# --- SPIKE: OverlayFS for the atomic-update / true-Mode-1 evaluation ---
+#   Stock kernel has 'CONFIG_OVERLAY_FS is not set'. This fragment proves
+#   the BSP fs/overlayfs/ source compiles + loads + mounts cleanly under
+#   the same Buildroot toolchain we use for production, so we can decide
+#   whether the overlay-based atomic update model from docs/BACKLOG.md is
+#   reachable on the stock 5.4.61 BSP. Built =y for the spike (avoids
+#   needing to ship a .ko + modprobe into the qemu guest); Kconfig is
+#   tristate so =m is reachable by changing this one symbol.
+#   See docs/research/2026-06-05-overlayfs-on-bsp-spike.md for results.
+CONFIG_OVERLAY_FS=y
+CONFIG_OVERLAY_FS_INDEX=y
+CONFIG_OVERLAY_FS_XINO_AUTO=y
+
 # --- ENABLE: device management ---
 CONFIG_DEVTMPFS=y
 CONFIG_DEVTMPFS_MOUNT=y

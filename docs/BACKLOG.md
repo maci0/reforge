@@ -79,6 +79,16 @@ pending the next trial.
 
 ## immutable / atomic ReForge — OverlayFS2 (or similar) for transactional updates and true Mode 1 live
 
+**Status (2026-06-05):** spike complete — see
+[`docs/research/2026-06-05-overlayfs-on-bsp-spike.md`](research/2026-06-05-overlayfs-on-bsp-spike.md).
+All five open questions below are answered. OverlayFS builds clean as a 122 KB
+loadable module from the vanilla BSP source, mounts with correct semantics, and
+costs ~192 KiB MemAvailable per mount on the test rig — well inside our budget.
+The direction can be elevated from "parked" to a concrete implementation plan;
+proposed next-step is `docs/plans/2026-06-XX-immutable-reforge.md` covering the
+versioned-overlay layout + atomic install/OTA/rollback path + true-Mode-1 live
+with `lowerdir=/data + upperdir=tmpfs`.
+
 A future architectural direction worth investigating, parking here for design /
 prior-art work before any implementation.
 
