@@ -264,3 +264,26 @@ if [ -f "${TARGET_DIR}/etc/init.d/S40iwd" ]; then
 fi
 # Also clean up any stale .disabled file from the prior (broken) approach.
 rm -f "${TARGET_DIR}/etc/init.d/S40iwd.disabled"
+
+# ---------------------------------------------------------------------------
+# Scrub any __pycache__ + *.pyc that snuck in from the rootfs-overlay.
+#
+# Anything under br-external/board/reforge/rootfs-overlay/ is copied verbatim
+# into ${TARGET_DIR} by Buildroot, including stale host-generated Python
+# bytecode caches that Python 3.x leaves next to any script you run on the
+# host. Those caches are host-arch (sometimes a different Python minor too)
+# and would either crash the device or shadow the .py source with stale code.
+# .gitignore catches them at the repo level; this scrub catches them at build
+# time so neither a fresh clone nor a developer who briefly ran a script in
+# rootfs-overlay/ can ship junk to the device.
+#
+# We also touch any moonraker/klipper __pycache__ here — those are legitimate
+# (Python apps cache their own .pyc at runtime on-device anyway) but the
+# host-arch caches under /opt/{moonraker,klipper}/ from a host-run install
+# would still mismatch the device. Safer to remove and let on-device runtime
+# regenerate.
+# ---------------------------------------------------------------------------
+echo "[post-build] scrubbing __pycache__ + *.pyc from rootfs ..."
+find "${TARGET_DIR}" -depth -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true
+find "${TARGET_DIR}" -name '*.pyc' -delete 2>/dev/null || true
+find "${TARGET_DIR}" -name '*.pyo' -delete 2>/dev/null || true

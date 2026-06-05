@@ -21,6 +21,15 @@ tools/recovery/.work/
 *.swp
 .DS_Store
 
+# Python bytecode — NEVER track these anywhere in the repo.
+# Especially important under br-external/board/reforge/rootfs-overlay/: anything
+# under that tree gets copied verbatim into the device rootfs, and a stray
+# host-generated __pycache__ would ship to production unless gitignored AND
+# scrubbed at build time by post-build.sh.
+__pycache__/
+*.py[cod]
+*$py.class
+
 # Packaging build artifacts
 packaging/dist/
 *.img
