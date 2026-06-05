@@ -14,6 +14,11 @@ Plan 5 kernel + U-Boot + genimage work extracts parameters from. **Reference —
   the Allwinner Tina SDK base vs what FlashForge added** in the stock
   `mmcblk0p6` rootfs. Per-directory breakdown of `/opt`, `/etc`, `/usr/bin`,
   etc. Reference for the Mode 3 (full-replacement) rootfs design.
+- [`fw-upgrade-mechanisms.md`](fw-upgrade-mechanisms.md) — **where each of the
+  five distinct stock firmware-upgrade paths is triggered from**: USB `.tgz`,
+  USB bare `flashforge_init.sh`, MCU firmware (`Update` flag), host software
+  subpackage, kernel/library subpackage, plus the cloud OTA flow. Maps each
+  stock path to its ReForge equivalent.
 - [`device-overview.md`](device-overview.md) — hardware inventory (SoC,
   DRAM, peripherals).
 - `stock-kernel-config-5.4.61.txt.gz` — the **exact stock kernel `.config`** (`/proc/config.gz`,
