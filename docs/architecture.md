@@ -3,7 +3,7 @@
 ReForge is a from-scratch firmware **userland** for the FlashForge Adventurer 5M Pro
 (Allwinner T113-S3, dual Cortex-A7, 128 MB RAM). For P1–P3 it runs on the **stock vendor
 kernel** (Linux 5.4.61) as an **overlay on the stock firmware** — the stock SPL/U-Boot/kernel
-are untouched; everything ReForge lives in the writable `/data/.reforge` chroot, reached by a
+are untouched; everything ReForge lives in the writable `/data/.mod/.reforge` chroot, reached by a
 single `/etc/init.d/S01reforge` symlink. Plan 5 later swaps in a mainline kernel + U-Boot.
 
 ## Storage / overlay model
@@ -17,7 +17,7 @@ flowchart TB
         P7["data p7  /data  (ext4, writable)"]
     end
     P6 -. "one symlink<br/>/etc/init.d/S01reforge" .-> RB
-    subgraph P7box["/data/.reforge  (ReForge chroot)"]
+    subgraph P7box["/data/.mod/.reforge  (ReForge chroot)"]
         RB[reforge-boot hook]
         OPT["/opt: klipper · moonraker · guppyscreen"]
         WWW["/var/www/mainsail"]
@@ -38,7 +38,7 @@ stick, with a **tmpfs `/data`** instead of the eMMC partition — so the whole s
 ```mermaid
 flowchart TB
     K["stock Linux 5.4.61<br/>(T113-S3)"] --> Z["zram swap<br/>(zstd, loadable .ko)"]
-    K --> CH["/data/.reforge chroot<br/>(glibc, Thumb-2)"]
+    K --> CH["/data/.mod/.reforge chroot<br/>(glibc, Thumb-2)"]
     subgraph CH
         KL["klippy<br/>(Python host)"]
         MO["Moonraker<br/>:7125 HTTP+WS"]

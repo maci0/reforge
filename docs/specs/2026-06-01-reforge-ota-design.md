@@ -24,7 +24,7 @@ which need only Moonraker's HTTP client + stdlib `zipfile`.
 
 ## Scope
 
-**OTA-able** (all under the writable `/data/.reforge` chroot; kernel stays fixed so loadable
+**OTA-able** (all under the writable `/data/.mod/.reforge` chroot; kernel stays fixed so loadable
 modules remain vermagic-valid):
 - `/opt/klipper`, `/opt/moonraker`, `/opt/guppyscreen` (prebuilt, klipper incl. its built
   `c_helper.so` so the gcc-less device never recompiles)
@@ -54,7 +54,7 @@ change ships as a full USB `.tgz`.
 | `klipper` | zip | `klipper.zip` | `/opt/klipper` | `klipper` | upstream + patches **+ `c_helper.so`** |
 | `moonraker` | zip | `moonraker.zip` | `/opt/moonraker` | `moonraker` | upstream **+ `SimpleProvider` patch** |
 | `guppyscreen` | zip | `guppyscreen.zip` | `/opt/guppyscreen` | `guppyscreen` | prebuilt LVGL binary |
-| `reforge` | zip | `reforge.zip` | `/data/.reforge/mod` (self-contained; chroot runs init from it) | `reforge` | `Sxx` init, `/etc/reforge`, zram `.ko` + `swapon_prio`, banner, service-control scripts, `start.sh` |
+| `reforge` | zip | `reforge.zip` | `/data/.mod/.reforge/mod` (self-contained; chroot runs init from it) | `reforge` | `Sxx` init, `/etc/reforge`, zram `.ko` + `swapon_prio`, banner, service-control scripts, `start.sh` |
 | `mainsail` | web | — | `/var/www/mainsail` | — | upstream `mainsail-crew/mainsail` |
 
 All `zip` components set `repo: maci0/reforge` and a distinct `asset_name`, so they resolve the
@@ -66,6 +66,31 @@ reads the current version from `release_info.json` (not `.version`). The config 
 equal `project_owner/project_name` or the updater logs a repo-mismatch anomaly
 (`net_deploy.py:124-132`). `persistent_files` per component preserves anything that must
 survive an update (user configs live in `printer_data`, outside these paths).
+
+### ⚠ Reserved updaters: `klipper` + `moonraker` need a Moonraker patch
+`klipper` and `moonraker` are **reserved** updater names. Moonraker does **not** build them
+from their `[update_manager X]` section like the others — it builds them from a hardcoded
+`BASE_CONFIG` and reads only `OPTION_OVERRIDES` (`channel`, `pinned_commit`, `refresh_interval`,
+`report_anomalies`) from the section. Their **`type` comes from `AppType.detect()`** (the
+config `type` is ignored), and upstream `detect()` returns only `GIT_REPO`/`PYTHON`/`NONE` —
+**never `ZIP`**. So out of the box a zip-deployed klipper/moonraker is typed `NONE` =
+**not updatable**, and any `type`/`path`/`managed_services` in those two sections is silently
+dropped → `Unparsed config option` warnings (and `NetDeploy` would anyway reject them for lack
+of a `repo`, which isn't an override). Non-reserved `guppyscreen`/`reforge` are unaffected —
+they go through the normal client loop that honours `type: zip`.
+
+Fix = **`0002-zip-updater-for-reserved-apps.patch`** on our Moonraker package (alongside the
+`SimpleProvider` patch): (1) `detect()` returns `ZIP` when the path carries `release_info.json`;
+(2) `repo` is added to `OPTION_OVERRIDES`. Then the reserved sections carry **only**
+`channel:` + `repo:` (everything else is auto-derived: `type` from `detect()`, `path` from the
+klippy connection / `source_path()`, `managed_services` defaults to the name). The shipped
+`moonraker.conf` reflects this; `tests/release/test_moonraker_conf.py` guards against
+re-introducing the dropped options. **Validation:** both patch hunks run green on the **real
+built armv7 Moonraker under qemu-user** — `tests/qemu-harness/moonraker-zip-detect-test.sh`
+(`make qemu-zipdetect`) asserts `AppType.detect(<dir with release_info.json>) == ZIP` and
+`'repo' in OPTION_OVERRIDES` on the target Python. Still pending: the full-system end-to-end
+zip *swap* of klipper/moonraker (reserved updaters resolve their path via the klippy connection)
+under the qemu OTA harness on real `release_info.json` payloads, before a release is cut.
 
 ## Apply model — live restart via `SimpleProvider` (forge-x-aligned)
 
@@ -94,7 +119,7 @@ git-updated dir is directly live — no mirror to `/etc/init.d`. We do the same:
 component path IS the dir the chroot runs init from**, so a zip update of that dir is live on
 the next service restart/boot with **no deploy step**.
 
-- The `reforge` mod dir (`/data/.reforge/mod`) is **self-contained**: its own `etc/init.d/Sxx`,
+- The `reforge` mod dir (`/data/.mod/.reforge/mod`) is **self-contained**: its own `etc/init.d/Sxx`,
   `etc/reforge/*.conf`, `modules/*.ko` + `swapon_prio`, `usr/bin/reforge-banner`, the per-service
   control scripts (`klipper`/`moonraker`/…) for `SimpleProvider`, and `start.sh`/`stop.sh`.
 - `reforge-boot` chroots and execs the mod dir's init (forge-x `start.sh` pattern) — it reads
@@ -120,9 +145,9 @@ trial/LKG as the corruption-and-breakage backstop** (a corrupt/bad update fails 
 and is rolled back). No custom manifest verification — YAGNI given the LKG net.
 
 **Boot trial / LKG mechanism (precise):**
-- **State dir** `/data/.reforge/state/` on writable `/data`. Counter file `trial.count` written
+- **State dir** `/data/.mod/.reforge/state/` on writable `/data`. Counter file `trial.count` written
   atomically (write temp + `rename`) to survive power-cuts.
-- **LKG** = `/data/.reforge/lkg/` — a copy of the last `mod/` that reached services-up.
+- **LKG** = `/data/.mod/.reforge/lkg/` — a copy of the last `mod/` that reached services-up.
 - `reforge-boot` flow (early, before chroot-exec'ing the mod init):
   1. If a `SKIP_MOD` marker is present → boot stock; **do not touch trial state** (orthogonal).
   2. New-update detection: if `mod/release_info.json` version ≠ `lkg/release_info.json` version,

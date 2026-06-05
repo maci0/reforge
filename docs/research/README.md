@@ -1,29 +1,37 @@
 # research/
 
-Dated findings — investigations that backed a decision. Snapshots: they record what was
-found at the time and are not rewritten on later refactors. The conclusions that survived
-are folded into the reference docs (`../optimizations.md`, `../boot.md`, `../architecture.md`).
+Dated findings — investigations that backed a decision. **Snapshots:** they record what was
+found at the time and are not rewritten on later refactors (a `## Update <date>` section is
+added if a finding is re-verified). The conclusions that survived are folded into the reference
+docs ([`../optimizations.md`](../optimizations.md), [`../boot.md`](../boot.md),
+[`../architecture.md`](../architecture.md)). Filenames are `YYYY-MM-DD-topic.md`.
 
-## Platform / kernel
-- [2026-06-01-t113-mainline-kernel-support.md](2026-06-01-t113-mainline-kernel-support.md) — T113-S3 (sun8iw20) mainline/LTS kernel support (Plan 5).
+## Kernel & SoC
+- [2026-06-01-t113-mainline-kernel-support.md](2026-06-01-t113-mainline-kernel-support.md) — **the canonical mainline-kernel doc.** T113-S3 (sun8iw20) per-peripheral mainline status; every AD5M peripheral incl. **RTL8821CU WiFi** is upstream (v6.4+) → a 6.x/7.x kernel needs only a board DTS + RGB panel (Plan 5). Re-verified vs `linux-6.19` and `7.0.11`.
 - [2026-05-31-buildroot-vs-alpine.md](2026-05-31-buildroot-vs-alpine.md) — why Buildroot over Alpine userspace + our own kernel/U-Boot.
+- [2026-06-04-bsp-kernel-rebuild-findings.md](2026-06-04-bsp-kernel-rebuild-findings.md) — ✅ host-only rebuild of the stock BSP kernel (vendor source + captured `.config` + GCC 9.5.0) vs the on-device `Image`: functionally equivalent, vermagic byte-identical.
+- [2026-06-04-byte-identical-kernel-reproduction.md](2026-06-04-byte-identical-kernel-reproduction.md) — pushing the rebuild to **byte-identical** (Linaro GCC 5.3.1 + exact stock build path/strings); DTB is a boot-resource artifact, not in the kernel.
+- [2026-06-04-brick-safe-kernel-test-paths.md](2026-06-04-brick-safe-kernel-test-paths.md) — testing a custom kernel **without** persistent eMMC writes (`kexec` on stock; FEL via `xfel`; one-time `boot.img` reflash). Reference, **not rehearsed**.
+- [2026-06-05-replacing-pid1.md](2026-06-05-replacing-pid1.md) — replacing PID 1 (reforge-init + `pivot_root`) for an early, brick-safe switch_root (boot.md §2 Option A).
 - [2026-06-01-stock-recovery-images.md](2026-06-01-stock-recovery-images.md) — stock firmware / recovery-image landscape.
-- [2026-05-31-g992-research-findings.md](2026-05-31-g992-research-findings.md) — findings mined from the g992 AD5M repo.
-- [2026-06-04-brick-safe-kernel-test-paths.md](2026-06-04-brick-safe-kernel-test-paths.md) — paths for testing a custom kernel **without** persistent eMMC writes (`kexec` status on stock; FEL via `xfel` over USB0; one-time `boot.img` reflash hybrid). Reference, **not rehearsed**.
-- [2026-06-04-bsp-kernel-rebuild-findings.md](2026-06-04-bsp-kernel-rebuild-findings.md) — ✅ host-only rebuild of the stock BSP kernel (vendor source + captured `.config` + GCC 9.5.0) compared against the on-device `Image` from the golden eMMC dump: functionally equivalent, vermagic byte-identical, 99.99% export coincidence. Unblocks `CONFIG_KEXEC=y` overlay (Path A).
+- [2026-05-31-g992-research-findings.md](2026-05-31-g992-research-findings.md) — findings mined from the g992 AD5M repo (incl. the eboard MCU boot handshake).
 
 ## Memory (128 MB budget)
-- [2026-05-31-memory-and-testing.md](2026-05-31-memory-and-testing.md) — memory-optimization + testing strategies.
+- [2026-05-31-memory-and-testing.md](2026-05-31-memory-and-testing.md) — memory-optimization + testing strategy.
 - [2026-06-01-memory-savings-experiments.md](2026-06-01-memory-savings-experiments.md) — measured memory-savings experiments.
-- [2026-06-01-jemalloc-test-plan.md](2026-06-01-jemalloc-test-plan.md) — jemalloc evaluation test plan.
+- [2026-06-01-jemalloc-test-plan.md](2026-06-01-jemalloc-test-plan.md) — jemalloc evaluation test plan. *(Caveat: jemalloc `LD_PRELOAD` corrupts klippy's heap on real hardware — kept for moonraker only; see [`../boot.md`](../boot.md).)*
 - [2026-06-02-stock-kernel-runtime-tuning.md](2026-06-02-stock-kernel-runtime-tuning.md) — stock-kernel runtime tuning audit.
 - [2026-06-03-forge-x-memory-review.md](2026-06-03-forge-x-memory-review.md) — live forge-x memory audit (what's left to cut).
+- [2026-06-05-reforge-vs-forgex-memory.md](2026-06-05-reforge-vs-forgex-memory.md) — measured memory: ReForge (production) vs forge-x.
 
-## UI / camera
+## UI / camera / video
 - [stock-ui-spike.md](stock-ui-spike.md) — P3 Task 8 stock-UI feasibility spike.
-- [2026-06-02-qemu-ui-rendering.md](2026-06-02-qemu-ui-rendering.md) — rendering the printer UIs under qemu.
+- [2026-06-02-qemu-ui-rendering.md](2026-06-02-qemu-ui-rendering.md) — rendering the printer UIs under qemu (the LVGL-vs-virtio-gpu fb-flush quirk).
 - [2026-06-03-camera-streaming-options.md](2026-06-03-camera-streaming-options.md) — camera streaming beyond MJPEG.
-- [2026-06-04-cedar-ve-encode-and-camera-fw.md](2026-06-04-cedar-ve-encode-and-camera-fw.md) — Cedar VE H.264 HW-encode re-attempt (vendor pipeline runs, reaches the codec) + camera native format/firmware.
+- [2026-06-04-cedar-ve-encode-and-camera-fw.md](2026-06-04-cedar-ve-encode-and-camera-fw.md) — Cedar VE H.264 HW-encode re-attempt (no encoder in silicon — JPEG/MJPEG only) + camera native format/firmware.
+
+## Printer stack (Klipper / Moonraker)
+- [2026-06-04-klipper-v0.11-fork-deltas.md](2026-06-04-klipper-v0.11-fork-deltas.md) — FlashForge AD5M Klipper fork vs upstream v0.11.0 deltas.
 
 **Consolidated tuning results live in [`../optimizations.md`](../optimizations.md)** — these
 files are the backing experiments, not the canonical numbers.

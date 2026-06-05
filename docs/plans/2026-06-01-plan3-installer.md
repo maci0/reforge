@@ -27,9 +27,9 @@
 | Path | Responsibility |
 |---|---|
 | `packaging/build-tgz.sh` | Assemble `reforge-<ver>.tgz` from `output-guppy` + the installer + subpackages |
-| `packaging/flashforge_init.sh` | The installer run by the stock USB updater: overlay-install to `/data/.reforge` + boot hook |
+| `packaging/flashforge_init.sh` | The installer run by the stock USB updater: overlay-install to `/data/.mod/.reforge` + boot hook |
 | `packaging/reforge-boot` | Boot hook (mount over `/data`, chroot, start ReForge init); installed by the installer |
-| `packaging/uninstall/flashforge_init.sh` | Uninstall package installer (remove `/data/.reforge` + hook) |
+| `packaging/uninstall/flashforge_init.sh` | Uninstall package installer (remove `/data/.mod/.reforge` + hook) |
 | `packaging/VERSION` | ReForge version string |
 | `validation/loopback-install-test.sh` | Run installer against an ext4 loopback `/data` → assert overlay + hook |
 | `validation/qemu-harness/build-test-kernel.sh` | Build the virt test kernel (Tina source → virt; generic fallback) |
@@ -95,15 +95,15 @@ git commit -m "P3: packaging — build stock-format reforge-<ver>.tgz from outpu
 
 - [ ] **Step 1: Write `flashforge_init.sh`** (runs **on the printer's stock OS** after the stock USB updater unpacks the `.tgz` — "host" here = the printer's stock environment, NOT the dev workstation; the loopback/qemu tests just point its `/data` at a fake one). It must:
   1. arch check (`uname -m` == `armv7l`) + machine/PID check (`Adventurer5MPro`/`Adventurer5M`, PID 0023/0024) — exit 1 on mismatch (model on the stock script's checks).
-  2. extract `software-<ver>.tar.xz` into **`/data/.reforge`** (the overlay root). NEVER write to `/opt`, the stock rootfs, kernel, or partitions.
+  2. extract `software-<ver>.tar.xz` into **`/data/.mod/.reforge`** (the overlay root). NEVER write to `/opt`, the stock rootfs, kernel, or partitions.
   3. install the boot hook: place `reforge-boot` where the stock boot sequence will run it (model on how forge-x injects its init — e.g. via the stock `/opt/config` startup or an init.d hook). Persist a default screen mode = `HEADLESS`.
-  4. write a `/data/.reforge/.installed` marker + version.
+  4. write a `/data/.mod/.reforge/.installed` marker + version.
   5. print clear progress + a final "ReForge installed; reboot" message.
   Keep it POSIX `sh` (busybox), `sh -n` clean.
 
-- [ ] **Step 2: Write `reforge-boot`** — on boot: if a `SKIP_MOD` marker (USB file or setting) is present → exit (dual-boot to stock); else mount over `/data`, `chroot /data/.reforge`, exec the ReForge init chain (the Plan-2 `/etc/init.d/rcS`-equivalent → S00cloudblock…S35zram…S60klipper…). Model the chroot + SKIP_MOD logic on forge-x's `S00init`/`S99root`.
+- [ ] **Step 2: Write `reforge-boot`** — on boot: if a `SKIP_MOD` marker (USB file or setting) is present → exit (dual-boot to stock); else mount over `/data`, `chroot /data/.mod/.reforge`, exec the ReForge init chain (the Plan-2 `/etc/init.d/rcS`-equivalent → S00cloudblock…S35zram…S60klipper…). Model the chroot + SKIP_MOD logic on forge-x's `S00init`/`S99root`.
 
-- [ ] **Step 3: Write the uninstall installer** `packaging/uninstall/flashforge_init.sh` — removes `/data/.reforge` + the boot hook, restoring pure stock. Build a `reforge-uninstall-<ver>.tgz` in `build-tgz.sh` (extend it).
+- [ ] **Step 3: Write the uninstall installer** `packaging/uninstall/flashforge_init.sh` — removes `/data/.mod/.reforge` + the boot hook, restoring pure stock. Build a `reforge-uninstall-<ver>.tgz` in `build-tgz.sh` (extend it).
 
 - [ ] **Step 4: Syntax + static checks**
 ```
@@ -223,8 +223,8 @@ Spec §4c minimum bar: install ReForge via the installer's filesystem ops, then 
 
 - [ ] **Step 1: Write `update-process-test.sh`** that:
   1. takes the stock rootfs ext4 (or a minimal harness rootfs) + the `reforge-<ver>.tgz`.
-  2. runs the installer (`flashforge_init.sh`) so ReForge lands in the rootfs's `/data/.reforge` (chroot or loopback-mount the ext4 and run the installer against it — reuse Task 3's mechanism).
-  3. boots the **ReForge** rootfs (the `/data/.reforge` tree, or convert it to an ext4) under the test kernel via `run-qemu.sh`.
+  2. runs the installer (`flashforge_init.sh`) so ReForge lands in the rootfs's `/data/.mod/.reforge` (chroot or loopback-mount the ext4 and run the installer against it — reuse Task 3's mechanism).
+  3. boots the **ReForge** rootfs (the `/data/.mod/.reforge` tree, or convert it to an ext4) under the test kernel via `run-qemu.sh`.
   4. asserts ReForge comes up: the boot hook chroots, the init chain runs, and (from inside qemu, over a virtio-net port forward or the console) Moonraker answers `:7125/server/info` OR the console shows the ReForge services started. Reuse the Plan-2 integration assertions where possible.
   5. Prints `PASS: update process (install → ReForge boots in qemu)` or a specific FAIL. Document if only the console-level (not live-API) assertion was reached.
 
@@ -306,7 +306,7 @@ git commit -m "P3: CI no-blob guard + packaging docs/caveats"
 ## Done criteria for Plan 3
 
 - [ ] `make tgz` produces `reforge-<ver>.tgz` (stock format; software contains the ReForge rootfs; md5sum checks).
-- [ ] `make validate-loopback` PASSES (install lands in `/data/.reforge`, hook installed, nothing outside `/data` touched).
+- [ ] `make validate-loopback` PASSES (install lands in `/data/.mod/.reforge`, hook installed, nothing outside `/data` touched).
 - [ ] qemu test kernel boots under `-M virt` with `/dev/fb0` = 800×480×32 (vendor path or documented generic fallback).
 - [ ] `make qemu-update` PASSES at the minimum bar (install → ReForge boots in qemu); level achieved recorded.
 - [ ] `make qemu-render` shows GuppyScreen rendering to the 800×480 fb (screenshot).

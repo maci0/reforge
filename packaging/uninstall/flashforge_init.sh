@@ -14,7 +14,7 @@
 set -e
 
 DATA="${REFORGE_DATA_ROOT:-/data}"
-REFORGE_DIR="${DATA}/.reforge"
+REFORGE_DIR="${DATA}/.mod/.reforge"
 INITD_LINK="/etc/init.d/S01reforge"
 
 MACHINE_A="Adventurer5MPro"

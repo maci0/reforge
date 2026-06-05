@@ -29,6 +29,12 @@ config. All findings were verified against the on-device binary (`arm-linux-gnue
   of `8821cu.ko` at `/lib/modules/8821cu.ko` (insmod'd by `auto_run.sh`); the unstripped
   DWARF is a build-pipeline artifact, not a runtime gdb capability; the `comp_dir`
   identifies the SDK as Allwinner's proprietary **T113-Linux-Auto-v1.1** Auto distribution.
+- [stock-kernel-byte-identical-build.md](stock-kernel-byte-identical-build.md) — **reference
+  method** for reproducing the stock `Image` host-only from public source (Linaro GCC 5.3.1 +
+  exact build path), reaching +128 bytes (a 256-byte linker-alignment artifact). The dated
+  experiment + dead-driver audit is in
+  [`../research/2026-06-04-byte-identical-kernel-reproduction.md`](../research/2026-06-04-byte-identical-kernel-reproduction.md);
+  for the mainline alternative see [`../research/2026-06-01-t113-mainline-kernel-support.md`](../research/2026-06-01-t113-mainline-kernel-support.md).
 
 ## Related (not stock-fw RE)
 - [`../board-notes/device-overview.md`](../board-notes/device-overview.md) — hardware/stack inventory + consolidated security findings.

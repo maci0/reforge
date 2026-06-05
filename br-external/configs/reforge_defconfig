@@ -43,8 +43,37 @@ BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_REFORGE_PATH)/board/reforge/rootfs-overlay"
 BR2_PACKAGE_BUSYBOX_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_REFORGE_PATH)/board/reforge/busybox-fragment.config"
 BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_REFORGE_PATH)/board/reforge/post-build.sh"
 BR2_TARGET_ROOTFS_TAR_XZ=y
-# Userspace-only — intentionally NO kernel, NO bootloader (P1-P3 ride the stock
-# 5.4.61 kernel). BR2_LINUX_KERNEL and BR2_TARGET_UBOOT added in Plan 5.
+
+# ---------------------------------------------------------------------------
+# Linux kernel — our in-tree Tina BSP 5.4.61, built by Buildroot with its NATIVE
+# toolchain (glibc + gcc 15.x). Source comes from vendor/kernels/tina-bsp-kernel
+# via the package OVERRIDE_SRCDIR (br-external/local.mk), NOT a download. Config
+# = the captured stock .config (board/reforge/linux.config).
+#
+# ADDITIVE: the standalone scripts stay the canonical references —
+# build-bsp-kernel-stock.sh = byte-identical stock (Linaro GCC 5.3.1, the
+# toolchain FlashForge actually shipped), build-bsp-kernel.sh = clean gcc 9.5
+# rebuild, build-test-kernel.sh = the qemu-virt test kernel, modules/*/build.sh =
+# the kmods. Buildroot's gcc-15 build is the integrated path and may need patches
+# under linux/ (5.4.61 vs gcc 15). No in-tree board .dts (only sun8iw20p1.dtsi),
+# so zImage only — same as build-bsp-kernel.sh. (No BR2_TARGET_UBOOT: rides stock.)
+# ---------------------------------------------------------------------------
+BR2_LINUX_KERNEL=y
+BR2_LINUX_KERNEL_CUSTOM_VERSION=y
+BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="5.4.61"
+BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
+# $(REFORGE_LINUX_CONFIG) (external.mk) = linux.config (device, default) or
+# linux-virt.config (qemu -M virt test kernel) when REFORGE_KERNEL=virt.
+BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="$(BR2_EXTERNAL_REFORGE_PATH)/board/reforge/$(REFORGE_LINUX_CONFIG)"
+BR2_LINUX_KERNEL_ZIMAGE=y
+# The BSP hardcodes `dtb-$(CONFIG_ARCH_SUN8IW20) += board.dtb`; the `all` target
+# builds it. The real device dtb lives in boot-resource (not the kernel), so we
+# feed a placeholder board.dts (swappable for the decompiled sunxi.dts) just so
+# dtbs succeeds. DTS_SUPPORT gates CUSTOM_DTS_PATH; Buildroot copies the .dts into
+# arch/arm/boot/dts/ before the build, then builds + installs board.dtb.
+BR2_LINUX_KERNEL_DTS_SUPPORT=y
+BR2_LINUX_KERNEL_CUSTOM_DTS_PATH="$(BR2_EXTERNAL_REFORGE_PATH)/board/reforge/board.dts"
+BR2_PACKAGE_OVERRIDE_FILE="$(BR2_EXTERNAL_REFORGE_PATH)/local.mk"
 
 # ---------------------------------------------------------------------------
 # ReForge application stack (single image; SCREEN_MODE gates the on-screen GUI

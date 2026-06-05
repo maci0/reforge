@@ -39,7 +39,7 @@ the D1/T113 TCON-LCD** — which is exactly what the AD5M Pro's 800×480 paralle
 | cpufreq / DVFS | ⚠️ partial | OPP table exists for RISC-V D1s; **ARM T113s dtsi has no OPP** → run fixed-clock initially |
 | Audio I2S / DMIC | ✅ mainline | `sun20i-d1-i2s` (r329 fallback), `-dmic` |
 | Audio analog codec | ❌ out-of-tree | no `sun20i-d1` analog codec upstream (2023 patch unmerged). N/A for a printer. |
-| WiFi | ❌ out-of-tree | MangoPi RTL8189FTV needs `rtl8189fs`; AD5M Pro module needs its own assessment |
+| WiFi | ✅ mainline | AD5M(Pro) module = **RTL8821CU (USB)** (stock loads `8821cu`) → mainline `rtw88`/`rtw8821cu`; also `rtw8821cs` (SDIO), `rtw8821ce` (PCIe). Firmware from linux-firmware. *(Resolved 2026-06-05 — see Update.)* |
 | **Display — DE2 mixers** | ✅ mainline | `sun20i-d1-de2-mixer-0/1`, `-de2-clk` (`sun8i_mixer.c`) |
 | **Display — TCON-LCD** | ✅ mainline | `sun20i-d1-tcon-lcd` → `sun20i_d1_lcd_quirks` (`has_channel_0=true` ⇒ RGB path) |
 | **Display — TCON-TV / TCON-TOP** | ✅ mainline | `sun20i-d1-tcon-tv`, `-tcon-top` |
@@ -85,6 +85,30 @@ tree work, not a new C driver**:
 **Risks:** no in-tree T113 board exercises the RGB path (all use MIPI-DSI), so you validate the
 DE2→TCON_TOP→TCON_LCD→RGB mux + pixel-clock chain first on this SoC. RGB-on-sunxi itself is a
 long-solved mechanism (A10/A20/V3s). No in-tree DVFS for the ARM cores (fixed clock initially).
+
+## Update 2026-06-05 — re-verified against `linux-6.19` and `7.0.11` (current stable)
+
+Re-checked the per-subsystem table directly against the `linux-6.19` source, then again against
+**`linux-7.0.11`** (the current stable release). Everything above still holds in both — nothing
+was dropped, and the shared `sunxi-d1s-t113.dtsi` carries **39** `sun20i-d1` peripheral
+compatibles in 7.0.11 (a few more than 6.19). `rtw8821cu/cs/ce` and Cedrus `sun20i-d1` are present
+in 7.0.11 as well. Two changes vs the original table:
+
+- **WiFi resolved → ✅.** The AD5M(Pro)'s module is the **RTL8821CU (USB)** — stock loads the
+  `8821cu` module ([device-overview](../board-notes/device-overview.md)). Mainline `rtw88` has it
+  as `rtw8821cu.c` (USB), plus `rtw8821cs.c` (SDIO) and `rtw8821ce.c` (PCIe), with `RTW88_SDIO`/
+  `RTW88_USB`/`RTW88_8821C` in Kconfig. Firmware loads from `linux-firmware`, not the kernel. So
+  the last "needs assessment" gap is closed — **every peripheral the printer uses is upstream.**
+- **Cedrus VE** confirmed `sun20i-d1` in `drivers/staging/media/sunxi/cedrus/cedrus.c` — H264/H265
+  **decode** only, matching the silicon (no H264 *encoder* exists; see
+  [cedar-ve-encode-and-camera-fw](2026-06-04-cedar-ve-encode-and-camera-fw.md)).
+
+Scale check on the vendor delta: a full `diff` of the Tina BSP vs pristine mainline 5.4.61 is
+~179 MB / ~5 M "added" lines, but that's overwhelmingly **firmware-blobs-as-hex** (wifi
+`wcnmodem.bin.hex` 9 MB, RTL fw), **generated register headers** (PowerVR img-rgx), **binary test
+assets**, and the GKI `abi_*` XML — *not* authored SoC code. The real sun8iw20 bring-up delta is
+small (clk/pinctrl/mtd/media/display). Net: **a mainline 6.x kernel for the AD5M is just a board
+DTS + the RGB panel**, not a 5 M-line fork.
 
 ## Sources
 

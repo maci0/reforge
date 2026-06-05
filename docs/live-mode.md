@@ -1,15 +1,22 @@
-# Live mode — run ReForge from USB, zero eMMC writes
+# Live mode — run ReForge from USB (no install)
 
-Live mode boots the **entire ReForge stack from a USB stick** without installing
-anything. The eMMC is **never** written — pull the stick, reboot, and the printer
-is back to pristine stock. It's how you trial ReForge on real AD5M / AD5M Pro
-hardware with **no brick risk**.
+Live mode boots the **entire ReForge stack from a USB stick** without going
+through the installer. Pull the stick, reboot, and the printer is back to
+pristine stock. It's how you trial ReForge on real AD5M / AD5M Pro hardware
+with **no brick risk**.
+
+"Live" here means "booted from USB", not "zero eMMC writes". The OS writes
+essentially nothing to the eMMC; user-uploaded gcodes land on the eMMC `/data/`
+the same way they do in install mode (intentional persistence). See the
+[Write topology](#write-topology) section for the full picture.
 
 | | Live mode | Install (`.tgz`) |
 |---|---|---|
-| Where it runs | USB stick (real F2FS partition) | eMMC (`/data/.reforge`) |
-| eMMC writes | **none** | overlay + LKG bookkeeping |
-| Persistence | none (USB only; `/data` is tmpfs) | survives reboot |
+| Chroot ROOT (host-side) | `/data/.mod/.reforge` (F2FS USB partition mounted here) | `/data/.mod/.reforge` (directory on eMMC ext4) |
+| `/data` inside chroot | eMMC mmcblk0p7 (bind from host) | eMMC mmcblk0p7 (bind from host) |
+| OS-level eMMC writes | one-time `mkdir /data/.mod/.reforge` on a fresh unit | overlay + LKG bookkeeping |
+| User gcode persistence | eMMC `/data/` (visible to install too) | eMMC `/data/` |
+| Config / log persistence | F2FS USB partition (lost if stick is reformatted) | eMMC `/data/.mod/.reforge/` |
 | Revert | pull USB + reboot | OTA rollback / recovery |
 | Stock UI | does **not** run (ReForge owns the machine) | does not run |
 
@@ -40,7 +47,12 @@ ReForge's live launcher (`packaging/live/flashforge_init.sh`) uses that hook. It
 3. binds `proc`/`sys`/`dev`/`run` + a **tmpfs `/data`** into the chroot — the
    install path binds the eMMC `/data` (mmcblk0p7); live mode uses tmpfs so **no
    eMMC partition is touched**.
-4. `REFORGE_LIVE=1 chroot … /mod/start.sh`, then **blocks forever** — so stock
+4. **boots the toolhead "eboard" MCU** (`chroot … /usr/bin/reforge-boot-eboard`) —
+   right here, before banner/network/stack. The eboard (`/dev/ttyS1`) waits in a
+   serial bootloader for an `A` (0x41) before starting its Klipper app; without this
+   handshake klippy can never connect it and the toolhead stays dark. Best-effort.
+   See [boot.md §8](boot.md).
+5. `REFORGE_LIVE=1 chroot … /mod/start.sh`, then **blocks forever** — so stock
    never reaches `umount /mnt` and never launches its own UI. ReForge owns the box.
 
 `REFORGE_LIVE=1` tells the boot/LKG scripts to skip the persistent trial/LKG
@@ -113,23 +125,53 @@ The 2-partition layout removes all three: the rootfs is a real F2FS block device
 Cost: the stick has to be flashed with a partitioned `.img` (`dd` or Etcher) rather
 than an "extract a tarball onto an existing FAT stick" tarball.
 
-## The brick-safe invariant
+## Write topology
 
-**Never write the eMMC.** No partition writes, no init edits, no `/data/.reforge`
-install. Runtime state (klippy logs, moonraker DB, zram) lives in the loop-mounted
-USB image (persistent) or tmpfs (ephemeral). Worst case — USB yanked mid-run — the
-chroot's fs vanishes but the eMMC is intact; reboot recovers.
+Live mode is **not** a zero-eMMC-write mode — it is "booted from USB with the
+installer skipped". Here's exactly what writes where:
 
-The qemu gate `tests/qemu-harness/live-mode-test.sh` (`make qemu-live`, rootless)
-enforces it: it boots the launcher with an eMMC stand-in disk and **asserts the
-eMMC bytes are identical before and after** and the stack came up. CI-gated.
+| What | Where | Storage | When |
+|---|---|---|---|
+| `mkdir -p /data/.mod/.reforge` (one-time) | mountpoint inode on eMMC p7 | eMMC | First live boot on a fresh unit; no-op thereafter |
+| F2FS mount + chroot setup | kernel mount table | RAM | Boot only |
+| `klippy.log` | `/var/log/klippy.log` inside chroot | F2FS USB | Runtime |
+| moonraker SQLite DB + history | `/var/lib/moonraker/` inside chroot | F2FS USB | Runtime |
+| `SAVE_CONFIG` (PID/shaper/mesh) | `/etc/reforge/printer.cfg` inside chroot | F2FS USB | Tuning events |
+| Klippy UDS / lockfiles | `/tmp/klippy_uds` etc. | tmpfs | Runtime |
+| Live-mode log | `/mnt/reforge-live.log` (FAT p1) | FAT USB | Per boot |
+| Gcode uploads via Mainsail | `/data/` (factory `[virtual_sdcard] path: /data/`) | eMMC | Per upload |
+| Print job state (stop/pause) | moonraker DB | F2FS USB | Per event |
+
+**OS-level writes to eMMC: one directory inode** (`/data/.mod/.reforge`), and
+only the first time live mode runs on a fresh unit.
+
+**User-action writes to eMMC: gcode uploads**, intentional. You upload via
+Mainsail in live mode, pull the stick, and the gcodes are still in `/data/`.
+An install on the same unit sees the same files at the same path. If you'd
+rather have ephemeral gcodes in live mode, bind a tmpfs over `/data/gcodes` in
+your printer.cfg — the launcher doesn't enforce one way or the other.
+
+## The install-residue invariant
+
+What live mode **does NOT** write to eMMC: any install state. No
+`/data/.mod/.reforge/{mod,lkg,trial,.installed}` files are created from live
+mode. Pull the USB stick + reboot, and the unit boots stock unmodified —
+stock's `/etc/init.d/` is unchanged, no `S01reforge` symlink, no
+`/data/.mod/.reforge/mod` overlay. If you previously had an install, that
+state persists in `/data/.mod/.reforge/` underneath the live mount, and
+reappears when the USB is removed.
+
+The qemu gate `tests/qemu-harness/live-mode-test.sh` (`make qemu-live`,
+rootless) enforces this: after a live boot, it checks the eMMC stand-in via
+`debugfs` for any `/data/.mod/.reforge/{mod,lkg,trial,.installed}` and fails
+if any of them appear. CI-gated.
 
 ## Hardware trial (2026-06-02, AD5M Pro `kunos`)
 
 First real-hardware run, verified with `tools/release/verify-live-trial.sh`
 (baseline → live → stock). **Result: the brick-safe model holds on real hardware.**
 ReForge booted live from the USB (GuppyScreen on the panel), and a clean before/after
-showed the eMMC was **untouched**: `/data/.reforge` ABSENT both before and after, the
+showed the eMMC was **untouched**: `/data/.mod/.reforge` ABSENT both before and after, the
 user's print files intact, no `/mod` or ReForge residue, the live modules unloaded on
 reboot, and forge-x came back pristine. Pulling the stick + rebooting returned to stock.
 

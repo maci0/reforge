@@ -22,11 +22,27 @@ case "$verb" in
     br "$DEFCONFIG"
     br $MULTICORE
     ;;
+  kernel)
+    # Build ONLY the Linux kernel (DEVICE config). dirclean first so a config
+    # swap (e.g. after `kernel-virt`) re-rsyncs + reconfigures cleanly.
+    br "$DEFCONFIG"
+    br linux-dirclean
+    br REFORGE_KERNEL=device linux
+    ;;
+  kernel-virt)
+    # Build ONLY the Linux kernel with the qemu `-M virt` test config
+    # (board/reforge/linux-virt.config: multi_v7 + virtio/drm/fb, ARCH_SUNXI off).
+    # Same vendor Tina source. Output: build/output/images/zImage. dirclean
+    # ensures a fresh reconfigure after a config swap.
+    br "$DEFCONFIG"
+    br linux-dirclean
+    br REFORGE_KERNEL=virt linux
+    ;;
   clean)
     rm -rf "$OUTPUT_DIR"
     ;;
   *)
-    echo "usage: build.sh {defconfig|rootfs|clean}"
+    echo "usage: build.sh {defconfig|rootfs|kernel|kernel-virt|clean}"
     exit 1
     ;;
 esac

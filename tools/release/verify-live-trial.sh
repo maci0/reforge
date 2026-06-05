@@ -5,15 +5,15 @@
 # Two phases, run against the printer's IP:
 #
 #   baseline   (BEFORE the trial, while the unit is on stock/forge-x over SSH)
-#              — record that the eMMC has NO ReForge install (/data/.reforge absent).
+#              — record that the eMMC has NO ReForge install (/data/.mod/.reforge absent).
 #
 #   live       (WHILE the live USB is booted) — over HTTP (always) + SSH (if keys
 #              work): the ReForge stack is up, it's running from the USB loop-mounted
 #              F2FS with a tmpfs /data, the 3 modules are loaded, and — the headline —
-#              the eMMC's /data carries NO /data/.reforge install (live wrote nothing).
+#              the eMMC's /data carries NO /data/.mod/.reforge install (live wrote nothing).
 #
 #   stock      (AFTER pulling the USB + rebooting, back on stock over SSH) — confirm
-#              /data/.reforge is STILL absent: the whole trial left the eMMC untouched.
+#              /data/.mod/.reforge is STILL absent: the whole trial left the eMMC untouched.
 #
 # HTTP needs nothing; SSH checks are best-effort (skip cleanly if the key is rejected).
 # Usage:  tools/release/verify-live-trial.sh <baseline|live|stock> [IP]
@@ -49,12 +49,12 @@ ssh_try() { ${SSH} true 2>/dev/null; }
 
 emmc_install_check() {  # the headline: is there a ReForge install on the eMMC?
     # /data is the eMMC partition (mmcblk0p7) on the stock host. A live boot must
-    # NOT create /data/.reforge there (that's what an INSTALL would do).
-    out="$(${SSH} 'ls -ld /data/.reforge 2>/dev/null && echo PRESENT || echo ABSENT' 2>/dev/null)"
+    # NOT create /data/.mod/.reforge there (that's what an INSTALL would do).
+    out="$(${SSH} 'ls -ld /data/.mod/.reforge 2>/dev/null && echo PRESENT || echo ABSENT' 2>/dev/null)"
     case "${out}" in
-        *ABSENT*) ok "eMMC /data/.reforge ABSENT — no ReForge install on eMMC (brick-safe)";;
-        *PRESENT*) bad "eMMC /data/.reforge PRESENT — something installed to eMMC!";;
-        *) info "could not read /data/.reforge over SSH (key rejected?)";;
+        *ABSENT*) ok "eMMC /data/.mod/.reforge ABSENT — no ReForge install on eMMC (brick-safe)";;
+        *PRESENT*) bad "eMMC /data/.mod/.reforge PRESENT — something installed to eMMC!";;
+        *) info "could not read /data/.mod/.reforge over SSH (key rejected?)";;
     esac
 }
 
@@ -93,7 +93,7 @@ stock)
         emmc_install_check
         info "stock UI back: $(${SSH} 'pgrep -af firmwareExe 2>/dev/null | head -1' 2>/dev/null || echo "(firmwareExe check)")"
         echo ""
-        echo "VERDICT: if /data/.reforge was ABSENT in baseline AND now, the live trial wrote NOTHING to eMMC."
+        echo "VERDICT: if /data/.mod/.reforge was ABSENT in baseline AND now, the live trial wrote NOTHING to eMMC."
     else
         bad "SSH to root@${IP} failed"
     fi

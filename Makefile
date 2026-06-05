@@ -1,5 +1,5 @@
 BUILD := tools/build/build.sh
-.PHONY: lint unit rootfs defconfig clean smoke repro integration smoke-guppy tgz live-usb validate-loopback \
+.PHONY: lint unit rootfs defconfig clean kernel kernel-virt smoke repro integration smoke-guppy tgz live-usb validate-loopback \
         run-from-mod \
         bsp-kernel-rebuild bsp-kernel-stock \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
@@ -11,6 +11,13 @@ lint:              ; tools/lint/shellcheck.sh
 rootfs:            ; $(BUILD) rootfs
 defconfig:         ; $(BUILD) defconfig
 clean:             ; $(BUILD) clean
+# kernel / kernel-virt: build ONLY the Linux kernel via Buildroot (same vendor
+# Tina source). `kernel` = the device stock config; `kernel-virt` = the qemu
+# `-M virt` test config (ARCH_SUNXI off + virtio/drm/fb). Output: build/output/
+# images/zImage. The standalone tools/build/build-bsp-kernel*.sh + build-test-
+# kernel.sh stay the canonical references.
+kernel:            ; $(BUILD) kernel
+kernel-virt:       ; $(BUILD) kernel-virt
 smoke:             ; tests/smoke/smoke_rootfs.sh
 repro:             ; tests/smoke/repro_check.sh
 integration:       ; tests/smoke/chroot_integration.sh

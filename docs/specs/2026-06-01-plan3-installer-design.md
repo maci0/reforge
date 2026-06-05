@@ -37,7 +37,7 @@ Produce the **flashable ReForge installer** (stock-format `.tgz`) and **validate
 
 ### Key constraints carried from the parent spec
 - Stock OTA `.tgz` = plain tar of xz subpackages + `flashforge_init.sh`; **no signature check**.
-- Overlay model: install to `/data/.reforge`, mount over `/data`, chroot — **stock kernel/partition/`firmwareExe` untouched** ⇒ soft-brick recoverable by stock `.tgz` reflash; dual-boot + stock-UI possible.
+- Overlay model: install to `/data/.mod/.reforge`, mount over `/data`, chroot — **stock kernel/partition/`firmwareExe` untouched** ⇒ soft-brick recoverable by stock `.tgz` reflash; dual-boot + stock-UI possible.
 - Recovery profile: eMMC dump/reader + stock `.tgz` reflash only; **no FEL/UART**. Golden dump already captured (`recovery/`).
 
 ---
@@ -57,7 +57,7 @@ reforge/
 │       └── control-<ver>.tar.xz    EMPTY STUB (MCU reserved for Plan 4)
 ├── install/                        on-device boot glue (shipped inside software-)
 │   ├── (Plan-2 init scripts: S00cloudblock … S35zram … S60klipper …)
-│   ├── reforge-boot                chroot launcher (mount /data, chroot /data/.reforge, start init)
+│   ├── reforge-boot                chroot launcher (mount /data, chroot /data/.mod/.reforge, start init)
 │   ├── screen-mode selector        HEADLESS (default) / GUPPY / STOCK(spike)
 │   └── dual-boot / SKIP_MOD glue   (forge-x pattern: boot untouched stock)
 ├── validation/                     proves the installer WITHOUT flashing
@@ -94,13 +94,13 @@ Each unit is independently testable: packaging → a `.tgz`; validation → pass
 
 **Install flow** (`flashforge_init.sh`, host-side, run by the stock USB updater; mirrors zmod/forge-x):
 1. arch/PID sanity (`armv7l`, `Adventurer5M`/`Pro`, PID 0023/0024) — bail on mismatch.
-2. extract subpackages to **`/data/.reforge`** — **never touches `/opt`, stock rootfs, kernel, partitions**.
-3. install boot hook (`reforge-boot`): on boot, mount over `/data`, `chroot /data/.reforge`, start ReForge init chain.
+2. extract subpackages to **`/data/.mod/.reforge`** — **never touches `/opt`, stock rootfs, kernel, partitions**.
+3. install boot hook (`reforge-boot`): on boot, mount over `/data`, `chroot /data/.mod/.reforge`, start ReForge init chain.
 4. screen-mode selector persisted in config: **`HEADLESS` (default, safest)** / `GUPPY` / `STOCK` (pending spike).
 5. **dual-boot**: a `SKIP_MOD` USB marker / setting → boot skips ReForge → untouched stock runs (forge-x pattern).
 6. `/etc/hosts` cloud-block every boot.
 
-**Reversibility:** stock partition/kernel/`firmwareExe` untouched ⇒ uninstall = remove `/data/.reforge` + boot hook (`reforge-uninstall.tgz`), or flash a stock `.tgz`. Soft-brick → stock reflash.
+**Reversibility:** stock partition/kernel/`firmwareExe` untouched ⇒ uninstall = remove `/data/.mod/.reforge` + boot hook (`reforge-uninstall.tgz`), or flash a stock `.tgz`. Soft-brick → stock reflash.
 
 **Carried caveat (in installer docs):** without Plan 4's MCU firmware, ReForge boots + serves Mainsail/Moonraker but **klippy won't connect to the v11 MCU** → no printing. P3 delivers an installable, bootable, web-reachable ReForge.
 
@@ -120,7 +120,7 @@ A real emulation platform so we can test install, boot, GUI render, and GUI↔kl
 - Extract the **stock rootfs (`mmcblk0p6`) from the golden eMMC dump** → a bootable ext4 image. Stub absent hardware (MCU serials → host PTYs).
 
 **4c. Update-process test:**
-- **Minimum bar (gating):** the *filesystem-ops* update test — run the installer (`flashforge_init.sh`) against the stock rootfs's `/data` (in a chroot or a booted minimal harness rootfs under qemu) → assert ReForge lands in `/data/.reforge` + boot hook installed → boot the **ReForge** rootfs under the test kernel and confirm it comes up. This proves the install logic + ReForge boot **without** needing a full stock-firmware boot under virt.
+- **Minimum bar (gating):** the *filesystem-ops* update test — run the installer (`flashforge_init.sh`) against the stock rootfs's `/data` (in a chroot or a booted minimal harness rootfs under qemu) → assert ReForge lands in `/data/.mod/.reforge` + boot hook installed → boot the **ReForge** rootfs under the test kernel and confirm it comes up. This proves the install logic + ReForge boot **without** needing a full stock-firmware boot under virt.
 - **Stretch:** full stock-firmware boot under qemu, then run the install end-to-end as the stock updater does (USB `.tgz` → updater → install → reboot → ReForge). Attempt it; if stock-boot-under-virt stalls (§7 risk 2), the minimum bar above is the accepted pass and full-stock-boot is deferred.
 - Also test uninstall / stock reflash (filesystem-level).
 

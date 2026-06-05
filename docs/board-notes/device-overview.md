@@ -10,7 +10,10 @@ Top-level map of the FlashForge Adventurer 5M Pro hardware/software stack (this 
 - **eMMC**: 8 GB (`mmcblk0`, 7456 M). Partitions: `p1` 33M, `p2/p3/p5` 1M (env/misc), `p4` 34M,
   `p6` 1280M, **`p7` 6068M → `/data`**.
 - **Kernel**: stock **5.4.61** (`sun8iw20p1` BSP). Loaded modules: `8821cu` (Realtek RTL8821CU USB
-  WiFi), `zram`, `zsmalloc`.
+  WiFi), `zram`, `zsmalloc`. **Mainline-viable:** the T113 + every peripheral here — incl. the
+  RTL8821CU (mainline `rtw88`/`rtw8821cu`) — is upstream since Linux **v6.4**; a 6.x kernel needs
+  only a board DTS + LCD panel, not the BSP. See
+  [`../research/2026-06-01-t113-mainline-kernel-support.md`](../research/2026-06-01-t113-mainline-kernel-support.md).
 - **Video Engine (Cedar)** @ `0x01C0E000`, ver 0x1667 — **does not complete codec ops on this unit**
   (see `../../lab/venc-scratch/`); stock uses x264 **software** H.264.
 - **Camera**: USB-UVC, **MJPEG-native** 640×480/1280×720.

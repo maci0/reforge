@@ -15,24 +15,24 @@
 #     - python3, busybox httpd, all ReForge services
 #   Using it as the outer root means the qemu VM boots into a real Linux
 #   userland immediately.  The installer then lays a second copy of the
-#   ReForge stack under /data/.reforge and symlinks S01reforge into
+#   ReForge stack under /data/.mod/.reforge and symlinks S01reforge into
 #   /etc/init.d.  On boot:
-#       inittab → rcS → S01reforge → reforge-boot → chroot /data/.reforge
+#       inittab → rcS → S01reforge → reforge-boot → chroot /data/.mod/.reforge
 #   This exercises the real overlay+chroot boot path (the same one the
 #   printer uses after a USB update).
 #
 #   The outer root's own service scripts (S60klipper, S65moonraker, etc.)
 #   are stubbed out so they don't conflict with the chroot launch; the
-#   services run exclusively inside the /data/.reforge chroot.
+#   services run exclusively inside the /data/.mod/.reforge chroot.
 #
 # Patches applied after install (all documented inline):
 #   P1. Create /opt/config in the outer root — reforge-boot bind-mounts
 #       it into the chroot; without it the mount fails.
-#   P2. Fix the S01reforge symlink to use the in-VM path (/data/.reforge/...)
-#       not the host mount path (/tmp/reforge-update-mnt-XXX/data/.reforge/...).
+#   P2. Fix the S01reforge symlink to use the in-VM path (/data/.mod/.reforge/...)
+#       not the host mount path (/tmp/reforge-update-mnt-XXX/data/.mod/.reforge/...).
 #       The installer creates the symlink with the host absolute path; we
 #       rewrite it to the VM-relative path so it resolves correctly at boot.
-#   P3. Patch the installed /data/.reforge/.shell/reforge-boot to skip the
+#   P3. Patch the installed /data/.mod/.reforge/.shell/reforge-boot to skip the
 #       mmcblk0p7 /data-mount check.  In qemu /data is a directory on the
 #       ext4 root (already mounted as /); there is no separate mmcblk0p7.
 #   P4. Stub out the outer root's own S6x/S7x service scripts so they don't
@@ -169,7 +169,7 @@ else
     log "=== STEP 1: Building ext4 root image ==="
     log "  rootfs.tar : ${ROOTFS_TAR} ($(du -sh "${ROOTFS_TAR}" | cut -f1))"
 
-    # Create a 1.8 GB ext4 image (guppy rootfs ~500 MB unpacked + /data/.reforge ~500 MB)
+    # Create a 1.8 GB ext4 image (guppy rootfs ~500 MB unpacked + /data/.mod/.reforge ~500 MB)
     log "  creating 1.8 GB ext4 image ..."
     dd if=/dev/zero of="${EXT4_IMG}" bs=1M count=1843 status=progress 2>&1 | tail -1
     mkfs.ext4 -F -q -L "reforge-root" "${EXT4_IMG}"
@@ -207,7 +207,7 @@ else
         REFORGE_INITD_DIR="${MNT_DIR}/etc/init.d" \
         sh "${INSTALLER}" 2>&1 | sed 's/^/    /'
 
-    REFORGE_DIR="${MNT_DIR}/data/.reforge"
+    REFORGE_DIR="${MNT_DIR}/data/.mod/.reforge"
     [ -d "${REFORGE_DIR}" ] || die "Installer did not create ${REFORGE_DIR}"
     log "  installer complete.  .installed: $(cat "${REFORGE_DIR}/.installed" 2>/dev/null || echo MISSING)"
 
@@ -222,11 +222,11 @@ else
     mkdir -p "${MNT_DIR}/opt/config"
 
     # PATCH P2: Fix the S01reforge symlink to use the IN-VM path.
-    # The installer creates:  S01reforge -> /tmp/reforge-update-mnt-XXX/data/.reforge/.shell/reforge-boot
+    # The installer creates:  S01reforge -> /tmp/reforge-update-mnt-XXX/data/.mod/.reforge/.shell/reforge-boot
     # But inside the VM the mount prefix doesn't exist; the path must be:
-    #   S01reforge -> /data/.reforge/.shell/reforge-boot
+    #   S01reforge -> /data/.mod/.reforge/.shell/reforge-boot
     log "  applying P2: fixing S01reforge symlink to in-VM path ..."
-    VM_HOOK_TARGET="/data/.reforge/.shell/reforge-boot"
+    VM_HOOK_TARGET="/data/.mod/.reforge/.shell/reforge-boot"
     rm -f "${HOOK_LINK}"
     ln -s "${VM_HOOK_TARGET}" "${HOOK_LINK}"
     log "  (vm-path)  S01reforge → ${VM_HOOK_TARGET}"
@@ -286,7 +286,7 @@ PYEOF
             cat > "${OUTER_SVC}" << 'EOF'
 #!/bin/sh
 # Stubbed by update-process-test.sh (P4):
-# This service runs inside the /data/.reforge chroot (via S01reforge → reforge-boot).
+# This service runs inside the /data/.mod/.reforge chroot (via S01reforge → reforge-boot).
 # The outer-root copy is disabled to prevent double-start.
 exit 0
 EOF

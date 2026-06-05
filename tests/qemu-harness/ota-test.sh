@@ -4,7 +4,7 @@
 # (LKG) / brick-rollback test.
 #
 # Two independent scenarios, each booting the ReForge rootfs (build/output/images
-# rootfs.tar — the self-contained /data/.reforge chroot tree, with /mod, /lkg and
+# rootfs.tar — the self-contained /data/.mod/.reforge chroot tree, with /mod, /lkg and
 # the [update_manager] Moonraker config) under the virt test kernel (build/zImage):
 #
 #   STEP 1  e2e Moonraker update (best-effort).  Seeds an OLDER release_info.json
@@ -171,19 +171,19 @@ extract_rootfs() {
 # STEP 2 — THE CRITICAL LKG / brick-rollback test.
 # ===========================================================================
 #
-# Boot model (rootfs.tar IS the /data/.reforge chroot tree: /mod, /lkg, /.shell
+# Boot model (rootfs.tar IS the /data/.mod/.reforge chroot tree: /mod, /lkg, /.shell
 # live at its root, like mem-probe / reforge-render adapt).  In qemu there is no
 # mmcblk0p7 and no stock outer root, so we run the ReForge init chain in place
 # (no chroot) — exactly as mem-probe does via /mod/start.sh.
 #
 # To exercise the REAL trial/LKG contract we relocate mod/ + lkg/ under
-# /data/.reforge/ (the absolute paths reforge-lkg.sh resolves) and leave /mod,
+# /data/.mod/.reforge/ (the absolute paths reforge-lkg.sh resolves) and leave /mod,
 # /lkg as symlinks so start.sh's hardcoded /mod/... paths still resolve:
 #
-#   /data/.reforge/mod    <- the (broken) trial mod
-#   /data/.reforge/lkg    <- the good last-known-good baseline
-#   /data/.reforge/state  <- trial.count lives here
-#   /mod -> /data/.reforge/mod      /lkg -> /data/.reforge/lkg
+#   /data/.mod/.mod/.reforge/mod    <- the (broken) trial mod
+#   /data/.mod/.mod/.reforge/lkg    <- the good last-known-good baseline
+#   /data/.mod/.mod/.reforge/state  <- trial.count lives here
+#   /mod -> /data/.mod/.mod/.reforge/mod      /lkg -> /data/.mod/.mod/.reforge/lkg
 #
 # A single injected init script S98otalkg runs the SAME trial block as
 # reforge-boot (source reforge-lkg.sh; is_trial -> inc, or restore at N), then
@@ -207,21 +207,21 @@ run_lkg_test() {
 
     [ -d "${stage}/mod" ] || die "rootfs has no /mod tree (not a ReForge chroot rootfs)"
 
-    # --- relocate mod/ + lkg/ under /data/.reforge, leave /mod /lkg symlinks ---
-    log "relocating mod/ + lkg/ under /data/.reforge (real trial/LKG paths) ..."
-    mkdir -p "${stage}/data/.reforge"
-    mv "${stage}/mod" "${stage}/data/.reforge/mod"
+    # --- relocate mod/ + lkg/ under /data/.mod/.reforge, leave /mod /lkg symlinks ---
+    log "relocating mod/ + lkg/ under /data/.mod/.reforge (real trial/LKG paths) ..."
+    mkdir -p "${stage}/data/.mod/.reforge"
+    mv "${stage}/mod" "${stage}/data/.mod/.mod/.reforge/mod"
     if [ -d "${stage}/lkg" ]; then
-        mv "${stage}/lkg" "${stage}/data/.reforge/lkg"
+        mv "${stage}/lkg" "${stage}/data/.mod/.mod/.reforge/lkg"
     else
-        cp -a "${stage}/data/.reforge/mod" "${stage}/data/.reforge/lkg"
+        cp -a "${stage}/data/.mod/.mod/.reforge/mod" "${stage}/data/.mod/.mod/.reforge/lkg"
     fi
-    mkdir -p "${stage}/data/.reforge/state"
-    ln -snf /data/.reforge/mod "${stage}/mod"
-    ln -snf /data/.reforge/lkg "${stage}/lkg"
+    mkdir -p "${stage}/data/.mod/.mod/.reforge/state"
+    ln -snf /data/.mod/.mod/.reforge/mod "${stage}/mod"
+    ln -snf /data/.mod/.mod/.reforge/lkg "${stage}/lkg"
 
-    local MOD="${stage}/data/.reforge/mod"
-    local LKG="${stage}/data/.reforge/lkg"
+    local MOD="${stage}/data/.mod/.mod/.reforge/mod"
+    local LKG="${stage}/data/.mod/.mod/.reforge/lkg"
 
     # --- the GOOD baseline (lkg) gets a distinct, KNOWN-GOOD version + S99ok ---
     # S99ok is the services-up sentinel (the LAST script /mod/start.sh runs). The
@@ -305,7 +305,7 @@ EOF
 
 REFORGE_DATA_ROOT=/data
 export REFORGE_DATA_ROOT
-LKG_HELPERS=/data/.reforge/mod/.shell/reforge-lkg.sh
+LKG_HELPERS=/data/.mod/.mod/.reforge/mod/.shell/reforge-lkg.sh
 
 if [ -f "${LKG_HELPERS}" ]; then
     # shellcheck source=/dev/null
@@ -326,7 +326,7 @@ if [ -f "${LKG_HELPERS}" ]; then
     fi
 fi
 
-echo "[ota-lkg] trial.count=$(cat /data/.reforge/state/trial.count 2>/dev/null || echo 0) mod_ver=$(grep -o '\"version\"[^,]*' /data/.reforge/mod/release_info.json 2>/dev/null | sed 's/.*: *\"//;s/\"//')"
+echo "[ota-lkg] trial.count=$(cat /data/.mod/.mod/.reforge/state/trial.count 2>/dev/null || echo 0) mod_ver=$(grep -o '\"version\"[^,]*' /data/.mod/.mod/.reforge/mod/release_info.json 2>/dev/null | sed 's/.*: *\"//;s/\"//')"
 echo "[ota-lkg] launching /mod/start.sh ..."
 SCREEN_MODE=HEADLESS
 export SCREEN_MODE
@@ -407,9 +407,9 @@ EOF
 
         # Read back the persisted trial counter + mod version from the ext4.
         local count_raw mod_ver
-        count_raw="$(dbg_cat "${LKG_IMG}" /data/.reforge/state/trial.count | tr -dc '0-9')"
+        count_raw="$(dbg_cat "${LKG_IMG}" /data/.mod/.mod/.reforge/state/trial.count | tr -dc '0-9')"
         [ -n "${count_raw}" ] || count_raw=0
-        mod_ver="$(dbg_cat "${LKG_IMG}" /data/.reforge/mod/release_info.json \
+        mod_ver="$(dbg_cat "${LKG_IMG}" /data/.mod/.mod/.reforge/mod/release_info.json \
             | grep -o '"version"[^,]*' | sed 's/.*: *"//;s/"//')"
         last_ver="${mod_ver}"
 

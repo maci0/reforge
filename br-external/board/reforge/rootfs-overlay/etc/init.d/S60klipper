@@ -3,10 +3,16 @@
 # S60klipper — start/stop Klipper (klippy)
 #
 # Uses the system python3 at /usr/bin/python3.
-# jemalloc (LD_PRELOAD) tuned narenas:1,decay:0 — -6.5MB RSS vs glibc (§10b).
+#
+# NOTE: klippy runs WITHOUT jemalloc, unlike moonraker (S65). On real hardware
+# jemalloc's LD_PRELOAD corrupts klippy's heap — it aborts with
+# "free(): invalid size" (SIGABRT) seconds after reaching ready, right as the
+# heater-check timer fires. The trigger is klippy's NEON/thumb2 C helper
+# (klippy/chelper/c_helper.so) interacting with jemalloc's interposed
+# malloc/free; glibc's allocator runs it cleanly. The earlier "-6.5MB RSS"
+# jemalloc win was measured under qemu (no real chelper path), which never hit
+# the abort. moonraker has no C helper and is unaffected, so it keeps jemalloc.
 # The klippy unix socket is placed at /tmp/klippy_uds to match moonraker.conf.
-# klippy will not fully initialise until /dev/ttyS5 (MCU) is present; that is
-# an on-device (P3) concern — the script itself is correct.
 #
 
 DAEMON=/usr/bin/python3
@@ -19,10 +25,7 @@ NAME=klipper
 case "$1" in
 	start)
 		echo "Starting $NAME..."
-		export LD_PRELOAD=/usr/lib/libjemalloc.so.2
-		# tcache:false adds ~0.9 MB Pss back to the OS faster (jemalloc's per-thread
-		# cache otherwise hoards memory). Measured 2026-06-04 under qemu virt -m 128.
-		export MALLOC_CONF=narenas:1,tcache:false,dirty_decay_ms:0,muzzy_decay_ms:0
+		# NO jemalloc here — see header. glibc malloc keeps klippy stable.
 		mkdir -p /var/log /run
 		start-stop-daemon -S -b -m -p "$PIDFILE" \
 			-x "$DAEMON" -- $DAEMON_ARGS

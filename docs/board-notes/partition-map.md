@@ -27,8 +27,8 @@ Verified against `tools/recovery/forge-x-20260531-152104.partitions.txt`
 | **p3** | `env-redund` | 144 652 | 2 048 | 70.6 | 1.0 | U-Boot env (redundant) | n/a (raw block) | U-Boot environment, redundant copy | ⛔ **HARD-BRICK TIER** — same as p2; both copies must be intact for U-Boot to come up cleanly |
 | **p4** | `boot` | 146 700 | 70 400 | 71.6 | 34.4 | Android boot.img | n/a (loaded by U-Boot) | Kernel `Image` + DTB + initramfs in Android boot-image format (`mkbootimg`). Stock cmdline lives here too. | ⚠ **MEDIUM** — a bad `boot.img` stops the kernel; recoverable via RUNBOOK Path A (stock USB `.tgz` re-installs it) **if** userspace is reachable to run `flashforge_init.sh`. Otherwise Path B. |
 | **p5** | `dsp0` | 217 100 | 2 048 | 106.0 | 1.0 | raw (HiFi4 binary) | n/a (loaded by kernel) | HiFi4 DSP firmware. The T113-S3 has an audio DSP core; this is its boot image. | ⚠ **MEDIUM** — corruption blocks the DSP but not the AP; AP-only boot still works (DSP would be silent). |
-| **p6** | `rootfs` | 219 148 | 2 621 440 | 107.0 | 1 280.0 | ext4 | `/` | The stock Buildroot rootfs. Contains `/opt/klipper`, `/opt/PROGRAM` (firmwareExe + MCU updater), `/etc/init.d/`, the QT UI assets, etc. **forge-x and ReForge live mode never write here**; the ReForge **installer** writes overlays at `/data/.reforge/mod/` (see Plan 3). | ✅ **SAFE TIER (revertible)** — changes are file-level; you can SSH in and undo. Worst case, reflash a stock `.tgz` over USB (RUNBOOK Path A). |
-| **p7** | `UDISK` | 2 840 588 | 12 429 267 | 1 387.0 | 6 069.0 | ext4 | `/data` | User data partition. **All user gcodes, klippy logs, moonraker SQLite DB**, forge-x's `/data/.mod/.forge-x/` chroot, ReForge install's `/data/.reforge/`, the eMMC swapfile (if any), `wpa_supplicant.conf` for WiFi creds. | ✅ **SAFE TIER** — file-level, fully under userspace control |
+| **p6** | `rootfs` | 219 148 | 2 621 440 | 107.0 | 1 280.0 | ext4 | `/` | The stock Buildroot rootfs. Contains `/opt/klipper`, `/opt/PROGRAM` (firmwareExe + MCU updater), `/etc/init.d/`, the QT UI assets, etc. **forge-x and ReForge live mode never write here**; the ReForge **installer** writes overlays at `/data/.mod/.reforge/mod/` (see Plan 3). | ✅ **SAFE TIER (revertible)** — changes are file-level; you can SSH in and undo. Worst case, reflash a stock `.tgz` over USB (RUNBOOK Path A). |
+| **p7** | `UDISK` | 2 840 588 | 12 429 267 | 1 387.0 | 6 069.0 | ext4 | `/data` | User data partition. **All user gcodes, klippy logs, moonraker SQLite DB**, forge-x's `/data/.mod/.forge-x/` chroot, ReForge install's `/data/.mod/.reforge/`, the eMMC swapfile (if any), `wpa_supplicant.conf` for WiFi creds. | ✅ **SAFE TIER** — file-level, fully under userspace control |
 
 ## Allocated space and unused tail
 
@@ -67,10 +67,10 @@ ReForge in **live mode** (USB-only) touches **nothing on the eMMC** — see
 through the whole live boot.
 
 ReForge in **install mode** (`.tgz` over USB, per Plan 3) writes overlays
-under `/data/.reforge/mod/` on **p7** and never touches p1–p6:
+under `/data/.mod/.reforge/mod/` on **p7** and never touches p1–p6:
 
 ```
-/data/.reforge/
+/data/.mod/.reforge/
 ├── mod/                     ReForge overlay (klippy, moonraker, mainsail, init scripts)
 ├── lkg/                     last-known-good copy (LKG rollback)
 └── trial/                   trial-install bookkeeping

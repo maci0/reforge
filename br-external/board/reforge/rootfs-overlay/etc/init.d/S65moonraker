@@ -22,7 +22,13 @@ case "$1" in
 		# tcache:false adds ~0.9 MB Pss back to the OS faster (jemalloc's per-thread
 		# cache otherwise hoards memory). Measured 2026-06-04 under qemu virt -m 128.
 		export MALLOC_CONF=narenas:1,tcache:false,dirty_decay_ms:0,muzzy_decay_ms:0
-		mkdir -p /var/lib/moonraker /run
+		# Moonraker's machine component shells out to `ip -json -det address`;
+		# busybox ships `ip` in /sbin, which isn't on the default PATH, so without
+		# this moonraker logs a ShellCommandError every refresh. Add the sbin dirs.
+		export PATH="${PATH}:/sbin:/usr/sbin"
+		# Pre-create the logs dir: moonraker warns + loses early startup logs
+		# if datadir/logs is absent when it opens its log file.
+		mkdir -p /var/lib/moonraker/logs /run
 		start-stop-daemon -S -b -m -p "$PIDFILE" \
 			-x "$DAEMON" -- $DAEMON_ARGS
 		;;

@@ -76,10 +76,10 @@ printf '\033[2J\033[H'
 TERM=linux /usr/bin/reforge-banner
 echo
 # Stub the chroot data layout the real device has (reforge-boot chroots into
-# /data/.reforge with /mod bind-mounted at /data/.reforge/mod), so S99ok's
+# /data/.mod/.reforge with /mod bind-mounted at /data/.mod/.mod/.reforge/mod), so S99ok's
 # mod->LKG promotion finds its source and the chain runs as a normal install boot.
-mkdir -p /data/.reforge/mod /data/.reforge/state
-mount --bind /mod /data/.reforge/mod 2>/dev/null
+mkdir -p /data/.mod/.mod/.reforge/mod /data/.mod/.mod/.reforge/state
+mount --bind /mod /data/.mod/.mod/.reforge/mod 2>/dev/null
 # Drive the real userspace chain so the console shows cloud-block -> zram -> ...
 [ -x /mod/start.sh ] && SCREEN_MODE=HEADLESS /mod/start.sh
 echo; echo "Welcome to ReForge"; echo "reforge login: "

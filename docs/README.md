@@ -1,22 +1,31 @@
 # docs/
 
+Living **reference docs** are at the top level (kept current). Dated **snapshots** (specs, plans,
+research, RE reports) live in subdirs, each with its own index README.
+
+## Reference (current)
 | path | what |
 |---|---|
-| [`optimizations.md`](optimizations.md) | **all tuning/optimizations + measured impact** (memory, size) |
 | [`architecture.md`](architecture.md) | system architecture, runtime stack, data flow (diagrams) |
-| [`build-process.md`](build-process.md) | pins → vendor fetch → Buildroot → image → `.tgz` (diagram) |
-| [`boot.md`](boot.md) | **the boot reference**: stock chain (BROM→U-Boot→init) + intervention points + brick-safety + forge-x hook + stock USB-update detection, *and* the installed-ReForge service chain |
-| [`reverse-engineering/ad5m-mcu-firmware-and-config.md`](reverse-engineering/ad5m-mcu-firmware-and-config.md) | AD5M **MCU firmware v11/v13**, stock vs xblax vs ZMod config diff (pin map lives in reverse-engineering/) |
+| [`boot.md`](boot.md) | **the boot reference**: stock chain (BROM→U-Boot→init) + intervention points + brick-safety + forge-x hook + stock USB-update detection, *and* the installed-ReForge service chain (incl. the eboard MCU handshake) |
+| [`build-process.md`](build-process.md) | pins → vendor fetch → Buildroot → image → `.tgz` (diagram; now also builds the kernel — `make kernel` / `kernel-virt`) |
+| [`deployment-modes.md`](deployment-modes.md) | the deployment matrix — live-USB vs `.tgz` install vs stock, and how they relate |
+| [`live-mode.md`](live-mode.md) | run the stack from USB — brick-free hardware trials |
 | [`ota.md`](ota.md) | git-free in-place updates + last-known-good rollback (diagrams; designed) |
-| [`live-mode.md`](live-mode.md) | run the stack from USB, zero eMMC writes — brick-free hardware trials |
+| [`optimizations.md`](optimizations.md) | **all tuning/optimizations + measured impact** (memory, size) — canonical numbers |
 | [`REPO-LAYOUT.md`](REPO-LAYOUT.md) | **source of truth** for the repo structure (product / vendor / lab) |
-| [`BACKLOG.md`](BACKLOG.md) | unscheduled ideas (e.g. the Zig microgit; reforge OTA design) |
-| `specs/` | design specs (dated) — archival snapshots |
-| `plans/` | implementation plans (dated) — archival snapshots |
-| `research/` | dated findings: memory experiments, T113 mainline support, stock recovery images, stock-UI spike, buildroot-vs-alpine, etc. (index: `research/README.md`) |
-| `reverse-engineering/` | stock-firmware RE finding reports — full teardown of the `firmwareExe` UI app + stock Klipper pin map (start at `reverse-engineering/README.md`) |
-| `board-notes/` | device/hardware reference: device overview, forge-x boot architecture, captured kernel config / unit probe |
-| `screenshots/` | qemu-captured renders + the boot console / bootsplash (see its README) |
+| [`BACKLOG.md`](BACKLOG.md) | unscheduled ideas |
 
-**Convention:** `specs/` and `plans/` are *snapshots* — they record paths/decisions as written
-and are not rewritten on later refactors. `REPO-LAYOUT.md` reflects the current tree.
+## Snapshots & findings (dated, per-dir index)
+| dir | what |
+|---|---|
+| [`research/`](research/README.md) | dated findings, grouped: **Kernel & SoC** (T113 mainline support, BSP rebuild, byte-identical, brick-safe test, PID1), **Memory** (128 MB experiments), **UI/camera/video**, **printer stack** |
+| [`reverse-engineering/`](reverse-engineering/README.md) | stock-firmware RE reports — full `firmwareExe` teardown, stock Klipper pin map, MCU firmware, stock kernel/modules + byte-identical build |
+| [`board-notes/`](board-notes/README.md) | device/hardware reference: device overview, partition map, forge-x boot/camera, stock-rootfs provenance, USB-serial kmod |
+| [`specs/`](specs/) | design specs (dated) — archival |
+| [`plans/`](plans/) | implementation plans (dated) — archival |
+| [`screenshots/`](screenshots/README.md) | qemu renders + boot console / bootsplash |
+
+**Convention:** `specs/`, `plans/`, and `research/` are *snapshots* — they record decisions as
+written and aren't rewritten on later refactors (a `## Update <date>` is appended if re-verified).
+The reference docs above and `REPO-LAYOUT.md` reflect the current tree.

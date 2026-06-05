@@ -164,7 +164,7 @@ managed_services: guppyscreen
 type: zip
 channel: stable
 repo: maci0/reforge
-path: /data/.reforge/mod
+path: /data/.mod/.reforge/mod
 managed_services: reforge
 
 [update_manager mainsail]
@@ -189,7 +189,7 @@ from each path's `release_info.json` (not set here).
 
 - [ ] **Step 4: Validate it parses + paths resolve.** `Run: make integration` → Expected: still
   `PASS`. The `[update_manager]` paths are **chroot-relative** (Moonraker runs inside the
-  `/data/.reforge` chroot), so `/opt/klipper`, `/opt/moonraker`, `/opt/guppyscreen`, `/mod` must
+  `/data/.mod/.reforge` chroot), so `/opt/klipper`, `/opt/moonraker`, `/opt/guppyscreen`, `/mod` must
   exist at Moonraker's runtime root — `net_deploy`/`app_deploy` hard-fail config parse if a `path`
   is missing. Assert Moonraker starts and `GET /machine/update/status` lists all 5 updaters (no
   "path does not exist" error). Deeper update test in Task 6.
@@ -205,7 +205,7 @@ git commit -m "ota: moonraker SimpleProvider patch + [update_manager] (provider:
 ## Task 3: Self-contained `mod/` dir + run-init-in-place (forge-x style)
 
 The keystone. Make the reforge-authored files a **self-contained dir** that IS the OTA path
-(`/data/.reforge/mod`); `reforge-boot` chroots and runs the mod dir's init **in place** — no
+(`/data/.mod/.reforge/mod`); `reforge-boot` chroots and runs the mod dir's init **in place** — no
 mirror. A zip update of the dir is live on the next `SimpleProvider` restart/boot.
 
 **Files:**
@@ -214,15 +214,15 @@ mirror. A zip update of the dir is live on the next `SimpleProvider` restart/boo
 - Modify: `br-external/board/reforge/rootfs-overlay/.shell/reforge-boot` (chroot+exec mod init in place)
 
 **The chroot model (read this — resolves the keystone ambiguity).** Today
-`/data/.reforge` IS the entire chroot rootfs (a full busybox/glibc tree built by Buildroot), and
-`reforge-boot` does `exec chroot /data/.reforge /etc/init.d/rcS start`. That **does not change**:
-- **chroot root** = `/data/.reforge` (full base rootfs: busybox/glibc, `/opt/*`, `/var/www`).
+`/data/.mod/.reforge` IS the entire chroot rootfs (a full busybox/glibc tree built by Buildroot), and
+`reforge-boot` does `exec chroot /data/.mod/.reforge /etc/init.d/rcS start`. That **does not change**:
+- **chroot root** = `/data/.mod/.reforge` (full base rootfs: busybox/glibc, `/opt/*`, `/var/www`).
   The base is **OTA-out-of-scope** (USB `.tgz` only).
 - The reforge-authored files (init scripts, configs, `.ko`, banner, service scripts, start/stop)
-  move into a **subdir** `/data/.reforge/mod` — *inside* the chroot this is `/mod` (and also
-  `/data/.reforge/mod` via the existing `/data` bind-mount). `mod/` holds **only reforge files**
+  move into a **subdir** `/data/.mod/.reforge/mod` — *inside* the chroot this is `/mod` (and also
+  `/data/.mod/.reforge/mod` via the existing `/data` bind-mount). `mod/` holds **only reforge files**
   (no busybox/glibc/`/opt`), so the zip updater's `rmtree(mod)`+extract is safe.
-- **`reforge-boot` now execs the mod's init**: `exec chroot /data/.reforge /mod/start.sh`, where
+- **`reforge-boot` now execs the mod's init**: `exec chroot /data/.mod/.reforge /mod/start.sh`, where
   `start.sh` runs `/mod/init.d/S*` in order. The `Sxx` reference `/opt/klipper` etc — resolved
   against the chroot rootfs, unchanged. **No `/etc/init.d` mirror.**
 - **`[update_manager]` paths are chroot-relative** (Moonraker runs *inside* the chroot): `/opt/klipper`,
@@ -242,9 +242,9 @@ mod/
 ```
 
 - [ ] **Step 1: `post-build.sh` assembles `mod/` + seeds LKG.** Copy the reforge-authored files
-  into `${TARGET_DIR}/data/.reforge/mod/...` per the layout; write a default `release_info.json`
+  into `${TARGET_DIR}/data/.mod/.reforge/mod/...` per the layout; write a default `release_info.json`
   (4 keys, version from `packaging/VERSION`); seed `cp -a mod lkg`. Base rootfs stays in
-  `/data/.reforge` as today (NOT inside `mod/`). The `etc/reforge` configs are sourced from `mod/`
+  `/data/.mod/.reforge` as today (NOT inside `mod/`). The `etc/reforge` configs are sourced from `mod/`
   (klipper/moonraker already read `/etc/reforge/*` — symlink `/etc/reforge` → `/mod/etc/reforge`
   in `start.sh`, or point the daemons at `/mod/etc/reforge`).
 - [ ] **Step 2: Service-control scripts** (`mod/services/<name>`) for `SimpleProvider`
@@ -265,8 +265,8 @@ exec /mod/init.d/S60klipper "$1"
   in order. No mirror.
 - [ ] **Step 4: First-boot LKG seed (handles the `.tgz` install too).** The image is seeded by
   post-build, but a USB `.tgz` install (`packaging/flashforge_init.sh`) extracts to
-  `/data/.reforge` and creates no `lkg`. Fix **both**: (a) `flashforge_init.sh` seeds
-  `cp -a /data/.reforge/mod /data/.reforge/lkg` after extract, **and** (b) `is_trial()` treats a
+  `/data/.mod/.reforge` and creates no `lkg`. Fix **both**: (a) `flashforge_init.sh` seeds
+  `cp -a /data/.mod/.reforge/mod /data/.mod/.reforge/lkg` after extract, **and** (b) `is_trial()` treats a
   missing `lkg` as *not a trial* (`[ -d "$LKG" ] || return 1`) so a fresh boot never phantom-trials.
 - [ ] **Step 5: Loopback test.** Point `REFORGE_DATA_ROOT` at a scratch dir with a `mod/` tree
   (+ a seeded `lkg`); run `reforge-boot` (test mode); assert it execs `/mod/start.sh` (a sentinel
@@ -456,7 +456,7 @@ After all tasks: dispatch a final code-reviewer over the whole branch; verify th
   `validate_service: false`. Confirm at runtime it runs `/mod/services/klipper restart` (not
   `klipper.service`) — an off-by-suffix name silently no-ops the restart. `moonraker` restarts
   itself **asynchronously**; tests must reconnect, not expect a synchronous result.
-- **Chroot-relative paths everywhere**: Moonraker + the init run inside `/data/.reforge`; all
+- **Chroot-relative paths everywhere**: Moonraker + the init run inside `/data/.mod/.reforge`; all
   `update_manager` paths, `script_path`, and `/mod/...` references are relative to that root.
 - **No content-hash verification** in the updater (spec §integrity) — the trial/LKG is the corruption backstop; do not add a custom verifier (YAGNI).
 - **`make integration` / `make qemu-*`** are the existing harnesses; reuse them, don't reinvent.

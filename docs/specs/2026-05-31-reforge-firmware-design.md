@@ -220,7 +220,7 @@ Stock-format: plain tar of xz sub-packages + `flashforge_init.sh`-compatible ins
 ```
 reforge-<ver>.tgz
 ├── software-<ver>.tar.xz   ReForge rootfs overlay (klippy, moonraker, mainsail,
-│                             guppyscreen, init scripts) → /opt + /data/.reforge
+│                             guppyscreen, init scripts) → /opt + /data/.mod/.reforge
 ├── control-<ver>.tar.xz    MCU fw (latest + v11 fallback) + flasher
 ├── library-<ver>.tar.xz    runtime libs — NO NetEase / cloud SDK
 ├── flashforge_init.sh      installer
@@ -228,7 +228,7 @@ reforge-<ver>.tgz
 ```
 
 - **No `kernel-*.tar.xz`** → stock kernel/DTB/bootloader untouched → soft-brick fully recoverable by a stock `.tgz` reflash. This is the safety core of early phases.
-- Installs to `/data/.reforge`, mounts over `/data`, chroots into the fresh Buildroot rootfs (xblax/forge-x pattern).
+- Installs to `/data/.mod/.reforge`, mounts over `/data`, chroots into the fresh Buildroot rootfs (xblax/forge-x pattern).
 - `/etc/hosts` cloud-block applied on every boot — full host set per `FIRMWARE_5x_COMPAT.md` (FlashForge OTA/MQTT/VoxelShare/qvs/polar3d + NetEase IM/Yunxin backbone).
 - **Dual-boot** to stock retained (toggle), since the stock stack remains on disk.
 
@@ -266,7 +266,7 @@ Each phase is independently shippable and stays inside the recovery envelope unt
 | **P0 Recovery** | Golden eMMC dump (in progress) + staged stock `.tgz` + restore runbook | read-only | Dump captured; reader-restore rehearsed before any P3 flash |
 | **P1 Build system** | Fresh Buildroot `BR2_EXTERNAL`, `reforge_defconfig`, rootfs → `rootfs.tar`; boots in `qemu-arm` where feasible | none | Reproducible clean rootfs build in CI |
 | **P2 Core stack** | Latest klippy + Moonraker + Mainsail packaged; GuppyScreen package; init scripts; `/etc/hosts` block | none | Services start in chroot / qemu |
-| **P3 `.tgz` install** | Stock-format `reforge-<ver>.tgz`, installs to `/data/.reforge`, chroots, **stock kernel untouched** | rootfs/userland | First on-device flash; soft-brick recoverable; klippy connects to **stock v11 MCU**, Mainsail + GuppyScreen up, zero cloud callouts |
+| **P3 `.tgz` install** | Stock-format `reforge-<ver>.tgz`, installs to `/data/.mod/.reforge`, chroots, **stock kernel untouched** | rootfs/userland | First on-device flash; soft-brick recoverable; klippy connects to **stock v11 MCU**, Mainsail + GuppyScreen up, zero cloud callouts |
 | **P3.5 MCU** | Latest mainboard+eboard fw; `UPDATE_MCU VARIANT=latest\|v11`; write-verify flasher | MCU fw | Latest host↔latest MCU verified; v11 fallback proven |
 | **P4 Full image** | `uboot/` upstream U-Boot + `kernel/` mainline-LTS + **ported display driver**; `genimage` `reforge.img` | **u-boot+kernel** | golden-dump reader-restore **rehearsed first**; U-Boot SPL/DRAM bench-validated; display port validated (or documented fallback per §6) |
 

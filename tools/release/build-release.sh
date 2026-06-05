@@ -65,6 +65,12 @@ zip_component() {
     name="$1"
     stage="$2"
     emit_release_info "${name}" "${VER}" "${name}.zip" > "${stage}/release_info.json"
+    # Moonraker's update_manager refuses to overwrite a component dir unless it
+    # carries a '.writeable' marker — without it NetDeploy.initialize() adds the
+    # path to file_manager's reserved set, marks the install invalid ("Invalid
+    # Installation, aborting remote refresh"), and the OTA never applies. Ship
+    # the marker inside every component zip so the deployed path stays updatable.
+    : > "${stage}/.writeable"
     rm -f "${DIST_DIR}/${name}.zip"
     ( cd "${stage}" && zip -rq "${DIST_DIR}/${name}.zip" . )
     echo "[build-release]   wrote ${DIST_DIR}/${name}.zip"

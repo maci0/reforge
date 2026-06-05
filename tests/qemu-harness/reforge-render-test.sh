@@ -173,7 +173,7 @@ else
         REFORGE_INITD_DIR="${MNT_DIR}/etc/init.d" \
         sh "${INSTALLER}" 2>&1 | sed 's/^/    /'
 
-    REFORGE_DIR="${MNT_DIR}/data/.reforge"
+    REFORGE_DIR="${MNT_DIR}/data/.mod/.reforge"
     [ -d "${REFORGE_DIR}" ] || die "Installer did not create ${REFORGE_DIR}"
     log "  installer complete.  .installed: $(cat "${REFORGE_DIR}/.installed" 2>/dev/null || echo MISSING)"
 
@@ -195,7 +195,7 @@ else
     HOOK_LINK="${MNT_DIR}/etc/init.d/S01reforge"
     [ -L "${HOOK_LINK}" ] || die "S01reforge symlink missing in outer /etc/init.d"
     log "  (host-path) S01reforge → $(readlink "${HOOK_LINK}")"
-    VM_HOOK_TARGET="/data/.reforge/.shell/reforge-boot"
+    VM_HOOK_TARGET="/data/.mod/.reforge/.shell/reforge-boot"
     rm -f "${HOOK_LINK}"
     ln -s "${VM_HOOK_TARGET}" "${HOOK_LINK}"
     log "  applying P2: S01reforge → ${VM_HOOK_TARGET}"
@@ -246,7 +246,7 @@ PYEOF
             cat > "${OUTER_SVC}" << 'EOF'
 #!/bin/sh
 # Stubbed by reforge-render-test.sh (P4):
-# Services run inside /data/.reforge chroot (via S01reforge → reforge-boot).
+# Services run inside /data/.mod/.reforge chroot (via S01reforge → reforge-boot).
 exit 0
 EOF
             chmod 755 "${OUTER_SVC}"

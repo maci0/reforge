@@ -37,11 +37,11 @@ sh -n "${LKG_SH}" && pass "reforge-lkg.sh: sh -n clean" || fail "reforge-lkg.sh:
 # ---------------------------------------------------------------------------
 make_data() {
     _d="$(mktemp -d /tmp/reforge-lkg-XXXXXX)"
-    mkdir -p "${_d}/.reforge/mod"
-    _write_ri "${_d}/.reforge/mod" "$1"
+    mkdir -p "${_d}/.mod/.reforge/mod"
+    _write_ri "${_d}/.mod/.reforge/mod" "$1"
     if [ -n "${2:-}" ]; then
-        mkdir -p "${_d}/.reforge/lkg"
-        _write_ri "${_d}/.reforge/lkg" "$2"
+        mkdir -p "${_d}/.mod/.reforge/lkg"
+        _write_ri "${_d}/.mod/.reforge/lkg" "$2"
     fi
     echo "${_d}"
 }
@@ -67,7 +67,7 @@ run_lkg() {
 # ===========================================================================
 D="$(make_data 2.0.0 1.0.0)"
 run_lkg "${D}" ':'
-if [ -e "${D}/.reforge/state" ]; then
+if [ -e "${D}/.mod/.reforge/state" ]; then
     fail "sourcing reforge-lkg.sh created state dir (side effect)"
 else
     pass "sourcing reforge-lkg.sh has no side effects"
@@ -100,7 +100,7 @@ else
     pass "is_trial FALSE when lkg absent (fresh-device guard)"
 fi
 # And a fresh boot must NOT increment any counter implicitly.
-[ ! -e "${D}/.reforge/state/trial.count" ] \
+[ ! -e "${D}/.mod/.reforge/state/trial.count" ] \
     && pass "no counter created on fresh (no-lkg) boot" \
     || fail "counter created on fresh boot"
 rm -rf "${D}"
@@ -134,13 +134,13 @@ CR="$(run_lkg "${D}" 'lkg_counter_get')"
 [ "${CR}" = "0" ] && pass "counter reset => 0" || fail "counter after reset = '${CR}' (expected 0)"
 
 # ---- atomicity: no leftover temp files after writes ----
-if ls "${D}/.reforge/state/"*.tmp.* >/dev/null 2>&1; then
+if ls "${D}/.mod/.reforge/state/"*.tmp.* >/dev/null 2>&1; then
     fail "atomic-write left a partial temp file in state dir"
 else
     pass "atomic-write left no partial temp files"
 fi
 # The counter file contains exactly the value, nothing partial.
-RAW="$(cat "${D}/.reforge/state/trial.count")"
+RAW="$(cat "${D}/.mod/.reforge/state/trial.count")"
 [ "${RAW}" = "0" ] && pass "counter file holds exact value (no garbage)" \
     || fail "counter file holds '${RAW}'"
 rm -rf "${D}"
@@ -159,9 +159,9 @@ MVR="$(run_lkg "${D}" 'mod_version "$MOD"')"
 [ "${MVR}" = "1.0.0" ] && pass "lkg_restore: mod now == lkg (1.0.0)" \
     || fail "after restore mod version = '${MVR}' (expected 1.0.0)"
 # Bad mod stashed aside.
-[ -d "${D}/.reforge/mod.bad" ] && pass "lkg_restore stashed mod.bad" \
+[ -d "${D}/.mod/.reforge/mod.bad" ] && pass "lkg_restore stashed mod.bad" \
     || fail "lkg_restore did not create mod.bad"
-[ "$(cat "${D}/.reforge/mod.bad/release_info.json" | grep -o '2.0.0')" = "2.0.0" ] \
+[ "$(cat "${D}/.mod/.reforge/mod.bad/release_info.json" | grep -o '2.0.0')" = "2.0.0" ] \
     && pass "mod.bad holds the failed (2.0.0) mod" || fail "mod.bad content wrong"
 # Counter reset.
 [ "$(run_lkg "${D}" 'lkg_counter_get')" = "0" ] \
@@ -188,7 +188,7 @@ LV="$(run_lkg "${D}" 'mod_version "$LKG"')"
 [ "$(run_lkg "${D}" 'lkg_counter_get')" = "0" ] \
     && pass "lkg_promote reset counter to 0" || fail "lkg_promote did not reset counter"
 # No partial lkg.new left behind.
-[ ! -e "${D}/.reforge/lkg.new" ] && pass "lkg_promote left no partial lkg.new" \
+[ ! -e "${D}/.mod/.reforge/lkg.new" ] && pass "lkg_promote left no partial lkg.new" \
     || fail "lkg_promote left a partial lkg.new"
 # Now no longer a trial.
 if run_lkg "${D}" 'is_trial'; then

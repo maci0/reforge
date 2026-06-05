@@ -12,27 +12,27 @@
 # SAME on-disk directories in both:
 #
 #   1. reforge-boot — runs on the STOCK side, OUTSIDE the chroot.  There the
-#      ReForge tree is at /data/.reforge/{mod,lkg,state}.
+#      ReForge tree is at /data/.mod/.reforge/{mod,lkg,state}.
 #
-#   2. S99ok — runs INSIDE the chroot whose root IS /data/.reforge.  reforge-boot
+#   2. S99ok — runs INSIDE the chroot whose root IS /data/.mod/.reforge.  reforge-boot
 #      bind-mounts the printer's /data into the chroot at <chroot>/data, so the
 #      same files are reachable inside the chroot both as /mod (chroot-internal)
-#      AND as /data/.reforge/mod (via that bind-mount).
+#      AND as /data/.mod/.reforge/mod (via that bind-mount).
 #
-# Therefore the absolute path /data/.reforge/{mod,lkg,state} names the exact same
+# Therefore the absolute path /data/.mod/.reforge/{mod,lkg,state} names the exact same
 # inodes in BOTH contexts, and the counter written by reforge-boot is read back
 # by S99ok and vice-versa.  We default DATA=/data and build every path from
-# /data/.reforge/... so the resolution is identical on both sides.
+# /data/.mod/.reforge/... so the resolution is identical on both sides.
 #
 # REFORGE_DATA_ROOT overrides DATA for host unit tests (scratch dir, no chroot);
-# it is NEVER set in production, so production always uses /data/.reforge/...
+# it is NEVER set in production, so production always uses /data/.mod/.reforge/...
 # ----------------------------------------------------------------------------
 
 DATA="${REFORGE_DATA_ROOT:-/data}"
-STATE="${DATA}/.reforge/state"
+STATE="${DATA}/.mod/.reforge/state"
 CNT="${STATE}/trial.count"
-LKG="${DATA}/.reforge/lkg"
-MOD="${DATA}/.reforge/mod"
+LKG="${DATA}/.mod/.reforge/lkg"
+MOD="${DATA}/.mod/.reforge/mod"
 # shellcheck disable=SC2034  # N is read by reforge-boot after it sources this file
 N=3
 

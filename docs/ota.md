@@ -25,7 +25,7 @@ automatic last-known-good rollback.
 | `klipper` `/opt/klipper` (incl. prebuilt `c_helper.so`) | `zip` | `maci0/reforge` release asset | `SimpleProvider` restart |
 | `moonraker` `/opt/moonraker` | `zip` | `maci0/reforge` | restart |
 | `guppyscreen` `/opt/guppyscreen` | `zip` | `maci0/reforge` | restart |
-| `reforge` `/data/.reforge/mod` (init, configs, zram `.ko`, banner) | `zip` | `maci0/reforge` | restart / next boot, under trial/LKG |
+| `reforge` `/data/.mod/.reforge/mod` (init, configs, zram `.ko`, banner) | `zip` | `maci0/reforge` | restart / next boot, under trial/LKG |
 | `mainsail` `/var/www/mainsail` | `web` | upstream `mainsail-crew/mainsail` | static, no restart |
 
 **Out of scope (USB `.tgz` reflash):** base rootfs (busybox/glibc), kernel, U-Boot.
@@ -65,7 +65,7 @@ sequenceDiagram
         GH-->>M: zip bytes (HTTP 200 — no content hash)
         M->>M: rmtree(path) + extract to path<br/>(preserve persistent_files)
         M->>SP: do_service_action("restart", component)
-        SP->>S: /data/.reforge/mod/services/{component} restart
+        SP->>S: /data/.mod/.reforge/mod/services/{component} restart
         S-->>U: updated, live (no reboot)
     else up to date
         M-->>U: nothing to do
@@ -101,7 +101,7 @@ flowchart TD
     I --> K([Healthy · new version is the new LKG])
 ```
 
-- **Trial counter** `/data/.reforge/state/trial.count` — atomic writes (temp + rename), survives
+- **Trial counter** `/data/.mod/.reforge/state/trial.count` — atomic writes (temp + rename), survives
   power-cuts.
 - **N = 3** failed trial boots → restore the previous LKG.
 - **Sentinel** = the single `S99ok` init script (runs last); reaching it means every service

@@ -15,7 +15,7 @@
 set -e
 
 DATA="${REFORGE_DATA_ROOT:-/data}"
-REFORGE_DIR="${DATA}/.reforge"
+REFORGE_DIR="${DATA}/.mod/.reforge"
 CONF="${REFORGE_DIR}/config/screen.conf"
 
 # ---------------------------------------------------------------------------
@@ -115,18 +115,32 @@ mount --bind   "${DATA}"       "${REFORGE_DIR}/data"
 
 # NOTE: we deliberately do NOT bind the stock /opt/config. ReForge is fully
 # self-contained: klippy uses /etc/reforge/printer.cfg and moonraker uses
-# /etc/reforge/moonraker.conf (both inside the chroot, on /data/.reforge). The
+# /etc/reforge/moonraker.conf (both inside the chroot, on /data/.mod/.reforge). The
 # ONLY persistent change ReForge makes to the stock rootfs is the single
-# /etc/init.d/S01reforge symlink. Everything else lives in /data/.reforge or is
+# /etc/init.d/S01reforge symlink. Everything else lives in /data/.mod/.reforge or is
 # a transient runtime bind-mount (proc/sys/dev/run/tmp/data) undone on uninstall.
 
 sync
 
 # ---------------------------------------------------------------------------
+# Boot the toolhead ("eboard") MCU — early, right after the chroot mounts, the
+# same way the live launcher does. The eboard (/dev/ttyS1) powers up in a serial
+# bootloader that waits for the host to send 'A' before starting its Klipper app;
+# the mainboard MCU auto-boots and needs no trigger. Stock (firmwareExe
+# "bootserial eboard:") and forge-x (its boot_mcu binary, run from boot.sh in any
+# screen mode) both do this — ReForge must too, or klippy can never identify the
+# eboard ("Serial connection closed") and the toolhead stays dark. Best-effort:
+# on a warm reboot (eboard already in its app) the handshake just no-ops.
+# ---------------------------------------------------------------------------
+echo "[reforge-boot] booting eboard MCU (toolhead) ..."
+chroot "${REFORGE_DIR}" /usr/bin/reforge-boot-eboard \
+    || echo "[reforge-boot] eboard boot handshake non-zero (already up?) — continuing"
+
+# ---------------------------------------------------------------------------
 # Trial / last-known-good (LKG) guard — runs on the STOCK side BEFORE we chroot
 # into the mod dir, so a brick during the mod's own boot is still counted.
 #
-# reforge-lkg.sh resolves /data/.reforge/{mod,lkg,state} (via REFORGE_DATA_ROOT
+# reforge-lkg.sh resolves /data/.mod/.reforge/{mod,lkg,state} (via REFORGE_DATA_ROOT
 # -> DATA), the SAME inodes that S99ok sees inside the chroot.  We source the mod
 # copy.  The helpers may return non-zero (is_trial returns 1 on a non-trial /
 # fresh boot), so guard each call under `set -e`.

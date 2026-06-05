@@ -211,9 +211,9 @@ fi
 
 # Build a scratch DATA root with mod(2.0.0) + lkg(1.0.0) to drive the helpers.
 TRIAL_DATA="${SCRATCH}/trialdata"
-mkdir -p "${TRIAL_DATA}/.reforge/mod" "${TRIAL_DATA}/.reforge/lkg"
-printf '{\n  "version": "2.0.0"\n}\n' > "${TRIAL_DATA}/.reforge/mod/release_info.json"
-printf '{\n  "version": "1.0.0"\n}\n' > "${TRIAL_DATA}/.reforge/lkg/release_info.json"
+mkdir -p "${TRIAL_DATA}/.mod/.reforge/mod" "${TRIAL_DATA}/.mod/.reforge/lkg"
+printf '{\n  "version": "2.0.0"\n}\n' > "${TRIAL_DATA}/.mod/.reforge/mod/release_info.json"
+printf '{\n  "version": "1.0.0"\n}\n' > "${TRIAL_DATA}/.mod/.reforge/lkg/release_info.json"
 
 run_trial() { REFORGE_DATA_ROOT="${TRIAL_DATA}" sh -c ". '${LKG_SH}'; $1"; }
 
