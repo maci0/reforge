@@ -8,7 +8,7 @@
 #   /opt/config/mod/.shell/S00init → /etc/init.d/S00init  (confirmed in
 #   fw-analysis/fx-build/flashforge_init.sh:243 and the stock rcS).
 #   ReForge mirrors this exactly: we install reforge-boot at
-#   /data/.reforge/.shell/reforge-boot and symlink it as
+#   /data/.mod/.reforge/.shell/reforge-boot and symlink it as
 #   /etc/init.d/S01reforge  (slot S01 — after any S00 stock scripts,
 #   before the rest of the stock stack).  Rationale for S01 vs S00:
 #   avoids colliding with an existing forge-x S00init if the user ever
@@ -28,7 +28,7 @@ set -e
 # Env / paths
 # ---------------------------------------------------------------------------
 DATA="${REFORGE_DATA_ROOT:-/data}"
-REFORGE_DIR="${DATA}/.reforge"
+REFORGE_DIR="${DATA}/.mod/.reforge"
 BOOT_HOOK_DEST="${REFORGE_DIR}/.shell/reforge-boot"
 # REFORGE_INITD_DIR overrides the init.d path so loopback/CI tests can
 # redirect the boot-hook symlink to a temp dir instead of the host /etc/init.d.
@@ -71,6 +71,76 @@ if [ -z "${REFORGE_SKIP_ARCH_CHECK:-}" ] && [ "${ARCH}" != "armv7l" ]; then
     die "Architecture mismatch: expected armv7l, got ${ARCH}"
 fi
 info "Architecture: ${ARCH} (check $( [ -n "${REFORGE_SKIP_ARCH_CHECK:-}" ] && echo 'SKIPPED' || echo 'OK' ))"
+
+# ---------------------------------------------------------------------------
+# Pre-flight: refuse to install over a competing mod.
+#
+# ReForge owns /etc/init.d/S01reforge + the /data/.mod/.reforge/ chroot.
+# Another mod sitting at /etc/init.d/S00init (forge-x slot), /opt/config/mod/,
+# /data/.mod/.forge-x/, or any of the well-known S?? symlinks they install
+# will conflict at boot: races for the printer serial, the Moonraker HTTP
+# port, the framebuffer; doubled RSS on the 128 MB box; shared state
+# (/etc/hosts, /opt/klipper/klippy/extras/) in inconsistent shape.
+#
+# The user must run the other mod's uninstaller and reboot to clean stock
+# BEFORE running this installer. Override with REFORGE_FORCE_OVER_OTHER_MOD=1
+# only if you understand the consequences (unsupported).
+#
+# Drawn directly from forge-x's uninstall.sh + S00init footprint (see
+# tools/recovery/make-clean-golden.sh for the full list).
+# ---------------------------------------------------------------------------
+pre_install_conflict_check() {
+    [ -n "${REFORGE_FORCE_OVER_OTHER_MOD:-}" ] && {
+        info "REFORGE_FORCE_OVER_OTHER_MOD=1 set — skipping competing-mod check (UNSUPPORTED)"
+        return 0
+    }
+
+    _hits=""
+    # forge-x boot hooks (symlinks to /opt/config/mod/.shell/*).
+    for _s in S00init S55boot S60dropbear S98camera S98zssh S99root K99root \
+              S99moon K99moon S50sshd S55date; do
+        if [ -L "/etc/init.d/${_s}" ] || [ -f "/etc/init.d/${_s}" ]; then
+            _hits="${_hits} /etc/init.d/${_s}"
+        fi
+    done
+    # forge-x install roots.
+    [ -d /opt/config/mod ]      && _hits="${_hits} /opt/config/mod/"
+    [ -d /opt/config/mod_data ] && _hits="${_hits} /opt/config/mod_data/"
+    [ -d /data/.mod/.forge-x ]  && _hits="${_hits} /data/.mod/.forge-x/"
+    # Entware/opt directories forge-x installs.
+    for _d in /opt/bin /opt/etc /opt/home /opt/lib /opt/libexec /opt/root \
+              /opt/sbin /opt/share /opt/tmp /opt/usr /opt/var; do
+        [ -d "${_d}" ] && _hits="${_hits} ${_d}"
+    done
+    # Dropbear binaries forge-x ships.
+    for _b in /bin/dropbear /bin/dropbearmulti /bin/dropbearkey; do
+        [ -e "${_b}" ] && _hits="${_hits} ${_b}"
+    done
+
+    if [ -n "${_hits}" ]; then
+        echo "" >&2
+        echo "ERROR: another mod is installed. Uninstall it FIRST, reboot to" >&2
+        echo "       clean stock, then run this installer again." >&2
+        echo "" >&2
+        echo "  Detected files/paths from a competing mod:" >&2
+        for _h in ${_hits}; do echo "    ${_h}" >&2; done
+        echo "" >&2
+        echo "  Most likely forge-x. To uninstall:" >&2
+        echo "    /data/.mod/.forge-x/uninstall.sh   # or wherever the mod is installed" >&2
+        echo "  Reboot, confirm firmwareExe starts and /etc/init.d/ has no" >&2
+        echo "  third-party S?? symlinks, then re-run this installer." >&2
+        echo "" >&2
+        echo "  If you no longer have the original uninstaller, reflash a stock" >&2
+        echo "  factory .tgz over USB (see tools/recovery/RUNBOOK.md Path A) to" >&2
+        echo "  return to a known clean baseline." >&2
+        echo "" >&2
+        echo "  Override (UNSUPPORTED): REFORGE_FORCE_OVER_OTHER_MOD=1 $0 ..." >&2
+        echo "" >&2
+        die "refusing to install over a competing mod"
+    fi
+    info "no competing mod detected"
+}
+pre_install_conflict_check
 
 # Machine / PID guard — mirrors the stock script logic:
 #   - If $1 and $2 are both non-empty, validate them.
@@ -164,7 +234,7 @@ fi
 # ---------------------------------------------------------------------------
 # reforge-boot is shipped inside the rootfs at /.shell/reforge-boot
 # (packed as part of the software-*.tar.xz).  We expose it as
-# /data/.reforge/.shell/reforge-boot and symlink it into /etc/init.d/.
+# /data/.mod/.reforge/.shell/reforge-boot and symlink it into /etc/init.d/.
 # ---------------------------------------------------------------------------
 info "Installing boot hook ..."
 

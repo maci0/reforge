@@ -87,6 +87,31 @@ local_t1=$(date +%s)
 log "  dd completed in $(( local_t1 - local_t0 ))s; size: $(du -sh "${ROOTFS_EXT4}" | cut -f1)"
 
 # ---------------------------------------------------------------------------
+# Step 3b: fsck the extracted rootfs.
+#
+# The golden eMMC dump was taken from a RUNNING system (the unit was up when
+# `dd` ran), so the ext4 has an unclean journal — last in-memory writes never
+# made it to disk, and the journal flag still says "needs recovery". Kernels
+# refuse to mount such an FS without recovery; some test harnesses see the
+# refusal as an unsolvable boot failure and report misleading panics. Run
+# e2fsck -fy now so the on-disk image is in a clean, mountable state.
+# ---------------------------------------------------------------------------
+log "Step 3b: fsck the extracted rootfs (golden was dumped live -> unclean journal) ..."
+if e2fsck -fy "${ROOTFS_EXT4}" >/tmp/extract-fsck.log 2>&1; then
+    log "  e2fsck: clean ($(tail -1 /tmp/extract-fsck.log))"
+else
+    rc=$?
+    # e2fsck returns 1 if it fixed problems, 2 if it fixed but reboot needed.
+    # Both are OK for an offline image — we just want clean-on-disk.
+    if [ "${rc}" -le 2 ]; then
+        log "  e2fsck: fixed $(grep -c 'Fix' /tmp/extract-fsck.log) issue(s) [$(tail -1 /tmp/extract-fsck.log)]"
+    else
+        warn "  e2fsck returned ${rc} (problems left unfixed); inspect /tmp/extract-fsck.log"
+    fi
+fi
+rm -f /tmp/extract-fsck.log
+
+# ---------------------------------------------------------------------------
 # Step 4: Delete the raw image (saves ~6 GB)
 # ---------------------------------------------------------------------------
 log "Step 4: Deleting raw image to reclaim space: ${RAW_IMG} ..."

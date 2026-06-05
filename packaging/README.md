@@ -50,6 +50,47 @@ Version is read from `packaging/VERSION`.
 
 ---
 
+## Before You Install — Other Mods Must Be Cleanly Uninstalled
+
+ReForge expects the device to be running **clean stock firmware**. If you have
+another third-party mod installed — most commonly **forge-x**, but the same
+rule applies to **Helper Script / zmod / kAIO** or anything else that drops
+files into `/etc/init.d/`, `/opt/config/`, `/data/.mod/`, `/root/`, or
+`/opt/klipper/klippy/extras/` — you **must** run that mod's official
+uninstaller **before** installing ReForge.
+
+Why: ReForge owns the boot chain via `/etc/init.d/S01reforge` and chroots into
+`/data/.mod/.reforge/`. Another mod sitting at `/etc/init.d/S00init` (the
+forge-x slot) or `/data/.mod/.forge-x/` will:
+
+- Run *first* in `rcS` (lower S?? number wins) and bring up its own Klipper /
+  Moonraker against `/data/`, racing ReForge's chroot stack for the printer
+  serial port, the Moonraker HTTP port, and the GuppyScreen framebuffer.
+- Leave dropbear or other long-running daemons listening that will *also* be
+  alive inside ReForge's chroot once `/etc/init.d/` is bind-mounted, doubling
+  resident-set pressure on the 128 MB box.
+- Modify shared state (`/etc/hosts`, `/opt/klipper/klippy/extras/`, MCU
+  firmware staging at `/opt/PROGRAM/`) that ReForge's chroot then inherits in
+  an inconsistent shape.
+
+Specifically for forge-x: run **`/data/.mod/.forge-x/uninstall.sh`** (or the
+equivalent path in your install), reboot to stock, confirm `firmwareExe`
+starts normally and `ls /etc/init.d/` shows no `S00init` / `S55boot` /
+`S60dropbear` / `S98zssh` symlinks, then install ReForge.
+
+If you don't have the original uninstaller handy, the safest reset is to
+reflash a stock factory `.tgz` over USB (see
+[`../tools/recovery/RUNBOOK.md`](../tools/recovery/RUNBOOK.md) Path A). That
+puts the device back to a known clean baseline.
+
+ReForge's installer (`packaging/flashforge_init.sh`) runs a defensive
+pre-flight check and **refuses to proceed** if it detects a known competing
+mod — see the `pre_install_conflict_check` function. You can override the
+refusal with `REFORGE_FORCE_OVER_OTHER_MOD=1`, but that path is unsupported
+and will probably brick the install.
+
+---
+
 ## Install Flow
 
 1. **USB updater** detects the `.tgz` on a FAT-formatted USB stick and unpacks it
@@ -58,17 +99,17 @@ Version is read from `packaging/VERSION`.
    `flashforge_init.sh Adventurer5MPro 0024`.  It:
    - Validates machine type + PID.
    - Verifies the `md5sum.list` of the extracted archive.
-   - Atomically renames the temp dir to `/data/.reforge`.
+   - Atomically renames the temp dir to `/data/.mod/.reforge`.
    - Writes the default screen mode (`SCREEN_MODE=HEADLESS`) to
-     `/data/.reforge/config/screen.conf`.
-   - Symlinks `/data/.reforge/.shell/reforge-boot` as `/etc/init.d/S01reforge`
+     `/data/.mod/.reforge/config/screen.conf`.
+   - Symlinks `/data/.mod/.reforge/.shell/reforge-boot` as `/etc/init.d/S01reforge`
      (the **boot hook**).
 3. **Boot hook** (`S01reforge` / `reforge-boot`): on next boot, the stock `/etc/rcS`
    calls this script which:
    - Checks the **SKIP_MOD** guard (see Dual-Boot below).
    - Bind-mounts `/proc`, `/sys`, `/dev`, `/run`, `/tmp`, `/data`, `/opt/config`
      into the chroot.
-   - `exec chroot /data/.reforge /etc/init.d/rcS start` — runs the ReForge init
+   - `exec chroot /data/.mod/.reforge /etc/init.d/rcS start` — runs the ReForge init
      chain (cloud-block → zram → Klipper → Moonraker → httpd → GuppyScreen if enabled).
 
 **Stock kernel, partitions, and FlashForge binaries are never modified.**
@@ -84,7 +125,7 @@ tar -xf reforge-uninstall-<ver>.tgz -C / && sh /tmp/reforge-uninstall.sh
 ```
 
 Or flash `packaging/uninstall/reforge-uninstall-<ver>.tgz` via the USB updater —
-it is also a stock-format package whose `flashforge_init.sh` removes `/data/.reforge`
+it is also a stock-format package whose `flashforge_init.sh` removes `/data/.mod/.reforge`
 and the `/etc/init.d/S01reforge` symlink.
 
 ---
@@ -98,8 +139,8 @@ To boot stock firmware without uninstalling ReForge:
 touch /tmp/SKIP_MOD
 
 # Persistent skip (survives reboots until removed):
-touch /data/.reforge/SKIP_MOD
-rm /data/.reforge/SKIP_MOD   # to re-enable ReForge
+touch /data/.mod/.reforge/SKIP_MOD
+rm /data/.mod/.reforge/SKIP_MOD   # to re-enable ReForge
 ```
 
 When any SKIP_MOD marker is present, `reforge-boot` exits immediately and the stock
@@ -110,7 +151,7 @@ not installed.
 
 ## Screen Modes
 
-Configured in `/data/.reforge/config/screen.conf` (`SCREEN_MODE=<mode>`).
+Configured in `/data/.mod/.reforge/config/screen.conf` (`SCREEN_MODE=<mode>`).
 
 | Mode | Description | Status |
 |------|-------------|--------|
@@ -187,11 +228,11 @@ matches these patterns — providing an automated guard against accidental commi
 
 ## Minimal stock footprint (design guarantee)
 ReForge installs as an overlay that makes **exactly one persistent change to the stock
-rootfs**: a single symlink `/etc/init.d/S01reforge → /data/.reforge/.shell/reforge-boot`.
+rootfs**: a single symlink `/etc/init.d/S01reforge → /data/.mod/.reforge/.shell/reforge-boot`.
 Everything else is **self-contained**:
-- the entire ReForge stack lives in `/data/.reforge` (on `/data` = `mmcblk0p7`, not the stock rootfs);
+- the entire ReForge stack lives in `/data/.mod/.reforge` (on `/data` = `mmcblk0p7`, not the stock rootfs);
 - klippy/moonraker use their **own** configs (`/etc/reforge/{printer.cfg,moonraker.conf}` inside the chroot) — ReForge does **not** read or write the stock `/opt/config`;
 - the cloud-block edits the **chroot's** `/etc/hosts`, never the stock one;
 - `reforge-boot` only sets up **transient** runtime bind-mounts (proc/sys/dev/run/tmp/data) into the chroot — these modify nothing on disk and are gone on reboot/uninstall.
 
-So **uninstall = delete that one symlink + `/data/.reforge`** and the stock rootfs is byte-identical to before. (Verified by `tests/loopback-install-test.sh`, which asserts the installer writes nothing outside `$DATA` except the single init symlink.)
+So **uninstall = delete that one symlink + `/data/.mod/.reforge`** and the stock rootfs is byte-identical to before. (Verified by `tests/loopback-install-test.sh`, which asserts the installer writes nothing outside `$DATA` except the single init symlink.)

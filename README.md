@@ -89,6 +89,24 @@ tar xzf packaging/dist/reforge-live-<ver>.tar.gz -C /path/to/usb/   # extract on
 # insert the stick, power on. Remove + reboot for stock.
 ```
 
+## Before installing (not live-mode): uninstall other mods first
+
+ReForge expects the device to be running **clean stock firmware** before the
+first install. If you have another mod present — most commonly **forge-x**,
+but the rule applies to **Helper Script / zmod / kAIO** or anything else that
+drops files into `/etc/init.d/`, `/opt/config/`, `/data/.mod/`, `/root/`, or
+`/opt/klipper/klippy/extras/` — run that mod's uninstaller first, reboot, and
+confirm `firmwareExe` starts and `/etc/init.d/` has no third-party `S??`
+symlinks. If you don't have the uninstaller, reflash a stock factory `.tgz`
+over USB ([RUNBOOK Path A](tools/recovery/RUNBOOK.md)) for a known-clean
+baseline. Live-mode trials (above) are unaffected — they don't touch eMMC.
+
+ReForge's installer pre-flights this and refuses to proceed if a known
+competing mod is detected. See
+[`packaging/README.md`](packaging/README.md#before-you-install--other-mods-must-be-cleanly-uninstalled)
+for the full list, the rationale, and the `REFORGE_FORCE_OVER_OTHER_MOD`
+override if you know what you're doing.
+
 ## Recovery
 
 The printer's stock state can be dumped and restored via the tooling in
