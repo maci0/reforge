@@ -1,0 +1,183 @@
+#!/bin/sh
+# =============================================================================
+# reforge-init — PID 1 early-boot init for ReForge (NOT IN USE YET).
+#
+# Status: STAGED, not currently wired into the installer or any boot path.
+# Kept here as the design-ready implementation of the "skip Tina, run our
+# own init" hook discussed in docs/boot.md §2 "Option A: /init symlink swap".
+# To actually use it, the Mode 2 installer would need to copy this file to
+# /sbin/reforge-init on the stock p6 rootfs and symlink /init -> it. That
+# wiring is deliberately not done yet — first we want to test the pivot_root
+# flow under qemu, validate the fallback paths, and finalise how the new root
+# inherits the /oldroot stock binaries for things like NationsCommand /
+# IAPCommand (MCU firmware path #3 in docs/board-notes/fw-upgrade-mechanisms.md).
+#
+# !! THIS SCRIPT IS DESIGNED FOR /init SYMLINK REPLACEMENT ONLY (Option A in
+# !! docs/boot.md §2). DO NOT symlink it to /etc/preinit (Option C). pivot_root
+# !! from a busybox-init sysinit child has brittle semantics (PID 1's FS root
+# !! may or may not follow the namespace pivot; see kernel docs for
+# !! pivot_root(2)). For Option C, a different script is required — one that
+# !! uses the bind-mount-/etc-overlay approach or sticks with chain-loading
+# !! via /etc/init.d. See docs/research/2026-06-05-replacing-pid1.md.
+#
+# When deployed, it's invoked as PID 1 via:
+#
+#     ln -sf /sbin/reforge-init /init      # the kernel cmdline says init=/init
+#
+# Bypassing: no /etc/inittab, no busybox-init sysinit loop, no /etc/init.d/rcS,
+# no /etc/init.d/S?? Tina scripts, no /opt/auto_run.sh USB scan, no
+# /opt/PROGRAM/ffstartup-arm UI launch. We take the box directly from kernel
+# handoff into the ReForge overlay.
+#
+# Sequence:
+#   1. Mount virtual filesystems (/proc, /sys, /run, /tmp, /dev/pts) on the
+#      stock rootfs. /dev itself is auto-populated by devtmpfs (the stock
+#      kernel has CONFIG_DEVTMPFS_MOUNT=y).
+#   2. Honour SKIP_REFORGE markers (kernel cmdline or sentinel files) — if any
+#      are present, exec stock /bin/busybox init so the user can boot to
+#      pristine stock without re-flashing.
+#   3. Mount /data (mmcblk0p7 ext4) — where /data/.mod/.reforge/ lives.
+#   4. Verify a ReForge install exists at /data/.mod/.reforge/.
+#   5. pivot_root into /data/.mod/.reforge/ so the ReForge overlay becomes the
+#      new /. The stock Tina rootfs is preserved at /oldroot (unlike
+#      switch_root, which would destructively delete it — see the "Why
+#      pivot_root and not switch_root" note below).
+#   6. Move the virtual filesystems and /data into the new namespace.
+#   7. exec /sbin/init in the new root — busybox-init reads our /etc/inittab
+#      and brings up the ReForge service chain (S?? + /mod/start.sh).
+#
+# Any failure at steps 3–6 falls back to `exec /bin/busybox init` (stock
+# init), so a broken ReForge install can't brick the box: the user reboots
+# and gets stock back (slightly degraded — our /init was the one running, but
+# we hand off to stock init on error). That covers the "no FEL no UART"
+# brick-safety boundary on this unit.
+#
+# Why pivot_root and not switch_root:
+#   switch_root is meant for initramfs/initrd→real-rootfs transitions; it
+#   refuses to operate when current / is anything other than rootfs (and
+#   destructively deletes the old root). The kernel mounts /dev/mmcblk0p6
+#   (ext4) as our /, so switch_root would refuse. pivot_root works on any
+#   mounted root and leaves the old one accessible at the sub-mount —
+#   useful for us because the stock rootfs has the 8821cu WiFi module, the
+#   MCU update binaries, etc. that we may want to reach later.
+#
+# Reverting this hook is one line:
+#     ln -sf /bin/busybox /init     # back to stock busybox-init as PID 1
+#   or simply
+#     rm /init                      # kernel falls back to /sbin/init = busybox
+#
+# Tracked: docs/deployment-modes.md (Mode 2 evolution), docs/boot.md §2.
+# =============================================================================
+
+set -u
+
+BB=/bin/busybox
+
+# Logging — try /dev/console; swallow failures (e.g. before console is up).
+log()  { printf '[reforge-init] %s\n' "$*" > /dev/console 2>/dev/null || true; }
+warn() { log "WARN: $*"; }
+
+# Fallback: hand off to stock busybox-init as PID 1.
+fallback() {
+    log "falling back to stock /bin/busybox init: $*"
+    exec "$BB" init
+    # If even fallback fails (which means /bin/busybox is missing or broken),
+    # the kernel will panic. There's nothing more we can do.
+}
+
+# Sanity: we should be PID 1 (the kernel exec'd us via init=).
+[ "$$" = 1 ] || warn "not running as PID 1 (pid=$$) — proceeding anyway"
+
+# ---------------------------------------------------------------------------
+# 1. Virtual filesystems on the stock rootfs.
+# ---------------------------------------------------------------------------
+mkdir -p /proc /sys /run /tmp
+$BB mount -t proc  proc  /proc  2>/dev/null
+$BB mount -t sysfs sysfs /sys   2>/dev/null
+$BB mount -t tmpfs tmpfs /run   -o mode=0755,nosuid,nodev 2>/dev/null
+$BB mount -t tmpfs tmpfs /tmp   -o mode=1777 2>/dev/null
+mkdir -p /dev/pts
+$BB mount -t devpts devpts /dev/pts 2>/dev/null
+
+log "early bring-up complete, scanning for ReForge install"
+
+# ---------------------------------------------------------------------------
+# 2. SKIP markers.
+# ---------------------------------------------------------------------------
+if [ -r /proc/cmdline ] && grep -q '\breforge_skip\b' /proc/cmdline 2>/dev/null; then
+    fallback "reforge_skip on kernel cmdline"
+fi
+for f in /SKIP_REFORGE /tmp/SKIP_REFORGE /SKIP_MOD /tmp/SKIP_MOD; do
+    [ -e "$f" ] && fallback "$f present"
+done
+
+# ---------------------------------------------------------------------------
+# 3. Mount /data.
+# ---------------------------------------------------------------------------
+mkdir -p /data
+if ! $BB mount | grep -q ' /data '; then
+    # Best-effort fsck; ignore exit (stock's auto_run.sh does the same).
+    $BB fsck -y /dev/mmcblk0p7 >/dev/null 2>&1 || true
+    if ! $BB mount -t ext4 /dev/mmcblk0p7 /data 2>/dev/null; then
+        fallback "cannot mount /dev/mmcblk0p7 at /data"
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# 4. ReForge install present?
+# ---------------------------------------------------------------------------
+TARGET=/data/.mod/.reforge
+
+if [ ! -f "${TARGET}/.installed" ]; then
+    fallback "no .installed marker at ${TARGET}"
+fi
+if [ ! -x "${TARGET}/sbin/init" ]; then
+    fallback "${TARGET}/sbin/init missing or not executable"
+fi
+
+VER="$(cat "${TARGET}/.installed" 2>/dev/null || echo unknown)"
+log "found ReForge ${VER} at ${TARGET}; pivoting"
+
+# ---------------------------------------------------------------------------
+# 5. Pre-create the destination mountpoints in the new root.
+# ---------------------------------------------------------------------------
+for d in proc sys dev run tmp data oldroot; do
+    mkdir -p "${TARGET}/${d}"
+done
+
+# ---------------------------------------------------------------------------
+# 6. pivot_root: arg is "new root . oldroot" where oldroot is RELATIVE to the
+#    new root. cwd must be the new root before the call.
+# ---------------------------------------------------------------------------
+cd "${TARGET}" || fallback "cd ${TARGET} failed"
+
+if ! $BB pivot_root . oldroot; then
+    fallback "pivot_root failed"
+fi
+
+# After pivot_root: / is now the ReForge rootfs (was ${TARGET}); the original
+# stock rootfs is at /oldroot. Move the virtual filesystems we set up earlier
+# into the new namespace so they're accessible at the canonical paths.
+$BB mount --move /oldroot/proc /proc 2>/dev/null
+$BB mount --move /oldroot/sys  /sys  2>/dev/null
+$BB mount --move /oldroot/dev  /dev  2>/dev/null
+$BB mount --move /oldroot/dev/pts /dev/pts 2>/dev/null
+$BB mount --move /oldroot/run  /run  2>/dev/null
+$BB mount --move /oldroot/tmp  /tmp  2>/dev/null
+
+# The eMMC /data partition stays mounted at /data inside the new namespace —
+# klippy (`[virtual_sdcard] path: /data/`), forge-x-compat tools, the ReForge
+# installer's lkg/trial bookkeeping, all reach it at the same path they would
+# inside the chroot-based reforge-boot install flow.
+$BB mount --move /oldroot/data /data 2>/dev/null
+
+log "pivot complete: / = ReForge ${VER}, /oldroot = stock Tina"
+
+# ---------------------------------------------------------------------------
+# 7. Hand off to ReForge's PID 1 (busybox-init), which reads /etc/inittab
+#    and runs /etc/init.d/rcS → /etc/init.d/S?? → /mod/start.sh.
+#    See br-external/board/reforge/rootfs-overlay/etc/inittab (custom).
+# ---------------------------------------------------------------------------
+exec /sbin/init
+# Unreachable in success path — exec replaces us. If we get here, exec failed.
+fallback "exec /sbin/init failed"

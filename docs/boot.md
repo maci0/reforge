@@ -33,10 +33,24 @@ BROM (mask ROM in silicon; FEL USB recovery)
        ::sysinit:/bin/mount -a
        ::sysinit:/sbin/swapon -a
        ... → /etc/init.d/rcS
-              S00init  → symlink to /opt/config/mod/.shell/S00init   (FORGE-X hook)
+              # 1. Set MAC + ifconfig eth0
+              # 2. Loop /etc/init.d/S??*  (sorted)
+              S00init       (stock: empty no-op; FORGE-X replaces with symlink → /opt/config/mod/.shell/S00init)
               S01syslogd S02klogd S10udev S20urandom S30dbus S40network
-              S50postgresql S50telnet S55boot S60dropbear S80dnsmasq S98camera S98zssh S99root
-              rcS:50:  /opt/auto_run.sh &     ← STOCK USB/update detection (backgrounded)
+              S50postgresql S50telnet S80dnsmasq
+              # (forge-x adds: S55boot S60dropbear S98camera S98zssh S99root)
+              # (ReForge install adds: S01reforge → /data/.mod/.reforge/.shell/reforge-boot)
+              # 3. /etc/adb_conf.sh start &        (Android adb daemon, backgrounded)
+              # 4. tinymix audio routing
+              # 5. libcrypto/libssl 1.0.0 → 1.1 compat symlinks
+              # 6. /opt/auto_run.sh &              ← STOCK USB/update detection (LAST line; backgrounded)
+  → rcS returns → inittab continues → getty on ttyS3 (respawned)
+```
+
+The last line of `rcS` is `/opt/auto_run.sh &` — backgrounded, so `rcS` returns
+immediately and `inittab` proceeds to spawn `getty`. `auto_run.sh` continues to
+run in parallel: it does the USB-update scan, then the MCU-firmware-update check,
+then launches the stock UI (`ffstartup-arm`). See §4 for the full timeline.
 ```
 
 Partition map (GPT): `p1 boot-resource(33.6M) · p2 env(1M) · p3 env-redund(1M) ·
@@ -53,10 +67,11 @@ p4 boot(34.4M) · p5 dsp0(1M) · p6 rootfs(1.3G) · p7 UDISK/data(5.9G)`.
 | 2 | U-Boot binary | reflash boot0/uboot area | only via FEL/SPL | **BRICK** |
 | 3 | **U-Boot env (p2/p3)** | **`fw_setenv`** — edit `bootargs`/`bootcmd`/`init=`, or add a `boot.scr` | **ONLY if it still boots to a shell** — see ⚠ below | **HIGH on this unit** — a bad `init=`/`bootargs`/`bootcmd` boots U-Boot+kernel but kills userspace; with **no UART + no FEL** there's no in-band fix → **eMMC-reader hard-brick** |
 | 4 | boot.img (p4) | repack the Android kernel+ramdisk+cmdline | reflash p4 | medium |
-| 5 | **`init=` override** | env `init=` → our PID1 script (which `exec`s busybox / `switch_root`) | YES (env) | low–med ⭐ earliest *userspace control* |
-| 6 | **/etc/preinit** | create the file (absent today) → runs before mounts/swap/net/rcS | YES (file on p6) | LOW ⭐ earliest *safe userspace* on the stock flow |
+| 5 | **`init=` override** | env `init=` → our PID1 script (which `pivot_root`s, then `exec /sbin/init`). See `research/2026-06-05-replacing-pid1.md` §A2. | YES (env) | low–med ⭐ earliest *userspace control* |
+| 5a | **`/init` symlink swap** — "Option A" | rewrite the `/init` symlink on p6 to point at our PID1 script (kernel `execve`s `/init` by default). Cleaner than #5 because we modify a file on p6 (SAFE tier) instead of U-Boot env (HARD-BRICK tier on this unit). See `research/2026-06-05-replacing-pid1.md` §A1 + `br-external/board/reforge/rootfs-overlay/sbin/reforge-init`. | YES (file on p6) | LOW ⭐ **recommended Mode-2 PID-1 hook** |
+| 6 | **/etc/preinit** — "Option C" | create the file (absent today) → runs before mounts/swap/net/rcS as a busybox-init sysinit child. **Cannot cleanly replace PID 1** (busybox-init is already running) but useful for *additive* early hooks. See `research/2026-06-05-replacing-pid1.md` §B + footnote on preinit. | YES (file on p6) | LOW ⭐ earliest *safe userspace* on the stock flow |
 | 7 | /etc/inittab, rcS, S00init | add a sysinit line / rc script (forge-x owns S00init) | YES (file) | low |
-| 8 | /opt/auto_run.sh (rcS:50) | the USB-launcher hook ReForge-live uses today | YES | trivial — but **latest** |
+| 8 | /opt/auto_run.sh (rcS tail, backgrounded) | the USB-launcher hook ReForge-live uses today | YES | trivial — but **latest** |
 
 ### Practical conclusions
 - **Earliest possible code:** BROM **FEL** (USB) — before any eMMC code, but a
@@ -116,7 +131,7 @@ So forge-x's takeover mechanism = **own the S00init symlink**, with `SKIP_MOD`
 soft/hard escape hatches. (ReForge's installer mirrors this `SKIP_MOD` pattern.)
 Full forge-x chroot/service teardown: [board-notes/forge-x-boot-architecture.md](board-notes/forge-x-boot-architecture.md).
 
-Note `/opt/auto_run.sh` (rcS:50) is the *stock* script and **still runs** even with
+Note `/opt/auto_run.sh` (the last line of rcS) is the *stock* script and **still runs** even with
 forge-x installed — which is exactly why ReForge live-mode (a USB `flashforge_init.sh`)
 works on a forge-x box.
 
@@ -124,20 +139,49 @@ works on a forge-x box.
 
 ## 4. How stock FW detects a USB update `.tgz`  (`/opt/auto_run.sh`)
 
-Runs at `rcS:50` (backgrounded). `MACHINE=Adventurer5MPro`, `PID=0024`. Sequence:
+**Where in the boot chain:** the **last line of `/etc/init.d/rcS`**, invoked as
+`/opt/auto_run.sh &` — i.e. **after** every `S??*` init script has run, **after**
+the rcS-tail cleanup (adb, tinymix, compat symlinks), and **backgrounded** so
+`rcS` returns immediately. The stock UI launch lives **inside** `auto_run.sh`,
+at the very end, so it doesn't appear until `auto_run.sh` is done with its USB
+scan + MCU update check. That's the ordering hook ReForge-live + the installer
+ride on — we get a chance to claim the box *before* the UI ever launches.
 
-1. `fsck`/mount `/data` (mmcblk0p7) if not mounted; clear `/data/update`.
-2. `insmod /lib/modules/8821cu.ko` (WiFi); `sleep 2` for USB enumeration.
-3. Loop `/dev/sda`, `/dev/sda1..4`; `mount -t vfat ... /mnt`.
-4. **Update-tarball path:** `ls -1t /mnt/Adventurer5MPro-*.tgz` →
-   - copy newest to `/data/`, `mkdir /data/update`, `tar -xvf` into `/data/update/`,
-     then run **`/data/update/flashforge_init.sh Adventurer5MPro 0024`**.
-   - on exit 0 → `umount /mnt; rm -rf /data/update; sleep 100000`.
-5. **Direct-script path:** if `/mnt/flashforge_init.sh` exists → `chmod a+x` + run
-   **`/mnt/flashforge_init.sh Adventurer5MPro 0024`**; on exit 0 → `sleep 100000`.
-6. After the loop: `/opt/klipper/usb_map.sh`; then the **MCU-firmware update** check —
-   `/opt/PROGRAM/control/<latest>/Update` flag present → `cd` there + `./run.sh` +
-   `reboot -f`; then launch the stock UI `ffstartup-arm -f .../ffstartup.cfg &`.
+The full timeline inside `auto_run.sh` (`MACHINE=Adventurer5MPro`, `PID=0024`):
+
+1. **Mount /data** (mmcblk0p7) if not already mounted (`fsck -y` first); clear
+   `/data/update`.
+2. **WiFi up:** `insmod /lib/modules/8821cu.ko` then `sleep 2` to give the USB
+   bus time to enumerate any inserted stick.
+3. **USB scan loop:** for `i in 1 2 3 4`, try `mount -t vfat
+   -o,codepage=936,iocharset=utf8 /dev/sda$i /mnt` (also tries the bare `/dev/sda`
+   if no partition node exists). Per successful mount, check **in this priority
+   order**:
+   - **(a) Update-tarball path** — `ls -1t /mnt/Adventurer5MPro-*.tgz` (newest
+     wins). If a tarball matches:
+     1. `cp ${UPDATEFILE} /data/`
+     2. `mkdir -p /data/update`
+     3. `tar -xvf /data/Adventurer5MPro-*.tgz -C /data/update/`
+     4. **`/data/update/flashforge_init.sh Adventurer5MPro 0024`**
+     5. **on exit 0:** `umount /mnt; rm -rf /data/update; sleep 100000`
+        — i.e. the loop is broken AND auto_run.sh is parked forever, so the
+        MCU update check + stock UI launch below NEVER happen. This is how
+        an install hook "claims" the box.
+   - **(b) Direct-script path** — only if (a) didn't match: if
+     `/mnt/flashforge_init.sh` exists, `chmod a+x` + run
+     **`/mnt/flashforge_init.sh Adventurer5MPro 0024`** directly from the USB.
+     On exit 0 → `umount /mnt; sleep 100000` (same claim semantics).
+4. **After the USB scan loop:** `/opt/klipper/usb_map.sh`
+   (toolhead serial port mapping).
+5. **MCU-firmware update check:** if `/opt/PROGRAM/control/<latest>/Update`
+   flag present, `cd` there and run `./run.sh`, then `reboot -f`. (This is the
+   FlashForge mechanism for re-flashing the N32G455 MCU firmware.)
+6. **Stock UI launch:** `/opt/PROGRAM/ffstartup-arm -f /opt/PROGRAM/ffstartup.cfg &`
+   — the QT touchscreen UI. This is the LAST thing `auto_run.sh` does, and only
+   if nothing above blocked the flow.
+
+So a tarball or `flashforge_init.sh` that returns 0 will preempt the stock UI
+entirely. A non-zero return falls through to the MCU update check + UI.
 
 ### The contract ReForge rides on
 - **No signature check.** Detection is purely by filename / file presence.
@@ -211,7 +255,7 @@ restore is drilled (see docs/specs Plan 3, recovery posture).
 - Earliest *truly safe* hook (revertible over SSH): **`/etc/preinit`** (free unused
   hook; broken = non-fatal, box still boots).
 - forge-x hooks by **owning the `/etc/init.d/S00init` symlink** (+ `SKIP_MOD` escapes).
-- Stock update detection: `/opt/auto_run.sh` (rcS:50) — `Adventurer5MPro-*.tgz` or a
+- Stock update detection: `/opt/auto_run.sh` (last line of rcS, backgrounded) — `Adventurer5MPro-*.tgz` or a
   bare `flashforge_init.sh`, exit-0 ⇒ `sleep 100000`, **no signature check**; MCU
   firmware flashes via `/opt/PROGRAM/control/<ver>/Update` + `run.sh`.
 - ReForge-live currently hooks at the **latest** point (#8 auto_run); it could move as
@@ -225,7 +269,7 @@ This is the **installed** product (Plan 3), distinct from the stock chain above 
 live-mode. ReForge installs as an **overlay on stock**: the stock SPL/U-Boot/kernel/init
 are untouched; the **only** persistent change is one symlink, `/etc/init.d/S01reforge` →
 the ReForge boot hook (`reforge-boot`). Everything ReForge lives under the writable
-`/data/.reforge` chroot. (forge-x, by contrast, owns the `S00init` symlink — §3; the two
+`/data/.mod/.reforge` chroot. (forge-x, by contrast, owns the `S00init` symlink — §3; the two
 escape hatches both use the `SKIP_MOD` pattern.)
 
 ```mermaid
@@ -238,9 +282,9 @@ flowchart TD
     F -- yes --> G[fire/ember banner]
     G --> H[Mount /data · read SCREEN_MODE]
     H --> T{"trial/LKG check (OTA era)"}
-    T --> I["bind proc/sys/dev/run/tmp/data → /data/.reforge"]
+    T --> I["bind proc/sys/dev/run/tmp/data → /data/.mod/.reforge"]
     I --> EB["boot eboard MCU (toolhead)<br/>reforge-boot-eboard · /dev/ttyS1"]
-    EB --> J["chroot /data/.reforge · exec mod init chain"]
+    EB --> J["chroot /data/.mod/.reforge · exec mod init chain"]
     J --> K[S00cloudblock] --> L[S35zram] --> M[S60klipper] --> N[S65moonraker]
     N --> O[S70httpd] --> P{"SCREEN_MODE=GUPPY?"}
     P -- yes --> Q[S75guppyscreen] --> R[S99ok]
@@ -250,7 +294,7 @@ flowchart TD
 
 | step | what | source |
 |---|---|---|
-| `S01reforge` | boot hook — chroots into `/data/.reforge` | `…/rootfs-overlay/.shell/reforge-boot` |
+| `S01reforge` | boot hook — chroots into `/data/.mod/.reforge` | `…/rootfs-overlay/.shell/reforge-boot` |
 | `SKIP_MOD` gate | USB/`/tmp` marker → pure stock boot (escape hatch) | `reforge-boot` |
 | banner | fire/ember "ReForge" splash | `usr/bin/reforge-banner` |
 | **eboard boot** | **handshake the toolhead MCU into its app — before any klippy** (§8) | `usr/bin/reforge-boot-eboard` |

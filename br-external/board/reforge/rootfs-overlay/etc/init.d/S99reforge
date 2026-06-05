@@ -1,0 +1,51 @@
+#!/bin/sh
+# =============================================================================
+# S99reforge — last init script in the new root's rcS S?? loop. Launches
+# /mod/start.sh, which iterates /mod/init.d/S?? to bring up the ReForge stack
+# (zram, klipper, moonraker, httpd, optional guppyscreen).
+#
+# Runs only via the "ReForge is PID 1" boot path (via /sbin/reforge-init →
+# pivot_root → exec /sbin/init). Under the existing Mode 2 chroot-based flow,
+# /mod/start.sh is invoked directly by `.shell/reforge-boot` instead, so this
+# S99 entry is harmless (the chroot flow doesn't run /etc/init.d/S?? scripts;
+# it runs /mod/init.d/S?? via /mod/start.sh).
+#
+# Marker /run/reforge-pid1 lets other components detect which boot path
+# brought them up.
+# =============================================================================
+case "$1" in
+    start)
+        # If we already ran (e.g. a second S99reforge invocation due to a
+        # respawn), do nothing.
+        [ -e /run/reforge-pid1 ] && exit 0
+        : > /run/reforge-pid1
+
+        # The chroot-based install flow sets REFORGE_LIVE_BOOT_PATH=chroot;
+        # the new PID-1 path leaves it unset.
+        if [ "${REFORGE_LIVE_BOOT_PATH:-}" = "chroot" ]; then
+            echo "[S99reforge] skipped (chroot bootstrap is handling /mod/start.sh)"
+            exit 0
+        fi
+
+        echo "[S99reforge] launching /mod/start.sh"
+        [ -x /mod/start.sh ] || { echo "[S99reforge] /mod/start.sh missing"; exit 1; }
+        # SCREEN_MODE plumbing: read the persisted setting if /mod doesn't
+        # already have it in the env (the chroot bootstrap sets it explicitly).
+        if [ -z "${SCREEN_MODE:-}" ] && [ -r /mod/etc/screen_mode ]; then
+            SCREEN_MODE="$(tr -d ' \t\r\n' < /mod/etc/screen_mode 2>/dev/null)"
+        fi
+        SCREEN_MODE="${SCREEN_MODE:-HEADLESS}"
+        export SCREEN_MODE
+
+        /mod/start.sh
+        ;;
+    stop)
+        # /mod/init.d/S?? scripts handle their own stop semantics; nothing to
+        # do here in aggregate.
+        rm -f /run/reforge-pid1
+        ;;
+    *)
+        echo "usage: $0 {start|stop}"
+        exit 1
+        ;;
+esac
