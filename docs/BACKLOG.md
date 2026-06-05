@@ -77,6 +77,94 @@ tarball onto FAT". See `docs/live-mode.md` for the updated flash procedure. The
 (both now pass `F2FS_DEV=/dev/vdb` to the launcher); real-hardware re-verification
 pending the next trial.
 
+## immutable / atomic ReForge — OverlayFS2 (or similar) for transactional updates and true Mode 1 live
+
+A future architectural direction worth investigating, parking here for design /
+prior-art work before any implementation.
+
+**Two motivations, one substrate:**
+
+1. **Atomic updates for Mode 2 / Mode 3** (`docs/deployment-modes.md`). Today the
+   installer + OTA write directly into `/data/.mod/.reforge/` — a power loss
+   mid-update can leave a half-installed mod (we mitigate with LKG bookkeeping +
+   a trial-N-fails rollback, but that's bookkeeping over a non-atomic write).
+   An overlay-fs structure where each version is a distinct lower layer and
+   updates swap which one is the upper would make installs and rollbacks
+   atomic by construction (commit = pointer swap, rollback = drop the upper
+   and remount). Same model openSUSE MicroOS / Fedora Silverblue / NixOS use,
+   adapted to a `/data/.mod/.reforge/<version>/` layout instead of btrfs subvols.
+2. **True Mode 1 live** (`docs/deployment-modes.md` §"Mode 1 — Live"). An
+   overlay with `lowerdir=/data` + `upperdir=tmpfs` gives the live launcher a
+   `/data` that shows the user's existing gcodes but writes go to RAM — the
+   pull-stick-and-everything-is-as-it-was semantics we want for a true
+   trial mode, without depending on Mode 3's own-kernel work.
+
+**Open questions to investigate before scheduling:**
+
+- **OverlayFS in stock kernel:** `CONFIG_OVERLAY_FS` is **not** set in the
+  stock 5.4.61 BSP build (`docs/board-notes/stock-kernel-config-5.4.61.txt.gz`).
+  Can we build it as a loadable module against the BSP source (same recipe as
+  `modules/f2fs-bsp/`), or is it kernel-config-only? `fs/overlayfs/Kconfig`
+  marks it `tristate "Overlay filesystem support"` so module build is
+  reachable in theory; need to verify the BSP source compiles it as `=m` cleanly.
+- **OverlayFS2 vs the stock 5.4 overlayfs:** OverlayFS in 5.4 has known issues
+  with concurrent writes, redirect_dir, and metacopy that newer kernels fix.
+  How much of "OverlayFS2" (the term sometimes refers to specific OCI-friendly
+  improvements) is actually a separate filesystem vs. just newer overlayfs
+  semantics? Map exactly what we need (overlayed lower + writable upper +
+  workdir, no redirect_dir, no nested overlays for v1) to what 5.4 supports.
+- **Memory implications:**
+  - Per-mount overhead of one overlayfs instance (the in-kernel struct +
+    inode cache): expected small, but on a 128 MB box every MB matters.
+  - tmpfs `upperdir` size for Mode 1 live: needs to cap somewhere short of
+    eating RAM. A few hundred MB is plenty for SAVE_CONFIG appends + a
+    moonraker DB but blows the budget if the user uploads gcodes (which
+    can easily be 50–500 MB each). Probably want a separate Mode 1 policy:
+    `[virtual_sdcard] path` is **not** in the overlay; uploads go to a
+    distinct tmpfs path with its own size cap.
+  - Page cache implications of stacking: every read from a lower layer page
+    can mean two cache lookups; not free but small.
+- **Atomic-install layout choice:**
+  - `/data/.mod/.reforge/versions/<ver>/` lower layers, `/data/.mod/.reforge/current` pointer
+  - vs. side-by-side `mod` + `mod.new`, atomic rename swap (today's approach,
+    not actually overlay-fs at all)
+  - vs. real subvol-style (would need btrfs on `/data` — huge change)
+  - The pointer-swap-overlay option is the most ReForge-friendly: small,
+    no filesystem swap, works on ext4 `/data`.
+- **Mode 3 alignment:** when ReForge ships its own kernel (Plan 5),
+  CONFIG_OVERLAY_FS is trivially `=y` and we get OverlayFS "for free". Any
+  Mode 2 design that uses overlay would carry over to Mode 3 with minimal
+  changes — worth designing for that future even if we don't ship it on
+  the stock kernel.
+
+**Suggested next step:** a short research note (`docs/research/`) that
+benchmarks overlayfs-as-module on the stock 5.4.61 BSP (does it load, does it
+mount cleanly, what's the per-mount RSS overhead, what's the cold-read penalty
+on a klippy startup) before any architectural commitment. Probably a half-day
+spike.
+
+## wifi event marker: `[ -f /run/reforge-wifi-up ]` primitive
+
+Forge-x's `.shell/boot/wifi_reconnect.sh` maintains a `$WIFI_CONNECTED_F`
+marker file via `wpa_cli` action-script hooks: `touch` on `CONNECTED`,
+`rm -f` on `DISCONNECTED`. Other forge-x components answer "am I online?"
+with a single `[ -f "$WIFI_CONNECTED_F" ]` test — no `wpa_cli status`
+parsing, no `ip link` polling, no syscall round-trip.
+
+ReForge has the actual association logic (`packaging/live/net-up.sh`) but
+not the marker. Adding it is a ~20-line shell script + one
+`wpa_cli -B -a <script> -i wlan0` line in `net-up.sh` after
+`wpa_supplicant` launch.
+
+Proposed file: `br-external/board/reforge/rootfs-overlay/mod/.shell/wifi-event.sh`.
+Proposed marker path: `/run/reforge-wifi-up` (tmpfs — auto-clears each boot,
+so a stale marker can't survive a crash; no eMMC writes).
+
+See [`docs/board-notes/fw-upgrade-mechanisms.md`](board-notes/fw-upgrade-mechanisms.md)
+"Footnote A — `/bin/wifi_reconnect` is a misnomer" for the analysis of
+stock vs forge-x wifi_reconnect scripts (both are logging stubs, not
+reconnectors). Tiny utility, no urgency, parked here so it isn't lost.
+
 ## live klippy: respawn after CRC-mismatch auto-restart
 
 On the first ReForge live boot after the printer has run forge-x, the AD5M MCUs still

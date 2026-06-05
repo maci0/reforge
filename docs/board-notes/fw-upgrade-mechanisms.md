@@ -218,6 +218,108 @@ ReForge does **not** ship `/opt/cloud/`, `/opt/cacert.pem`, or
 ReForge user. The hardware key material remains in flash but nothing on
 the rootfs talks to it.
 
+## What stock updates touch vs don't touch
+
+A common misreading: "stock updates only ever touch `/opt/`." Almost true,
+but not quite. The stock paths #4 and #5 reach into a small whitelist of
+files **outside** `/opt/` — all of which are FF-maintained even though they
+live in Tina's directories. The bulk of the Tina rootfs (busybox, the
+unused `/usr/bin/*` tools, libc, the other `/etc/init.d/S??` scripts) is
+left strictly alone.
+
+### Files OUTSIDE `/opt/` that stock updates overwrite
+
+From path #4 (`/opt/PROGRAM/software/<ver>/run.sh`) and path #5
+(`/opt/PROGRAM/kernel/<ver>/run.sh`), the **6-file whitelist**:
+
+| Path | Origin | Why FF ships it |
+|---|---|---|
+| `/etc/init.d/rcS` | Tina (Buildroot template) | FF's customised version: the standard BR `S??` loop **plus** the rcS-tail audio routing, libcrypto symlinks, and the all-important final `/opt/auto_run.sh &` line that wires in path #1–#3 dispatch |
+| `/bin/zip` | Tina (Buildroot `infozip` package) | FF likely ships a vendored variant; the OTA path packages it for atomic updates |
+| `/bin/wifi_reconnect` | FF-maintained shim | **6-line `wpa_cli` action stub that doesn't actually reconnect anything** — see [Footnote A](#footnote-a--binwifi_reconnect-is-a-misnomer) |
+| `/sbin/iwlist` | Tina (Buildroot `wireless-tools`) | Updates carry FF's vendored build |
+| `/lib/modules/5.4.61/8821cu.ko` | Built from Tina's `drivers/staging/rtl8821cu/` in FF's kernel build | The WiFi driver; vermagic-locked to the BSP kernel |
+| `/etc/udhcpd.conf` | Tina default | Updates can overwrite with FF-tuned DHCP-server config |
+
+Plus one quirky entry that lands NOT in Tina-territory but on `/data`:
+
+| Path | Notes |
+|---|---|
+| `/data/logFiles/firmwareExe` | The QT touchscreen UI binary. Path #4's `run.sh` copies it to `/data/logFiles/firmwareExe` (NOT `/opt/PROGRAM/`) so it survives a future `/opt/PROGRAM/software/<ver>/` re-extract. The UI checks for this path at startup and uses the `/data` copy if present — FF's "OTA the UI without touching the read-mostly rootfs" trick. |
+
+### Files that stock updates DO NOT touch
+
+Everything else in the Tina rootfs is untouched by any of paths #3–#5:
+
+- `/bin/busybox` and all the busybox symlinks (`ls`, `cat`, `sh`, …)
+- All ~600 entries in `/usr/bin/*` (PostgreSQL, BlueZ, can-utils, GStreamer,
+  csslint, alsamixer, …)
+- `/usr/lib/*`, `/usr/share/*` (Tina's bundled libs and locale/man data)
+- The other `/etc/init.d/S??*` scripts (`S01syslogd`, `S02klogd`, `S10udev`,
+  `S20urandom`, `S30dbus`, `S40network`, `S50postgresql`, `S50telnet`,
+  `S80dnsmasq`) — only `rcS` itself is overwritten
+- `/lib/libc.so.*`, libstdc++, libgcc, the rest of the base C/C++ runtime
+- Tina's audio HAL / video HAL / codec libs (under `/usr/lib/`)
+- `/system/`, `/Settings/` mountpoint directories themselves
+- **Kernel image** (`mmcblk0p4` boot.img) — not from any `auto_run.sh`-driven
+  flow; path #5's `kernel/<ver>/run.sh` only updates `/lib/modules/` + DTB +
+  splash bitmaps + udhcpd.conf + rcS. If FF ever ships a new kernel binary,
+  the mechanism is somewhere we haven't captured (suspect: from
+  `firmwareExe`/cloud).
+- `boot0` / SPL / U-Boot / U-Boot env (`mmcblk0p1`–`p3`) — **never** touched
+  by any stock OTA path. Those are FEL-only.
+
+### Practical takeaway
+
+"Stock FW updates touch FF's `/opt/PROGRAM/` tree + a 6-file whitelist in
+`/etc/init.d/`, `/bin/`, `/sbin/`, and `/lib/modules/`" — that's the
+precise statement. The bulk of Tina is left alone, and the small set FF
+overwrites are all files FF maintains its own builds of anyway.
+
+For **Mode 3** this matters because every one of the 6 whitelisted files
+comes from our own build automatically (modern `wireless-tools`, modern
+`infozip`, our kernel's 8821cu, our init's `rcS`-equivalent, our own
+DHCP server config). The stock update mechanism's "touchpoints outside
+`/opt/`" are exactly the files we'd be replacing wholesale anyway, so
+they're not a blocker for the own-rootfs work.
+
+#### Footnote A — `/bin/wifi_reconnect` is a misnomer
+
+Despite the name, neither stock nor forge-x's `wifi_reconnect` actually
+reconnects anything. They are both `wpa_cli` action scripts (the format
+you register via `wpa_cli -B -a <script> -i wlan0` so wpa_supplicant
+invokes them on state changes), and both are basically logging stubs.
+
+| | Stock `/bin/wifi_reconnect` (116 B / 6 lines) | forge-x `.shell/boot/wifi_reconnect.sh` (618 B / 27 lines) |
+|---|---|---|
+| Shell | `#!/bin/sh` | `#!/bin/bash` |
+| Sources `common.sh`? | no | yes (gets `$WIFI_CONNECTED_F`, `logged()`) |
+| On `CONNECTED` | `echo "connection established"` | `echo "Connection Established"` **+ `touch "$WIFI_CONNECTED_F"`** marker |
+| On `DISCONNECTED` | `echo "connection lost"` | `echo "?? Connection Lost"` **+ `rm -f "$WIFI_CONNECTED_F"`** |
+| Catch-all | none (silent) | `echo "Received Wi-Fi signal: $@"` |
+| Output | stdout (wherever the parent dropped it) | `\| logged "/data/logFiles/wifi.log"` |
+| Actually reconnects? | **no** | **no** |
+
+The **real** reconnect logic on forge-x is in a separate
+`wifi_connect.sh` (no "re") invoked at boot in a 5-retry loop
+(see `forge-x/.shell/boot/boot.sh::wifi_init`). After the initial
+association, `wpa_supplicant` itself maintains the connection — the
+action script is a passive event listener, not a reconnector.
+
+The genuinely useful thing forge-x's version does (and stock's doesn't):
+maintain a **`$WIFI_CONNECTED_F` marker file**. Other forge-x components
+can answer "am I currently online?" with `[ -f "$WIFI_CONNECTED_F" ]` —
+no `wpa_cli status` parsing, no `ip link` polling. Tiny but useful
+primitive.
+
+ReForge's `packaging/live/net-up.sh` does the equivalent of forge-x's
+`wifi_connect.sh` (the actual association logic) but does not yet ship
+an equivalent of `wifi_reconnect.sh` (the marker-file maintainer). If we
+want feature parity with forge-x on the "is wifi up?" primitive, we'd
+ship a 20-line `wpa_cli` action script and register it via `wpa_cli
+-B -a <script>` after `wpa_supplicant` launch. Tracked as backlog
+follow-up.
+
 ## Cross-reference to ReForge
 
 | Stock path | ReForge equivalent | Notes |
