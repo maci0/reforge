@@ -130,6 +130,60 @@ on a throwaway `.config`.
 
 ---
 
+## 5. Mainline 7.0.11 — what a comparable kernel would weigh, and its size levers
+
+Question: build mainline **7.0.11** with a config comparable to our stock kernel and sweep the size
+knobs (including anything the newer gcc/kernel unlocks). Built out-of-tree (`O=`) from
+`linux-7.0.11` with the buildroot **gcc-15.2** + binutils **2.44** toolchain. Metric is
+`size vmlinux` (text+data+bss = the static RAM the kernel maps into `reserved`); runtime `Memory:`
+line shown where the config boots qemu `-M virt`.
+
+### The trap: `multi_v7_defconfig` is the wrong baseline
+`multi_v7_defconfig` is a **boot-any-ARMv7-board** config — it enables ~30 *other-vendor* SoC
+platforms (`ARCH_BCM`, `EXYNOS`, `OMAP`, `TEGRA`, `QCOM`, `ROCKCHIP`, `STM32`, `AT91`, `ASPEED`, …;
+163 `ARCH_*=y` lines) plus all their clk/pinctrl/dma/soc/peripheral drivers. Our stock kernel is
+**single-board** (sun8iw20 only). The fair proxy is **`sunxi_defconfig`** (Allwinner-only) — and even
+that still covers every Allwinner family (A10…H6), so it's broader than a true T113-only config.
+
+### Results (vmlinux total = text+data+bss)
+
+| 7.0.11 config | total vmlinux | runtime `Memory:` avail (`-m 128`) | note |
+|---|---|---|---|
+| `multi_v7` -O2 | 29.88M | 96,756K | all-vendor baseline (wrong) |
+| `multi_v7` -O2 +gc | 29.46M | — | gc-sections −0.42M |
+| `multi_v7` -Os+trim | 26.06M | 99,784K | |
+| **`sunxi` -O2** | **13.31M** | (no virt boot) | **−16.5M vs multi_v7** |
+| `sunxi` -Os+trim+drops | 10.87M | — | |
+| **`sunxi` -Os+gc+trim+drops** | **10.00M** | — | fully tuned |
+| *our 5.4 stock device (ref)* | *10.59M* | — | |
+| *our 5.4 device lean (ref, §4)* | *9.05M* | — | |
+
+### Lever ranking
+1. **Config scope (`multi_v7`→`sunxi`): −16.5 MB.** Dominates everything — that 16 MB is
+   other-vendor platform/driver code our single-board stock never carried. Answers the "what else can
+   we strip" question: the platforms themselves.
+2. **`-Os`: ~−2.5–3 MB.**
+3. **lean subsystem drops** (BT/SND/CAN/IPV6/`KALLSYMS_ALL`, as §4): ~−1.5 MB.
+4. **gc-sections (`LD_DEAD_CODE_DATA_ELIMINATION`): −0.4 MB (multi_v7) to −0.87 MB (lean sunxi).**
+   **New on 7.0 arm32** (`arch/arm/Kconfig` selects `HAVE_LD_DEAD_CODE_DATA_ELIMINATION if
+   LD_VERSION >= 23600 || LD_IS_LLD` — our ld 2.44 qualifies; 5.4-arm32 lacked it entirely). Gotcha:
+   `depends on EXPERT`, so `scripts/config -e` is silently reverted by `olddefconfig` unless
+   `EXPERT=y` is set first. GCC-compatible — this is the arm32 substitute for LTO.
+
+### LTO still out, even on 7.0
+`ARCH_SUPPORTS_LTO_CLANG` is selected only by **arm64 / x86_64 / riscv / loongarch / um** in 7.0 —
+**never 32-bit arm**. clang 22 being contemporary with 7.0 removes the version-skew that also killed
+it on 5.4, but the arch gate is unchanged. Full Clang LTO remains unavailable on our Cortex-A7.
+
+### Takeaway
+A fully-tuned **7.0.11 sunxi kernel (10.0 MB) reaches size parity with — actually slightly under —
+our 5.4 BSP stock (10.6 MB)**, despite being 6 years newer. The "newer = bloated" impression is
+entirely a `multi_v7` artifact; scope to one vendor + `-Os` + gc + lean drops and 7.0 is competitive.
+Size-only study: `sunxi_defconfig` doesn't boot qemu-virt, and a real T113 boot still needs a board
+DTS (see [2026-06-01-t113-mainline-kernel-support.md](2026-06-01-t113-mainline-kernel-support.md)).
+
+---
+
 ## Bottom line / what shipped
 
 - `-Os`: already on the device; **applied to the virt test kernel** so it's representative
@@ -140,3 +194,7 @@ on a throwaway `.config`.
   future flagged "lean device kernel" once a brick-safe test path (`kexec`/FEL, see
   [2026-06-04-brick-safe-kernel-test-paths.md](2026-06-04-brick-safe-kernel-test-paths.md)) is
   rehearsed.
+- Mainline 7.0.11 (§5): a tuned **`sunxi` -Os+gc+trim+drops kernel = 10.0 MB**, ~parity with our 5.4
+  stock. Biggest lever by far is **config scope** (`multi_v7`→`sunxi` = −16.5 MB), not opt flags.
+  gc-sections is new+usable on 7.0 arm32 (−0.4–0.9 MB); Clang LTO still arm32-unsupported. Confirms
+  a future 6.x/7.x move (Plan 5) is size-viable on the 128 MB box.
