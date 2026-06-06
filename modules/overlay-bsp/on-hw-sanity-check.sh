@@ -39,7 +39,11 @@ log "  hw: ${HW_VER}"
 
 # Confirm the running kernel uname -r matches the vermagic in our .ko.
 HW_RELEASE="$(ssh "${PRINTER}" 'uname -r' 2>/dev/null | tr -d '\r')"
-KO_VM="$(strings "${KO_LOCAL}" | grep -m1 '^vermagic=' | sed 's/^vermagic=//; s/ *$//')"
+# NB: `strings | grep -m1` + pipefail is a footgun — grep closes the pipe on
+# first match, strings gets SIGPIPE, pipeline returns non-zero, set -e kills
+# the script. Read the whole strings output into a var first, then grep.
+KO_STRINGS="$(strings "${KO_LOCAL}")"
+KO_VM="$(echo "${KO_STRINGS}" | grep -m1 '^vermagic=' | sed 's/^vermagic=//; s/ *$//')"
 KO_RELEASE="${KO_VM%% *}"  # first space-separated token is the kernel release string
 if [ "${HW_RELEASE}" != "${KO_RELEASE}" ]; then
     echo "FAIL: hw release '${HW_RELEASE}' != ko release '${KO_RELEASE}'"
@@ -55,20 +59,30 @@ if ssh "${PRINTER}" 'grep -wq overlay /proc/filesystems' 2>/dev/null; then
     log "        (already loaded by some other mod? insmod will fail with -EEXIST)"
 fi
 
-# Ship the .ko over.
+# Ship the .ko over. The AD5M's dropbear-ssh has no sftp-server, so scp's
+# default SFTP protocol fails. Use -O for the legacy SCP protocol, OR
+# pipe-through-ssh as fallback. We use -O for speed and atomic semantics.
 log "scp $(stat -c '%s' "${KO_LOCAL}") byte overlay.ko -> ${PRINTER}:/tmp/"
-scp -q "${KO_LOCAL}" "${PRINTER}:/tmp/overlay.ko"
+if ! scp -O -q "${KO_LOCAL}" "${PRINTER}:/tmp/overlay.ko" 2>/dev/null; then
+    log "  scp -O unavailable; falling back to ssh-pipe"
+    ssh "${PRINTER}" "cat > /tmp/overlay.ko" < "${KO_LOCAL}"
+fi
 
 # The actual on-hw test. Single ssh invocation, all output captured.
+# The remote is busybox sh (dropbear's exec), so we set explicit PATH and
+# prefer 'busybox <applet>' for the module tools (the /sbin/insmod symlinks
+# do exist but the dropbear non-login shell doesn't always have /sbin).
 log "running the on-hw test sequence ..."
-ssh "${PRINTER}" bash -s <<'REMOTE'
+ssh "${PRINTER}" sh -s <<'REMOTE'
 set -u
+PATH=/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}
+export PATH
 echo "=== /proc/meminfo BEFORE insmod ==="
 awk '/^MemTotal|^MemFree|^MemAvailable|^Slab/{print $0}' /proc/meminfo
 
 echo ""
 echo "=== insmod /tmp/overlay.ko ==="
-if insmod /tmp/overlay.ko 2>&1; then
+if busybox insmod /tmp/overlay.ko 2>&1; then
     echo "  insmod: ok"
 else
     echo "  insmod: FAILED ($?)"
@@ -78,11 +92,19 @@ fi
 
 echo ""
 echo "=== /proc/filesystems (overlay registered?) ==="
-grep -E '\\boverlay\\b' /proc/filesystems || { echo "  overlay NOT registered"; exit 11; }
+if awk '$NF=="overlay"' /proc/filesystems | grep -q overlay; then
+    awk '$NF=="overlay"' /proc/filesystems | sed 's/^/  /'
+else
+    echo "  overlay NOT registered"; exit 11
+fi
 
 echo ""
 echo "=== /proc/modules (overlay loaded, size, refcount) ==="
-grep '^overlay ' /proc/modules || { echo "  overlay NOT in /proc/modules"; exit 12; }
+if grep -q '^overlay ' /proc/modules; then
+    grep '^overlay ' /proc/modules | sed 's/^/  /'
+else
+    echo "  overlay NOT in /proc/modules"; exit 12
+fi
 
 echo ""
 echo "=== build a tmpfs-only lower/upper/work and mount ==="
@@ -125,7 +147,7 @@ grep -E '^ovl_|^overlay ' /proc/slabinfo 2>/dev/null | sed 's/^/  /' || echo "  
 echo ""
 echo "=== cleanup ==="
 umount /tmp/ovl/merged && echo "  umount: ok" || echo "  umount: FAILED"
-rmmod overlay && echo "  rmmod: ok" || echo "  rmmod: FAILED"
+busybox rmmod overlay && echo "  rmmod: ok" || echo "  rmmod: FAILED"
 rm -rf /tmp/ovl /tmp/overlay.ko
 
 echo ""

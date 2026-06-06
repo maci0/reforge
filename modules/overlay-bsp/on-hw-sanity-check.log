@@ -1,0 +1,52 @@
+[on-hw] checking root@192.168.0.150 ...
+[on-hw]   hw: Linux 5.4.61 #52 SMP PREEMPT Wed Aug 23 15:33:33 CST 2023 armv7l
+[on-hw]   release matches: '5.4.61'
+[on-hw] scp 110676 byte overlay.ko -> root@192.168.0.150:/tmp/
+[on-hw] running the on-hw test sequence ...
+** WARNING: connection is not using a post-quantum key exchange algorithm.
+** This session may be vulnerable to "store now, decrypt later" attacks.
+** The server may need to be upgraded. See https://openssh.com/pq.html
+=== /proc/meminfo BEFORE insmod ===
+MemTotal:         110404 kB
+MemFree:           16092 kB
+MemAvailable:      37448 kB
+Slab:              13024 kB
+
+=== insmod /tmp/overlay.ko ===
+  insmod: ok
+
+=== /proc/filesystems (overlay registered?) ===
+  nodev	overlay
+
+=== /proc/modules (overlay loaded, size, refcount) ===
+  overlay 90112 0 - Live 0xbf200000
+
+=== build a tmpfs-only lower/upper/work and mount ===
+  mount: ok
+  overlay on /tmp/ovl/merged type overlay (rw,relatime,lowerdir=/tmp/ovl/lower,upperdir=/tmp/ovl/upper,workdir=/tmp/ovl/work,xino=off)
+
+=== semantics ===
+  PASS: read-from-lower via merged
+  PASS: write-to-merged read-back
+  PASS: lower unchanged
+  PASS: copy-up to upper (upper/test.txt =  bytes)
+
+=== /proc/meminfo AFTER mount ===
+sh: line 62: stat: command not found
+MemTotal:         110404 kB
+MemFree:           15920 kB
+MemAvailable:      37276 kB
+Slab:              13064 kB
+ovl_inode slab:
+
+=== cleanup ===
+  umount: ok
+  rmmod: ok
+
+=== /proc/meminfo AFTER cleanup ===
+MemTotal:         110404 kB
+MemFree:           16128 kB
+MemAvailable:      37484 kB
+Slab:              13044 kB
+
+=== DONE ===

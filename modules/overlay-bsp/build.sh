@@ -24,8 +24,34 @@ WANT_VM='5.4.61 SMP preempt mod_unload ARMv7 p2v8'
 cd "$KSRC"
 # IN-TREE build; restore-to-pristine on exit so the shared BSP source doesn't
 # wedge other consumers (the qemu test kernel uses OUT-OF-TREE build via O=).
-cleanup() { git -C "$KSRC" clean -dfxq >/dev/null 2>&1 || make -C "$KSRC" mrproper >/dev/null 2>&1 || true; }
+# Cleanup ALSO reverts our patches so the next consumer of the BSP tree sees
+# pristine sources — we apply patches via `patch -p1 <` and revert with
+# `git checkout` so a `git clean -dfxq` doesn't leave a half-patched .c.
+cleanup() {
+    git -C "$KSRC" checkout -- fs/overlayfs/ >/dev/null 2>&1 || true
+    git -C "$KSRC" clean -dfxq >/dev/null 2>&1 || make -C "$KSRC" mrproper >/dev/null 2>&1 || true
+}
 trap cleanup EXIT
+
+# Apply the VFS-namespace-import patch needed for the stock kernel to resolve
+# the .ko's vfs_link / vfs_create / vfs_rename / vfs_getattr / vfs_setxattr /
+# vfs_listxattr / dentry_open references at insmod time. The stock kernel has
+# v5.6-era namespaced VFS exports backported (__kstrtabns_vfs_link etc are in
+# /proc/kallsyms) but the BSP fs/overlayfs/ source pre-dates the matching
+# MODULE_IMPORT_NS(...) declaration in fs/overlayfs/super.c (upstream commit
+# f3e57aac4262, v5.7-rc1). Add it so the module declares the import.
+PATCH="$HERE/patches/0001-overlay-import-vfs-ns.patch"
+if ! patch -p1 --dry-run < "$PATCH" >/dev/null 2>&1; then
+    # Idempotency: if the patch is already applied (e.g. retry build), skip.
+    if grep -q 'MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem' fs/overlayfs/super.c; then
+        echo "[overlay-bsp] patch already applied"
+    else
+        echo "[overlay-bsp] FAIL: cannot apply $PATCH" >&2
+        exit 1
+    fi
+else
+    patch -p1 < "$PATCH"
+fi
 
 # Empty .scmversion so scripts/setlocalversion doesn't append a '+' for an
 # untagged tree — vermagic must be exactly '5.4.61', not '5.4.61+'.
