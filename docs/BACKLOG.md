@@ -287,3 +287,55 @@ Recipe (reversible):
 Final confirmation must be on real hardware (klippy → MCU connect). The other direction
 (moonraker on stock soft-float 3.7) is impossible — moonraker needs ≥3.8 and there's no soft-float
 3.11. ReForge avoids all this: all-hard-float, one interpreter by design.
+
+## Cloud-block hardening: iptables for IP-literal stock endpoints
+
+The current cloud-block (`/etc/hosts`) handles hostname-based stock endpoints
+(VoxelShare, NetEase IM, sz3dp, etc.) but misses the **IP-literal** ones that
+`firmwareExe` hardcodes:
+
+- `http://10.33.11.172:32112/api/updates/check` (FlashForge internal dev update server)
+- `http://10.33.23.222` (legacy update host)
+- `rtmp://115.231.29.49:2045/...` (test RTMP)
+
+A LAN with one of these subnets present (e.g. corporate network, or attacker
+spoofing) would route the connection through. Closing the gap is one iptables
+rule per subnet, added to `reforge-boot` alongside the existing `/etc/hosts`
+edit:
+
+```sh
+iptables -A OUTPUT -d 10.33.11.0/24 -j REJECT
+iptables -A OUTPUT -d 10.33.23.0/24 -j REJECT
+iptables -A OUTPUT -d 115.231.29.49 -j REJECT
+```
+
+Source of the IP literals: `docs/security-findings.md` finding #6,
+`docs/reverse-engineering/firmwareexe-ota-update.md` §1.
+
+Estimated work: < 30 minutes. Worth doing as part of the next reforge-boot
+edit pass.
+
+## Sigstore / cosign signatures on ReForge OTA artifacts
+
+Today's ReForge OTA fetches per-component zips from a GitHub Release. The
+integrity story is "you trust this GitHub repository" \u2014 there's no signature
+verification on the downloaded zip beyond the implicit TLS-to-github.com trust.
+
+This is one notch better than stock (stock = MD5 with the manifest *inside*
+the package, see `docs/security-findings.md` finding #5), but it's still
+weaker than what we should ship. Two upgrade paths:
+
+1. **Sigstore / cosign**: sign each release zip with a project signing key
+   (or with a sigstore Fulcio-issued cert), embed the signature alongside
+   the artifact, verify on the device before extracting. The device-side
+   verifier is `cosign verify-blob`-equivalent in ~150 lines of go or python.
+2. **Minisign**: same idea, much smaller code footprint (one C source file,
+   no go toolchain). Single project signing key, public key shipped in the
+   image. Closer to the embedded-firmware norm.
+
+Either is good. Minisign is the smaller commitment; cosign carries the
+sigstore-ecosystem trust-root benefits if we ever want to rotate keys
+without re-flashing every device.
+
+Tracked here so the OTA design (`docs/specs/2026-06-01-reforge-ota-design.md`)
+gets revisited when this is scheduled. Not blocking; current OTA works.

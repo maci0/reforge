@@ -113,6 +113,18 @@ The printer's stock state can be dumped and restored via the tooling in
 [`tools/recovery/`](tools/recovery/RUNBOOK.md). Golden images are large and **never
 committed** (gitignored).
 
+## Why
+
+Reverse-engineering the stock firmware turned up **15 security findings** in the QT4
+stock UI binary alone — fleet-wide hardcoded RSA-2048 private key, unauthenticated
+LAN raw-TCP control on :8899, cleartext MQTT cloud control plane, MD5-only OTA
+verification, hardcoded HMAC secrets, default `admin/ff123456` credentials, and more.
+Full list with severity + closure status per ReForge mode: [`docs/security-findings.md`](docs/security-findings.md).
+
+ReForge's cloud-block + replacement of the stock UI closes the cloud-side of those
+findings today; the planned PID-1 swap (`docs/research/2026-06-05-replacing-pid1.md`)
+closes the LAN-side ones without waiting for our own kernel.
+
 ## Policy
 
 This repo commits **zero proprietary FlashForge assets** (`firmwareExe`, Qt blobs,

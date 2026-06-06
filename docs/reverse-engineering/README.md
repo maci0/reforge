@@ -1,5 +1,10 @@
 # Stock firmware reverse-engineering
 
+> **For a consolidated security-findings view across all the docs in this folder —
+> 15 findings with severity + closure status per ReForge deployment mode — see
+> [`../security-findings.md`](../security-findings.md).** This README indexes the
+> per-component RE notes that the security doc draws from.
+
 Finding reports from reverse-engineering the **stock FlashForge AD5M Pro firmware** — primarily the
 non-stripped QT4 UI app `firmwareExe` (`/opt/PROGRAM/software/5.1.4/`) plus the stock Klipper
 config. All findings were verified against the on-device binary (`arm-linux-gnueabi` toolchain:
