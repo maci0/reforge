@@ -170,6 +170,31 @@ that still covers every Allwinner family (A10…H6), so it's broader than a true
    `depends on EXPERT`, so `scripts/config -e` is silently reverted by `olddefconfig` unless
    `EXPERT=y` is set first. GCC-compatible — this is the arm32 substitute for LTO.
 
+### Stock-equivalent config migrated to 7.0 + all size knobs
+Rather than a generic defconfig, take **our actual stock `linux.config`** (the SDK/BSP feature set),
+migrate it onto 7.0.11 with `make ARCH=arm olddefconfig`, then flip every size-trimming knob
+(`-Os`, gc-sections, `TRIM_UNUSED_KSYMS`) while keeping the stock feature set (no subsystem drops, so
+it stays "comparable to stock"). Saved config:
+[`configs/2026-06-06-linux-7.0.11-stocklike.config`](configs/2026-06-06-linux-7.0.11-stocklike.config).
+
+| kernel | .text | .data | .bss | total |
+|---|---|---|---|---|
+| our 5.4 stock device (ref) | 7.57M | 2.84M | 0.19M | **10.59M** |
+| 7.0 stocklike A (migrated, `-Os`) | 8.50M | 3.04M | 0.12M | **11.65M** |
+| 7.0 stocklike B (+EXPERT+gc+trim) | 7.38M | 2.55M | 0.11M | **10.04M** |
+
+- Size knobs (gc + trim on top of stock's existing `-Os`): **11.65M → 10.04M = −1.61 MB (−14%)**.
+- Tuned 7.0 stocklike (**10.04M**) lands **~0.55 MB under our 5.4 stock** (10.59M); its `.text`
+  (7.38M) is basically identical to 5.4's (7.57M) despite a 6-years-newer kernel — `TRIM_UNUSED_KSYMS`
+  is what pulls `.data` below 5.4. Matches the `sunxi_defconfig`-tuned figure (10.0M).
+- **Migration caveat:** `olddefconfig` dropped **167** of our stock `=y` symbols — all BSP-only vendor
+  drivers with no mainline name match (`PINCTRL_SUNXI`, `MMC_SUNXI_V4P*`, `SERIAL_SUNXI`,
+  `RTC_DRV_SUNXI`, `DISP2_SUNXI`, `SND_SUN8IW20_CODEC`, cedar/VE, …). Mainline equivalents
+  (`sun4i/sun6i/sun8i/sun20i-*`) weren't auto-enabled, so stocklike is a **size proxy at the floor**,
+  not a bootable T113 kernel. Since the driver-complete `sunxi_defconfig` tunes to ~the same 10.0M,
+  the mainline sunxi drivers add little → a *functional* tuned 7.0 T113 kernel ≈ **10–11 MB ≈ our
+  5.4 stock**.
+
 ### LTO still out, even on 7.0
 `ARCH_SUPPORTS_LTO_CLANG` is selected only by **arm64 / x86_64 / riscv / loongarch / um** in 7.0 —
 **never 32-bit arm**. clang 22 being contemporary with 7.0 removes the version-skew that also killed
