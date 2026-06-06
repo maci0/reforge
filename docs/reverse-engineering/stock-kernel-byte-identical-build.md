@@ -60,9 +60,12 @@ for `CONFIG_KEXEC=y`).
 The Linaro 5.3.1 toolchain is downloaded by
 `FETCH_LINARO=1 ./vendor/fetch.sh` (sha256
 `77cccd433d680251c8b9bfa01890cb6921548513a39fac35c1f4b9f0a47e5aa4`).
-Total size 176 MB; gitignored. The shipping ReForge build uses GCC 9.5.0
-crosstool instead (different target — see
-[`../research/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/2026-06-04-bsp-kernel-rebuild-findings.md)).
+Total size 176 MB; gitignored. ReForge's **shipping** kernel is not this build:
+it is built by Buildroot with its own **gcc-15.2** toolchain at `-Os` (`make
+kernel`). The standalone **GCC 9.5.0** crosstool build (`build-bsp-kernel.sh`)
+is a reference/comparison build, not the shipping path — see
+[`../research/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/2026-06-04-bsp-kernel-rebuild-findings.md)
+and [`../research/2026-06-06-kernel-compiler-and-size-options.md`](../research/2026-06-06-kernel-compiler-and-size-options.md).
 
 ---
 
@@ -134,7 +137,7 @@ All modifications to the BSP submodule are packaged into a single patch
 file that the build script applies before `make` and reverts on exit:
 
 - Patch: [`../../vendor/kernels/patches/0001-byte-identical-reproduction.patch`](../../vendor/kernels/patches/0001-byte-identical-reproduction.patch)
-  (~26.7 KB; applies cleanly against pinned BSP commit `349a0b9`)
+  (~27.5 KB; applies cleanly against pinned BSP commit `349a0b9`)
 - Patches README: [`../../vendor/kernels/patches/README.md`](../../vendor/kernels/patches/README.md)
 - Build script installs `trap revert_patch EXIT INT TERM` — the submodule
   returns to pristine state regardless of how the build exits.
@@ -257,11 +260,13 @@ against the stock device tree (`fw-analysis/k-3.1.3/sunxi.dtb`,
 
 ### Knock-on for ReForge's shipping image
 
-The shipping kernel (built via
-[`../../tools/build/build-bsp-kernel.sh`](../../tools/build/build-bsp-kernel.sh)
-with GCC 9.5.0) has no obligation to match stock's IKCONFIG and can
-strip the dead code. Roughly **60 KB** of `.text` is removable with no
-user-visible effect:
+The shipping kernel (Buildroot gcc-15.2 `-Os`, `make kernel`) has no obligation
+to match stock's IKCONFIG and can strip the dead code. The GCC 9.5.0 reference
+build estimated **~60 KB** of `.text` removable from the table below; the later
+gcc-15 analysis went much further (`-Os` is already on, and a lean-config pass
+predicts **~1.5 MB** strippable) — see
+[`../research/2026-06-06-kernel-compiler-and-size-options.md`](../research/2026-06-06-kernel-compiler-and-size-options.md).
+The dead-driver candidates:
 
 | Drop | Saved | Why safe |
 |---|---:|---|
@@ -504,11 +509,9 @@ closed (Path C in §8).
   — captured stock `.config` (byte-identical to embedded IKCONFIG)
 - [`../../vendor/toolchains/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi/`](../../vendor/toolchains/)
   — Linaro 5.3.1 toolchain (downloaded via `FETCH_LINARO=1 ./vendor/fetch.sh`)
-- [`../../autoresearch.md`](../../autoresearch.md) /
-  [`../../autoresearch.jsonl`](../../autoresearch.jsonl) /
-  [`../../autoresearch.sh`](../../autoresearch.sh) — the iter 0–4
-  optimization-loop progression (baseline → substitutions → alignment
-  diagnosis)
+- the 2026-06-04 autoresearch optimization loop, iters 0–4 (baseline →
+  substitutions → alignment diagnosis) — progression summarized in Appendix A
+  below (the loop's own `autoresearch.*` working files were not retained)
 - [`../../outputs/kallsyms-symbol-diff.md`](../../outputs/kallsyms-symbol-diff.md)
   — the full ours-vs-stock kallsyms classification (baseline +
   post-iter-4 snapshot)
@@ -603,6 +606,6 @@ shift. After iter 4 the **first 1 MB of the Image is byte-identical to
 stock** and the residual is fully attributable to the 256-byte
 alignment crossing described in §4.
 
-Full per-iter log: [`../../autoresearch.jsonl`](../../autoresearch.jsonl);
-the dashboard with hypothesis text and decisions:
-[`../../autoresearch.md`](../../autoresearch.md).
+The per-iter log and decision dashboard came from the autoresearch loop's
+working files (`autoresearch.jsonl` / `.md`), which were not retained; the table
+above is the preserved summary.

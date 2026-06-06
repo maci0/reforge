@@ -7,9 +7,13 @@
           **dead drivers** on this printer (see §"Dead-driver audit").
 **Plan:** [`../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md`](../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md)
 **Earlier findings (functional equivalence):** [`2026-06-04-bsp-kernel-rebuild-findings.md`](2026-06-04-bsp-kernel-rebuild-findings.md)
-**Autoresearch loop:** [`../../autoresearch.md`](../../autoresearch.md)
+**Autoresearch loop:** 2026-06-04 (working files `autoresearch.*` not retained)
 **Build script:** `tools/build/build-bsp-kernel-stock.sh`
 **Companion functional-equivalence build:** `tools/build/build-bsp-kernel.sh`
+
+> **Canonical / maintained version:** [`../reverse-engineering/stock-kernel-byte-identical-build.md`](../reverse-engineering/stock-kernel-byte-identical-build.md).
+> This file is the **frozen 2026-06-04 snapshot** (the patch was 5 logical groups at this date; it
+> later grew to 7). Use the RE doc for the current procedure and patch structure.
 
 ---
 

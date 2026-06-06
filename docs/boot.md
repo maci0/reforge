@@ -51,7 +51,6 @@ The last line of `rcS` is `/opt/auto_run.sh &` — backgrounded, so `rcS` return
 immediately and `inittab` proceeds to spawn `getty`. `auto_run.sh` continues to
 run in parallel: it does the USB-update scan, then the MCU-firmware-update check,
 then launches the stock UI (`ffstartup-arm`). See §4 for the full timeline.
-```
 
 Partition map (GPT): `p1 boot-resource(33.6M) · p2 env(1M) · p3 env-redund(1M) ·
 p4 boot(34.4M) · p5 dsp0(1M) · p6 rootfs(1.3G) · p7 UDISK/data(5.9G)`.
@@ -300,10 +299,11 @@ flowchart TD
 | **eboard boot** | **handshake the toolhead MCU into its app — before any klippy** (§8) | `usr/bin/reforge-boot-eboard` |
 | `S00cloudblock` | block FF cloud hosts in `/etc/hosts` | `etc/init.d/S00cloudblock` |
 | `S35zram` | insmod `zram.ko`/`zsmalloc.ko` + zstd swap; sources `reforge-vmtune.sh` (the VM sysctls) | `modules/zram-bsp/` + `.shell/reforge-vmtune.sh` |
-| `S60klipper` | klippy — **jemalloc** (`LD_PRELOAD` + `MALLOC_CONF=narenas:1,…decay:0`) | `etc/init.d/S60klipper` |
-| `S65moonraker` | Moonraker API/WS `:7125` — jemalloc | `etc/init.d/S65moonraker` |
+| `S60klipper` | klippy — **default allocator** (jemalloc's `LD_PRELOAD` corrupts klippy's `c_helper.so` heap on real HW → omitted here) | `etc/init.d/S60klipper` |
+| `S65moonraker` | Moonraker API/WS `:7125` — **jemalloc** (`LD_PRELOAD` + `MALLOC_CONF=narenas:1,…decay:0`) | `etc/init.d/S65moonraker` |
 | `S70httpd` | busybox httpd serves Mainsail `:80` (browser → Moonraker direct, no proxy) | `etc/init.d/S70httpd` |
-| `S75guppyscreen` | LVGL UI on `/dev/fb0` — only when `SCREEN_MODE=GUPPY` | `etc/init.d/S75guppyscreen` |
+| `S72camera` | ustreamer MJPEG `:8080` (USB-UVC cam; no-op if no `/dev/video0`) | `etc/init.d/S72camera` |
+| `S75guppyscreen` | LVGL UI on `/dev/fb0` — only when `SCREEN_MODE=GUPPY` (jemalloc) | `etc/init.d/S75guppyscreen` |
 | `S99ok` | services-up sentinel (OTA era: promote `mod`→LKG) | `etc/init.d/S99ok` |
 
 Memory tuning (jemalloc, zram, the VM sysctls) is detailed in

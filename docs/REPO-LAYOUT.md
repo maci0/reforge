@@ -35,6 +35,7 @@ Makefile  pins.lock  .gitmodules  .github/   build glue, pins, submodule registr
 | `packaging/` | Stock-format `.tgz` builder + installer/uninstaller; `live/flashforge_init.sh` — the run-from-USB launcher (see `docs/live-mode.md`). |
 | `modules/zram-bsp/` | zram/zsmalloc loadable modules **(our build scripts + `swapon_prio.c` + setup + `dist/*.ko`)**. Builds against the BSP submodule in `vendor/`. |
 | `modules/f2fs-bsp/` | Live-mode loadable modules — `crc32_generic.ko` + `f2fs.ko` (build script + `dist/*.ko`), built against the BSP at the device's exact vermagic. The 2-partition live USB layout mounts the F2FS rootfs directly off p2, so `loop.ko` is no longer built or shipped here. |
+| `modules/overlay-bsp/` | OverlayFS loadable module built against the BSP (stock kernel ships `# CONFIG_OVERLAY_FS is not set`) — enables the atomic/immutable ReForge direction (`docs/plans/2026-06-05-immutable-reforge.md`); build recipe + on-HW sanity check. |
 | `tests/` | All test **runners**: `smoke/`, `loopback-install-test.sh`, `qemu-harness/`. |
 | `docs/` | `specs/`, `plans/`, `research/`, `board-notes/`, `reverse-engineering/`, `screenshots/`, this file. |
 | `tools/build/` | `build.sh` + `env.sh` — build entry (driven by the `Makefile`). |

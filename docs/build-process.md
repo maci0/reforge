@@ -49,8 +49,10 @@ flowchart TB
 | `./vendor/fetch.sh` | init submodules (buildroot, BSP kernel) + download+verify the toolchain | `vendor/*` |
 | `make defconfig` | apply `reforge_defconfig` to Buildroot | `build/output/.config` |
 | `make rootfs` | full Buildroot build (toolchain + all packages) | `build/output/images/rootfs.tar(.xz)` |
+| `make kernel` | build the in-tree Tina BSP 5.4.61 kernel (device config, `-Os`) via Buildroot's own gcc-15 toolchain — additive to the standalone `build-bsp-kernel*.sh` scripts | `build/output/images/zImage` |
+| `make kernel-virt` | same BSP source, qemu-`virt` config — the bootable test kernel for the harness | `build/output/images/zImage` |
 | `make tgz` | wrap the rootfs as a stock-format USB installer | `packaging/dist/reforge-<ver>.tgz` |
-| (in `modules/zram-bsp/`) `build.sh` | build zram/zsmalloc `.ko` against the BSP kernel | `dist/*.ko` (shipped in the overlay) |
+| (in `modules/zram-bsp/`) `build.sh` | build zram/zsmalloc `.ko` against the BSP kernel (gcc 9.5 crosstool, vermagic-matched) | `dist/*.ko` (shipped in the overlay) |
 
 The single `reforge_defconfig` builds the **whole stack** (klipper + moonraker + mainsail +
 guppyscreen + zram); `SCREEN_MODE` picks headless vs on-screen at runtime, so there is one image.
@@ -61,13 +63,13 @@ guppyscreen + zram); `SCREEN_MODE` picks headless vs on-screen at runtime, so th
 flowchart LR
     OUT["build/output<br/>(rootfs.tar.xz)"] --> H1["tests: qemu harness<br/>(virt kernel from BSP, boot/render/web)"]
     OUT --> H2["tests: smoke / integration<br/>(qemu-user)"]
-    OUT --> H3["tools/release/build-release.sh<br/>→ per-component OTA zips (designed)"]
+    OUT --> H3["tools/release/build-release.sh<br/>→ per-component OTA zips (shipped)"]
     OUT --> H4["packaging → USB .tgz"]
 ```
 
 - **Tests** (`tests/`) boot the rootfs under `qemu-system-arm` (a virt-machine kernel built from
   the same BSP source) or `qemu-arm-static` — no printer. See `tests/README.md`.
-- **OTA release** (designed): `build-release.sh` slices the same `build/output` into per-component
+- **OTA release** (implemented): `build-release.sh` slices the same `build/output` into per-component
   zips — see [`docs/ota.md`](ota.md).
 
 ## Reproducibility

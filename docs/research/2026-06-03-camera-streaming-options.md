@@ -1,5 +1,11 @@
 # Camera streaming — is there a better way than MJPEG? (research)
 
+> **Update (partly superseded):** the "real win = H.264 via the Cedar VE" thesis here is a dead
+> end — the T113-S3 has **no H.264 encoder in silicon** (JPEG/MJPEG only), per
+> [2026-06-04-cedar-ve-encode-and-camera-fw.md](2026-06-04-cedar-ve-encode-and-camera-fw.md). What
+> shipped is **ustreamer** MJPEG passthrough on `:8080` (`S72camera`), not the mjpg-streamer path
+> this doc calls "current". The MJPEG/WASM analysis below still stands.
+
 Date: 2026-06-03. Question: forward the camera stream **1:1** and decode browser-side in
 **WASM/JS** instead of the current mjpg-streamer path — is that better? Researched against
 the **actual hardware** (live probe) plus the streaming ecosystem.

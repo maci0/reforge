@@ -14,10 +14,13 @@ docs ([`../optimizations.md`](../optimizations.md), [`../boot.md`](../boot.md),
 - [2026-06-06-kernel-compiler-and-size-options.md](2026-06-06-kernel-compiler-and-size-options.md) — kernel RAM levers: gcc-9.5 vs gcc-15 (gcc-15 ~1 MB heavier `.text` at `-O2`), `-Os` = +3 MB free (already on device, now on the virt test kernel too), kernel LTO unavailable on arm32/GCC, a `size`-predicted **~1.5 MB** from stripping unused built-in subsystems (BT/SND/CAN/IPV6/KALLSYMS_ALL), **and (§5) a mainline 7.0.11 size sweep** — config scope (`multi_v7`→`sunxi`) is −16.5 MB vs any opt flag; tuned 7.0 `sunxi` kernel (10.0 MB) reaches size parity with our 5.4 stock; gc-sections new on 7.0 arm32, Clang LTO still arm32-unsupported.
 - [2026-06-04-brick-safe-kernel-test-paths.md](2026-06-04-brick-safe-kernel-test-paths.md) — testing a custom kernel **without** persistent eMMC writes (`kexec` on stock; FEL via `xfel`; one-time `boot.img` reflash). Reference, **not rehearsed**.
 - [2026-06-05-replacing-pid1.md](2026-06-05-replacing-pid1.md) — replacing PID 1 (reforge-init + `pivot_root`) for an early, brick-safe switch_root (boot.md §2 Option A).
+- [2026-06-05-overlayfs-on-bsp-spike.md](2026-06-05-overlayfs-on-bsp-spike.md) — ✅ OverlayFS builds as a loadable `.ko` against the stock 5.4.61 BSP (which ships `# CONFIG_OVERLAY_FS is not set`) → green light for atomic/immutable ReForge (versioned lower dir + `current`-symlink pointer-swap; drives [`../plans/2026-06-05-immutable-reforge.md`](../plans/2026-06-05-immutable-reforge.md)).
 - [2026-06-01-stock-recovery-images.md](2026-06-01-stock-recovery-images.md) — stock firmware / recovery-image landscape.
 - [2026-05-31-g992-research-findings.md](2026-05-31-g992-research-findings.md) — findings mined from the g992 AD5M repo (incl. the eboard MCU boot handshake).
 
 ## Memory (128 MB budget)
+*Lineage (oldest → current): strategy (memory-and-testing) → early A/B (memory-savings-experiments) → allocator decision (jemalloc-test-plan — **klippy adoption later reverted**, see caveat below) → forge-x audit (forge-x-memory-review) → **current measured baseline: reforge-vs-forgex-memory**. Kernel-side RAM levers are in [2026-06-06-kernel-compiler-and-size-options.md](2026-06-06-kernel-compiler-and-size-options.md) under Kernel & SoC. Canonical consolidated numbers: [`../optimizations.md`](../optimizations.md).*
+
 - [2026-05-31-memory-and-testing.md](2026-05-31-memory-and-testing.md) — memory-optimization + testing strategy.
 - [2026-06-01-memory-savings-experiments.md](2026-06-01-memory-savings-experiments.md) — measured memory-savings experiments.
 - [2026-06-01-jemalloc-test-plan.md](2026-06-01-jemalloc-test-plan.md) — jemalloc evaluation test plan. *(Caveat: jemalloc `LD_PRELOAD` corrupts klippy's heap on real hardware — kept for moonraker only; see [`../boot.md`](../boot.md).)*
@@ -36,3 +39,6 @@ docs ([`../optimizations.md`](../optimizations.md), [`../boot.md`](../boot.md),
 
 **Consolidated tuning results live in [`../optimizations.md`](../optimizations.md)** — these
 files are the backing experiments, not the canonical numbers.
+
+Saved config/artifact files referenced by these docs (e.g. the 7.0.11 stocklike kernel config)
+live in [`configs/`](configs/).

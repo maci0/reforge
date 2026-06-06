@@ -44,17 +44,22 @@ flowchart TB
         MO["Moonraker<br/>:7125 HTTP+WS"]
         HT["busybox httpd<br/>:80 → Mainsail SPA"]
         GS["GuppyScreen<br/>(LVGL, /dev/fb0)"]
+        CAM["ustreamer :8080<br/>USB-UVC cam, MJPEG (S72camera)"]
     end
     KL <-->|"unix socket<br/>/tmp/klippy_uds"| MO
     MO --- HT
+    MO -.->|"[webcam] config"| CAM
     GS -->|websocket| MO
     KL <-->|"serial<br/>ttyS5 + ttyS1 @230400"| MCU["MCU(s): N32G455<br/>mainboard + eboard"]
     MCU --> HW["steppers · heaters · sensors"]
 ```
 
-Single shared Python interpreter for klippy + moonraker (COW page sharing); **jemalloc**
-(`LD_PRELOAD` + `MALLOC_CONF=narenas:1,dirty_decay_ms:0,muzzy_decay_ms:0`) on both (+ guppyscreen)
-for RAM — see [optimizations](optimizations.md). The on-screen UI is **runtime-selectable** via
+Single shared Python interpreter for klippy + moonraker (COW page sharing). **jemalloc**
+(`LD_PRELOAD` + tuned `MALLOC_CONF=narenas:1,dirty_decay_ms:0,muzzy_decay_ms:0`) is used for
+**moonraker and guppyscreen only** — klippy runs with the default allocator, because jemalloc's
+`LD_PRELOAD` corrupts klippy's `c_helper.so` heap on real hardware (it aborts with `free(): invalid
+size`). See [optimizations](optimizations.md). The camera is **ustreamer** serving MJPEG on `:8080`
+(`S72camera`), exposed to the UI via Moonraker's `[webcam]`. The on-screen UI is **runtime-selectable** via
 `SCREEN_MODE` (`GUPPY` = GuppyScreen, `HEADLESS` = web-only, `STOCK` = the stock `firmwareExe`,
 feasibility-confirmed). **The MCUs are Nationstech N32G455 running FlashForge's stock Klipper v11
 firmware — ReForge's host Klipper drives them as-is** (proven on hardware: both MCUs connect, real
@@ -92,15 +97,24 @@ the static SPA, so there's no reverse proxy (nginx removed, ~3 MB saved).
 | kernel modules (zram; later display) | `modules/` | `modules/zram-bsp/README.md` |
 | packaging (USB `.tgz`) | `packaging/` | — |
 | boot hook + overlay | `br-external/board/reforge/rootfs-overlay/` | [boot](boot.md) |
-| updates | (designed) | [OTA](ota.md) |
+| updates | Moonraker zip/web updaters + CI release tooling (shipped) | [OTA](ota.md) |
+| camera | ustreamer MJPEG `:8080` | `etc/init.d/S72camera` |
 | run-from-USB (no install) | `packaging/live/`, `modules/f2fs-bsp/` | [live mode](live-mode.md) |
 | third-party (pinned) | `vendor/` | `vendor/README.md` |
+
+## Deployment modes
+
+ReForge has three deployment modes by increasing commitment: **Mode 1 live**
+(USB-booted, zero-touch — future, OverlayFS-gated), **Mode 2 install-on-stock**
+(the shipped `/data/.mod/.reforge` overlay described above), and **Mode 3 full
+replacement** (own kernel + rootfs — Plan 5). Full taxonomy + installer paths:
+[deployment-modes.md](deployment-modes.md).
 
 ## Phases
 
 | phase | scope | status |
 |---|---|---|
 | P1–P3 | core stack on stock kernel; builds/boots/serves in qemu; packaging; validation | **done** |
-| OTA | git-free in-place updates | designed ([spec](specs/2026-06-01-reforge-ota-design.md)) |
+| OTA | git-free in-place updates (Moonraker zip/web updaters, CI release bundles, N=3 trial/LKG) | **done** ([OTA](ota.md); [spec](specs/2026-06-01-reforge-ota-design.md)) |
 | Plan 4 | matching MCU firmware (mainboard + eboard) — **optional**: the stock v11 MCU already drives the printer; Plan 4 restores adxl345/input-shaper calibration (or moves to v13) | not started |
 | Plan 5 | mainline U-Boot + 6.12 LTS kernel + ported T113 display driver | researched ([notes](research/2026-06-01-t113-mainline-kernel-support.md)) |

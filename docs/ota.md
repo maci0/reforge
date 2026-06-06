@@ -112,6 +112,12 @@ flowchart TD
 - **`SKIP_MOD`** USB marker = the final manual escape (boot stock entirely); orthogonal to the
   trial state.
 
+> **Planned successor:** the `cp -a mod ↔ lkg` / `mv mod mod.bad` directory dance above is slated to
+> be replaced by a **versioned-OverlayFS pointer-swap** (`versions/<ver>/` + a `current` symlink),
+> which makes update + rollback atomic and reuses this same trial/LKG logic. Design:
+> [`plans/2026-06-05-immutable-reforge.md`](plans/2026-06-05-immutable-reforge.md) (not yet
+> implemented — the LKG dir-dance documented here is what ships today).
+
 ## Why not `git_repo`?
 
 Moonraker's `git_repo` updater needs the full `git` CLI (clone/fetch/checkout/reset/describe/
