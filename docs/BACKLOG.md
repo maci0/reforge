@@ -85,7 +85,7 @@ All five open questions below are answered. OverlayFS builds clean as a 122 KB
 loadable module from the vanilla BSP source, mounts with correct semantics, and
 costs ~192 KiB MemAvailable per mount on the test rig — well inside our budget.
 The direction can be elevated from "parked" to a concrete implementation plan;
-proposed next-step is `docs/plans/2026-06-XX-immutable-reforge.md` covering the
+proposed next-step delivered as [`docs/plans/2026-06-05-immutable-reforge.md`](plans/2026-06-05-immutable-reforge.md), covering the
 versioned-overlay layout + atomic install/OTA/rollback path + true-Mode-1 live
 with `lowerdir=/data + upperdir=tmpfs`.
 
