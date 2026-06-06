@@ -26,7 +26,7 @@ Severity icons follow the source notes (🔴 critical, 🟠 high, 🟡 medium).
 
 ### 🔴 1. Fleet-wide hardcoded RSA-2048 private key in the shipping binary
 
-**Source:** [`reverse-engineering/firmwareexe-lan-protocol-and-crypto.md`](reverse-engineering/firmwareexe-lan-protocol-and-crypto.md) §2.
+**Source:** [`reverse-engineering/stock-ui/firmwareexe-lan-protocol-and-crypto.md`](reverse-engineering/stock-ui/firmwareexe-lan-protocol-and-crypto.md) §2.
 
 **What:** `/opt/key.priv` ships as a default Qt resource (.qrc blob bracketed by PNG data) and is **byte-identical on every unit out of the factory**. The cloud-binding challenge-response (Polar) signs cloud-supplied challenges with this key to prove device identity. Anyone who extracts the key from one image (trivial: it's in the read-only `.text` of `firmwareExe`) can forge the challenge for **every device that has not done a factory-reset key regeneration**.
 
@@ -42,7 +42,7 @@ Severity icons follow the source notes (🔴 critical, 🟠 high, 🟡 medium).
 
 ### 🔴 2. Unauthenticated LAN raw-TCP control on port 8899
 
-**Source:** [`reverse-engineering/firmwareexe-lan-protocol-and-crypto.md`](reverse-engineering/firmwareexe-lan-protocol-and-crypto.md) §1.
+**Source:** [`reverse-engineering/stock-ui/firmwareexe-lan-protocol-and-crypto.md`](reverse-engineering/stock-ui/firmwareexe-lan-protocol-and-crypto.md) §1.
 
 **What:** `ServerListener` opens TCP 8899 with **Auth: NONE**. Any host on the same network can:
 - `M601` — take control of the printer (locks the UI)
@@ -62,7 +62,7 @@ Severity icons follow the source notes (🔴 critical, 🟠 high, 🟡 medium).
 
 ### 🔴 3. Cleartext MQTT-over-WebSocket cloud control plane
 
-**Source:** [`reverse-engineering/firmwareexe-cloud-command-surface.md`](reverse-engineering/firmwareexe-cloud-command-surface.md).
+**Source:** [`reverse-engineering/stock-ui/firmwareexe-cloud-command-surface.md`](reverse-engineering/stock-ui/firmwareexe-cloud-command-surface.md).
 
 **What:** Cloud control runs over `ws://<host>:8083/mqtt` — **plaintext, no TLS, no server-certificate verification.** `buildConnectOptions` (`0x3a6b1`) only sets user / password / clean-session / version, never `set_ssl` / `set_trust_store`. A LAN/WAN MITM on this link can issue any of the unauthenticated `*_cmd` JSON keys → heater (`temperatureCtl_cmd → M104/M140`), motion, prints, fan/light. Broker-credential compromise = total fleet takeover.
 
@@ -76,7 +76,7 @@ Severity icons follow the source notes (🔴 critical, 🟠 high, 🟡 medium).
 
 ### 🔴 4. Unauthenticated UDP discovery on `225.0.0.9:8899` / bcast `:19000`
 
-**Source:** [`reverse-engineering/firmwareexe-lan-protocol-and-crypto.md`](reverse-engineering/firmwareexe-lan-protocol-and-crypto.md) §1b.
+**Source:** [`reverse-engineering/stock-ui/firmwareexe-lan-protocol-and-crypto.md`](reverse-engineering/stock-ui/firmwareexe-lan-protocol-and-crypto.md) §1b.
 
 **What:** `OrcaMulticast` announces serial / MAC / model / IP / **cloud-bind status in cleartext** to a multicast group + broadcast port. Any LAN observer trivially enumerates printers and learns whether each is cloud-bound (= phishing target). Combined with finding #2, the LAN surface is fully open without even a port scan.
 
@@ -88,7 +88,7 @@ Severity icons follow the source notes (🔴 critical, 🟠 high, 🟡 medium).
 
 ### 🟠 5. OTA has MD5-only integrity, no signature
 
-**Source:** [`reverse-engineering/firmwareexe-ota-update.md`](reverse-engineering/firmwareexe-ota-update.md) §3.
+**Source:** [`reverse-engineering/stock-ui/firmwareexe-ota-update.md`](reverse-engineering/stock-ui/firmwareexe-ota-update.md) §3.
 
 **What:** Update packages (`software-<ver>.tar.xz`, `kernel-`, `control-`, `library-`) ship a bundled `md5sum.list`. The integrity check verifies the package contents against this list — but **the list itself ships inside the package**, so an attacker who serves a tampered package (or MITMs the download) can update the list to match. No code signing, no out-of-band trust root, no A/B partition, no recovery slot.
 
@@ -102,7 +102,7 @@ Severity icons follow the source notes (🔴 critical, 🟠 high, 🟡 medium).
 
 ### 🟠 6. Plaintext-HTTP internal dev infrastructure compiled into production
 
-**Source:** [`reverse-engineering/firmwareexe-ota-update.md`](reverse-engineering/firmwareexe-ota-update.md) §1, [`reverse-engineering/firmwareexe-reverse-engineering.md`](reverse-engineering/firmwareexe-reverse-engineering.md) #4.
+**Source:** [`reverse-engineering/stock-ui/firmwareexe-ota-update.md`](reverse-engineering/stock-ui/firmwareexe-ota-update.md) §1, [`reverse-engineering/stock-ui/firmwareexe-reverse-engineering.md`](reverse-engineering/stock-ui/firmwareexe-reverse-engineering.md) #4.
 
 **What:** The shipping binary contains hard-coded internal FlashForge dev/staging endpoints that were never stripped at release:
 - `http://10.33.11.172:32112/api/updates/check` (plaintext HTTP, internal IP)
@@ -121,7 +121,7 @@ A LAN attacker who can spoof IP routing to these RFC1918 addresses gets a code-u
 
 ### 🟠 7. `curl -k` on authenticated cloud requests
 
-**Source:** [`reverse-engineering/firmwareexe-cloud-rest-and-oss.md`](reverse-engineering/firmwareexe-cloud-rest-and-oss.md) §"Security / privacy".
+**Source:** [`reverse-engineering/stock-ui/firmwareexe-cloud-rest-and-oss.md`](reverse-engineering/stock-ui/firmwareexe-cloud-rest-and-oss.md) §"Security / privacy".
 
 **What:** Multipart-upload paths that carry the device `authToken` are invoked with `curl -k` — **TLS server-cert verification disabled**. So even when the URL is HTTPS, the auth token is MITM-able.
 
@@ -133,7 +133,7 @@ A LAN attacker who can spoof IP routing to these RFC1918 addresses gets a code-u
 
 ### 🟠 8. Hardcoded HMAC secrets in the binary
 
-**Source:** [`reverse-engineering/firmwareexe-cloud-rest-and-oss.md`](reverse-engineering/firmwareexe-cloud-rest-and-oss.md), [`reverse-engineering/firmwareexe-reverse-engineering.md`](reverse-engineering/firmwareexe-reverse-engineering.md) #13.
+**Source:** [`reverse-engineering/stock-ui/firmwareexe-cloud-rest-and-oss.md`](reverse-engineering/stock-ui/firmwareexe-cloud-rest-and-oss.md), [`reverse-engineering/stock-ui/firmwareexe-reverse-engineering.md`](reverse-engineering/stock-ui/firmwareexe-reverse-engineering.md) #13.
 
 **What:** Two HMAC keys used for cloud log-upload signing are baked into the read-only text segment:
 - `A7dK9xP2LmQ4sT8Z`
@@ -149,7 +149,7 @@ Same on every device. Anyone with the keys can sign log-upload metadata as any d
 
 ### 🟠 9. Shell-injection surface in challenge signing
 
-**Source:** [`reverse-engineering/firmwareexe-lan-protocol-and-crypto.md`](reverse-engineering/firmwareexe-lan-protocol-and-crypto.md) §2.
+**Source:** [`reverse-engineering/stock-ui/firmwareexe-lan-protocol-and-crypto.md`](reverse-engineering/stock-ui/firmwareexe-lan-protocol-and-crypto.md) §2.
 
 **What:** The cloud-binding challenge handler interpolates the cloud-supplied `challenge` field into a **single-quoted shell command**:
 
@@ -167,7 +167,7 @@ A cloud-side actor (or anyone who can MITM the cleartext MQTT link — finding #
 
 ### 🟠 10. Weak OrcaServer LAN HTTP auth on port 8898
 
-**Source:** [`reverse-engineering/firmwareexe-orcaserver-lan-api.md`](reverse-engineering/firmwareexe-orcaserver-lan-api.md) §"Auth — check_sn_access".
+**Source:** [`reverse-engineering/stock-ui/firmwareexe-orcaserver-lan-api.md`](reverse-engineering/stock-ui/firmwareexe-orcaserver-lan-api.md) §"Auth — check_sn_access".
 
 **What:** `check_sn_access` accepts a serial number (**already broadcast in cleartext** via finding #4's multicast and via `M115` on the port-8899 protocol) + a short access code. Effectively a shared-secret over a known-leaked identifier. Routes covered include `/detail` (full live telemetry), `/control` (command table), `/gcodeList`, `/gcodeThumb`, `/product`.
 
@@ -179,7 +179,7 @@ A cloud-side actor (or anyone who can MITM the cleartext MQTT link — finding #
 
 ### 🟡 11. Default credentials in shipped config
 
-**Source:** [`reverse-engineering/firmwareexe-filesystem-and-system.md`](reverse-engineering/firmwareexe-filesystem-and-system.md) §"Security notes".
+**Source:** [`reverse-engineering/stock-ui/firmwareexe-filesystem-and-system.md`](reverse-engineering/stock-ui/firmwareexe-filesystem-and-system.md) §"Security notes".
 
 **What:** Stock config files ship with `userID: admin` / `userPass: ff123456`.
 
@@ -191,7 +191,7 @@ A cloud-side actor (or anyone who can MITM the cleartext MQTT link — finding #
 
 ### 🟡 12. Hardcoded log-export zip password
 
-**Source:** [`reverse-engineering/firmwareexe-filesystem-and-system.md`](reverse-engineering/firmwareexe-filesystem-and-system.md) §"Security notes", [`reverse-engineering/firmwareexe-reverse-engineering.md`](reverse-engineering/firmwareexe-reverse-engineering.md) #2.
+**Source:** [`reverse-engineering/stock-ui/firmwareexe-filesystem-and-system.md`](reverse-engineering/stock-ui/firmwareexe-filesystem-and-system.md) §"Security notes", [`reverse-engineering/stock-ui/firmwareexe-reverse-engineering.md`](reverse-engineering/stock-ui/firmwareexe-reverse-engineering.md) #2.
 
 **What:** Diagnostic archives the user can export are encrypted with the constant password `FFP0286&*%root`. Same across the fleet. Anyone who collects an exported log can decrypt it.
 
@@ -203,7 +203,7 @@ A cloud-side actor (or anyone who can MITM the cleartext MQTT link — finding #
 
 ### 🟡 13. STS credentials returned over URL query parameters
 
-**Source:** [`reverse-engineering/firmwareexe-cloud-rest-and-oss.md`](reverse-engineering/firmwareexe-cloud-rest-and-oss.md) §"REST endpoint catalog".
+**Source:** [`reverse-engineering/stock-ui/firmwareexe-cloud-rest-and-oss.md`](reverse-engineering/stock-ui/firmwareexe-cloud-rest-and-oss.md) §"REST endpoint catalog".
 
 **What:** `/firmware/device/oss_access?deviceID=&authToken=` returns Alibaba OSS short-lived STS credentials (`accessKeyID/Secret/securityToken/bucket/endpoint`). Because they're in the response body fetched via the GET query string, they land in any intermediate reverse-proxy / CDN / WAF / corporate-MITM log.
 
@@ -215,7 +215,7 @@ A cloud-side actor (or anyone who can MITM the cleartext MQTT link — finding #
 
 ### 🟡 14. No TLS certificate pinning + writable trust store
 
-**Source:** [`reverse-engineering/firmwareexe-lan-protocol-and-crypto.md`](reverse-engineering/firmwareexe-lan-protocol-and-crypto.md) §2.
+**Source:** [`reverse-engineering/stock-ui/firmwareexe-lan-protocol-and-crypto.md`](reverse-engineering/stock-ui/firmwareexe-lan-protocol-and-crypto.md) §2.
 
 **What:** `firmwareExe` uses OpenSSL with `SSL_CTX_load_verify_locations` + `X509_check_host` but **no certificate pinning**. The trust store `/opt/cacert.pem` (also embedded as `:/res/icon/main/cacert.pem` and copied at startup) is **device-writable** at runtime. A local attacker with FS access can inject a rogue CA and defeat HTTPS verification for every host the stock UI talks to.
 
@@ -227,7 +227,7 @@ A cloud-side actor (or anyone who can MITM the cleartext MQTT link — finding #
 
 ### 🟡 15. Cleartext WiFi PSK on command line and on disk
 
-**Source:** [`reverse-engineering/firmwareexe-network-wifi.md`](reverse-engineering/firmwareexe-network-wifi.md) §"Station" / "SoftAP".
+**Source:** [`reverse-engineering/stock-ui/firmwareexe-network-wifi.md`](reverse-engineering/stock-ui/firmwareexe-network-wifi.md) §"Station" / "SoftAP".
 
 **What:**
 - Station mode: `wpa_cli set_network N psk "%s"` exposes the PSK in `/proc/<pid>/cmdline` for the duration of the call. Any unprivileged process (if any existed) or `ps` listing captures it.
@@ -299,9 +299,9 @@ What we do NOT commit to:
 
 ## See also
 
-- [`reverse-engineering/firmwareexe-reverse-engineering.md`](reverse-engineering/firmwareexe-reverse-engineering.md) — the master RE index, all 15 findings cite their detailed source from here.
+- [`reverse-engineering/stock-ui/firmwareexe-reverse-engineering.md`](reverse-engineering/stock-ui/firmwareexe-reverse-engineering.md) — the master RE index, all 15 findings cite their detailed source from here.
 - [`docs/deployment-modes.md`](deployment-modes.md) — the three modes referenced in the closure-status tables.
 - [`docs/boot.md`](boot.md) §2 — the intervention table that gates Mode 2b.
-- [`docs/research/2026-06-05-replacing-pid1.md`](research/2026-06-05-replacing-pid1.md) — the design of the PID-1 swap that closes findings #2 and #4.
+- [`docs/research/kernel/2026-06-05-replacing-pid1.md`](research/kernel/2026-06-05-replacing-pid1.md) — the design of the PID-1 swap that closes findings #2 and #4.
 - [`docs/specs/2026-05-31-reforge-firmware-design.md`](specs/2026-05-31-reforge-firmware-design.md) — the cloud-block + no-telemetry posture.
-- [`vendor/forge-x/docs/FIRMWARE_5x_COMPAT.md`](../vendor/forge-x/docs/FIRMWARE_5x_COMPAT.md) — the full cloud-host list used by `/etc/hosts`.
+- [`vendor/forge-x/docs/FIRMWARE_5x_COMPAT.md`](specs/2026-05-31-reforge-firmware-design.md) — the full cloud-host list used by `/etc/hosts`.

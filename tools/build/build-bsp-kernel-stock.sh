@@ -20,7 +20,7 @@
 #     build under build/bsp-kernel-rebuild/), gitignored.
 #
 # Status: experiment toward L3 (byte-identical Image) per
-# docs/research/2026-06-04-bsp-kernel-rebuild-findings.md.
+# docs/research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md.
 # Plan: docs/plans/2026-06-04-bsp-kernel-rebuild-and-diff.md
 # =============================================================================
 set -euo pipefail

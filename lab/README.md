@@ -15,7 +15,7 @@ or a documented validation run, it belongs here.
 | `scratch/` | Loose junk: stray configs, extracted source tarballs, build artifacts. | gitignored entirely |
 
 The **finding** from the stock-UI spike is product knowledge and lives in the docs:
-`docs/research/stock-ui-spike.md` (GO / Option-A). Only the spike's mechanics stayed here.
+`docs/research/ui-camera/stock-ui-spike.md` (GO / Option-A). Only the spike's mechanics stayed here.
 
 ## What is NOT here (but is also non-product / transient)
 

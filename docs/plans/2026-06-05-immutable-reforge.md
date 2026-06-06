@@ -12,7 +12,7 @@
 
 Two prior pieces of work answered the open questions and produced the binary artefacts this plan builds on:
 
-1. **Qemu spike** — `docs/research/2026-06-05-overlayfs-on-bsp-spike.md`
+1. **Qemu spike** — `docs/research/kernel/2026-06-05-overlayfs-on-bsp-spike.md`
    Vanilla `fs/overlayfs/` source in the Tina BSP; CONFIG_OVERLAY_FS=m produces a 108 KB `.ko` from the same toolchain we use for production; the same source built `=y` mounts cleanly in qemu with correct semantics (read-from-lower, copy-up, whiteout, lower-immutability) and a per-mount cost of ~192 KiB MemAvailable + ~16 KiB ovl_inode slab on a 108 MB MemTotal box.
 
 2. **On-hardware sanity check** — `modules/overlay-bsp/on-hw-sanity-check.log` (commit 1864397).
@@ -334,7 +334,7 @@ The plan is "done" when:
 
 ## 13. References
 
-- **Substrate spike**: `docs/research/2026-06-05-overlayfs-on-bsp-spike.md`
+- **Substrate spike**: `docs/research/kernel/2026-06-05-overlayfs-on-bsp-spike.md`
 - **On-hw sanity check**: `modules/overlay-bsp/on-hw-sanity-check.log` (commit 1864397)
 - **Overlay build recipe**: `modules/overlay-bsp/build.sh`, `modules/overlay-bsp/patches/0001-overlay-import-vfs-ns.patch`
 - **Deployment-mode roadmap**: `docs/deployment-modes.md`

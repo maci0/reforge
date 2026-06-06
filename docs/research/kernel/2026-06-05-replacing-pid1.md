@@ -4,13 +4,13 @@
 **Status:** research, no implementation yet
 **Audience:** anyone evaluating boot-handoff mechanisms for ReForge Mode 2 → Mode 3 transitions
 **See also:**
-  - [`../boot.md`](../boot.md) \u00a72 \u2014 the intervention-points table (this note expands on
+  - [`../boot.md`](../../boot.md) \u00a72 \u2014 the intervention-points table (this note expands on
     rows #4 (boot.img), #5 (init=), and the implied "swap /init symlink" intervention)
   - [`2026-06-04-brick-safe-kernel-test-paths.md`](2026-06-04-brick-safe-kernel-test-paths.md)
     \u2014 the kexec / FEL analysis (the Tier-0/1 cousin of the PID-1 question)
-  - [`../deployment-modes.md`](../deployment-modes.md) \u2014 the three-mode roadmap (Mode 3
+  - [`../deployment-modes.md`](../../deployment-modes.md) \u2014 the three-mode roadmap (Mode 3
     is where PID-1 replacement becomes trivial)
-  - [`../board-notes/partition-map.md`](../board-notes/partition-map.md) \u2014 the brick
+  - [`../board-notes/partition-map.md`](../../board-notes/partition-map.md) \u2014 the brick
     tiers that constrain how aggressively we can intervene
 
 ---

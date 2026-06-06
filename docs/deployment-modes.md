@@ -20,7 +20,7 @@ is not set`). Today's "live mode" is really Mode 2 with the rootfs source swappe
 to USB (see [live-mode.md](live-mode.md)) — it still writes ~nothing to eMMC. The
 loadable-OverlayFS route that would unlock a true Mode 1 is designed in
 [plans/2026-06-05-immutable-reforge.md](plans/2026-06-05-immutable-reforge.md)
-(spiked green in [research/2026-06-05-overlayfs-on-bsp-spike.md](research/2026-06-05-overlayfs-on-bsp-spike.md)).
+(spiked green in [research/kernel/2026-06-05-overlayfs-on-bsp-spike.md](research/kernel/2026-06-05-overlayfs-on-bsp-spike.md)).
 
 ### Mode 2 — Install on stock kernel (the forge-x / zmod pattern)
 
@@ -41,7 +41,7 @@ factory.
 
 **Status: planned (Plan 5).** Mainline-LTS kernel + ReForge U-Boot + a
 `reforge_t113_defconfig` (mainline support tracked in
-[research/2026-06-01-t113-mainline-kernel-support.md](research/2026-06-01-t113-mainline-kernel-support.md)).
+[research/kernel/2026-06-01-t113-mainline-kernel-support.md](research/kernel/2026-06-01-t113-mainline-kernel-support.md)).
 
 ## Mode-2 installer paths
 

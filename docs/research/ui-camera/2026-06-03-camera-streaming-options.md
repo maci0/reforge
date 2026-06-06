@@ -149,7 +149,7 @@ Staged plan (each stage independently verifiable):
   (Later: replace CPU JPEG-decode with the VE's HW JPEG **decoder** via `cedrus`/`libvecore` to
   drop CPU further.)
 - **Stage 2 — custom VENC app.** *Attempted live 2026-06-03 — substantial progress, blocked at
-  encoder memory init; code + harness in [`lab/venc/`](../../lab/venc/).* Findings:
+  encoder memory init; code + harness in [`lab/venc/`](../../../lab/venc/).* Findings:
   - Recovered the **full cedarc VENC API + struct layouts** from the on-device libs' DWARF
     (`gdb ptype`/`sizeof`/`offsetof`) and wrote `enc_nv12_h264.c` driving structs by byte-offset
     (ABI-exact). API is the canonical `VideoEncCreate/VideoEncInit/VideoEncSetParameter/
@@ -178,7 +178,7 @@ Staged plan (each stage independently verifiable):
   - **Conclusion:** standalone HW H264/H265 encode is blocked on this firmware at the
     VE-completion level; it needs the `libsdk_camera` HAL (ISP+VE) path, not a standalone app.
     **MJPEG (`mjpg_streamer`) stays the working camera path.** Full write-up + the RE'd encoder:
-    [`lab/venc/`](../../lab/venc/).
+    [`lab/venc/`](../../../lab/venc/).
 - **Stage 3 — transport + browser decode.** Emit the H.264 **Annex-B** elementary stream over a
   WebSocket; a ~50-line HTML page feeds NAL units to **WebCodecs `VideoDecoder`**
   (`codec:"avc1.42E01E"` = baseline). Alternatively reuse on-device gstreamer for RTP

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # jemalloc A/B build: reforge_defconfig + BR2_PACKAGE_JEMALLOC, into build/output-jemalloc
 # (does NOT touch the product build/output). Experiment only — see
-# docs/research/2026-06-01-jemalloc-test-plan.md.
+# docs/research/memory/2026-06-01-jemalloc-test-plan.md.
 set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 O="$REPO/build/output-jemalloc"

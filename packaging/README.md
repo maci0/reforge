@@ -172,7 +172,7 @@ The Plan 3 spike confirmed that STOCK mode is feasible (**GO — Option A**):
 - Constraint: `firmwareExe` is **soft-float ABI** and must run in the stock soft-float
   environment, not inside the ReForge hard-float chroot.
 
-Full spike findings: `docs/research/stock-ui-spike.md` (spike scripts live in `lab/spike-stockui/`).
+Full spike findings: `docs/research/ui-camera/stock-ui-spike.md` (spike scripts live in `lab/spike-stockui/`).
 
 Implementation of STOCK mode is **deferred** to a future plan.
 

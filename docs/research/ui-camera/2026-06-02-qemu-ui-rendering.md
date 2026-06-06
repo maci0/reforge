@@ -102,5 +102,5 @@ testing.
   `lab/stock-image-repro/findings.md`.
 - AD5M vs AD5M Pro firmware delta (same board/firmware; model-skin + JSON flags):
   `lab/ad5m-vs-pro/findings.md`.
-- Original (now partly superseded) spike: `docs/research/stock-ui-spike.md`.
+- Original (now partly superseded) spike: `docs/research/ui-camera/stock-ui-spike.md`.
 - Screenshot gallery + captions: `docs/screenshots/README.md`.

@@ -5,13 +5,13 @@
           The residual is a **256-byte linker alignment artifact**, not a
           functional defect; all substantive remaining differences are
           **dead drivers** on this printer (see §"Dead-driver audit").
-**Plan:** [`../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md`](../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md)
+**Plan:** [`../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md`](../../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md)
 **Earlier findings (functional equivalence):** [`2026-06-04-bsp-kernel-rebuild-findings.md`](2026-06-04-bsp-kernel-rebuild-findings.md)
 **Autoresearch loop:** 2026-06-04 (working files `autoresearch.*` not retained)
 **Build script:** `tools/build/build-bsp-kernel-stock.sh`
 **Companion functional-equivalence build:** `tools/build/build-bsp-kernel.sh`
 
-> **Canonical / maintained version:** [`../reverse-engineering/stock-kernel-byte-identical-build.md`](../reverse-engineering/stock-kernel-byte-identical-build.md).
+> **Canonical / maintained version:** [`../reverse-engineering/stock-kernel-byte-identical-build.md`](../../reverse-engineering/stock-kernel-byte-identical-build.md).
 > This file is the **frozen 2026-06-04 snapshot** (the patch was 5 logical groups at this date; it
 > later grew to 7). Use the RE doc for the current procedure and patch structure.
 
@@ -58,7 +58,7 @@ Intermediate states during closure of the IKCONFIG gap (Kconfig fixes):
 | + Audio V2 menu header hidden + PLUGIN_HOSTCC forced "" | **0** | **+128** | **+128 B** |
 
 Further autoresearch iterations (substitutions for stock-only sources
-from public GitHub mirrors — see [`../../autoresearch.md`](../../autoresearch.md)):
+from public GitHub mirrors — see [`../../autoresearch.md`](../../../CHANGELOG.md)):
 
 | Iter | Change | ours-only Δ | stock-only Δ | kallsyms Δ | non-kallsyms Δ | Total Δ | first_diff |
 |---|---|---:|---:|---:|---:|---:|---|
@@ -262,9 +262,9 @@ sudo mount --bind "$PWD/vendor/kernels/tina-bsp-kernel" \
 All modifications to the BSP submodule are packaged into a single patch
 file that the build script applies before `make` and reverts on exit:
 
-- Patch: [`vendor/kernels/patches/0001-byte-identical-reproduction.patch`](../../vendor/kernels/patches/0001-byte-identical-reproduction.patch)
+- Patch: [`vendor/kernels/patches/0001-byte-identical-reproduction.patch`](../../../vendor/kernels/patches/0001-byte-identical-reproduction.patch)
   (19.3 KB, applies cleanly against pinned BSP commit `349a0b9`)
-- README: [`vendor/kernels/patches/README.md`](../../vendor/kernels/patches/README.md)
+- README: [`vendor/kernels/patches/README.md`](../../../vendor/kernels/patches/README.md)
 - Convention: the BSP submodule is **never** committed with modifications.
   The build script `tools/build/build-bsp-kernel-stock.sh` installs a
   `trap revert_patch EXIT INT TERM` so the working tree returns to

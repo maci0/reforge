@@ -7,7 +7,7 @@ the advertised version against the version running locally, and reports whether 
 is offered. It never downloads, unpacks, or flashes anything.
 
 Endpoints (reverse-engineered from the stock `firmwareExe`, see
-docs/reverse-engineering/firmwareexe-ota-update.md):
+docs/reverse-engineering/stock-ui/firmwareexe-ota-update.md):
 
   v2 (current):  POST https://update.voxelshare.com/api/updates/check
                  GET  .../api/updates/v2/download_url?app_id=&platform=&version=&entity_id=&hardware_version=

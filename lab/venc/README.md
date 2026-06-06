@@ -3,7 +3,7 @@
 A from-scratch userspace app that drives the AD5M's **Allwinner Cedar VE hardware H.264
 encoder** via the vendor `libvenc` stack — to prototype a low-bandwidth camera stream
 (H.264 → browser WebCodecs) instead of MJPEG. Background + the full options analysis:
-[`docs/research/2026-06-03-camera-streaming-options.md`](../../docs/research/2026-06-03-camera-streaming-options.md).
+[`docs/research/ui-camera/2026-06-03-camera-streaming-options.md`](../../docs/research/ui-camera/2026-06-03-camera-streaming-options.md).
 
 ## Status: software init fully SOLVED; blocked at the VE hardware completion (BSP-level)
 

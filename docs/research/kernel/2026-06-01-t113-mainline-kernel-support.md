@@ -52,7 +52,7 @@ the D1/T113 TCON-LCD** — which is exactly what the AD5M Pro's 800×480 paralle
 The stock 5.4.61 BSP defconfig (`sun8iw20p1smp*_defconfig`) builds **without** several
 low-RAM-relevant features, so they can't be tuned at runtime on P1–P3. Enable them in the
 ReForge fork's `.config`. Rationale + runtime knobs each unlocks:
-[`2026-06-02-stock-kernel-runtime-tuning.md`](2026-06-02-stock-kernel-runtime-tuning.md) §7 / §7.1.
+[`2026-06-02-stock-kernel-runtime-tuning.md`](../memory/2026-06-02-stock-kernel-runtime-tuning.md) §7 / §7.1.
 
 | config | BSP | set | why |
 |---|---|---|---|
@@ -95,13 +95,13 @@ compatibles in 7.0.11 (a few more than 6.19). `rtw8821cu/cs/ce` and Cedrus `sun2
 in 7.0.11 as well. Two changes vs the original table:
 
 - **WiFi resolved → ✅.** The AD5M(Pro)'s module is the **RTL8821CU (USB)** — stock loads the
-  `8821cu` module ([device-overview](../board-notes/device-overview.md)). Mainline `rtw88` has it
+  `8821cu` module ([device-overview](../../board-notes/device-overview.md)). Mainline `rtw88` has it
   as `rtw8821cu.c` (USB), plus `rtw8821cs.c` (SDIO) and `rtw8821ce.c` (PCIe), with `RTW88_SDIO`/
   `RTW88_USB`/`RTW88_8821C` in Kconfig. Firmware loads from `linux-firmware`, not the kernel. So
   the last "needs assessment" gap is closed — **every peripheral the printer uses is upstream.**
 - **Cedrus VE** confirmed `sun20i-d1` in `drivers/staging/media/sunxi/cedrus/cedrus.c` — H264/H265
   **decode** only, matching the silicon (no H264 *encoder* exists; see
-  [cedar-ve-encode-and-camera-fw](2026-06-04-cedar-ve-encode-and-camera-fw.md)).
+  [cedar-ve-encode-and-camera-fw](../ui-camera/2026-06-04-cedar-ve-encode-and-camera-fw.md)).
 
 Scale check on the vendor delta: a full `diff` of the Tina BSP vs pristine mainline 5.4.61 is
 ~179 MB / ~5 M "added" lines, but that's overwhelmingly **firmware-blobs-as-hex** (wifi

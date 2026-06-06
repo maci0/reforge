@@ -31,7 +31,7 @@ What the patch does (5 items, see in-patch commentary for details):
    (matches stock's no-g++ build host).
 
 Full analysis + reproduction steps:
-[`../../../docs/research/2026-06-04-byte-identical-kernel-reproduction.md`](../../../docs/research/2026-06-04-byte-identical-kernel-reproduction.md).
+[`../../../docs/research/kernel/2026-06-04-byte-identical-kernel-reproduction.md`](../../../docs/research/kernel/2026-06-04-byte-identical-kernel-reproduction.md).
 
 ## Convention
 

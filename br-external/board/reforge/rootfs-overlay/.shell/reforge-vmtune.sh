@@ -2,7 +2,7 @@
 # reforge-vmtune.sh — apply the zram-as-primary-swap VM tuning (the runtime-settable
 # "bucket a" sysctls). Sourced by S35zram right after swapon, so swap setup and swap
 # tuning live together. Every value is documented per-knob, with the measured
-# rationale, in docs/research/2026-06-02-stock-kernel-runtime-tuning.md.
+# rationale, in docs/research/memory/2026-06-02-stock-kernel-runtime-tuning.md.
 #
 # None of these have a fixed RAM cost; they bias reclaim toward the cheap
 # compressed-RAM swap and make kswapd reclaim ahead of demand (the audit measured a

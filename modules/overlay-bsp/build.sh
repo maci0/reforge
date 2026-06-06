@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build overlay.ko for the stock 5.4.61 BSP kernel, so we can `insmod
 # overlay.ko` on the running stock firmware and prototype the atomic /
-# immutable-ReForge design from docs/research/2026-06-05-overlayfs-on-bsp-spike.md
+# immutable-ReForge design from docs/research/kernel/2026-06-05-overlayfs-on-bsp-spike.md
 # without first reflashing the kernel.
 #
 # The stock kernel (verified on hardware via /proc/config.gz + the cached copy

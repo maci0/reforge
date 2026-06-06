@@ -9,7 +9,7 @@ publish a full image anywhere?
 itself publishes only incremental OTA overlay updates — no full/factory/recovery disk
 image, anywhere.** Verified against FF's own download page + wiki and a web scour.
 
-Pinned URLs + sha256: [`tools/recovery/recovery-sources.md`](../../tools/recovery/recovery-sources.md).
+Pinned URLs + sha256: [`tools/recovery/recovery-sources.md`](../../../tools/recovery/recovery-sources.md).
 Artifacts archived locally under `tools/recovery/archive/` (gitignored).
 
 ## How FF firmware is actually delivered

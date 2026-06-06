@@ -9,7 +9,7 @@
 #   3. capture results
 #
 # Why this exists: the qemu spike
-# (docs/research/2026-06-05-overlayfs-on-bsp-spike.md) confirmed overlay works
+# (docs/research/kernel/2026-06-05-overlayfs-on-bsp-spike.md) confirmed overlay works
 # functionally + measured per-mount RAM cost on a multi_v7 / virt build of the
 # SAME BSP source. It did NOT prove the binary survives vermagic-matching on a
 # sun8iw20-config'd build of the same source running on real silicon. This

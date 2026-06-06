@@ -117,4 +117,4 @@ Reproduce with **`make qemu-stockui`** (fully rootless — debugfs inject + GPT-
 
 Booting the same stock base with **no** MCU sim stops at firmwareExe's
 **"No detected eboard mcu."** modal (gate 1 unmet) — the green/white dialog that motivated the
-simulation above. Full works/breaks analysis: `docs/research/stock-ui-spike.md`.
+simulation above. Full works/breaks analysis: `docs/research/ui-camera/stock-ui-spike.md`.

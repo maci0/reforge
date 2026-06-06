@@ -2,14 +2,14 @@
 
 **Date:** 2026-06-04
 **Status:** ✅ **EXECUTED 2026-06-04.** Findings:
-[`../research/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/2026-06-04-bsp-kernel-rebuild-findings.md).
+[`../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md).
 **Verdict:** Tier 1 + Tier 2 + Tier 3 PASS — build is functionally
 equivalent to stock (Image size Δ −756 B / −0.0058%, vermagic byte-identical,
 99.99% export coincidence). Green light for Path A enablement
 (`CONFIG_KEXEC=y` on top of this baseline).
 No flash, no FEL, no eMMC modification attempted.
-**Upstream:** [`../research/2026-06-04-brick-safe-kernel-test-paths.md`](../research/2026-06-04-brick-safe-kernel-test-paths.md)
-([`Path A — kexec hybrid` §2.3](../research/2026-06-04-brick-safe-kernel-test-paths.md#23-the-hybrid-plan-one-time-bootimg-reflash-then-iterate-freely-via-kexec)
+**Upstream:** [`../research/kernel/2026-06-04-brick-safe-kernel-test-paths.md`](../research/kernel/2026-06-04-brick-safe-kernel-test-paths.md)
+([`Path A — kexec hybrid` §2.3](../research/kernel/2026-06-04-brick-safe-kernel-test-paths.md#23-the-hybrid-plan-one-time-bootimg-reflash-then-iterate-freely-via-kexec)
 and the precondition checklist).
 **See also:** [`../boot.md`](../boot.md) §1 (boot chain + Android boot-image
 format on `mmcblk0p4`), [`../board-notes/`](../board-notes/) (captured
@@ -415,7 +415,7 @@ Nothing in `br-external/` or `packaging/` changes here.
 - `tests/qemu-harness/build-test-kernel.sh` — existing build harness (same BSP)
 - `tests/qemu-harness/extract-stock-rootfs.sh` — established sfdisk + dd recipe
 - `docs/boot.md` §1 — Android boot-image format on `mmcblk0p4`
-- `docs/research/2026-06-04-brick-safe-kernel-test-paths.md` — why this plan
+- `docs/research/kernel/2026-06-04-brick-safe-kernel-test-paths.md` — why this plan
   must complete before Path A or Path B is attempted
 - `pins.lock` — `tina-bsp-kernel@349a0b9`, GCC `9.5.0` sha256 `81669db4…`
 

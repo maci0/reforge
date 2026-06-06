@@ -122,7 +122,7 @@ verification, hardcoded HMAC secrets, default `admin/ff123456` credentials, and 
 Full list with severity + closure status per ReForge mode: [`docs/security-findings.md`](docs/security-findings.md).
 
 ReForge's cloud-block + replacement of the stock UI closes the cloud-side of those
-findings today; the planned PID-1 swap (`docs/research/2026-06-05-replacing-pid1.md`)
+findings today; the planned PID-1 swap (`docs/research/kernel/2026-06-05-replacing-pid1.md`)
 closes the LAN-side ones without waiting for our own kernel.
 
 ## Policy

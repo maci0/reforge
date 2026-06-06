@@ -80,7 +80,7 @@ pending the next trial.
 ## immutable / atomic ReForge — OverlayFS2 (or similar) for transactional updates and true Mode 1 live
 
 **Status (2026-06-05):** spike complete — see
-[`docs/research/2026-06-05-overlayfs-on-bsp-spike.md`](research/2026-06-05-overlayfs-on-bsp-spike.md).
+[`docs/research/kernel/2026-06-05-overlayfs-on-bsp-spike.md`](research/kernel/2026-06-05-overlayfs-on-bsp-spike.md).
 All five open questions below are answered. OverlayFS builds clean as a 122 KB
 loadable module from the vanilla BSP source, mounts with correct semantics, and
 costs ~192 KiB MemAvailable per mount on the test rig — well inside our budget.
@@ -310,7 +310,7 @@ iptables -A OUTPUT -d 115.231.29.49 -j REJECT
 ```
 
 Source of the IP literals: `docs/security-findings.md` finding #6,
-`docs/reverse-engineering/firmwareexe-ota-update.md` §1.
+`docs/reverse-engineering/stock-ui/firmwareexe-ota-update.md` §1.
 
 Estimated work: < 30 minutes. Worth doing as part of the next reforge-boot
 edit pass.

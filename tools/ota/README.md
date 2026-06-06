@@ -6,7 +6,7 @@ It only **checks** — never downloads, unpacks, or flashes. Stdlib-only Python 
 on the printer as-is.
 
 Endpoints + request shapes were reverse-engineered from the stock `firmwareExe`; see
-[`../../docs/reverse-engineering/firmwareexe-ota-update.md`](../../docs/reverse-engineering/firmwareexe-ota-update.md).
+[`../../docs/reverse-engineering/stock-ui/firmwareexe-ota-update.md`](../../docs/reverse-engineering/stock-ui/firmwareexe-ota-update.md).
 
 ## Use
 
@@ -52,7 +52,7 @@ The **latest AD5M Pro firmware is `v5.1.4`**. The stock UI checks four component
 firmware release. The server nests it in `data.list[].version` (with a `v` prefix). Note: a
 real printer on the forge-x mod can't reach the server — the mod blackholes
 `update.voxelshare.com` in `/etc/hosts` — so run this tool from a host with WAN. Full
-teardown: `../../docs/reverse-engineering/firmwareexe-ota-update.md`.
+teardown: `../../docs/reverse-engineering/stock-ui/firmwareexe-ota-update.md`.
 
 ## Security
 

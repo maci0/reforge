@@ -13,6 +13,7 @@ research, RE reports) live in subdirs, each with its own index README.
 | [`live-mode.md`](live-mode.md) | run the stack from USB — brick-free hardware trials |
 | [`ota.md`](ota.md) | git-free in-place updates + last-known-good rollback (diagrams; **implemented**) |
 | [`optimizations.md`](optimizations.md) | **all tuning/optimizations + measured impact** (memory, size) — canonical numbers |
+| [`security-findings.md`](security-findings.md) | **15 RE'd stock-firmware security findings** + per-mode closure status (Mode 1 → 2a → 2b → 3); the case for elevating Mode 2b. |
 | [`REPO-LAYOUT.md`](REPO-LAYOUT.md) | **source of truth** for the repo structure (product / vendor / lab) |
 | [`BACKLOG.md`](BACKLOG.md) | unscheduled ideas |
 
@@ -29,3 +30,23 @@ research, RE reports) live in subdirs, each with its own index README.
 **Convention:** `specs/`, `plans/`, and `research/` are *snapshots* — they record decisions as
 written and aren't rewritten on later refactors (a `## Update <date>` is appended if re-verified).
 The reference docs above and `REPO-LAYOUT.md` reflect the current tree.
+
+## Other docs in the repo (code-co-located)
+
+Documentation that lives next to its subject. Worth knowing about:
+
+| path | what |
+|---|---|
+| [`../README.md`](../README.md) | repo entry point: what / why / quick start / live mode / install / recovery / policy |
+| [`../CHANGELOG.md`](../CHANGELOG.md) | append-only lab notebook — dated entries for major sessions, findings, decisions |
+| [`../packaging/README.md`](../packaging/README.md) | installer + uninstaller flow; **competing-mod pre-flight check**; dual-boot `SKIP_MOD`; loopback / qemu validation |
+| [`../tools/recovery/RUNBOOK.md`](../tools/recovery/RUNBOOK.md) | recovery procedures — USB `.tgz` (Path A), eMMC-reader fallback (Path B) |
+| [`../tools/recovery/recovery-sources.md`](../tools/recovery/recovery-sources.md) | how stock recovery `.tgz` files are sourced + verified |
+| [`../tests/qemu-harness/README.md`](../tests/qemu-harness/README.md) | the qemu test rig — how to boot ReForge under qemu virt with production-shaped eMMC + USB-as-sda |
+| [`../tests/README.md`](../tests/README.md) | test taxonomy: qemu harness vs release/unit vs loopback |
+| [`../modules/zram-bsp/README.md`](../modules/zram-bsp/README.md) | building zram + zsmalloc out-of-tree against the stock 5.4.61 BSP kernel for live mode |
+| [`../br-external/README.md`](../br-external/README.md) | the Buildroot external tree (`BR2_EXTERNAL`) layout |
+| [`../tools/README.md`](../tools/README.md) | build / release / recovery / OTA tooling index |
+| [`../tools/ota/README.md`](../tools/ota/README.md) | the OTA test harness + mock GitHub release server |
+| [`../lab/README.md`](../lab/README.md) | experiments / scratch — not shipped, kept for reproducibility |
+| [`../contrib/forge-x-shared-python/README.md`](../contrib/forge-x-shared-python/README.md) | upstream contribution: shared Python interpreter for forge-x |

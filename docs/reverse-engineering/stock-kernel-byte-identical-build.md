@@ -9,9 +9,9 @@ artifact, not a functional defect.
 **See also:**
 [`stock-kernel-modules-packaging.md`](stock-kernel-modules-packaging.md)
 (how FF packages the resulting modules + flat `8821cu.ko` slot),
-[`../research/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/2026-06-04-bsp-kernel-rebuild-findings.md)
+[`../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md)
 (earlier Tier 1+2+3 functional-equivalence rebuild with GCC 9.5.0),
-[`../research/2026-06-04-brick-safe-kernel-test-paths.md`](../research/2026-06-04-brick-safe-kernel-test-paths.md)
+[`../research/kernel/2026-06-04-brick-safe-kernel-test-paths.md`](../research/kernel/2026-06-04-brick-safe-kernel-test-paths.md)
 (why we needed a reproducible build in the first place — Path A enablement
 for `CONFIG_KEXEC=y`).
 
@@ -64,8 +64,8 @@ Total size 176 MB; gitignored. ReForge's **shipping** kernel is not this build:
 it is built by Buildroot with its own **gcc-15.2** toolchain at `-Os` (`make
 kernel`). The standalone **GCC 9.5.0** crosstool build (`build-bsp-kernel.sh`)
 is a reference/comparison build, not the shipping path — see
-[`../research/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/2026-06-04-bsp-kernel-rebuild-findings.md)
-and [`../research/2026-06-06-kernel-compiler-and-size-options.md`](../research/2026-06-06-kernel-compiler-and-size-options.md).
+[`../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md)
+and [`../research/kernel/2026-06-06-kernel-compiler-and-size-options.md`](../research/kernel/2026-06-06-kernel-compiler-and-size-options.md).
 
 ---
 
@@ -265,7 +265,7 @@ to match stock's IKCONFIG and can strip the dead code. The GCC 9.5.0 reference
 build estimated **~60 KB** of `.text` removable from the table below; the later
 gcc-15 analysis went much further (`-Os` is already on, and a lean-config pass
 predicts **~1.5 MB** strippable) — see
-[`../research/2026-06-06-kernel-compiler-and-size-options.md`](../research/2026-06-06-kernel-compiler-and-size-options.md).
+[`../research/kernel/2026-06-06-kernel-compiler-and-size-options.md`](../research/kernel/2026-06-06-kernel-compiler-and-size-options.md).
 The dead-driver candidates:
 
 | Drop | Saved | Why safe |
@@ -286,7 +286,7 @@ concerns.
 
 | Tier | Goal | Status |
 |---|---|---|
-| **L1** Functional equivalence | Tier 1+2+3 functional checks pass | ✅ done — see [`../research/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/2026-06-04-bsp-kernel-rebuild-findings.md) (GCC 9.5.0 build) |
+| **L1** Functional equivalence | Tier 1+2+3 functional checks pass | ✅ done — see [`../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md) (GCC 9.5.0 build) |
 | **L2** `vermagic` + banner byte-identical | toolchain identification + build metadata match | ✅ done (Linaro 5.3.1 build) |
 | **L3** Image byte-identical | `Image.ours == Image.stock` | ⚠️ +128 B (alignment artifact) |
 | **L4** Byte-identical `boot.img` (`mmcblk0p4`) | Image + ramdisk + Android-boot-image header byte-identical | Pending L3; mechanical after that (have stock ramdisk + DTB + header parameters) |
@@ -581,7 +581,7 @@ The +128 B residual was reached in two passes plus an autoresearch loop.
 vermagic differs by toolchain version string (`9.5.0` vs `5.3.1`).
 Tier 1 (boots in qemu), Tier 2 (modules cross-load against stock),
 Tier 3 (exports byte-identical) all PASS. Documented in
-[`../research/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/2026-06-04-bsp-kernel-rebuild-findings.md).
+[`../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md).
 
 ### Pass 2 — byte-identical attempt (Linaro 5.3.1)
 

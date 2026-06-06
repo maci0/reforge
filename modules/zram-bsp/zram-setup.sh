@@ -19,7 +19,7 @@ echo "$SIZE" > /sys/block/zram0/disksize
 "$DIR/swapon_prio" /dev/zram0 "$PRIO"
 # zram is fast RAM-backed swap, so tune the VM to use it. These mirror the shipped
 # ReForge profile (.shell/reforge-vmtune.sh); per-knob rationale is in
-# docs/research/2026-06-02-stock-kernel-runtime-tuning.md. No fixed RAM cost.
+# docs/research/memory/2026-06-02-stock-kernel-runtime-tuning.md. No fixed RAM cost.
 echo "${ZRAM_SWAPPINESS:-100}" > /proc/sys/vm/swappiness            2>/dev/null || true
 echo 0                        > /proc/sys/vm/page-cluster           2>/dev/null || true
 echo 50                       > /proc/sys/vm/vfs_cache_pressure     2>/dev/null || true

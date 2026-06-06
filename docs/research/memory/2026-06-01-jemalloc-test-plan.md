@@ -140,5 +140,5 @@ the upside and confirm no purge-latency regression before/with `background_threa
 - `BR2_PACKAGE_JEMALLOC=y` in `reforge_defconfig`.
 - `LD_PRELOAD=/usr/lib/libjemalloc.so.2` + the winning `MALLOC_CONF` exported in `S60klipper`,
   `S65moonraker`, `S75guppyscreen` (replacing/alongside `MALLOC_ARENA_MAX`, which jemalloc
-  ignores). Update `docs/research/2026-06-01-memory-savings-experiments.md`.
+  ignores). Update `docs/research/memory/2026-06-01-memory-savings-experiments.md`.
 - Consider a forge-x PR too (forge-x also runs glibc moonraker/guppyscreen) if the win holds.

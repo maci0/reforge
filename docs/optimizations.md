@@ -32,7 +32,7 @@ default) and is still what the **forge-x PRs** ship. ReForge has now **supersede
 (jemalloc ignores `MALLOC_ARENA_MAX`). A forge-x jemalloc change is under evaluation.
 
 **Note on the zram VM tuning:** the six knobs above are the "no fixed RAM cost" set from the
-runtime-tuning audit ([`docs/research/2026-06-02-stock-kernel-runtime-tuning.md`](research/2026-06-02-stock-kernel-runtime-tuning.md)).
+runtime-tuning audit ([`docs/research/memory/2026-06-02-stock-kernel-runtime-tuning.md`](research/memory/2026-06-02-stock-kernel-runtime-tuning.md)).
 The two knobs that **do** cost reserved RAM — `vm.min_free_kbytes` (≈+2.7 MB always-free) and
 `vm.extra_free_kbytes` — are deliberately **not** shipped: they are measure-first, pending a
 before/after on the reclaim *rates* across a real print. The same audit also closes out
@@ -58,7 +58,7 @@ qemu rig doesn't model; the bench's measurable wins are the reclaim-ahead knobs
 These are **not** runtime-tunable on the stock BSP kernel (the configs/drivers aren't built),
 so they're out of reach for P1–P3. They become available when ReForge ships its **own** kernel
 (Plan 5, mainline 6.x LTS). Listed here so the memory work carries forward. Full analysis:
-[`docs/research/2026-06-02-stock-kernel-runtime-tuning.md`](research/2026-06-02-stock-kernel-runtime-tuning.md) §7 / §7.1.
+[`docs/research/memory/2026-06-02-stock-kernel-runtime-tuning.md`](research/memory/2026-06-02-stock-kernel-runtime-tuning.md) §7 / §7.1.
 
 | lever | why enable | cost / caveat |
 |---|---|---|
@@ -108,13 +108,13 @@ so they're out of reach for P1–P3. They become available when ReForge ships it
   all userspace, **−11 155 kB / −22.3 %** counting forge-x's already-swapped pages. The big delta
   is klippy (−42 %) and is almost entirely toolchain (gcc 15.2 + Python 3.14 + glibc 2.42 +
   LTO vs forge-x's stock FF toolchain + Python 3.7.11). Full breakdown:
-  [`docs/research/2026-06-05-reforge-vs-forgex-memory.md`](research/2026-06-05-reforge-vs-forgex-memory.md).
+  [`docs/research/memory/2026-06-05-reforge-vs-forgex-memory.md`](research/memory/2026-06-05-reforge-vs-forgex-memory.md).
 
 ## Reproduce
 
 - `sudo make qemu-mem [TWEAKS=...]` runs the probe; `lab/mem-experiment/build-*-variant.sh` builds
-  the A/B variants (Thumb-2, jemalloc). See [`docs/research/2026-06-01-memory-savings-experiments.md`](research/2026-06-01-memory-savings-experiments.md)
-  and [`…-jemalloc-test-plan.md`](research/2026-06-01-jemalloc-test-plan.md) for the raw runs.
+  the A/B variants (Thumb-2, jemalloc). See [`docs/research/memory/2026-06-01-memory-savings-experiments.md`](research/memory/2026-06-01-memory-savings-experiments.md)
+  and [`…-jemalloc-test-plan.md`](research/memory/2026-06-01-jemalloc-test-plan.md) for the raw runs.
 - The 2026-06-04 toolchain loop drove the gcc/jemalloc sweep; pass `NOSWAP=0` to the probe for
   production-realistic measurements (zram + eMMC overflow ON) or `NOSWAP=1` for clean RAM-pressure
   A/B. Variant fragments under

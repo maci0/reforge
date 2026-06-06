@@ -24,7 +24,7 @@ Probed `/dev/video0` (`v4l2-ctl --list-formats-ext`) and the USB descriptor:
 module's own ROM, flashed by the module vendor, not user-updatable. FlashForge ships no
 camera firmware: the AD5M OTA only carries `firmware/control/library/software` components
 (`app_id` 35/36/37/38 — none is a camera package; see
-[`../reverse-engineering/firmwareexe-ota-update.md`](../reverse-engineering/firmwareexe-ota-update.md)),
+[`../reverse-engineering/stock-ui/firmwareexe-ota-update.md`](../../reverse-engineering/stock-ui/firmwareexe-ota-update.md)),
 and no vendor flash tool is published for `ab20:1276`. The camera stays at `0x2011`/`01.00.00`.
 
 Consequence: any H.264 stream needs an **MJPEG-decode → H.264-encode** round trip — the
@@ -36,7 +36,7 @@ Two independent approaches, with an important revision of the earlier "dead sili
 
 ### (a) Open from-scratch reimpl — clock lever ruled out, still stalls
 
-Re-ran [`../../lab/venc-scratch/`](../../lab/venc-scratch/) `t113_h264enc` (VE `0x1667`):
+Re-ran [`../../lab/venc-scratch/`](../../../lab/venc-scratch/) `t113_h264enc` (VE `0x1667`):
 **same `0x80000260` stall**, header bits only, 0-byte output. New datum closing the last
 untested lever — `clk_summary` shows every VE clock at the **correct rate and enabled**:
 `pll-ve`=402, `ve` core=402, `bus-ve`=200, `mbus-ve`=396 MHz. So the open reimpl's stall is
@@ -61,7 +61,7 @@ This is a **software** blocker (a NULL bitstream buffer in the vendor demo / ABI
 VE register stall. **The HW encoder initialises and the encode pipeline executes** —
 contradicting the earlier "completes no codec op / dead silicon" conclusion. The SoC's H.264
 encoder is functional at the init/pipeline level. Details + the `vetest.c` harness:
-[`../../lab/venc-vendor/`](../../lab/venc-vendor/).
+[`../../lab/venc-vendor/`](../../../lab/venc-vendor/).
 
 ### RESOLVED: the T113-S3 has NO H.264 encoder — JPEG/MJPEG only (and that works)
 
@@ -79,7 +79,7 @@ an interrupt that has no hardware to raise it.
 **Proof the VE encoder is functional (HW JPEG completes):** same harness with
 `VENC_CODEC_JPEG` → `encode -> 0`, **63 516-byte valid JPEG** (decodes as `mjpeg 640×480
 yuvj420p`), and the **`cedar_dev` completion IRQ increments (2→3)** — which never happens for
-H.264. Full detail: [`../../lab/venc-vendor/FINDINGS.md`](../../lab/venc-vendor/FINDINGS.md).
+H.264. Full detail: [`../../lab/venc-vendor/FINDINGS.md`](../../../lab/venc-vendor/FINDINGS.md).
 
 **Conclusion:** HW H.264 encode is **physically impossible** on the AD5M (no encoder silicon)
 — stock FF uses **libx264 software** for this reason. The HW encoder this chip *does* have is

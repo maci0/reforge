@@ -22,7 +22,7 @@ After: 256 MB **zram zstd** primary + eMMC overflow — ~36 MB cold pages → ~9
 | lzo | — | 2.74× | ~8.6–9.6 MB/s | ~82.8 MB/s | lowest |
 
 \* block-I/O-bound (timed `dd` through the zram block dev) → **relative**, not absolute.
-Full method + before/after in `../../docs/research/2026-05-31-memory-and-testing.md` §0b.
+Full method + before/after in `../../docs/research/memory/2026-05-31-memory-and-testing.md` §0b.
 lz4 unavailable (stock kernel lacks `CONFIG_CRYPTO_LZ4`). Default **zstd**; `lzo-rle`
 is the low-CPU escape hatch (`ZRAM_ALGO=lzo-rle`).
 
@@ -110,5 +110,5 @@ with a compatible toolchain, and re-test insmod. Expectation: layout-exact modul
 Vendor patches *could* alter a struct `zsmalloc` relies on (it stores metadata in
 `struct page` fields). If upstream-built modules fail to load or misbehave, rebuild
 from the **Tina SDK sun8iw20 5.4 BSP kernel source** (`DongshanPI/100ASK_T113-Pro_TinaSDK`),
-which is layout-exact to the stock kernel. See `../../docs/research/2026-05-31-memory-and-testing.md` §4.
+which is layout-exact to the stock kernel. See `../../docs/research/memory/2026-05-31-memory-and-testing.md` §4.
 </content>

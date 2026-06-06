@@ -283,7 +283,7 @@ artifacts rather than rebuilt from source.
    `flashforge_init.sh` `tar -x`'s onto the existing rootfs and bumps `/opt/PROGRAM/<comp>/<ver>`.
    No mkfs/dd; base FS + bootloader + partition table are factory-programmed, never shipped.
    The coexisting **Apr-2025 `-dirty` U-Boot** (section 2) is one such later update.
-   Cross-ref: `docs/research/2026-06-01-stock-recovery-images.md`.
+   Cross-ref: `docs/research/kernel/2026-06-01-stock-recovery-images.md`.
 
 ---
 

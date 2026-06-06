@@ -12,17 +12,17 @@ config. All findings were verified against the on-device binary (`arm-linux-gnue
 [`../board-notes/`](../board-notes/) (device-overview, forge-x boot, kernel config).
 
 ## firmwareExe (stock UI app)
-- [firmwareexe-reverse-engineering.md](firmwareexe-reverse-engineering.md) — overview, architecture, security summary.
-- [gdb-firmwareexe-injection.md](gdb-firmwareexe-injection.md) — drive the UI from shell via gdb method-injection.
-- [firmwareexe-local-print-api.md](firmwareexe-local-print-api.md) — Klippy socket `/tmp/uds` (ETX-framed) + print g-code.
-- [firmwareexe-orcaserver-lan-api.md](firmwareexe-orcaserver-lan-api.md) — LAN HTTP API (:8898).
-- [firmwareexe-lan-protocol-and-crypto.md](firmwareexe-lan-protocol-and-crypto.md) — raw TCP 8899, UDP discovery, crypto/keys.
-- [firmwareexe-cloud-command-surface.md](firmwareexe-cloud-command-surface.md) — MQTT/NIM remote-control surface.
-- [firmwareexe-cloud-rest-and-oss.md](firmwareexe-cloud-rest-and-oss.md) — cloud REST catalog + Alibaba OSS upload.
-- [firmwareexe-ota-update.md](firmwareexe-ota-update.md) — OTA path (MD5-only, unsigned).
-- [firmwareexe-network-wifi.md](firmwareexe-network-wifi.md) — wifi/eth/AP/static via shell-outs.
-- [firmwareexe-filesystem-and-system.md](firmwareexe-filesystem-and-system.md) — ffsdk, filesystem map, USB, PWM, display.
-- [firmwareexe-ui-classes.md](firmwareexe-ui-classes.md) — Keyboard/Language/Scanner/Guider/dialogs/QR.
+- [firmwareexe-reverse-engineering.md](stock-ui/firmwareexe-reverse-engineering.md) — overview, architecture, security summary.
+- [gdb-firmwareexe-injection.md](stock-ui/gdb-firmwareexe-injection.md) — drive the UI from shell via gdb method-injection.
+- [firmwareexe-local-print-api.md](stock-ui/firmwareexe-local-print-api.md) — Klippy socket `/tmp/uds` (ETX-framed) + print g-code.
+- [firmwareexe-orcaserver-lan-api.md](stock-ui/firmwareexe-orcaserver-lan-api.md) — LAN HTTP API (:8898).
+- [firmwareexe-lan-protocol-and-crypto.md](stock-ui/firmwareexe-lan-protocol-and-crypto.md) — raw TCP 8899, UDP discovery, crypto/keys.
+- [firmwareexe-cloud-command-surface.md](stock-ui/firmwareexe-cloud-command-surface.md) — MQTT/NIM remote-control surface.
+- [firmwareexe-cloud-rest-and-oss.md](stock-ui/firmwareexe-cloud-rest-and-oss.md) — cloud REST catalog + Alibaba OSS upload.
+- [firmwareexe-ota-update.md](stock-ui/firmwareexe-ota-update.md) — OTA path (MD5-only, unsigned).
+- [firmwareexe-network-wifi.md](stock-ui/firmwareexe-network-wifi.md) — wifi/eth/AP/static via shell-outs.
+- [firmwareexe-filesystem-and-system.md](stock-ui/firmwareexe-filesystem-and-system.md) — ffsdk, filesystem map, USB, PWM, display.
+- [firmwareexe-ui-classes.md](stock-ui/firmwareexe-ui-classes.md) — Keyboard/Language/Scanner/Guider/dialogs/QR.
 
 ## Stock Klipper config
 - [ad5m-pro-klipper-hardware-config.md](ad5m-pro-klipper-hardware-config.md) — complete pin map / printer.cfg
@@ -38,8 +38,8 @@ config. All findings were verified against the on-device binary (`arm-linux-gnue
   method** for reproducing the stock `Image` host-only from public source (Linaro GCC 5.3.1 +
   exact build path), reaching +128 bytes (a 256-byte linker-alignment artifact). The dated
   experiment + dead-driver audit is in
-  [`../research/2026-06-04-byte-identical-kernel-reproduction.md`](../research/2026-06-04-byte-identical-kernel-reproduction.md);
-  for the mainline alternative see [`../research/2026-06-01-t113-mainline-kernel-support.md`](../research/2026-06-01-t113-mainline-kernel-support.md).
+  [`../research/2026-06-04-byte-identical-kernel-reproduction.md`](../research/kernel/2026-06-04-byte-identical-kernel-reproduction.md);
+  for the mainline alternative see [`../research/2026-06-01-t113-mainline-kernel-support.md`](../research/kernel/2026-06-01-t113-mainline-kernel-support.md).
 
 ## Related (not stock-fw RE)
 - [`../board-notes/device-overview.md`](../board-notes/device-overview.md) — hardware/stack inventory + consolidated security findings.

@@ -5,7 +5,7 @@ Reverse-engineered from the on-device binary (pulled to `/tmp/firmwareExe`) with
 address, and string below was verified against the binary. This is the **overview**; deep-dive
 references:
 - [`gdb-firmwareexe-injection.md`](gdb-firmwareexe-injection.md) — gdb method-injection cookbook.
-- [`ad5m-pro-klipper-hardware-config.md`](ad5m-pro-klipper-hardware-config.md) — full pin map / printer.cfg.
+- [`ad5m-pro-klipper-hardware-config.md`](../ad5m-pro-klipper-hardware-config.md) — full pin map / printer.cfg.
 - [`firmwareexe-orcaserver-lan-api.md`](firmwareexe-orcaserver-lan-api.md) — LAN HTTP API (:8898).
 - [`firmwareexe-ota-update.md`](firmwareexe-ota-update.md) — OTA path (**MD5-only, unsigned**).
 - [`firmwareexe-cloud-command-surface.md`](firmwareexe-cloud-command-surface.md) — remote-control surface.

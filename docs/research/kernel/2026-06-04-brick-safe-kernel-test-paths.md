@@ -4,10 +4,10 @@
 **Status:** documented, **not rehearsed**. Reference for future Plan 5 (mainline-kernel
 self-port) work. No hardware mod or reflash has been performed against the live unit
 (`kunos`) based on this document.
-**See also:** [`../boot.md`](../boot.md) (intervention table + brick-safety boundary),
-[`../board-notes/device-overview.md`](../board-notes/device-overview.md),
+**See also:** [`../boot.md`](../../boot.md) (intervention table + brick-safety boundary),
+[`../board-notes/device-overview.md`](../../board-notes/device-overview.md),
 [`2026-05-31-g992-research-findings.md`](2026-05-31-g992-research-findings.md) §3 + §6,
-[`../../tools/recovery/RUNBOOK.md`](../../tools/recovery/RUNBOOK.md).
+[`../../tools/recovery/RUNBOOK.md`](../../../tools/recovery/RUNBOOK.md).
 
 ---
 
@@ -19,7 +19,7 @@ on real AD5M Pro hardware **without persistent eMMC writes**, so that recovery o
 hang/panic is literally "power-cycle". Three properties define the loop we want:
 
 1. No change to U-Boot env (`mmcblk0p2/p3`) — that's the hard-brick tier on this
-   unit (see [`../boot.md`](../boot.md) §2 row #3, §5).
+   unit (see [`../boot.md`](../../boot.md) §2 row #3, §5).
 2. No reflash of `boot.img` (`mmcblk0p4`) per test — medium-risk tier, not the
    iterative loop we want.
 3. Recovery on failure = remove power, re-apply power; stock comes back identical.
@@ -199,7 +199,7 @@ this device:
 - A bad `init=` / `bootargs` / `bootcmd` via `fw_setenv` (currently §5 hard-brick on
   this unit) becomes recoverable from the prompt → no longer hard-brick.
 
-[`../boot.md`](../boot.md) §2 explicitly calls this out: *"`fw_setenv` is **NOT a safe
+[`../boot.md`](../../boot.md) §2 explicitly calls this out: *"`fw_setenv` is **NOT a safe
 hook on this unit** — see ⚠ below"* would become *"safe-with-UART"* once the mod is in.
 
 ### 3.5 The FEL kernel-test workflow (post-mods)
@@ -319,8 +319,8 @@ captured `.config` + pinned toolchain (GCC 9.5.0 vs stock Linaro 5.3.1). That is
 purely host-side build + diff exercise. **Done 2026-06-04** — see the plan +
 findings:
 
-- Plan: [`docs/plans/2026-06-04-bsp-kernel-rebuild-and-diff.md`](../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md)
-- Findings: [`docs/research/2026-06-04-bsp-kernel-rebuild-findings.md`](2026-06-04-bsp-kernel-rebuild-findings.md)
+- Plan: [`docs/plans/2026-06-04-bsp-kernel-rebuild-and-diff.md`](../../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md)
+- Findings: [`docs/research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md`](2026-06-04-bsp-kernel-rebuild-findings.md)
 
 Verdict: Tier 1 + Tier 2 + Tier 3 PASS. Built `Image` differs from stock by
 **−756 bytes (−0.0058 %)**, `vermagic` byte-identical
@@ -353,9 +353,9 @@ The first FEL sub-task is `2026-XX-XX-fel-bringup.md`:
   (the evidence for `CONFIG_KEXEC=n`)
 - `docs/board-notes/running-unit-probe.txt` — uname + cmdline + lsmod
 - `vendor/kernels/tina-bsp-kernel/arch/arm/Kconfig:1909-1923` — KEXEC Kconfig in BSP
-- `docs/research/2026-05-31-g992-research-findings.md` §3, §5, §6 — prior FEL/UART
+- `docs/research/kernel/2026-05-31-g992-research-findings.md` §3, §5, §6 — prior FEL/UART
   status + DRAM SiP confirmation
-- `docs/research/2026-06-01-stock-recovery-images.md` — mentions of xfel + community
+- `docs/research/kernel/2026-06-01-stock-recovery-images.md` — mentions of xfel + community
   FEL recovery dumps
 - `tools/recovery/RUNBOOK.md` — Path A (USB reflash) + Path B (eMMC reader); this doc
   is upstream of any hardware mod here.
@@ -370,8 +370,8 @@ The first FEL sub-task is `2026-XX-XX-fel-bringup.md`:
 - `docs/board-notes/device-overview.md`
 - `docs/board-notes/stock-kernel-config-5.4.61.txt.gz`
 - `docs/board-notes/running-unit-probe.txt`
-- `docs/research/2026-05-31-g992-research-findings.md`
-- `docs/research/2026-06-01-stock-recovery-images.md`
+- `docs/research/kernel/2026-05-31-g992-research-findings.md`
+- `docs/research/kernel/2026-06-01-stock-recovery-images.md`
 - `vendor/kernels/tina-bsp-kernel/arch/arm/Kconfig`
 - `tools/recovery/RUNBOOK.md`
 

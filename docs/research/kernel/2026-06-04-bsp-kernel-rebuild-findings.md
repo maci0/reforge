@@ -1,7 +1,7 @@
 # BSP kernel rebuild & diff — findings
 
 **Date:** 2026-06-04
-**Plan executed:** [`../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md`](../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md)
+**Plan executed:** [`../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md`](../../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md)
 **Status:** ✅ Tier 1 + Tier 2 + Tier 3 PASS. Green light to layer
 `CONFIG_KEXEC=y` (Path A enablement) on top.
 
@@ -338,7 +338,7 @@ tools/build/unpack-android-bootimg.py     ← codified §3.3 partial (boot.img v
 (The §3.3 partition-slice recipe — `sfdisk` to find p4 offsets, `dd` the
 slice, unpack with `unpack-android-bootimg.py`, gzip-search to find
 IKCONFIG — is documented as exact commands in
-[`../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md`](../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md)
+[`../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md`](../../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md)
 §3.3 and was run once to stage `artifacts/Image.stock`. Re-running it for
 verification is just the codified commands; no separate extract script
 was added because the recipe is straight `sfdisk` + `dd` + the existing
@@ -384,13 +384,13 @@ we have not started it.
 ## 7. Sources
 
 ### Internal
-- [`../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md`](../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md) — the executed plan
+- [`../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md`](../../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md) — the executed plan
 - [`2026-06-04-brick-safe-kernel-test-paths.md`](2026-06-04-brick-safe-kernel-test-paths.md) — Path A / Path B, why this exercise gates them
 - `../board-notes/stock-kernel-config-5.4.61.txt.gz` — the captured `/proc/config.gz`
 - `../board-notes/running-unit-probe.txt` — the live `uname` + `cmdline` + `lsmod`
 - `../board-notes/device-overview.md` — hardware inventory
 - `../boot.md` §1 — Android boot-image format on `mmcblk0p4`
-- `../research/2026-05-31-g992-research-findings.md` §3, §5, §6 — prior community findings (Tina SDK overlay model, out-of-tree wifi driver)
+- `../research/kernel/2026-05-31-g992-research-findings.md` §3, §5, §6 — prior community findings (Tina SDK overlay model, out-of-tree wifi driver)
 - `pins.lock` — `tina-bsp-kernel @ 349a0b9`, GCC `9.5.0` sha256 `81669db4…`
 - `vendor/kernels/tina-bsp-kernel/arch/arm/Kconfig:1909` — KEXEC Kconfig stanza (the symbol Path A enables)
 

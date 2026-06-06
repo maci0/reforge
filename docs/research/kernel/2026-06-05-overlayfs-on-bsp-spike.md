@@ -4,7 +4,7 @@
 **Status:** spike complete. Findings inline. Implementation plan deferred to a follow-up that uses these results.
 **Triggered by:** `docs/BACKLOG.md` §"immutable / atomic ReForge — OverlayFS2", which parked the design direction until a half-day spike answered five open questions.
 **Test harness:** `tests/qemu-harness/overlayfs-spike-test.sh` (committed alongside this note).
-**Related:** `docs/deployment-modes.md` (Mode 1 / Mode 2 / Mode 3 roadmap), `docs/board-notes/fw-upgrade-mechanisms.md`, `docs/research/2026-05-31-memory-and-testing.md` (squashfs notes).
+**Related:** `docs/deployment-modes.md` (Mode 1 / Mode 2 / Mode 3 roadmap), `docs/board-notes/fw-upgrade-mechanisms.md`, `docs/research/memory/2026-05-31-memory-and-testing.md` (squashfs notes).
 
 ---
 
@@ -232,7 +232,7 @@ ssh root@printer "mkdir -p /tmp/l /tmp/u /tmp/w /tmp/m; \
 
 Three terminal commands, zero risk (overlay.ko loaded into a tmpfs work dir; `rmmod overlay` cleans up). The most that can go wrong is the insmod fails because vermagic mismatches, which just means we built against the wrong config.
 
-This is the right next-physical-test once we have a stock-config kernel build going (the BSP-rebuild work in `docs/research/2026-06-04-bsp-kernel-rebuild-findings.md` is the prerequisite).
+This is the right next-physical-test once we have a stock-config kernel build going (the BSP-rebuild work in `docs/research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md` is the prerequisite).
 
 ### Recommended ordering
 

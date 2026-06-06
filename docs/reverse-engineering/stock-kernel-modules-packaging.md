@@ -7,7 +7,7 @@
 [`../board-notes/README.md`](../board-notes/README.md) (hardware inventory,
 loaded module list), [`../boot.md`](../boot.md) §4 (the `auto_run.sh`
 USB-update + WiFi-insmod path),
-[`../research/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/2026-06-04-bsp-kernel-rebuild-findings.md)
+[`../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md)
 (why the rebuilt kernel reproduces stock's vermagic byte-for-byte).
 
 ---
@@ -478,7 +478,7 @@ it no longer exists in a form that can.
 
 - **FF treats the kernel as immutable.** Our rebuilt BSP kernel hits "kernel
   parity" once (already done — see
-  [`../research/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/2026-06-04-bsp-kernel-rebuild-findings.md))
+  [`../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md))
   and never needs to track ongoing FF changes; there aren't any.
 - **The OTA infrastructure is designed for hotfixes but the firmware author
   has lost (or never had) the ability to ship them.** ReForge can credibly
@@ -674,7 +674,7 @@ FF OTA packages and re-ships unchanged in pro-3.1.3.tgz / 5.0.3 / 5.1.2 / 5.1.4
   evidence)
 - `reforge/docs/boot.md` §4 — the `auto_run.sh` flow that does `insmod
   /lib/modules/8821cu.ko`
-- `reforge/docs/research/2026-06-04-bsp-kernel-rebuild-findings.md` — vermagic
+- `reforge/docs/research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md` — vermagic
   match between our rebuilt kernel and stock
 
 ### Analysis commands run for this finding

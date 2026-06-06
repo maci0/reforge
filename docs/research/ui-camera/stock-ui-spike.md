@@ -4,7 +4,7 @@
 > the stock UI. That is incomplete — firmwareExe has **two independent** startup
 > gates (an eboard serial `start`/`A`-ACK handshake on `/dev/ttyS1`+`/dev/ttyS5`,
 > **and** klippy on `/tmp/uds`). The stock UI now boots to a clean home screen in
-> qemu; see `docs/research/2026-06-02-qemu-ui-rendering.md`.
+> qemu; see `docs/research/ui-camera/2026-06-02-qemu-ui-rendering.md`.
 >
 > Also: the load-cell SPI pins in the printer.cfg snippet near the end of this doc are
 > **wrong** (they are the *adxl345* eboard soft-SPI pins). The factory load cell

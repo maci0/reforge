@@ -3,7 +3,7 @@
 Authoritative list of where a stock AD5M (Pro) image (or its pieces) can be obtained, with
 content hashes. Large blobs live in `tools/recovery/archive/` (gitignored); this manifest
 is the tracked record. Background + provenance analysis:
-[`docs/research/2026-06-01-stock-recovery-images.md`](../../docs/research/2026-06-01-stock-recovery-images.md).
+[`docs/research/kernel/2026-06-01-stock-recovery-images.md`](../../docs/research/kernel/2026-06-01-stock-recovery-images.md).
 
 ## Curated local full-eMMC images (naming convention)
 

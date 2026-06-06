@@ -61,14 +61,14 @@ p4 boot(34.4M) · p5 dsp0(1M) · p6 rootfs(1.3G) · p7 UDISK/data(5.9G)`.
 
 | # | Stage | Hook method | Reversible | Risk |
 |---|-------|-------------|-----------|------|
-| 0 | **BROM FEL** | `xfel`/`sunxi-fel` over USB0 (BROM enters FEL if boot0 fails, FEL trigger held, or U-Boot runs `efex`) | n/a (RAM-only) | **recovery / kernel-test context**, not a standing hook. On this unit needs **two solder mods** (USB0 internal pad → ext. connector; 3.3 V UART for `efex` entry). See [`research/2026-06-04-brick-safe-kernel-test-paths.md`](research/2026-06-04-brick-safe-kernel-test-paths.md). |
+| 0 | **BROM FEL** | `xfel`/`sunxi-fel` over USB0 (BROM enters FEL if boot0 fails, FEL trigger held, or U-Boot runs `efex`) | n/a (RAM-only) | **recovery / kernel-test context**, not a standing hook. On this unit needs **two solder mods** (USB0 internal pad → ext. connector; 3.3 V UART for `efex` entry). See [`research/kernel/2026-06-04-brick-safe-kernel-test-paths.md`](research/kernel/2026-06-04-brick-safe-kernel-test-paths.md). |
 | 1 | boot0 / SPL (eGON) | reflash raw eMMC sectors 0..73727 | only via FEL | **BRICK** (FEL never rehearsed) |
 | 2 | U-Boot binary | reflash boot0/uboot area | only via FEL/SPL | **BRICK** |
 | 3 | **U-Boot env (p2/p3)** | **`fw_setenv`** — edit `bootargs`/`bootcmd`/`init=`, or add a `boot.scr` | **ONLY if it still boots to a shell** — see ⚠ below | **HIGH on this unit** — a bad `init=`/`bootargs`/`bootcmd` boots U-Boot+kernel but kills userspace; with **no UART + no FEL** there's no in-band fix → **eMMC-reader hard-brick** |
 | 4 | boot.img (p4) | repack the Android kernel+ramdisk+cmdline | reflash p4 | medium |
-| 5 | **`init=` override** | env `init=` → our PID1 script (which `pivot_root`s, then `exec /sbin/init`). See `research/2026-06-05-replacing-pid1.md` §A2. | YES (env) | low–med ⭐ earliest *userspace control* |
-| 5a | **`/init` symlink swap** — "Option A" | rewrite the `/init` symlink on p6 to point at our PID1 script (kernel `execve`s `/init` by default). Cleaner than #5 because we modify a file on p6 (SAFE tier) instead of U-Boot env (HARD-BRICK tier on this unit). See `research/2026-06-05-replacing-pid1.md` §A1 + `br-external/board/reforge/rootfs-overlay/sbin/reforge-init`. | YES (file on p6) | LOW ⭐ **recommended Mode-2 PID-1 hook** |
-| 6 | **/etc/preinit** — "Option C" | create the file (absent today) → runs before mounts/swap/net/rcS as a busybox-init sysinit child. **Cannot cleanly replace PID 1** (busybox-init is already running) but useful for *additive* early hooks. See `research/2026-06-05-replacing-pid1.md` §B + footnote on preinit. | YES (file on p6) | LOW ⭐ earliest *safe userspace* on the stock flow |
+| 5 | **`init=` override** | env `init=` → our PID1 script (which `pivot_root`s, then `exec /sbin/init`). See `research/kernel/2026-06-05-replacing-pid1.md` §A2. | YES (env) | low–med ⭐ earliest *userspace control* |
+| 5a | **`/init` symlink swap** — "Option A" | rewrite the `/init` symlink on p6 to point at our PID1 script (kernel `execve`s `/init` by default). Cleaner than #5 because we modify a file on p6 (SAFE tier) instead of U-Boot env (HARD-BRICK tier on this unit). See `research/kernel/2026-06-05-replacing-pid1.md` §A1 + `br-external/board/reforge/rootfs-overlay/sbin/reforge-init`. | YES (file on p6) | LOW ⭐ **recommended Mode-2 PID-1 hook** |
+| 6 | **/etc/preinit** — "Option C" | create the file (absent today) → runs before mounts/swap/net/rcS as a busybox-init sysinit child. **Cannot cleanly replace PID 1** (busybox-init is already running) but useful for *additive* early hooks. See `research/kernel/2026-06-05-replacing-pid1.md` §B + footnote on preinit. | YES (file on p6) | LOW ⭐ earliest *safe userspace* on the stock flow |
 | 7 | /etc/inittab, rcS, S00init | add a sysinit line / rc script (forge-x owns S00init) | YES (file) | low |
 | 8 | /opt/auto_run.sh (rcS tail, backgrounded) | the USB-launcher hook ReForge-live uses today | YES | trivial — but **latest** |
 
@@ -92,7 +92,7 @@ p4 boot(34.4M) · p5 dsp0(1M) · p6 rootfs(1.3G) · p7 UDISK/data(5.9G)`.
 > board has UART0 console pads next to USB0 (requires a 3.3 V USB-UART adapter). Once
 > both mods are in, FEL becomes a brick-safe kernel-test path and `fw_setenv` becomes
 > in-band recoverable from the U-Boot prompt. Recipe + workflow:
-> [`research/2026-06-04-brick-safe-kernel-test-paths.md`](research/2026-06-04-brick-safe-kernel-test-paths.md).
+> [`research/kernel/2026-06-04-brick-safe-kernel-test-paths.md`](research/kernel/2026-06-04-brick-safe-kernel-test-paths.md).
 > A bad `init=`/`bootargs`/`bootcmd` set via `fw_setenv` does NOT corrupt U-Boot, so
 > U-Boot + the kernel still run — but userspace never starts. You then have **no SSH**
 > (no userspace), **no U-Boot prompt** (no UART), **no FEL** (USB). That is a hard-brick
@@ -361,4 +361,4 @@ calls `start.sh`), and the eboard's `restart_method: command` reset returns it t
 state without a fresh handshake. The byte protocol (`has_ready`/`is_boot_ack`/`run_handshake`)
 is pure + I/O-injected, unit- and fuzz-tested in `tests/release/test_boot_eboard.py` (incl. a
 real-`openpty` end-to-end), wired into `make unit`. Background:
-[research/2026-05-31-g992-research-findings.md](research/2026-05-31-g992-research-findings.md).
+[research/kernel/2026-05-31-g992-research-findings.md](research/kernel/2026-05-31-g992-research-findings.md).
