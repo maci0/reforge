@@ -1,0 +1,8 @@
+# camera — ustreamer MJPEG-HTTP passthrough on :8080. CONDITIONAL: only with a
+# camera at /dev/video0. Not pulled in by the `boot` target; started on demand.
+# 1:1 MJPEG passthrough (no re-encode) — cheap on the 128 MB box. --persistent
+# keeps retrying across unplugs. Defaults match the S72camera init script's
+# CAMERA_* values.
+type = process
+command = /usr/bin/ustreamer --device=/dev/video0 --format=MJPEG --resolution=1280x720 --desired-fps=15 --host=0.0.0.0 --port=8080 --drop-same-frames=30 --persistent
+restart = true

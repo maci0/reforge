@@ -1,0 +1,11 @@
+# guppyscreen — native LVGL touchscreen UI (framebuffer, Moonraker WS client).
+# CONDITIONAL: only meaningful with SCREEN_MODE=GUPPY and a framebuffer
+# (/dev/fb0). Not pulled in by the `boot` target; a SCREEN_MODE selector starts
+# it on demand. jemalloc-capped like the others (multi-threaded LVGL + WS). The
+# binary loads guppyconfig.json relative to its dir, hence working-dir.
+type = process
+working-dir = /opt/guppyscreen
+command = /usr/bin/env LD_PRELOAD=/usr/lib/libjemalloc.so.2 MALLOC_CONF=narenas:1,dirty_decay_ms:0,muzzy_decay_ms:0 /opt/guppyscreen/guppyscreen
+depends-on = prepare
+waits-for = moonraker
+restart = true

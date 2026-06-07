@@ -1,0 +1,4 @@
+# prepare — create the runtime dirs the daemons expect (tmpfs /var/log, /run,
+# and moonraker's datadir/logs). One-shot; the daemons depend on it.
+type = scripted
+command = /bin/sh -c "mkdir -p /var/log /run /var/lib/moonraker/logs"

@@ -1,0 +1,9 @@
+# eboard — one-time toolhead ("eboard") MCU enable. The eboard on /dev/ttyS1
+# powers up in a serial bootloader that waits for the host to send 'A' before
+# starting its Klipper app; without this handshake klippy can never identify it
+# ("Serial connection closed") and the toolhead stays dark. Runs once, before
+# klipper. Best-effort: a warm reboot (eboard already in its app) no-ops, so a
+# non-zero exit is not fatal.
+type = scripted
+command = /usr/bin/reforge-boot-eboard
+restart = false

@@ -1,0 +1,11 @@
+# moonraker — API/WebSocket server on :7125 (system python3). Supervised by
+# dinit. jemalloc tuned narenas:1,tcache:false,decay:0 (-6.5 MB RSS vs glibc);
+# moonraker has no C helper so jemalloc is safe here (unlike klippy). PATH gains
+# /sbin so its machine component finds busybox `ip`. Per-service env is set with
+# `env` since dinit execs the command directly (no shell). Waits for klipper so
+# the UDS exists.
+type = process
+command = /usr/bin/env LD_PRELOAD=/usr/lib/libjemalloc.so.2 MALLOC_CONF=narenas:1,tcache:false,dirty_decay_ms:0,muzzy_decay_ms:0 PATH=/usr/sbin:/usr/bin:/sbin:/bin /usr/bin/python3 /opt/moonraker/moonraker/moonraker.py -d /var/lib/moonraker -c /etc/reforge/moonraker.conf
+depends-on = prepare
+waits-for = klipper
+restart = true

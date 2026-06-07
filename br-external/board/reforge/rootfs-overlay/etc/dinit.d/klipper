@@ -1,0 +1,11 @@
+# klipper — klippy host (system python3). Supervised by dinit (no
+# start-stop-daemon, no pidfile). NO jemalloc: on real hardware jemalloc's
+# LD_PRELOAD corrupts klippy's NEON/thumb2 c_helper.so heap and it aborts
+# ("free(): invalid size") right after reaching ready — glibc malloc runs it
+# cleanly. Klippy keeps its own structured log via -l; the UDS at
+# /tmp/klippy_uds matches moonraker.conf.
+type = process
+command = /usr/bin/python3 /opt/klipper/klippy/klippy.py /etc/reforge/printer.cfg -a /tmp/klippy_uds -l /var/log/klippy.log
+depends-on = prepare
+depends-on = eboard
+restart = true

@@ -1,0 +1,27 @@
+# boot — top-level dinit target for the ReForge service chain.
+#
+# STATUS: staged. dinit is NOT PID 1 yet — today the chroot still boots via the
+# sequential /mod/start.sh S-loop (see reforge-boot §7 in docs/boot.md). These
+# service descriptions mirror that S-loop so that when dinit takes over as the
+# switch_root PID 1 it supervises the same services with dependency ordering and
+# restart-on-failure. Until then they are inert config.
+#
+# Dependency order falls out of the per-service depends-on/waits-for:
+#   cloudblock, zram            (one-shots, no deps — run early, in parallel)
+#   eboard -> klipper           (MCU handshake before klippy)
+#   klipper -> moonraker        (moonraker waits for klippy's UDS)
+#   moonraker -> httpd          (Mainsail served after the API is up)
+#   {klipper,moonraker,httpd} -> ok   (LKG promote once everything is up)
+#
+# camera and guppyscreen are defined but intentionally NOT pulled in here: they
+# are conditional (camera = /dev/video0 present; guppyscreen = SCREEN_MODE=GUPPY
+# + /dev/fb0). A later SCREEN_MODE/camera selector starts them on demand.
+
+type = internal
+depends-on = cloudblock
+depends-on = zram
+depends-on = eboard
+depends-on = klipper
+depends-on = moonraker
+depends-on = httpd
+depends-on = ok

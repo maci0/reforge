@@ -1,0 +1,9 @@
+# httpd — busybox httpd serving the Mainsail static SPA on :80. The browser
+# talks to Moonraker directly on :7125 (cors_domains), so this is static files
+# only — no reverse proxy. `-f` keeps httpd in the foreground so dinit
+# supervises it (the init script used start-stop-daemon -b instead).
+type = process
+command = /usr/sbin/httpd -f -p 80 -h /var/www/mainsail
+depends-on = prepare
+waits-for = moonraker
+restart = true

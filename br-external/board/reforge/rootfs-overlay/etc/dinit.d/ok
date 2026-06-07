@@ -1,0 +1,10 @@
+# ok — services-up sentinel. Runs once the core daemons are up and promotes the
+# current mod -> last-known-good (resets the trial counter), the dinit analogue
+# of the S99ok script that ends the /mod/start.sh chain. Reuses S99ok as the
+# implementation. Depends on the daemons so it runs last.
+type = scripted
+command = /etc/init.d/S99ok
+depends-on = klipper
+depends-on = moonraker
+depends-on = httpd
+restart = false
