@@ -3,13 +3,14 @@
 # ReForge LIVE launcher — boot ReForge from a USB stick.
 #
 # Live mode here means "booted off USB" — not "read-only" or "zero eMMC writes".
-# We mirror reforge-boot's chroot layout exactly: the F2FS USB partition mounts
-# at /data/.mod/.reforge (the same host-side path the installer uses) and we bind the
-# host's /data (eMMC mmcblk0p7) into the chroot at /data. So debugging, paths,
-# and behaviour are identical to install mode; the only difference is the
-# chroot ROOT comes from a USB partition instead of a directory on eMMC.
+# We share reforge-boot's chroot layout (the reforge_chroot_mounts helper): the
+# F2FS USB partition mounts at /reforge — the SAME mountpoint the installer uses
+# — and we bind the host's /data (eMMC mmcblk0p7) into the chroot at /data. So
+# debugging, paths and behaviour are identical to install mode; the only
+# difference is that the rootfs at /reforge comes from a USB partition instead
+# of a bind of /data/.mod/.reforge on eMMC.
 #
-# Write topology (with the F2FS USB at /data/.mod/.reforge):
+# Write topology (F2FS USB mounted at /reforge):
 #   - Our OS writes to USB: klippy.log, moonraker DB, SAVE_CONFIG appends, /tmp.
 #   - User gcodes via Mainsail land on eMMC /data (the `[virtual_sdcard] path:
 #     /data/` from the factory config). They persist across stick pull/reboot
@@ -53,7 +54,7 @@ F2FS_DEV="${F2FS_DEV:-${LIVE_IMG:-}}"
 F2FS_LABEL="${F2FS_LABEL:-reforge-live}"
 # Chroot root + /data bind — identical to install mode (reforge-boot) so the
 # host-side paths are uniform across modes.
-ROOT="${REFORGE_LIVE_ROOT:-/data/.mod/.reforge}"
+ROOT="${REFORGE_LIVE_ROOT:-/reforge}"
 DATA="${REFORGE_LIVE_DATA:-/data}"
 
 # Logging goes to the console AND a persistent log file ON THE USB, so a pulled stick is
@@ -119,10 +120,10 @@ fi
 
 log "starting (screen=${SCREEN_MODE})"
 
-# Ensure mountpoints exist on the host. mkdir -p on ROOT is the ONE eMMC-side
-# OS write live mode makes (a single directory inode) on a fresh unit; on a
-# unit that previously ran live mode (or has an install) the dir already exists
-# and this no-ops.
+# Ensure mountpoints exist on the host. mkdir -p on ROOT (/reforge) is the ONE
+# eMMC-side OS write live mode makes (a single empty directory inode, on the
+# stock p6 rootfs); on a unit that previously ran live mode or has an install
+# the dir already exists and this no-ops.
 mkdir -p "${ROOT}"
 [ -d "${DATA}" ] || mkdir -p "${DATA}"
 
@@ -197,17 +198,16 @@ mount -t f2fs -o rw "${F2FS_DEV}" "${ROOT}" 2>/dev/null \
     || { log "ERROR: cannot mount ${F2FS_DEV}"; exit 1; }
 [ -x "${ROOT}/mod/start.sh" ] || { log "ERROR: ${ROOT}/mod/start.sh missing — bad image"; exit 1; }
 
-# Chroot filesystems — IDENTICAL to reforge-boot (install mode): /data inside the
-# chroot is bound from the host's /data (eMMC mmcblk0p7), so gcode uploads via
-# Mainsail (the factory `[virtual_sdcard] path: /data/`) persist on the printer
+# Chroot filesystems via the shared helper (same layout as install mode,
+# reforge-boot). tmp_mode=tmpfs: live wants an ephemeral /tmp, not the stock
+# one. /data is bound from the host's /data (eMMC mmcblk0p7), so gcode uploads
+# via Mainsail (factory `[virtual_sdcard] path: /data/`) persist on the printer
 # and are visible to an install on the same unit.
-for d in proc sys dev run tmp data; do mkdir -p "${ROOT}/${d}"; done
-mount -t proc  proc      "${ROOT}/proc"  2>/dev/null
-mount --rbind  /sys      "${ROOT}/sys"   2>/dev/null
-mount --rbind  /dev      "${ROOT}/dev"   2>/dev/null
-mount --bind   /run      "${ROOT}/run"   2>/dev/null
-mount -t tmpfs tmpfs     "${ROOT}/tmp"   2>/dev/null
-mount --bind   "${DATA}" "${ROOT}/data" 2>/dev/null
+HELPER="${ROOT}/.shell/reforge-chroot.sh"
+[ -f "${HELPER}" ] || { log "ERROR: ${HELPER} missing — bad image"; exit 1; }
+# shellcheck source=/dev/null
+. "${HELPER}"
+reforge_chroot_mounts "${ROOT}" "${DATA}" tmpfs
 
 # Mark the chroot as live so the banner (boot splash + every login) shows the LIVE
 # badge. /run is tmpfs (bind from host) — the marker is ephemeral, gone once the USB

@@ -212,8 +212,11 @@ fi
 info "Checksum OK"
 
 # Rename temp dir to final location (atomic when dest does not exist).
-# Ensure parent exists (in case DATA was just created by mkfs/mount).
-mkdir -p "${DATA}"
+# Ensure the PARENT of REFORGE_DIR (${DATA}/.mod) exists — a fresh unit with no
+# prior mod has no ${DATA}/.mod, so renaming TEMP_DIR -> ${DATA}/.mod/.reforge
+# would fail with ENOENT. mkdir the parent, not REFORGE_DIR itself (the mv is
+# atomic only when the destination does not yet exist).
+mkdir -p "${DATA}/.mod"
 mv "${TEMP_DIR}" "${REFORGE_DIR}"
 sync
 

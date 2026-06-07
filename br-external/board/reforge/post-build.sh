@@ -114,6 +114,12 @@ if [ -f "${OVERLAY}/.shell/reforge-boot" ]; then
     cp -a "${OVERLAY}/.shell/reforge-boot" "${MOD}/.shell/reforge-boot"
     chmod 0755 "${MOD}/.shell/reforge-boot"
 fi
+# reforge-chroot.sh — shared chroot-mounts helper sourced by reforge-boot (and
+# the live launcher). Mirror the self-update copy so the /mod set is complete.
+if [ -f "${OVERLAY}/.shell/reforge-chroot.sh" ]; then
+    cp -a "${OVERLAY}/.shell/reforge-chroot.sh" "${MOD}/.shell/reforge-chroot.sh"
+    chmod 0755 "${MOD}/.shell/reforge-chroot.sh"
+fi
 if [ -f "${OVERLAY}/.shell/reforge-lkg.sh" ]; then
     cp -a "${OVERLAY}/.shell/reforge-lkg.sh" "${MOD}/.shell/reforge-lkg.sh"
     chmod 0755 "${MOD}/.shell/reforge-lkg.sh"

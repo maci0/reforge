@@ -100,6 +100,9 @@ BR2_PACKAGE_PYTHON_JINJA2=y
 BR2_PACKAGE_PYTHON_MARKUPSAFE=y
 # Fortran needed to build numpy from source
 BR2_TOOLCHAIN_BUILDROOT_FORTRAN=y
+# dinit — service supervisor / init (binaries only; not wired as init yet,
+# building block for a future switch_root PID 1)
+BR2_PACKAGE_DINIT=y
 # Klipper host (klippy) + pre-compiled NEON chelper
 BR2_PACKAGE_KLIPPER=y
 # Moonraker API server (system python3, no venv, trimmed deps). Serves its own

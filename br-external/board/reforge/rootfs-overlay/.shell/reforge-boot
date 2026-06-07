@@ -6,8 +6,10 @@
 #
 # Design mirrors forge-x's S00init + S99root pattern:
 #   - SKIP_MOD guard   → exit 0 (pure stock boot)
-#   - bind-mount proc/sys/dev into the chroot rootfs
-#   - chroot into $DATA/.reforge and exec the init chain
+#   - bind-mount the ReForge rootfs at /reforge (a real mountpoint)
+#   - bind-mount proc/sys/dev into /reforge
+#   - chroot into /reforge and exec the init chain
+#     (later this becomes a switch_root into /reforge; see sbin/reforge-init)
 #
 # REFORGE_DATA_ROOT env override (default /data) lets Task 3 loopback
 # tests point DATA at a scratch directory without modifying this script.
@@ -98,27 +100,47 @@ if [ "${DATA}" = "/data" ] && ! mount | grep -q '/dev/mmcblk0p7'; then
 fi
 
 # ---------------------------------------------------------------------------
-# Set up chroot mounts (mirrors forge-x common.sh init_chroot())
+# Mount the ReForge rootfs at /reforge.
+#
+# Up to here ${REFORGE_DIR} (=$DATA/.mod/.reforge) is just a directory on /data.
+# We bind it onto a dedicated mountpoint /reforge so the rest of boot — the
+# chroot mounts, the chroot itself, and (later) a switch_root — operate on a
+# real mount rather than a path under /data. This is the ONLY thing that changes
+# on the stock side: from here on the stock init only ever execs into /reforge.
+#
+# Today this is a plain bind of the installed rootfs. It is the seam where the
+# immutable-reforge work later swaps in the OverlayFS merged view, and where a
+# future switch_root pivots root to /reforge instead of chrooting.
+# ---------------------------------------------------------------------------
+# REFORGE_ROOT env override (default /reforge) mirrors REFORGE_DATA_ROOT: it lets
+# a host-side test point the rootfs mountpoint at a scratch dir instead of the
+# real /reforge.
+REFORGE_ROOT="${REFORGE_ROOT:-/reforge}"
+mkdir -p "${REFORGE_ROOT}"
+if ! grep -q " ${REFORGE_ROOT} " /proc/mounts 2>/dev/null; then
+    echo "[reforge-boot] mounting rootfs at ${REFORGE_ROOT} ..."
+    mount --bind "${REFORGE_DIR}" "${REFORGE_ROOT}"
+fi
+
+# ---------------------------------------------------------------------------
+# Set up chroot mounts via the shared helper (also used by the live launcher).
+# tmp_mode=bind: share the stock /tmp so SKIP_MOD markers etc. stay consistent.
 # ---------------------------------------------------------------------------
 echo "[reforge-boot] mounting chroot filesystems ..."
 
-mount -t proc  /proc          "${REFORGE_DIR}/proc"
-mount --rbind  /sys            "${REFORGE_DIR}/sys"
-mount --rbind  /dev            "${REFORGE_DIR}/dev"
-mount --bind   /run            "${REFORGE_DIR}/run"
-mount --bind   /tmp            "${REFORGE_DIR}/tmp"
-
-# Expose /data inside the chroot so Klipper/Moonraker can reach gcodes etc.
-# ($DATA is the printer's /data = mmcblk0p7 = ReForge's own space, NOT the stock rootfs.)
-mkdir -p "${REFORGE_DIR}/data"
-mount --bind   "${DATA}"       "${REFORGE_DIR}/data"
+HELPER="${REFORGE_ROOT}/.shell/reforge-chroot.sh"
+[ -f "${HELPER}" ] || { echo "[reforge-boot] ERROR: ${HELPER} missing"; exit 1; }
+# shellcheck source=/dev/null
+. "${HELPER}"
+reforge_chroot_mounts "${REFORGE_ROOT}" "${DATA}" bind
 
 # NOTE: we deliberately do NOT bind the stock /opt/config. ReForge is fully
 # self-contained: klippy uses /etc/reforge/printer.cfg and moonraker uses
 # /etc/reforge/moonraker.conf (both inside the chroot, on /data/.mod/.reforge). The
-# ONLY persistent change ReForge makes to the stock rootfs is the single
-# /etc/init.d/S01reforge symlink. Everything else lives in /data/.mod/.reforge or is
-# a transient runtime bind-mount (proc/sys/dev/run/tmp/data) undone on uninstall.
+# persistent changes ReForge makes to the stock rootfs are the single
+# /etc/init.d/S01reforge symlink plus the empty /reforge mountpoint dir.
+# Everything else lives in /data/.mod/.reforge or is a transient runtime
+# bind-mount (the /reforge rootfs + proc/sys/dev/run/tmp/data) undone on reboot.
 
 sync
 
@@ -133,7 +155,7 @@ sync
 # on a warm reboot (eboard already in its app) the handshake just no-ops.
 # ---------------------------------------------------------------------------
 echo "[reforge-boot] booting eboard MCU (toolhead) ..."
-chroot "${REFORGE_DIR}" /usr/bin/reforge-boot-eboard \
+chroot "${REFORGE_ROOT}" /usr/bin/reforge-boot-eboard \
     || echo "[reforge-boot] eboard boot handshake non-zero (already up?) — continuing"
 
 # ---------------------------------------------------------------------------
@@ -188,9 +210,9 @@ CHROOT_START="${REFORGE_DIR}/mod/start.sh"
 if [ ! -x "${CHROOT_START}" ]; then
     # Fallback: exec a login shell (useful during development / qemu tests)
     echo "[reforge-boot] WARN: ${CHROOT_START} not executable — falling back to /bin/sh"
-    exec chroot "${REFORGE_DIR}" /bin/sh
+    exec chroot "${REFORGE_ROOT}" /bin/sh
 fi
 
 echo "[reforge-boot] launching ReForge via chroot (run-from-mod) ..."
 export SCREEN_MODE
-exec chroot "${REFORGE_DIR}" /mod/start.sh
+exec chroot "${REFORGE_ROOT}" /mod/start.sh

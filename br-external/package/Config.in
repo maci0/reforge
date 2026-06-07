@@ -1,3 +1,4 @@
+source "$BR2_EXTERNAL_REFORGE_PATH/package/dinit/Config.in"
 source "$BR2_EXTERNAL_REFORGE_PATH/package/klipper/Config.in"
 source "$BR2_EXTERNAL_REFORGE_PATH/package/moonraker/Config.in"
 source "$BR2_EXTERNAL_REFORGE_PATH/package/python-inotify-simple/Config.in"

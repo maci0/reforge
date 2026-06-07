@@ -1,0 +1,18 @@
+config BR2_PACKAGE_DINIT
+	bool "dinit"
+	depends on BR2_USE_MMU
+	depends on BR2_INSTALL_LIBSTDCPP
+	help
+	  dinit is a service supervisor and init system (capable of
+	  running as PID 1) with dependency management and process
+	  supervision. Small, C++, no systemd.
+
+	  Packaged for ReForge as a building block for a future
+	  switch_root init. The package ships the dinit binaries only —
+	  no service definitions and no init wiring yet.
+
+	  https://davmac.org/projects/dinit/
+
+comment "dinit needs a toolchain w/ C++"
+	depends on BR2_USE_MMU
+	depends on !BR2_INSTALL_LIBSTDCPP
