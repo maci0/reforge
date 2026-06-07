@@ -55,7 +55,8 @@ flowchart TB
 | (in `modules/zram-bsp/`) `build.sh` | build zram/zsmalloc `.ko` against the BSP kernel (gcc 9.5 crosstool, vermagic-matched) | `dist/*.ko` (shipped in the overlay) |
 
 The single `reforge_defconfig` builds the **whole stack** (klipper + moonraker + mainsail +
-guppyscreen + zram); `SCREEN_MODE` picks headless vs on-screen at runtime, so there is one image.
+guppyscreen + zram, plus `dinit` — shipped as a future-`switch_root` init building block, not
+yet wired); `SCREEN_MODE` picks headless vs on-screen at runtime, so there is one image.
 
 ## Consumers of the build
 

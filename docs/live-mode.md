@@ -12,9 +12,9 @@ the same way they do in install mode (intentional persistence). See the
 
 | | Live mode | Install (`.tgz`) |
 |---|---|---|
-| Chroot ROOT (host-side) | `/data/.mod/.reforge` (F2FS USB partition mounted here) | `/data/.mod/.reforge` (directory on eMMC ext4) |
+| Chroot ROOT (host-side) | `/reforge` (F2FS USB partition mounted here) | `/reforge` (rootfs bind-mounted here from `/data/.mod/.reforge`) |
 | `/data` inside chroot | eMMC mmcblk0p7 (bind from host) | eMMC mmcblk0p7 (bind from host) |
-| OS-level eMMC writes | one-time `mkdir /data/.mod/.reforge` on a fresh unit | overlay + LKG bookkeeping |
+| OS-level eMMC writes | one-time `mkdir /reforge` on the stock p6 rootfs (eMMC **p7 untouched**) | overlay + LKG bookkeeping on p7 |
 | User gcode persistence | eMMC `/data/` (visible to install too) | eMMC `/data/` |
 | Config / log persistence | F2FS USB partition (lost if stick is reformatted) | eMMC `/data/.mod/.reforge/` |
 | Revert | pull USB + reboot | OTA rollback / recovery |
@@ -132,7 +132,7 @@ installer skipped". Here's exactly what writes where:
 
 | What | Where | Storage | When |
 |---|---|---|---|
-| `mkdir -p /data/.mod/.reforge` (one-time) | mountpoint inode on eMMC p7 | eMMC | First live boot on a fresh unit; no-op thereafter |
+| `mkdir -p /reforge` (one-time) | mountpoint inode on the stock **p6** rootfs (eMMC **p7 untouched**) | eMMC | First live boot on a fresh unit; no-op thereafter |
 | F2FS mount + chroot setup | kernel mount table | RAM | Boot only |
 | `klippy.log` | `/var/log/klippy.log` inside chroot | F2FS USB | Runtime |
 | moonraker SQLite DB + history | `/var/lib/moonraker/` inside chroot | F2FS USB | Runtime |
@@ -142,8 +142,11 @@ installer skipped". Here's exactly what writes where:
 | Gcode uploads via Mainsail | `/data/` (factory `[virtual_sdcard] path: /data/`) | eMMC | Per upload |
 | Print job state (stop/pause) | moonraker DB | F2FS USB | Per event |
 
-**OS-level writes to eMMC: one directory inode** (`/data/.mod/.reforge`), and
-only the first time live mode runs on a fresh unit.
+**OS-level writes to eMMC: one directory inode** (`/reforge`, the mountpoint on
+the stock p6 rootfs), and only the first time live mode runs on a fresh unit.
+The `/data` partition (p7) is **not written at all** — live mode now mounts its
+rootfs at `/reforge` rather than over `/data/.mod/.reforge`, so it neither
+creates a dir on p7 nor shadows an existing install there.
 
 **User-action writes to eMMC: gcode uploads**, intentional. You upload via
 Mainsail in live mode, pull the stick, and the gcodes are still in `/data/`.
@@ -157,9 +160,10 @@ What live mode **does NOT** write to eMMC: any install state. No
 `/data/.mod/.reforge/{mod,lkg,trial,.installed}` files are created from live
 mode. Pull the USB stick + reboot, and the unit boots stock unmodified —
 stock's `/etc/init.d/` is unchanged, no `S01reforge` symlink, no
-`/data/.mod/.reforge/mod` overlay. If you previously had an install, that
-state persists in `/data/.mod/.reforge/` underneath the live mount, and
-reappears when the USB is removed.
+`/data/.mod/.reforge/mod` overlay. If you previously had an install, it is
+left untouched at `/data/.mod/.reforge` — live mode mounts at `/reforge` and
+no longer mounts over the install dir, so the install reappears as-is when the
+USB is removed.
 
 The qemu gate `tests/qemu-harness/live-mode-test.sh` (`make qemu-live`,
 rootless) enforces this: after a live boot, it checks the eMMC stand-in via

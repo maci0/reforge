@@ -3,8 +3,9 @@
 ReForge is a from-scratch firmware **userland** for the FlashForge Adventurer 5M Pro
 (Allwinner T113-S3, dual Cortex-A7, 128 MB RAM). For P1–P3 it runs on the **stock vendor
 kernel** (Linux 5.4.61) as an **overlay on the stock firmware** — the stock SPL/U-Boot/kernel
-are untouched; everything ReForge lives in the writable `/data/.mod/.reforge` chroot, reached by a
-single `/etc/init.d/S01reforge` symlink. Plan 5 later swaps in a mainline kernel + U-Boot.
+are untouched; ReForge installs under the writable `/data/.mod/.reforge`, is bind-mounted onto a
+`/reforge` mountpoint at boot, and runs chrooted there — reached by a single
+`/etc/init.d/S01reforge` symlink. Plan 5 later swaps in a mainline kernel + U-Boot.
 
 ## Storage / overlay model
 
@@ -17,7 +18,7 @@ flowchart TB
         P7["data p7  /data  (ext4, writable)"]
     end
     P6 -. "one symlink<br/>/etc/init.d/S01reforge" .-> RB
-    subgraph P7box["/data/.mod/.reforge  (ReForge chroot)"]
+    subgraph P7box["/data/.mod/.reforge → bind-mounted at /reforge (ReForge chroot)"]
         RB[reforge-boot hook]
         OPT["/opt: klipper · moonraker · guppyscreen"]
         WWW["/var/www/mainsail"]
@@ -29,16 +30,19 @@ flowchart TB
 The base rootfs (busybox/glibc) inside the chroot is built fresh by Buildroot (glibc, Thumb-2/
 -Os). The stock `firmwareExe` on p6 stays available — `SKIP_MOD` boots it (dual-boot).
 
-**Live mode** reuses this exact chroot model but roots it on a loop-mounted image on a USB
-stick, with a **tmpfs `/data`** instead of the eMMC partition — so the whole stack runs with
-**zero eMMC writes** (pull the stick + reboot → pristine stock). See [live mode](live-mode.md).
+**Live mode** reuses this exact chroot model and the same `/reforge` mountpoint, but the
+rootfs comes from an **F2FS partition on the USB stick** instead of a bind of
+`/data/.mod/.reforge`. The printer's eMMC `/data` (p7) is still bind-mounted into the chroot,
+so gcode uploads persist; the only OS-level eMMC write is the one-time `mkdir /reforge` on the
+stock p6 rootfs (p7 untouched — no install residue). Pull the stick + reboot → pristine stock.
+See [live mode](live-mode.md).
 
 ## Runtime stack
 
 ```mermaid
 flowchart TB
     K["stock Linux 5.4.61<br/>(T113-S3)"] --> Z["zram swap<br/>(zstd, loadable .ko)"]
-    K --> CH["/data/.mod/.reforge chroot<br/>(glibc, Thumb-2)"]
+    K --> CH["/reforge chroot<br/>(glibc, Thumb-2)"]
     subgraph CH
         KL["klippy<br/>(Python host)"]
         MO["Moonraker<br/>:7125 HTTP+WS"]

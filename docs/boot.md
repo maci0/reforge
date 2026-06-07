@@ -113,6 +113,13 @@ ReForge rootfs is clean — and reversible by restoring the env (no bootloader/k
 reflash, so brick-safety holds). That is the architecturally-correct place for an early
 switch_root, not `auto_run`.
 
+Today the install/live paths bind-mount the ReForge rootfs at `/reforge` and *chroot* into
+it (§7); the same mountpoint is the `switch_root` target once we pivot PID 1. As a building
+block for that, the **`dinit`** service supervisor is now shipped in the rootfs
+(`BR2_PACKAGE_DINIT`, binaries only — no service definitions or init wiring yet). It is the
+intended PID-1 init for the switch_root rootfs, replacing the busybox-init + sequential
+`/mod/start.sh` S-loop with dependency-ordered, supervised services.
+
 ---
 
 ## 3. How forge-x hooks the boot
@@ -267,9 +274,17 @@ restore is drilled (see docs/specs Plan 3, recovery posture).
 This is the **installed** product (Plan 3), distinct from the stock chain above and from
 live-mode. ReForge installs as an **overlay on stock**: the stock SPL/U-Boot/kernel/init
 are untouched; the **only** persistent change is one symlink, `/etc/init.d/S01reforge` →
-the ReForge boot hook (`reforge-boot`). Everything ReForge lives under the writable
-`/data/.mod/.reforge` chroot. (forge-x, by contrast, owns the `S00init` symlink — §3; the two
-escape hatches both use the `SKIP_MOD` pattern.)
+the ReForge boot hook (`reforge-boot`). ReForge's rootfs is installed under the writable
+`/data/.mod/.reforge`; at boot it is bind-mounted onto a dedicated `/reforge` mountpoint
+and the service chain runs in a chroot there. (forge-x, by contrast, owns the `S00init`
+symlink — §3; the two escape hatches both use the `SKIP_MOD` pattern.)
+
+Mounting at `/reforge` (rather than chrooting the `/data/.mod/.reforge` directory directly)
+decouples the rootfs *storage* from its *mountpoint*: it is the seam where the
+immutable-reforge OverlayFS merged view plugs in, and where a future `switch_root` pivots
+root to `/reforge` instead of chrooting. The chroot mount layout (proc/sys/dev/run/tmp/data)
+lives in one shared helper, `.shell/reforge-chroot.sh`, used by both this hook and the live
+USB launcher.
 
 ```mermaid
 flowchart TD
@@ -281,9 +296,9 @@ flowchart TD
     F -- yes --> G[fire/ember banner]
     G --> H[Mount /data · read SCREEN_MODE]
     H --> T{"trial/LKG check (OTA era)"}
-    T --> I["bind proc/sys/dev/run/tmp/data → /data/.mod/.reforge"]
+    T --> I["mount rootfs at /reforge (bind)<br/>+ bind proc/sys/dev/run/tmp/data → /reforge<br/>(.shell/reforge-chroot.sh)"]
     I --> EB["boot eboard MCU (toolhead)<br/>reforge-boot-eboard · /dev/ttyS1"]
-    EB --> J["chroot /data/.mod/.reforge · exec mod init chain"]
+    EB --> J["chroot /reforge · exec mod init chain"]
     J --> K[S00cloudblock] --> L[S35zram] --> M[S60klipper] --> N[S65moonraker]
     N --> O[S70httpd] --> P{"SCREEN_MODE=GUPPY?"}
     P -- yes --> Q[S75guppyscreen] --> R[S99ok]
@@ -293,7 +308,7 @@ flowchart TD
 
 | step | what | source |
 |---|---|---|
-| `S01reforge` | boot hook — chroots into `/data/.mod/.reforge` | `…/rootfs-overlay/.shell/reforge-boot` |
+| `S01reforge` | boot hook — bind-mounts the rootfs at `/reforge` (via `.shell/reforge-chroot.sh`) + chroots there | `…/rootfs-overlay/.shell/reforge-boot` |
 | `SKIP_MOD` gate | USB/`/tmp` marker → pure stock boot (escape hatch) | `reforge-boot` |
 | banner | fire/ember "ReForge" splash | `usr/bin/reforge-banner` |
 | **eboard boot** | **handshake the toolhead MCU into its app — before any klippy** (§8) | `usr/bin/reforge-boot-eboard` |
