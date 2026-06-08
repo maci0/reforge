@@ -88,7 +88,7 @@ EOF
 chmod 0755 "${STAGE}/sbin/shot-splash" "${STAGE}/sbin/shot-splash-live" "${STAGE}/sbin/shot-console"
 
 IMG="${BUILD_DIR}/shots-reforge.ext4"
-rm -f "${IMG}"; mke2fs -q -F -t ext4 -d "${STAGE}" "${IMG}" 1280M
+rm -f "${IMG}"; mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -d "${STAGE}" "${IMG}" 1280M
 
 capture() {  # <init> <settle-seconds> <out.png>
     local init="$1" settle="$2" out="$3"

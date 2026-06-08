@@ -103,7 +103,7 @@ EOF
 chmod +x "${STAGE}/sbin/vmbench"
 
 IMG="${BUILD_DIR}/vmtune-bench.ext4"
-rm -f "${IMG}"; mke2fs -q -F -t ext4 -d "${STAGE}" "${IMG}" 1024M
+rm -f "${IMG}"; mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -d "${STAGE}" "${IMG}" 1024M
 
 run_mode() {  # <baseline|tuned>
     local mode="$1"

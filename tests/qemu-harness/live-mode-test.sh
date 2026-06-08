@@ -78,7 +78,7 @@ tar -C "${USBSTAGE}" -xf "${ROOTFS_TAR}"
 # kernel doesn't have F2FS, so we use ext4 here. The launcher tries F2FS first
 # and falls back to ext4 — both paths exist on real hw.
 rm -f "${USB_IMG}"
-mke2fs -q -F -t ext4 -L reforge-live -d "${USBSTAGE}" "${USB_IMG}" 1843M
+mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L reforge-live -d "${USBSTAGE}" "${USB_IMG}" 1843M
 
 # --- 2. eMMC p6 (host stock-like rootfs with our gate init) ------------------
 log "staging the host image (eMMC p6, init -> live launcher with F2FS_DEV=/dev/sda) ..."
@@ -120,7 +120,7 @@ USB_MNT=/mnt F2FS_DEV=/dev/sda SCREEN_MODE=HEADLESS LIVE_LOG=/dev/console \
 EOF
 chmod 0755 "${HOSTSTAGE}/sbin/reforge-live-init"
 rm -f "${P6_IMG}"
-mke2fs -q -F -t ext4 -L rootfs -d "${HOSTSTAGE}" "${P6_IMG}" 1280M
+mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L rootfs -d "${HOSTSTAGE}" "${P6_IMG}" 1280M
 
 # --- 3. eMMC p7 (/data stand-in; the test checks no install state lands here) -
 log "building the eMMC /data stand-in (p7) ..."
@@ -130,7 +130,7 @@ echo "this is the printer's eMMC /data — live mode must NOT install here" \
 rm -f "${P7_IMG}"
 # Match production p7 size so the resulting eMMC GPT is production-shaped.
 # The host file stays sparse so the on-disk cost is just the actual contents.
-mke2fs -q -F -t ext4 -L UDISK -d "${DATASTAGE}" "${P7_IMG}" 6068M
+mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L UDISK -d "${DATASTAGE}" "${P7_IMG}" 6068M
 
 # --- 4. combine into a single production-shape eMMC image --------------------
 log "building production-shape eMMC image (GPT + p1..p7) ..."

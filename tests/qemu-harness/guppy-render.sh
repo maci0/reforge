@@ -118,7 +118,7 @@ chmod +x "${MNT}/etc/init.d/S98guppy"
 
 log "baking ext4 (mke2fs -d, rootless) ..."
 rm -f "${IMG}"
-mke2fs -q -F -t ext4 -L "guppy-root" -d "${MNT}" "${IMG}" 1843M
+mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L "guppy-root" -d "${MNT}" "${IMG}" 1843M
 
 # Framebuffer capture disk (/dev/vdb): 800x480x4 = 1.5 MB; round up to 4 MB.
 rm -f "${FBCAP}"; truncate -s 4M "${FBCAP}"

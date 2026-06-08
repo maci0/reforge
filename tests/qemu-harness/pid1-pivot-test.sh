@@ -103,7 +103,7 @@ esac
 # keeps the actual on-disk footprint small).
 log "baking boot rootfs (${BOOT_IMG}, 1280 MiB to match production p6) ..."
 rm -f "${BOOT_IMG}"
-mke2fs -q -F -t ext4 -L rootfs -d "${BOOTSTAGE}" "${BOOT_IMG}" 1280M
+mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L rootfs -d "${BOOTSTAGE}" "${BOOT_IMG}" 1280M
 
 # ---------------------------------------------------------------------------
 # 2. /data partition (vdb): contains the ReForge install at .mod/.reforge/.
@@ -131,7 +131,7 @@ rm -f "${DATA_IMG}"
 # Production p7 is 12429267 sectors = ~6068 MiB. Use 6068 MiB so the ext4
 # fits inside the p7 slot when dd'd in. Slight under-fill (44 sectors) is
 # harmless; we just have a tiny gap of zeros at the end of the slot.
-mke2fs -q -F -t ext4 -L UDISK -d "${DATASTAGE}" "${DATA_IMG}" 6068M
+mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L UDISK -d "${DATASTAGE}" "${DATA_IMG}" 6068M
 
 # ---------------------------------------------------------------------------
 # 3. Combine into a single eMMC image with production GPT layout.

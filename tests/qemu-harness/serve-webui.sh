@@ -133,7 +133,7 @@ chmod 0755 "${stage}/etc/init.d/S98webui"
 
 log "baking ext4 ..."
 rm -f "${IMG}"
-mke2fs -q -F -t ext4 -L reforge-webui -d "${stage}" "${IMG}" 2048M
+mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L reforge-webui -d "${stage}" "${IMG}" 2048M
 rm -rf "${SCRATCH}"; SCRATCH=""
 
 log "booting qemu (web :${WEB_PORT}->80, moonraker :${MR_PORT}->7125, ssh :${SSH_PORT}->22) ..."

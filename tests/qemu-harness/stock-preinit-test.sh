@@ -132,7 +132,7 @@ WORK="$(mktemp -d)"; trap 'rm -rf "${WORK}"' EXIT
 DATASTAGE="${WORK}/data"; mkdir -p "${DATASTAGE}"
 echo "stock-preinit test /data placeholder" > "${DATASTAGE}/README"
 rm -f "${P7_IMG}"
-mke2fs -q -F -t ext4 -L UDISK -d "${DATASTAGE}" "${P7_IMG}" 6068M
+mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L UDISK -d "${DATASTAGE}" "${P7_IMG}" 6068M
 
 # --- 4. combine into production-shape eMMC ---------------------------------
 log "building production-shape eMMC image (GPT + p1..p7) ..."

@@ -197,14 +197,14 @@ sleep 5
 EOF
 chmod 0755 "${HOSTSTAGE}/sbin/overlay-spike-init"
 rm -f "${P6_IMG}"
-mke2fs -q -F -t ext4 -L rootfs -d "${HOSTSTAGE}" "${P6_IMG}" 1280M
+mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L rootfs -d "${HOSTSTAGE}" "${P6_IMG}" 1280M
 
 # --- p7: a clean /data for the overlay to live on ---
 log "staging p7 (empty /data, overlay workspace) ..."
 DATASTAGE="${WORK}/data"; mkdir -p "${DATASTAGE}"
 echo "overlay spike workspace; populated by spike-init at runtime" > "${DATASTAGE}/README"
 rm -f "${P7_IMG}"
-mke2fs -q -F -t ext4 -L UDISK -d "${DATASTAGE}" "${P7_IMG}" 6068M
+mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L UDISK -d "${DATASTAGE}" "${P7_IMG}" 6068M
 
 # --- combine into production-shape eMMC ---
 log "building production-shape eMMC image ..."

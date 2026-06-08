@@ -204,7 +204,7 @@ chmod 0755 "${stage}/etc/init.d/S98klipota"
 
 log "baking ext4 ..."
 rm -f "${IMG}"
-mke2fs -q -F -t ext4 -L klip-ota -d "${stage}" "${IMG}" 1536M
+mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L klip-ota -d "${stage}" "${IMG}" 1536M
 rm -rf "${SCRATCH}"; SCRATCH=""
 
 # --- boot -------------------------------------------------------------------

@@ -156,7 +156,7 @@ cat > "${USBSTAGE}${E2E_PATH}/release_info.json" <<'EOF'
 { "project_name": "reforge", "project_owner": "maci0", "version": "0.0.1-old", "asset_name": "reforge.zip" }
 EOF
 
-rm -f "${USB_IMG}"; mke2fs -q -F -t ext4 -L reforge-live -d "${USBSTAGE}" "${USB_IMG}" 1843M
+rm -f "${USB_IMG}"; mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L reforge-live -d "${USBSTAGE}" "${USB_IMG}" 1843M
 
 # --- 3. host (eMMC p6): init sets the static IP, then runs the live launcher --
 log "staging the host image (eMMC p6, init -> static IP -> live launcher) ..."
@@ -190,13 +190,13 @@ USB_MNT=/mnt F2FS_DEV=/dev/sda SCREEN_MODE=HEADLESS LIVE_LOG=/dev/console \\
 EOF
 chmod 0755 "${HOSTSTAGE}/sbin/reforge-live-init"
 rm -f "${P6_IMG}"
-mke2fs -q -F -t ext4 -L rootfs -d "${HOSTSTAGE}" "${P6_IMG}" 1280M
+mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L rootfs -d "${HOSTSTAGE}" "${P6_IMG}" 1280M
 
 # --- 4. eMMC p7 (/data stand-in; must stay free of install state) ------------
 DATASTAGE="${WORK}/data"; mkdir -p "${DATASTAGE}/printer_data"
 echo "this is the printer's eMMC /data — live OTA must NOT write it" > "${DATASTAGE}/DO-NOT-TOUCH"
 rm -f "${P7_IMG}"
-mke2fs -q -F -t ext4 -L UDISK -d "${DATASTAGE}" "${P7_IMG}" 6068M
+mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L UDISK -d "${DATASTAGE}" "${P7_IMG}" 6068M
 
 # --- 4b. combine into a single production-shape eMMC image -------------------
 log "building production-shape eMMC image (GPT + p1..p7) ..."

@@ -257,7 +257,7 @@ EOF
     # --- 1g. Bake the staging dir into an ext4 (rootless, no loop mount) ---
     log "  baking ext4 from staging dir via mke2fs -d (no sudo) ..."
     rm -f "${EXT4_IMG}"
-    mke2fs -q -F -t ext4 -L "reforge-render" -d "${MNT_DIR}" "${EXT4_IMG}" 1843M
+    mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L "reforge-render" -d "${MNT_DIR}" "${EXT4_IMG}" 1843M
     rm -rf "${MNT_DIR}" "${UNPACK_DIR}" 2>/dev/null || true
     MNT_DIR=""
     UNPACK_DIR=""

@@ -239,7 +239,7 @@ if [ "${NOSWAP:-0}" = 1 ]; then
 fi
 
 # Bake the staging tree into an ext4 image (rootless, no loop mount).
-mke2fs -q -F -t ext4 -d "${MNT}" "${IMG}" 768M
+mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -d "${MNT}" "${IMG}" 768M
 log "ext4 ready: ${IMG}"
 
 # eMMC disk (the printer's /data, where the overflow swapfile lives)

@@ -348,7 +348,7 @@ EOF
     # --- bake the ext4 (rootless) -------------------------------------------
     log "baking LKG test ext4 via mke2fs -d (no sudo) ..."
     rm -f "${LKG_IMG}"
-    mke2fs -q -F -t ext4 -L ota-lkg -d "${stage}" "${LKG_IMG}" 1024M
+    mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L ota-lkg -d "${stage}" "${LKG_IMG}" 1024M
     rm -rf "${SCRATCH}"; SCRATCH=""
     log "ext4 ready: ${LKG_IMG}"
 
@@ -680,7 +680,7 @@ EOF
 
     log "baking e2e ext4 ..."
     rm -f "${E2E_IMG}"
-    mke2fs -q -F -t ext4 -L ota-e2e -d "${stage}" "${E2E_IMG}" 1536M
+    mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L ota-e2e -d "${stage}" "${E2E_IMG}" 1536M
     rm -rf "${SCRATCH}"; SCRATCH=""
 
     # Boot with a Moonraker port-forward.
