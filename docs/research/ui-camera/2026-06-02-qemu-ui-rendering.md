@@ -68,10 +68,27 @@ tiles, no overlay (1475 distinct colours).
 
 ---
 
-## GuppyScreen — PARKED: stack reaches "ready" but LVGL won't paint
+## GuppyScreen — RESOLVED: renders in qemu (was "LVGL won't paint")
+
+> **Update (2026-06-08): fixed.** Root cause below. `make qemu-guppy` now captures the
+> full GuppyScreen home screen (800×480, ~348 colours) — see
+> `docs/screenshots/guppyscreen-qemu-800x480.png`.
+>
+> `fbdev_init()` (`lv_drivers/display/fbdev.c`) opened `DISPDEV_PATH` (`/dev/disp`, the
+> Allwinner display engine driving the AD5M panel's HW backlight) and **early-`return`ed
+> when it was missing — *before* `mmap`'ing the framebuffer**, so LVGL never got a buffer
+> and the screen stayed black. `/dev/disp` exists only on the real AD5M; under virtio-gpu
+> (and any non-Allwinner panel) it is absent, so init always bailed. Everything below ("fb
+> geometry correct, firmwareExe paints the same fb") was right — the abort was one step
+> earlier, at the `/dev/disp` open, not in the flush. Fix:
+> `br-external/package/guppyscreen/0004-fbdev-optional-disp-device.patch` makes that open
+> non-fatal (we lose only HW backlight/brightness, whose ioctls already no-op on a bad fd).
+> Confirmed by a clean dirclean rebuild: `GUPPYFBDIAG mmap OK`, then it paints.
+
+The original investigation (kept for the record):
 
 `tests/qemu-harness/guppy-render.sh` → `make qemu-guppy`. Output:
-`build/guppy-home.ppm` (currently **blank**).
+`build/guppy-home.ppm` (was **blank**, now rendered).
 
 GuppyScreen talks **Moonraker** (websocket), which talks **klippy** (`/tmp/klippy_uds`).
 With no MCU, real klippy never reaches "ready". `tests/qemu-harness/guppy/fake-klippy.py`

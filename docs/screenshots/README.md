@@ -37,26 +37,26 @@ kernel now carries zram built-in, so `/dev/zram0` is present and the swap activa
 exactly as on the real stock kernel — the stock-built `zram.ko` still vermagic-mismatches and is
 skipped first, then S35zram falls back to the built-in device (see `modules/zram-bsp/`).
 
-## GuppyScreen (ReForge's on-screen UI) — PARKED (renders blank in qemu)
+## GuppyScreen (ReForge's on-screen UI) — renders in qemu
 
-![GuppyScreen in qemu, 800×480](guppyscreen-qemu-800x480.png)
+![GuppyScreen home screen in qemu, 800×480](guppyscreen-qemu-800x480.png)
 
-**Status: not captured — known limitation, parked.** The committed shot is blank (2 colours).
+The GuppyScreen home screen, painted by its native LVGL fbdev backend on the 800×480 virtio-gpu
+panel: nav rail, live Extruder/Bed temperature rows, the temperature graph, and the
+Homing / Extrude / Fans / LED / Print tiles. `tests/qemu-harness/guppy/fake-klippy.py` (a
+Moonraker-grade Klipper API stand-in) drives Moonraker to **ready** with no MCU, so the values
+are live. Reproduce with **`make qemu-guppy`**.
 
-The full stack *does* come up: `tests/qemu-harness/guppy/fake-klippy.py` is a Moonraker-grade
-Klipper API stand-in that completes Moonraker's handshake as **ready** with no MCU. Verified —
-Moonraker reports `klippy_connected:true, klippy_state:"ready", missing_klippy_requirements:[]`
-and GuppyScreen connects, subscribes to the full object set, and logs `done init`. Yet
-GuppyScreen never paints `/dev/fb0` — confirmed by dumping the framebuffer **in-guest** to a
-second disk (genuinely black, so it is *not* a scanout-flush issue; the fb geometry is a correct
-800×480×32). Pushing `process_status_update` events (so Moonraker emits `notify_status_update`)
-did not change it either.
-
-So this is a GuppyScreen **LVGL display-backend** issue under qemu's virtio-gpu, independent of
-the printer-ready simulation. It likely needs real panel hardware or a guppy/LVGL-driver rebuild.
-`make qemu-guppy` is still useful as a **full-stack "ready" rig** for Moonraker/OTA/API testing
-even though the on-screen capture is blank. The reforge-render path (`make qemu-render`) is the
-older non-blank attempt (also blank without a ready klippy).
+**This was parked as "renders blank" for a long time — now fixed.** Root cause: guppyscreen's
+fbdev driver (`lv_drivers/display/fbdev.c`) opened `DISPDEV_PATH` (`/dev/disp`, the Allwinner
+display engine that drives the AD5M panel's HW backlight/brightness) and **early-`return`ed from
+`fbdev_init()` when it was missing — before the framebuffer is `mmap`'d**, so LVGL never received
+a buffer to paint and the screen stayed black. `/dev/disp` exists only on the real AD5M; under
+qemu's virtio-gpu (and any non-Allwinner panel) it is absent, so init always bailed. The geometry
+read was fine all along (`800×480×32`, `line_length=3200`, `smem_len=1536000`) — the abort
+happened one step earlier. Fixed in `br-external/package/guppyscreen/0004-fbdev-optional-disp-device.patch`:
+the `/dev/disp` open is now non-fatal (we lose only HW backlight control, whose ioctls already
+no-op on a bad fd) and guppyscreen renders to `/dev/fb0` everywhere.
 
 ## Stock UI boot phases (`firmwareExe`) under simulated hardware
 
