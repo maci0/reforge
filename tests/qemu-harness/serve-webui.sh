@@ -135,7 +135,7 @@ chmod 0755 "${stage}/etc/init.d/S98webui"
 
 log "baking ext4 ..."
 rm -f "${IMG}"
-mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L reforge-webui -d "${stage}" "${IMG}" 2048M
+mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L reforge-webui -d "${stage}" "${IMG}" 1280M
 emmc_build_p6 "${IMG}"   # production eMMC -> rootfs at /dev/mmcblk0p6 (real-hw device name)
 rm -rf "${SCRATCH}"; SCRATCH=""
 

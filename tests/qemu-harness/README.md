@@ -129,14 +129,16 @@ instead of virtio `vda`:
   kernel can mount it (e2fsprogs ≥ 1.47 defaults that feature on, and 5.4 rejects it).
 
 On the eMMC model: the `live-*` / `pid1-pivot` / `overlayfs-spike` / `stock-preinit` set,
-plus `stockui-realklippy`, `stockui-render`, `serve-webui`, `ota-klipper-e2e`, `shots-capture`.
+plus `stockui-realklippy`, `stockui-render`, `serve-webui`, `shots-capture`.
 
 Deliberately still on virtio (`/dev/vda`): the render/probe rigs that attach a 2nd disk the
 guest addresses as `/dev/vdb` (`mem-probe`, `guppy-render`, `run-qemu`, `ota-test`) — moving
 the rootfs to eMMC would shift that disk to `vda` and need in-guest ref surgery for no
-functional gain — plus `shots-reforge` (its committed screenshots stay cleanest booting its
-own rootfs as root) and `vmtune-bench` (per-mode disk copies). Every `mke2fs` in the suite
-still routes through the `orphan_file`-disable flag regardless.
+functional gain; `shots-reforge` (its committed screenshots stay cleanest booting its own
+rootfs as root); `vmtune-bench` (per-mode disk copies); and `ota-klipper-e2e` (a delicate
+multi-stage OTA test whose pass depends on klippy reaching `klippy_identified` inside a tight
+window — the extra eMMC boot-time variance made it flaky, so it stays on the faster virtio
+boot). Every `mke2fs` in the suite still routes through the `orphan_file`-disable flag.
 
 ## Known limits (honest)
 - **Motion/print sim is opt-in.** Most rigs start klippy with no MCU (`klippy_state` waiting);

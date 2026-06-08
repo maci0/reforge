@@ -33,8 +33,6 @@ set -u
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 BUILD_DIR="${SCRIPT_DIR}/build"
-. "${SCRIPT_DIR}/lib/common.sh"   # mkext4 + emmc deps
-. "${SCRIPT_DIR}/lib/emmc.sh"     # emmc_build_p6 -> EMMC_QEMU_ARGS + EMMC_ROOT
 ZIMAGE="${BUILD_DIR}/zImage"
 ROOTFS="${REPO_ROOT}/build/output/images/rootfs.tar"
 [ -f "${ROOTFS}" ] || ROOTFS="${REPO_ROOT}/build/output/images/rootfs.tar.xz"
@@ -207,17 +205,15 @@ chmod 0755 "${stage}/etc/init.d/S98klipota"
 log "baking ext4 ..."
 rm -f "${IMG}"
 mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L klip-ota -d "${stage}" "${IMG}" 1536M
-emmc_build_p6 "${IMG}"   # production eMMC -> rootfs at /dev/mmcblk0p6 (real-hw name)
 rm -rf "${SCRATCH}"; SCRATCH=""
 
 # --- boot -------------------------------------------------------------------
 rm -f "${SER}"
 log "booting guest (gvproxy net) ..."
-# shellcheck disable=SC2086  # EMMC_QEMU_ARGS is an intentional arg list
 qemu-system-arm -M virt,highmem=off -cpu cortex-a7 -smp 2 -m 128 \
     -kernel "${ZIMAGE}" \
-    -append "console=ttyAMA0,115200 ${EMMC_ROOT} rw rootwait loglevel=4" \
-    ${EMMC_QEMU_ARGS} \
+    -append "console=ttyAMA0,115200 root=/dev/vda rw rootwait loglevel=4" \
+    -drive "file=${IMG},if=virtio,format=raw,cache=writeback" \
     -netdev "socket,id=n0,connect=127.0.0.1:${GV_QEMU_PORT}" \
     -device virtio-net-pci,netdev=n0 \
     -nographic > "${SER}" 2>&1 &
