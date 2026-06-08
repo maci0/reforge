@@ -28,6 +28,8 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 HARNESS_DIR="${REPO_ROOT}/tests/qemu-harness"
 BUILD_DIR="${HARNESS_DIR}/build"
+. "${HARNESS_DIR}/lib/common.sh"   # mkext4 + emmc deps (log/die overridden below)
+. "${HARNESS_DIR}/lib/emmc.sh"     # emmc_build_p6 -> EMMC_QEMU_ARGS + EMMC_ROOT
 SIM_DIR="${HARNESS_DIR}/stockui"
 ZIMAGE="${BUILD_DIR}/zImage"
 GOLDEN="${REPO_ROOT}/tools/recovery/golden.img.gz"
@@ -136,13 +138,15 @@ fi
 pkill -9 -u "$(id -u)" qemu-system-arm 2>/dev/null || true
 sleep 1
 rm -f "${MON}" "${SHOT}" "${SER}"
+emmc_build_p6 "${IMG}"   # wrap the stock rootfs in a production eMMC -> /dev/mmcblk0p6
 log "booting qemu (MEM=${MEM} MiB, settle=${SETTLE}s, no sudo) ..."
+# shellcheck disable=SC2086  # EMMC_QEMU_ARGS is an intentional arg list
 qemu-system-arm -M virt,highmem=off -cpu cortex-a7 -m "${MEM}" \
     -kernel "${ZIMAGE}" \
-    -append "console=ttyAMA0,115200 loglevel=4 root=/dev/vda rw rootwait" \
+    -append "console=ttyAMA0,115200 loglevel=4 ${EMMC_ROOT} rw rootwait" \
     -display none -monitor "unix:${MON},server,nowait" -serial file:"${SER}" \
     -device virtio-gpu-pci,xres=800,yres=480 -device virtio-keyboard-pci \
-    -drive "file=${IMG},if=virtio,format=raw,cache=writeback" \
+    ${EMMC_QEMU_ARGS} \
     -netdev user,id=net0 -device virtio-net-pci,netdev=net0 >/dev/null 2>&1 &
 QP=$!
 trap 'kill -9 "${QP}" 2>/dev/null || true' EXIT

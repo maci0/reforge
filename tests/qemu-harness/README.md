@@ -117,9 +117,32 @@ default NIC causes routing conflicts where TCP connects but HTTP hangs.)
 - `extract-stock-rootfs.sh`, `run-qemu.sh`, `update-process-test.sh` — see above.
 - `build/` — all build artifacts (zImage, ext4 images, logs). **gitignored.**
 
+## Storage device names (real-hw fidelity)
+
+Harness storage is built through `lib/` so tests model the real eMMC/USB device names
+instead of virtio `vda`:
+- `lib/emmc.sh` — `emmc_build` / `emmc_build_p6` wrap a rootfs (+ optional `/data`) in a
+  production-shape GPT eMMC via `lib/build-emmc-image.sh`, so it enumerates as
+  **`/dev/mmcblk0p1..p7`** (boot `${EMMC_ROOT}` = `/dev/mmcblk0p6`) exactly like the onboard
+  eMMC; `usb_args` attaches the live USB as **`/dev/sda`**.
+- `lib/common.sh` — `mkext4` builds ext4 with `orphan_file` disabled so the BSP 5.4 guest
+  kernel can mount it (e2fsprogs ≥ 1.47 defaults that feature on, and 5.4 rejects it).
+
+On the eMMC model: the `live-*` / `pid1-pivot` / `overlayfs-spike` / `stock-preinit` set,
+plus `stockui-realklippy`, `stockui-render`, `serve-webui`, `ota-klipper-e2e`, `shots-capture`.
+
+Deliberately still on virtio (`/dev/vda`): the render/probe rigs that attach a 2nd disk the
+guest addresses as `/dev/vdb` (`mem-probe`, `guppy-render`, `run-qemu`, `ota-test`) — moving
+the rootfs to eMMC would shift that disk to `vda` and need in-guest ref surgery for no
+functional gain — plus `shots-reforge` (its committed screenshots stay cleanest booting its
+own rootfs as root) and `vmtune-bench` (per-mode disk copies). Every `mke2fs` in the suite
+still routes through the `orphan_file`-disable flag regardless.
+
 ## Known limits (honest)
-- **No motion/print sim.** klippy starts but has no MCU; `klippy_state` is `error`/waiting.
-  The harness proves install, boot, web stack, GUI render, and GUI↔klippy *connect* — not motion.
+- **Motion/print sim is opt-in.** Most rigs start klippy with no MCU (`klippy_state` waiting);
+  the dedicated `stockui-realklippy` rig runs real klippy against a Linux **host MCU** and
+  reaches `ready` (both MCUs configured), driving the stock UI. Full motion/print is still
+  out of scope.
 - Stock-firmware *full* boot under qemu is out of scope (needs the T113 machine model);
   the update test installs via filesystem ops + boots the ReForge stack instead.
 </content>

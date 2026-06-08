@@ -17,6 +17,8 @@ set -u
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 BUILD_DIR="${SCRIPT_DIR}/build"
+. "${SCRIPT_DIR}/lib/common.sh"   # mkext4 + emmc deps
+. "${SCRIPT_DIR}/lib/emmc.sh"     # emmc_build_p6 -> EMMC_QEMU_ARGS + EMMC_ROOT
 ZIMAGE="${BUILD_DIR}/zImage"
 ROOTFS="${REPO_ROOT}/build/output/images/rootfs.tar"
 [ -f "${ROOTFS}" ] || ROOTFS="${REPO_ROOT}/build/output/images/rootfs.tar.xz"
@@ -134,14 +136,16 @@ chmod 0755 "${stage}/etc/init.d/S98webui"
 log "baking ext4 ..."
 rm -f "${IMG}"
 mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -L reforge-webui -d "${stage}" "${IMG}" 2048M
+emmc_build_p6 "${IMG}"   # production eMMC -> rootfs at /dev/mmcblk0p6 (real-hw device name)
 rm -rf "${SCRATCH}"; SCRATCH=""
 
 log "booting qemu (web :${WEB_PORT}->80, moonraker :${MR_PORT}->7125, ssh :${SSH_PORT}->22) ..."
 rm -f "${SER}"
+# shellcheck disable=SC2086  # EMMC_QEMU_ARGS is an intentional arg list
 setsid qemu-system-arm -M virt,highmem=off -cpu cortex-a7 -smp 4 -m 512 \
     -kernel "${ZIMAGE}" \
-    -append "console=ttyAMA0,115200 root=/dev/vda rw rootwait loglevel=4" \
-    -drive "file=${IMG},if=virtio,format=raw,cache=writeback" \
+    -append "console=ttyAMA0,115200 ${EMMC_ROOT} rw rootwait loglevel=4" \
+    ${EMMC_QEMU_ARGS} \
     -netdev "user,id=n0,hostfwd=tcp:127.0.0.1:${WEB_PORT}-:80,hostfwd=tcp:127.0.0.1:${MR_PORT}-:7125,hostfwd=tcp:127.0.0.1:${SSH_PORT}-:22,hostfwd=tcp:127.0.0.1:${CAM_PORT}-:${CAM_PORT}" \
     -device virtio-net-pci,netdev=n0 \
     -nographic > "${SER}" 2>&1 &
