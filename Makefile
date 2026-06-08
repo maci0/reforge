@@ -3,7 +3,7 @@ BUILD := tools/build/build.sh
         run-from-mod \
         bsp-kernel-rebuild bsp-kernel-stock \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
-        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-guppy qemu-live qemu-live-ota qemu-pid1-pivot qemu-stock-preinit qemu-mem qemu-ota shots-reforge vmtune-bench
+        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-stockui-real qemu-guppy qemu-live qemu-live-ota qemu-pid1-pivot qemu-stock-preinit qemu-mem qemu-ota shots-reforge vmtune-bench
 # lint: shellcheck our own shell scripts (skips cleanly if shellcheck absent)
 lint:              ; tools/lint/shellcheck.sh
 # Single image: `make rootfs` builds the full ReForge stack (klipper + moonraker
@@ -89,6 +89,7 @@ qemu-render:       ; tests/qemu-harness/reforge-render-test.sh
 # reaches its home screen.  Fully ROOTLESS (no sudo): debugfs inject + GPT-offset
 # slice + unprivileged qemu.  Output: build/stockui-home.ppm (gitignored).
 qemu-stockui:      ; tests/qemu-harness/stockui-render.sh
+qemu-stockui-real: ; tests/qemu-harness/stockui-realklippy-test.sh
 qemu-live:         ; tests/qemu-harness/live-mode-test.sh
 qemu-live-ota:     ; tests/qemu-harness/live-ota-test.sh
 # qemu-pid1-pivot: validate the reforge-init PID-1 + pivot_root flow

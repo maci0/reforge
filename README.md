@@ -7,6 +7,13 @@ kernel today and a mainline kernel + self-ported T113 display driver later.
 
 ![ReForge bootsplash](docs/screenshots/reforge-bootsplash.png)
 
+The **stock FlashForge touch UI runs unmodified on ReForge's own upstream Klipper** —
+`firmwareExe` is a standard Klipper `api_server` client, so it drives our Klipper over the
+shared socket with no proprietary protocol. Proven end-to-end in qemu (`make qemu-stockui-real`):
+real Klipper reaches `ready` on a Linux host MCU, the stock home screen renders against it.
+
+![Stock FlashForge UI driven by ReForge's upstream Klipper, in qemu](docs/screenshots/stockui-on-real-klippy-800x480.png)
+
 (See [`docs/screenshots/`](docs/screenshots/README.md) for the boot console + on-screen UI.)
 
 > **Status:** core stack builds, boots, and serves Moonraker live under qemu (no device

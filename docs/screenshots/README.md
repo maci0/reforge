@@ -118,3 +118,24 @@ Reproduce with **`make qemu-stockui`** (fully rootless — debugfs inject + GPT-
 Booting the same stock base with **no** MCU sim stops at firmwareExe's
 **"No detected eboard mcu."** modal (gate 1 unmet) — the green/white dialog that motivated the
 simulation above. Full works/breaks analysis: `docs/research/ui-camera/2026-06-01-stock-ui-spike.md`.
+
+## Stock UI on ReForge's REAL Klipper — full stack, no fake-klippy
+
+![Stock FlashForge UI driven by ReForge's upstream Klipper, in qemu](stockui-on-real-klippy-800x480.png)
+
+The same stock home screen, but driven by **ReForge's actual upstream Klipper** instead of the
+`fake-klippy.py` stand-in used above. `firmwareExe` is a standard Klipper `api_server` client
+(0x03-framed JSON over `/tmp/uds`), so it speaks to real klippy with no proprietary protocol. The
+harness (`tests/qemu-harness/stockui-realklippy-test.sh`, **`make qemu-stockui-real`**) boots the
+production storage layout — stock rootfs on eMMC **p6**, the ReForge rootfs at its real install path
+`/data/.mod/.reforge` on **p7** — bind-mounts it at `/reforge`, chroots, and runs real klippy plus
+two Linux **host-MCU** sims on `/tmp/uds` (shared via the `/tmp` bind): exactly the production
+STOCK_UI model. Klipper reaches **ready** (both MCUs configured, periodic `Stats` heartbeats) and
+the stock UI renders its home screen against it — the 0 °C nozzle/bed panels are fed by real klippy
+on the host MCU.
+
+This was the first harness to exercise the real Python stack end-to-end, and it surfaced that the
+shipped rootfs Python had **no usable standard library** (a `*.pyc` scrub in `post-build.sh` also
+took out `/usr/lib/python*`), which would have left klippy *and* moonraker unable to start on
+hardware. Fixed, and now gated in CI via `make integration` (klippy `--import-test` + live moonraker
+API), which the framebuffer-only smokes never caught.

@@ -151,8 +151,15 @@ for _ in $(seq 1 20); do [ -S "${MON}" ] && break; sleep 1; done
 [ -S "${MON}" ] || die "qemu monitor socket never appeared"
 sleep "${SETTLE}"
 
-# dismiss firmwareExe's one-time qemu restart modal (E0120) — focused Ok button
-printf 'sendkey ret\n' | socat - "unix-connect:${MON}" >/dev/null 2>&1 || true
+# dismiss firmwareExe's one-time restart modal (E0120). The modal pops when
+# firmwareExe sees klippy do its initial firmware_restart, i.e. AFTER settle, so
+# press the focused Ok a few times across the likely key bindings.
+for _ in 1 2 3; do
+    for k in ret kp_enter spc; do
+        printf 'sendkey %s\n' "$k" | socat - "unix-connect:${MON}" >/dev/null 2>&1 || true
+        sleep 0.4
+    done
+done
 sleep 3
 
 log "screendump -> ${SHOT}"
