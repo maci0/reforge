@@ -56,6 +56,26 @@ qrun() {
         "$QEMU" "$@"
 }
 
+# ── Mandatory python-stack import gate (runs on EVERY path) ──────────────────
+# Catches a broken interpreter / stripped stdlib / missing C-extension BEFORE the
+# live-API probe below, which short-circuits with `exit 0` on success and would
+# otherwise skip these. This is the check that catches the class of bug where the
+# rootfs ships a Python that can't import its own stdlib (e.g. a *.pyc scrub that
+# also took out /usr/lib/python*), leaving klippy + moonraker unable to start.
+echo "[1b/5] python-stack import gate (interpreter + klippy --import-test + moonraker)..."
+qrun "$ROOT/usr/bin/python3" -c "import encodings, greenlet, cffi" \
+    || { echo "FAIL: python interpreter/stdlib broken (encodings/greenlet/cffi import)"; exit 1; }
+echo "      OK: interpreter imports encodings + greenlet + cffi"
+_klippy_imp_rc=0
+qrun "$ROOT/usr/bin/python3" "$ROOT/opt/klipper/klippy/klippy.py" --import-test \
+    > "$NTMP/klippy-import-gate.txt" 2>&1 || _klippy_imp_rc=$?
+[ "$_klippy_imp_rc" = 0 ] \
+    || { echo "FAIL: klippy --import-test (rc=$_klippy_imp_rc)"; cat "$NTMP/klippy-import-gate.txt"; exit 1; }
+echo "      OK: klippy --import-test passed"
+qrun "$ROOT/usr/bin/python3" -c "import sys; sys.path.insert(0,'$ROOT/opt/moonraker'); import moonraker" \
+    || { echo "FAIL: moonraker import failed"; exit 1; }
+echo "      OK: moonraker imports"
+
 # ── FULL_API probe ────────────────────────────────────────────────────────────
 # Attempt to start Moonraker under qemu-user. If it binds :7125 within 60s →
 # FULL_API=1. We expect this to fail (ARM Python lacks _ssl) → FULL_API=0.
