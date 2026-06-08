@@ -87,6 +87,12 @@ BR2_PACKAGE_USTREAMER=y
 # ---------------------------------------------------------------------------
 # Single shared interpreter for klippy + moonraker (COW page sharing)
 BR2_PACKAGE_PYTHON3=y
+# Ship the .py stdlib (source + .pyc). The Buildroot default PYC_ONLY produces a
+# stdlib-LESS python with python 3.14.x (the .pyc step yields nothing), so
+# /usr/bin/python3 can't import `encodings` and klippy/moonraker fail to start
+# ("LookupError: no codec search functions registered"). PY_PYC keeps the source
+# so the interpreter is functional regardless of the pyc bug.
+BR2_PACKAGE_PYTHON3_PY_PYC=y
 # Core Python stdlib modules required by klippy (zlib used by msgproto.py/json)
 BR2_PACKAGE_PYTHON3_ZLIB=y
 BR2_PACKAGE_PYTHON3_SSL=y

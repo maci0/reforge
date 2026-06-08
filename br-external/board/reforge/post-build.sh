@@ -289,7 +289,13 @@ rm -f "${TARGET_DIR}/etc/init.d/S40iwd.disabled"
 # would still mismatch the device. Safer to remove and let on-device runtime
 # regenerate.
 # ---------------------------------------------------------------------------
-echo "[post-build] scrubbing __pycache__ + *.pyc from rootfs ..."
-find "${TARGET_DIR}" -depth -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true
-find "${TARGET_DIR}" -name '*.pyc' -delete 2>/dev/null || true
-find "${TARGET_DIR}" -name '*.pyo' -delete 2>/dev/null || true
+# IMPORTANT: scope this to the OVERLAY/app trees only. It must NOT touch the
+# Python *stdlib* under /usr/lib/python*/: with BR2_PACKAGE_PYTHON3_PYC_ONLY
+# (Buildroot default) the stdlib ships as .pyc, so a blanket *.pyc delete here
+# removes the entire standard library — `python3` then can't import `encodings`
+# and klippy/moonraker fail to start ("no codec search functions registered").
+echo "[post-build] scrubbing stale overlay __pycache__ + *.pyc (NOT the stdlib) ..."
+find "${TARGET_DIR}" -depth -name __pycache__ -type d \
+    -not -path "${TARGET_DIR}/usr/lib/python*" -exec rm -rf {} + 2>/dev/null || true
+find "${TARGET_DIR}" \( -name '*.pyc' -o -name '*.pyo' \) \
+    -not -path "${TARGET_DIR}/usr/lib/python*" -delete 2>/dev/null || true
