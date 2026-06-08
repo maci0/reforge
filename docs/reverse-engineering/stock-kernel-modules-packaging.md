@@ -228,13 +228,16 @@ The `comp_dir` path reveals the build environment FF used:
 /home/linux/work/hard_t113/T113-Linux-Auto-v1.1/out/kernel/build
 └─ user: linux
 └─ workspace: hard_t113
-└─ SDK: T113-Linux-Auto-v1.1     ← Allwinner's "T113 Linux Automotive SDK" v1.1
+└─ SDK: T113-Linux-Auto-v1.1     ← Tina SDK, "Auto" = the eMMC-boot board template
 └─ build dir: out/kernel/build
 ```
 
-"T113-Linux-Auto" is the Allwinner-internal name for the T113 platform's
-"Auto" (automotive) Tina derivative — a Tina SDK variant tuned for in-vehicle
-infotainment / automotive Linux use cases. It carries the same kernel base
+> **Correction (see [`stock-kernel-byte-identical-build.md`](stock-kernel-byte-identical-build.md) §9.1):**
+> "Auto" here is **not** "automotive". It is the Allwinner Tina board template
+> name (`evb1_auto`) — the **eMMC-boot** configuration of the T113 EVB — not an
+> automotive-Linux SDK variant. The earlier "automotive" reading below is
+> superseded; keep it only as the original transcription. It carries the same
+> kernel base
 (`iLotusK9/linux_kernel_aw_t113`-equivalent BSP) plus an "Auto" overlay that
 adds the `drivers/staging/rtl8821cu/` source tree and friends (`platform/framework/auto/kernel/xr829/` etc., as seen in the `xr829.ko` `comp_dir`).
 

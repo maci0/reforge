@@ -79,18 +79,15 @@ pending the next trial.
 
 ## immutable / atomic ReForge — OverlayFS2 (or similar) for transactional updates and true Mode 1 live
 
-**Status (2026-06-05):** spike complete — see
-[`docs/research/kernel/2026-06-05-overlayfs-on-bsp-spike.md`](research/kernel/2026-06-05-overlayfs-on-bsp-spike.md).
-All five open questions below are answered. OverlayFS builds clean as a 122 KB
-loadable module from the vanilla BSP source, mounts with correct semantics, and
-costs ~192 KiB MemAvailable per mount on the test rig — well inside our budget.
-The direction can be elevated from "parked" to a concrete implementation plan;
-proposed next-step delivered as [`docs/plans/2026-06-05-immutable-reforge.md`](plans/2026-06-05-immutable-reforge.md), covering the
-versioned-overlay layout + atomic install/OTA/rollback path + true-Mode-1 live
-with `lowerdir=/data + upperdir=tmpfs`.
-
-A future architectural direction worth investigating, parking here for design /
-prior-art work before any implementation.
+**Status (2026-06-05): SUPERSEDED — promoted to a plan.** The spike is complete
+([`docs/research/kernel/2026-06-05-overlayfs-on-bsp-spike.md`](research/kernel/2026-06-05-overlayfs-on-bsp-spike.md))
+and this parked idea is now a concrete plan,
+[`docs/plans/2026-06-05-immutable-reforge.md`](plans/2026-06-05-immutable-reforge.md) — the
+**canonical source** (its §7 explicitly supersedes this entry). OverlayFS builds clean as a
+**~108 KB** loadable module (~90 KB resident) from the vanilla BSP source, mounts with correct
+semantics, and costs ~192 KiB MemAvailable per mount. The `/reforge` mountpoint the merged view
+attaches to already landed in `reforge-boot` (2026-06-07). The notes below are retained as the
+original parked design context.
 
 **Two motivations, one substrate:**
 
@@ -245,11 +242,16 @@ script). Reduce reliance on the original rootfs:
 - Optional: `pivot_root` inside a private mount namespace (`unshare -m`) for cleaner
   isolation than `chroot`.
 
-NOT `switch_root`: we are not PID1 (stock init launches us late via `auto_run`, with the
-panel UI + many stock procs already running), `switch_root` is an initramfs-era tool that
-would tear down the running stock system, and it wouldn't change the (stock) kernel or the
-vermagic-locked driver anyway. Brick-safety comes precisely from being a non-invasive
-guest under stock init (pull USB → pristine stock). Raised 2026-06-02.
+NOT `switch_root` **for live / Mode 2**: we are not PID1 (stock init launches us late via
+`auto_run`, with the panel UI + many stock procs already running), `switch_root` is an
+initramfs-era tool that would tear down the running stock system, and it wouldn't change the
+(stock) kernel or the vermagic-locked driver anyway. Brick-safety comes precisely from being a
+non-invasive guest under stock init (pull USB → pristine stock). Raised 2026-06-02.
+
+> **Update 2026-06-08:** `switch_root` *is* on the table for the **Mode 3** (own-kernel/PID1)
+> path — distinct from the non-invasive live/Mode-2 guest above. Groundwork has started: the
+> `/reforge` bind-mount seam in `reforge-boot` (the future pivot target) and the staged `dinit`
+> package + `etc/dinit.d/` services (the future PID-1 init). See the dedicated entry below.
 
 ## forge-x: one shared python for klippy + moonraker (drop the 2nd interpreter's RSS) — CLOSED (negative)
 
@@ -339,3 +341,24 @@ without re-flashing every device.
 
 Tracked here so the OTA design (`docs/specs/2026-06-01-reforge-ota-design.md`)
 gets revisited when this is scheduled. Not blocking; current OTA works.
+
+## wire dinit as the Mode 3 switch_root PID 1
+
+**Status (2026-06-08): groundwork landed, wiring pending.** Building toward
+replacing the busybox-init + sequential `/mod/start.sh` S-loop with a real
+supervised init for the own-kernel (Mode 3) path. Already in-tree:
+
+- `dinit` 0.22.0 package (`br-external/package/dinit/`, `BR2_PACKAGE_DINIT=y`) —
+  binaries shipped, no service definitions wired.
+- Staged service descriptions (`…/rootfs-overlay/etc/dinit.d/{boot,prepare,
+  cloudblock,zram,eboard,klipper,moonraker,httpd,camera,guppyscreen,ok}`) +
+  `tests/release/dinit-services-test.sh` (in `make unit`). Inert today.
+- The `/reforge` bind-mount seam in `reforge-boot` (the future pivot target).
+
+Remaining: a PID-1 entry (`sbin/reforge-init` is staged, not wired) that
+`switch_root`s into `/reforge` and `exec`s `dinit`; the chroot→pivot handoff;
+and moving the conditional camera/guppyscreen into the boot target under a
+`SCREEN_MODE` selector. Gated on the own-kernel work (Plan 5) — until ReForge
+ships its own kernel, the non-invasive chroot guest stays the shipping model.
+Refs: [`docs/research/kernel/2026-06-05-replacing-pid1.md`](research/kernel/2026-06-05-replacing-pid1.md),
+`…/etc/dinit.d/README.md`.

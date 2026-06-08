@@ -1,7 +1,9 @@
 # ReForge OTA / updates
 
-> **Status: implemented.** SimpleProvider patch applied to the shipped Moonraker
-> (`br-external/package/moonraker/0001-add-simple-service-provider.patch`); five
+> **Status: implemented.** Two Moonraker patches applied to the shipped Moonraker:
+> `0001-add-simple-service-provider.patch` (SimpleProvider) +
+> `0002-zip-updater-for-reserved-apps.patch` (enables `type: zip` updates for the
+> reserved klipper/moonraker app names the table below relies on); five
 > `[update_manager <component>]` blocks configured in
 > `etc/reforge/moonraker.conf` (`provider: simple` for klipper/moonraker/
 > guppyscreen/reforge; `type: web` for mainsail; `enable_auto_refresh: False`);

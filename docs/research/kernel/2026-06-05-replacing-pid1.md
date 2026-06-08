@@ -288,3 +288,7 @@ For our roadmap, the sequence is:
   to use `auto_run.sh` -> `flashforge_init.sh` (the bare-script path #2 in
   the FW-upgrade-mechanisms doc) for the foreseeable future. The two
   hooks are independent.
+
+## Update 2026-06-08
+
+Two changes since this snapshot: (1) the chroot now roots at `/reforge` (a bind of `/data/.mod/.reforge`), which is the intended `switch_root` pivot target; (2) a `dinit` 0.22.0 package + staged `etc/dinit.d/` services were added as the PID-1 init candidate (binaries only, not yet wired). dinit is now the leading option over the busybox-init / systemd-reexec paths discussed here.

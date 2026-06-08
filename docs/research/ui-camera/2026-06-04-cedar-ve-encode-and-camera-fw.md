@@ -86,3 +86,7 @@ H.264. Full detail: [`../../lab/venc-vendor/FINDINGS.md`](../../../lab/venc-vend
 **JPEG/MJPEG**, which works; and the camera is MJPEG-native, so the HW-supported camera path
 is MJPEG (passthrough today — see
 [`2026-06-03-camera-streaming-options.md`](2026-06-03-camera-streaming-options.md)).
+
+## Update 2026-06-08
+
+The intro / "(b) the pipeline RUNS" framing was the in-progress view. The **RESOLVED** section is the final answer and is canonical: the T113-S3 has **NO** H.264 hardware encoder (JPEG/MJPEG only).

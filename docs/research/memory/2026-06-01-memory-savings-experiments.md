@@ -131,3 +131,7 @@ disabled** — the win is avoiding `git` in the image, not the 0.6 MB. (Probe tw
 - Thumb-2 affects **userspace only** here; the stock-kernel zram .ko keep their ARM-mode
   vermagic. Validate guppyscreen/klipper still run after the Thumb-2 rebuild (NEON chelper
   builds Thumb-2-compatible with `-mcpu=cortex-a7`).
+
+## Update 2026-06-08
+
+Production reverted **klippy** to glibc malloc (NO jemalloc): on real hardware jemalloc's LD_PRELOAD corrupts klippy's NEON `c_helper.so` heap (`free(): invalid size` abort). jemalloc is kept for **moonraker** (+ guppyscreen) only. The whole-stack-jemalloc conclusion in this snapshot applies to moonraker/guppyscreen, not klippy. See `etc/init.d/S60klipper` + `docs/boot.md`.

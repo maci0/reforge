@@ -191,3 +191,7 @@ So the harness proves: install flow, boot, web stack, GUI render, and GUI↔klip
 
 Measured-from-device fact baked into §4a: panel `800×480×32`, virtual `800×960`, mode `800x480p-67`.
 </content>
+
+## Update 2026-06-08
+
+The boot model has since moved from "mount over /data, chroot /data/.mod/.reforge" to a `/reforge` bind-mount seam: the rootfs is bind-mounted at `/reforge` and chrooted there (shared `reforge-chroot.sh` helper, used by both install and live), staging for a future switch_root. The installer also now does `mkdir ${DATA}/.mod` before the atomic rename. See `docs/boot.md` §7 and `docs/live-mode.md`.

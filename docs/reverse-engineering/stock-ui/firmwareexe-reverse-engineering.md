@@ -208,8 +208,10 @@ display/GPIO via `/sys/class/gpio/gpio203` + `dispdbg setbl`; packaging `tar -xv
 
 ## 8. Security findings (relevant to ReForge)
 
-1. **Embedded RSA private key** (2048-bit PEM) baked into the binary, plus a `ws.cloud.flashforge.com`
-   TLS leaf cert. Same across all units.
+1. **Embedded RSA private key** (2048-bit PEM) baked into the binary. (An earlier note here
+   also claimed an embedded `ws.cloud.flashforge.com` TLS leaf cert "same across all units";
+   the crypto deep-dive did **not** confirm that leaf cert — treat it as unconfirmed. See
+   [`firmwareexe-lan-protocol-and-crypto.md`](firmwareexe-lan-protocol-and-crypto.md).)
 2. **Hardcoded zip password `FFP0286&*%root`** (log/data archive encryption) — static across units.
 3. **`curl -k`** (TLS verification disabled) on an `authToken:`-bearing POST → MITM risk.
 4. **Hardcoded internal/dev hosts left in production:** `10.33.11.172:32112`, `10.33.23.222` update

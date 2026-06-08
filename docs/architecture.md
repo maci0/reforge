@@ -98,7 +98,7 @@ the static SPA, so there's no reverse proxy (nginx removed, ~3 MB saved).
 | concern | path | doc |
 |---|---|---|
 | firmware (Buildroot external tree) | `br-external/` | [build process](build-process.md) |
-| kernel modules (zram; later display) | `modules/` | `modules/zram-bsp/README.md` |
+| kernel modules (zram · f2fs · overlay; later display) | `modules/` (zram-bsp, f2fs-bsp, overlay-bsp) | `modules/zram-bsp/README.md` |
 | packaging (USB `.tgz`) | `packaging/` | — |
 | boot hook + overlay | `br-external/board/reforge/rootfs-overlay/` | [boot](boot.md) |
 | updates | Moonraker zip/web updaters + CI release tooling (shipped) | [OTA](ota.md) |

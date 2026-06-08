@@ -351,3 +351,7 @@ The plan is "done" when:
 I'm ready to start phase 1 (substrate + fresh-install path) on your sign-off. Phase 1 is self-contained: it ships the overlay.ko + the new fresh-install layout, with a fallback path that lets existing devices keep working unchanged. The upgrade/OTA/live paths come in phases 2 and 3, each independently mergeable.
 
 Want me to start phase 1, or hold for a different design pass first?
+
+## Update 2026-06-08
+
+The `/reforge` bind-mount seam this plan's overlay merged-view attaches to landed in `reforge-boot` (2026-06-07): the rootfs is bind-mounted at `/reforge` and chrooted there (shared `.shell/reforge-chroot.sh`). The overlay step should mount the merged view at `/reforge` — the established seam — not a fresh `/data/.mod/.reforge/merged` chroot. `sbin/reforge-init` + the pid1-pivot harness referenced here remain staged (not wired). A `dinit` 0.22.0 package + `etc/dinit.d/` services were also added as the switch_root-PID1 building block.

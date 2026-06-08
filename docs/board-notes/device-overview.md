@@ -39,6 +39,10 @@ Top-level map of the FlashForge Adventurer 5M Pro hardware/software stack (this 
 - `../../lab/ve-kmod/` — VE/IOMMU/MBUS diagnostic kernel module.
 
 ## Consolidated security findings (stock firmware)
+
+*Abbreviated digest — the canonical set of **15** findings is
+[`../security-findings.md`](../security-findings.md) (keep that in sync; this is a summary).*
+
 1. **Unsigned OTA** (MD5-only) → root RCE via in-package `run.sh`; dev HTTP update server shipped.
 2. **Unauthenticated LAN**: raw TCP 8899 (take-control + arbitrary gcode upload/print + identity
    leak), UDP discovery 225.0.0.9 (cleartext serial/MAC/IP/cloud-bind).

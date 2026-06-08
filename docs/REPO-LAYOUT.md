@@ -59,7 +59,7 @@ manually only for fallback/porting diffs. See `vendor/README.md`.
 
 | path | what |
 |---|---|
-| `lab/spike-stockui/` | Stock-UI feasibility spike scripts. Finding promoted to `docs/research/ui-camera/stock-ui-spike.md`. |
+| `lab/spike-stockui/` | Stock-UI feasibility spike scripts. Finding promoted to `docs/research/ui-camera/2026-06-01-stock-ui-spike.md`. |
 | `lab/scratch/` | Loose junk. Gitignored. |
 
 ## Transient build output (gitignored in place — not committed)

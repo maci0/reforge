@@ -142,3 +142,7 @@ the upside and confirm no purge-latency regression before/with `background_threa
   `S65moonraker`, `S75guppyscreen` (replacing/alongside `MALLOC_ARENA_MAX`, which jemalloc
   ignores). Update `docs/research/memory/2026-06-01-memory-savings-experiments.md`.
 - Consider a forge-x PR too (forge-x also runs glibc moonraker/guppyscreen) if the win holds.
+
+## Update 2026-06-08
+
+Production reverted **klippy** to glibc malloc (NO jemalloc): on real hardware jemalloc's LD_PRELOAD corrupts klippy's NEON `c_helper.so` heap (`free(): invalid size` abort). jemalloc is kept for **moonraker** (+ guppyscreen) only. The whole-stack-jemalloc conclusion in this snapshot applies to moonraker/guppyscreen, not klippy. See `etc/init.d/S60klipper` + `docs/boot.md`.

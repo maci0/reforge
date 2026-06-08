@@ -11,8 +11,8 @@ RAM). The sensor (`U0AS01A-0`, `ab20:1276`) emits MJPG natively, so `input_uvc.s
 JPEG frames as-is and `output_http.so` serves them as `multipart/x-mixed-replace`.
 
 This is the natural path because the **T113-S3 has no H.264 hardware encoder** (only JPEG/MJPEG
-— see [../reverse-engineering/stock-ui/firmwareexe-ota-update.md] and
-[../../lab/venc-vendor/FINDINGS.md]); any H.264 would force an MJPEG-decode→x264-**software**
+— see [the cedar-VE encode investigation](../research/ui-camera/2026-06-04-cedar-ve-encode-and-camera-fw.md)
+and [`lab/venc-vendor/FINDINGS.md`](../../lab/venc-vendor/FINDINGS.md)); any H.264 would force an MJPEG-decode→x264-**software**
 round-trip on the dual-A7. So forge-x just forwards the MJPEG.
 
 ## Source

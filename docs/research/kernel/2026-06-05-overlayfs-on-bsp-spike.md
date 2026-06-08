@@ -250,3 +250,7 @@ Captured here so they don't get lost:
 - [ ] **f2fs-as-lower** verify. Live mode's USB stick is f2fs. Overlay should be upper-layer-agnostic but worth a single qemu run to confirm.
 - [ ] **Cold-read amplification at klippy startup** measurement — does pulling klippy.cfg through an overlay layer slow klippy reach-ready by a measurable amount on the 128 MB box?
 - [ ] **Mode-3 design alignment doc** — once Plan 5 has a concrete kernel target, add a one-page note that the immutable design carries over with `=y` instead of `=m` and no other changes.
+
+## Update 2026-06-08
+
+The ReForge chroot has since moved to a dedicated `/reforge` mountpoint (was `/data/.mod/.reforge` directly). The versioned-overlay layout in this note maps to `/reforge/...`; the merged view should mount at `/reforge` — the seam now present in `reforge-boot`.

@@ -42,11 +42,13 @@ ReForge's live launcher (`packaging/live/flashforge_init.sh`) uses that hook. It
 2. **finds the sibling F2FS partition** on the same USB stick (by label
    `reforge-live` via `blkid`, falling back to deriving p2 from p1's device path,
    falling back to an F2FS-magic scan of `/dev/sd?[2-4]`) and **mounts it directly
-   as a real block device** as the chroot root. No loop driver, no loop file: the
-   rootfs is just partition 2.
-3. binds `proc`/`sys`/`dev`/`run` + a **tmpfs `/data`** into the chroot — the
-   install path binds the eMMC `/data` (mmcblk0p7); live mode uses tmpfs so **no
-   eMMC partition is touched**.
+   as a real block device** at `/reforge` (the chroot root). No loop driver, no loop
+   file: the rootfs is just partition 2.
+3. sets up the chroot mounts via the shared `reforge-chroot.sh` helper — binds
+   `proc`/`sys`/`dev`/`run` + a **fresh tmpfs `/tmp`** into `/reforge`, and binds the
+   eMMC `/data` (mmcblk0p7) in so gcode uploads persist (same as install mode). The
+   only eMMC write is the one-time `mkdir /reforge` on the stock p6 rootfs; **p7 is
+   untouched**.
 4. **boots the toolhead "eboard" MCU** (`chroot … /usr/bin/reforge-boot-eboard`) —
    right here, before banner/network/stack. The eboard (`/dev/ttyS1`) waits in a
    serial bootloader for an `A` (0x41) before starting its Klipper app; without this
@@ -208,8 +210,9 @@ Findings from the trial — **all three since resolved** (same day):
 - The USB must stay inserted — it *is* the rootfs; running from USB is slower than eMMC.
 - The stock UI (`firmwareExe`) does not run — live mode runs ReForge's GuppyScreen /
   headless. That's the point.
-- `/data` is tmpfs (ephemeral). Persistent live state across reboots is a future
-  option (a writable dir on the FAT stick).
+- `/data` inside the chroot is the **real eMMC p7** (bound in), so gcode uploads
+  persist across reboots and are visible to an install on the same unit. Ephemeral
+  live state (logs, the Moonraker DB, `/tmp`) lives on the F2FS USB / tmpfs instead.
 - **Network works** (`net-up.sh` joins WiFi before the launcher blocks; `ensure_sshd`
   brings up SSH) — Moonraker/Mainsail/SSH are reachable. See the trial findings.
 - **klippy reaches `ready` and drives the stock v11 MCUs** with the rebased config; the

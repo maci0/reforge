@@ -1,7 +1,12 @@
 # AD5M Pro — stock Klipper hardware config
 
-The complete printer.cfg / pin map for the AD5M Pro. **Cross-validated against three sources** (pin
-map + all mechanical/electrical values are IDENTICAL across them — see "Config differences" below):
+The complete printer.cfg / pin map for the AD5M Pro. **Cross-validated against three sources** (the
+pin map and fixed mechanical/electrical values are IDENTICAL across them — see "Config differences"
+below). **Caveat:** *calibration-derived* values (`[extruder] control` PID, `[input_shaper]`, bed
+mesh) are **per-unit `SAVE_CONFIG` values, not constants** — they differ between firmware versions
+and units (e.g. stock `printer.cfg` carries both `pid_Kp 32.79…` and `20.109…`), so any single PID /
+shaper figure quoted below is one observed sample, not "the" stock value. See
+[`ad5m-mcu-firmware-and-config.md`](ad5m-mcu-firmware-and-config.md) for the stock-vs-ZMod split.
 1. **Stock firmwareExe 5.1.4** — recovered verbatim from embedded config fragments in
    `/opt/PROGRAM/software/5.1.4/firmwareExe` (not stripped).
 2. **Stock factory 3.1.3** — `printer.cfg`/`printer.base.cfg` from the ff5m 1.2.0 factory image

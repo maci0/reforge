@@ -13,19 +13,19 @@ flowchart TB
     subgraph vendor["vendor/ (third-party, pinned)"]
         BR["buildroot<br/>(submodule, 2026.02.2)"]
         BSP["kernels/tina-bsp-kernel<br/>(submodule, T113 5.4.61)"]
-        TC["toolchains/gcc-9.5.0<br/>(tarball, sha256)"]
+        TC["toolchains/gcc-9.5.0<br/>(tarball, sha256 — kernel-module crosstool ONLY)"]
     end
     FETCH["./vendor/fetch.sh"] --> vendor
 
     subgraph src["source we author"]
         EXT["br-external/<br/>configs · packages · rootfs-overlay · board"]
-        PATCH["package patches<br/>(klipper ×2, guppyscreen ×3)"]
+        PATCH["package patches<br/>(klipper ×6, moonraker ×2, guppyscreen ×3)"]
     end
 
     BR --> MK["make rootfs<br/>(tools/build/build.sh)"]
     EXT --> MK
     PATCH --> MK
-    MK -->|"BR2_EXTERNAL=br-external<br/>reforge_defconfig<br/>Thumb-2 / -Os / glibc"| BUILD
+    MK -->|"BR2_EXTERNAL=br-external<br/>reforge_defconfig<br/>Buildroot-internal gcc 15.2 · Thumb-2 / -Os / glibc"| BUILD
 
     subgraph BUILD["Buildroot build"]
         direction LR

@@ -57,8 +57,7 @@ Intermediate states during closure of the IKCONFIG gap (Kconfig fixes):
 | + RTL8821CU stub at correct path | +12 | +116 | +128 B |
 | + Audio V2 menu header hidden + PLUGIN_HOSTCC forced "" | **0** | **+128** | **+128 B** |
 
-Further autoresearch iterations (substitutions for stock-only sources
-from public GitHub mirrors — see [`../../autoresearch.md`](../../../CHANGELOG.md)):
+Further iterations (substitutions for stock-only sources from public GitHub mirrors):
 
 | Iter | Change | ours-only Δ | stock-only Δ | kallsyms Δ | non-kallsyms Δ | Total Δ | first_diff |
 |---|---|---:|---:|---:|---:|---:|---|
@@ -426,3 +425,7 @@ hybrid, forensic auditability) the +128 B delta is irrelevant:
   `SOURCE_DATE_EPOCH` and `KBUILD_BUILD_*` semantics
 - Linux kernel `scripts/setlocalversion` — `.scmversion` semantics for the
   trailing `+` suppression
+
+## Update 2026-06-08
+
+Patch size is quoted inconsistently across sections of this doc and the RE writeup (19.3 / 26.7 / 27.5 KB). The actual `0001-byte-identical-reproduction.patch` file is the source of truth — read its current size from the tree rather than any single figure quoted here.

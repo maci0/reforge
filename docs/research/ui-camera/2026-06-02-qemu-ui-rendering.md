@@ -23,7 +23,7 @@ screendump needs no sudo.
 
 `firmwareExe` (the stock Qt4/QWS app) checks **two** things at boot; both must
 pass before it leaves its modals for the home screen. The earlier
-`stock-ui-spike.md` was wrong that a ready klippy alone unblocks the UI.
+`2026-06-01-stock-ui-spike.md` was wrong that a ready klippy alone unblocks the UI.
 
 1. **eboard MCU serial handshake.** firmwareExe (`MainWindow::detectMcu()` →
    `openSerial` → `Serial::recvWaitOk`) opens `/dev/ttyS1` (eboard) and
@@ -102,5 +102,5 @@ testing.
   `lab/stock-image-repro/findings.md`.
 - AD5M vs AD5M Pro firmware delta (same board/firmware; model-skin + JSON flags):
   `lab/ad5m-vs-pro/findings.md`.
-- Original (now partly superseded) spike: `docs/research/ui-camera/stock-ui-spike.md`.
+- Original (now partly superseded) spike: `docs/research/ui-camera/2026-06-01-stock-ui-spike.md`.
 - Screenshot gallery + captions: `docs/screenshots/README.md`.

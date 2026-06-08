@@ -33,8 +33,8 @@ chain (details: [boot.md](boot.md) §7). Co-exists with forge-x
 
 ### Mode 3 — Full replacement (own kernel + rootfs)
 
-ReForge replaces the stock kernel (and eventually U-Boot) and ships its own rootfs
-on `mmcblk0p6`, running at `/` (no chroot). The factory USB recovery hook is
+ReForge replaces the stock kernel (`boot.img` on `mmcblk0p4`) and eventually U-Boot,
+and ships its own rootfs on `mmcblk0p6`, running at `/` (no chroot). The factory USB recovery hook is
 **preserved** — the `auto_run.sh`-equivalent still picks up stock
 `Adventurer5MPro-*.tgz` recovery bundles, so a user can always reflash back to
 factory.

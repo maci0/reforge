@@ -23,8 +23,8 @@ research, RE reports) live in subdirs, each with its own index README.
 | [`research/`](research/README.md) | dated findings, grouped: **Kernel & SoC** (T113 mainline support, BSP rebuild, byte-identical, brick-safe test, PID1), **Memory** (128 MB experiments), **UI/camera/video**, **printer stack** |
 | [`reverse-engineering/`](reverse-engineering/README.md) | stock-firmware RE reports — full `firmwareExe` teardown, stock Klipper pin map, MCU firmware, stock kernel/modules + byte-identical build |
 | [`board-notes/`](board-notes/README.md) | device/hardware reference: device overview, partition map, forge-x boot/camera, stock-rootfs provenance, USB-serial kmod |
-| [`specs/`](specs/) | design specs (dated) — archival: firmware-design, OTA, plan3-installer |
-| [`plans/`](plans/) | implementation plans (dated) — archival: plan1–3, [reforge-ota](plans/2026-06-01-reforge-ota.md), [bsp-kernel-rebuild-and-diff](plans/2026-06-04-bsp-kernel-rebuild-and-diff.md), [immutable-reforge](plans/2026-06-05-immutable-reforge.md) (OverlayFS pointer-swap — supersedes the LKG dir-dance once landed) |
+| [`specs/`](specs/README.md) | design specs (dated) — archival: firmware-design, OTA, plan3-installer |
+| [`plans/`](plans/README.md) | implementation plans (dated) — archival: plan1–3, [reforge-ota](plans/2026-06-01-reforge-ota.md), [bsp-kernel-rebuild-and-diff](plans/2026-06-04-bsp-kernel-rebuild-and-diff.md), [immutable-reforge](plans/2026-06-05-immutable-reforge.md) (OverlayFS pointer-swap — supersedes the LKG dir-dance once landed) |
 | [`screenshots/`](screenshots/README.md) | qemu renders + boot console / bootsplash |
 
 **Convention:** `specs/`, `plans/`, and `research/` are *snapshots* — they record decisions as

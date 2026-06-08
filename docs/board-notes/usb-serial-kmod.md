@@ -80,7 +80,7 @@ Swap the config symbol (all under `M=drivers/usb/serial`, except ACM):
 - **Same kernel + vermagic as our other BSP kmods.** Our prebuilt modules
   (`modules/f2fs-bsp`, `modules/zram-bsp`) target the identical stock kernel and the required
   `vermagic = 5.4.61 SMP preempt mod_unload ARMv7 p2v8`; a USB-serial `.ko` must match the same
-  string to `insmod`. See [`../reverse-engineering/`] and `modules/*/build.sh`.
+  string to `insmod`. See [`../reverse-engineering/`](../reverse-engineering/README.md) and `modules/*/build.sh`.
 - **BSP source:** the guide uses the cfelicio fork; our pinned BSP submodule is
   `vendor/kernels/tina-bsp-kernel` (the same 5.4.61 Tina tree). The Carlos toolchain is Linaro
   **7.4.1**; our kmod/kernel work uses Linaro **7.5.0** (`gcc-linaro-7.5.0-2019.12`). Either

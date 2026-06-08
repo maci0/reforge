@@ -29,7 +29,7 @@ docs ([`../optimizations.md`](../optimizations.md), [`../boot.md`](../boot.md),
 - [2026-06-05-reforge-vs-forgex-memory.md](memory/2026-06-05-reforge-vs-forgex-memory.md) — measured memory: ReForge (production) vs forge-x.
 
 ## UI / camera / video
-- [stock-ui-spike.md](ui-camera/stock-ui-spike.md) — P3 Task 8 stock-UI feasibility spike.
+- [2026-06-01-stock-ui-spike.md](ui-camera/2026-06-01-stock-ui-spike.md) — P3 Task 8 stock-UI feasibility spike.
 - [2026-06-02-qemu-ui-rendering.md](ui-camera/2026-06-02-qemu-ui-rendering.md) — rendering the printer UIs under qemu (the LVGL-vs-virtio-gpu fb-flush quirk).
 - [2026-06-03-camera-streaming-options.md](ui-camera/2026-06-03-camera-streaming-options.md) — camera streaming beyond MJPEG.
 - [2026-06-04-cedar-ve-encode-and-camera-fw.md](ui-camera/2026-06-04-cedar-ve-encode-and-camera-fw.md) — Cedar VE H.264 HW-encode re-attempt (no encoder in silicon — JPEG/MJPEG only) + camera native format/firmware.
@@ -41,4 +41,4 @@ docs ([`../optimizations.md`](../optimizations.md), [`../boot.md`](../boot.md),
 files are the backing experiments, not the canonical numbers.
 
 Saved config/artifact files referenced by these docs (e.g. the 7.0.11 stocklike kernel config)
-live in [`configs/`](configs/).
+live in [`kernel/configs/`](kernel/configs/).

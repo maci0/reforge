@@ -38,8 +38,8 @@ config. All findings were verified against the on-device binary (`arm-linux-gnue
   method** for reproducing the stock `Image` host-only from public source (Linaro GCC 5.3.1 +
   exact build path), reaching +128 bytes (a 256-byte linker-alignment artifact). The dated
   experiment + dead-driver audit is in
-  [`../research/2026-06-04-byte-identical-kernel-reproduction.md`](../research/kernel/2026-06-04-byte-identical-kernel-reproduction.md);
-  for the mainline alternative see [`../research/2026-06-01-t113-mainline-kernel-support.md`](../research/kernel/2026-06-01-t113-mainline-kernel-support.md).
+  [`../research/kernel/2026-06-04-byte-identical-kernel-reproduction.md`](../research/kernel/2026-06-04-byte-identical-kernel-reproduction.md);
+  for the mainline alternative see [`../research/kernel/2026-06-01-t113-mainline-kernel-support.md`](../research/kernel/2026-06-01-t113-mainline-kernel-support.md).
 
 ## Related (not stock-fw RE)
 - [`../board-notes/device-overview.md`](../board-notes/device-overview.md) — hardware/stack inventory + consolidated security findings.
