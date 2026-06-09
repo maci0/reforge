@@ -1,5 +1,19 @@
 # HelixScreen qemu eval (lab — NOT shipped yet)
 
+> **STATUS (2026-06-09): builds + renders in qemu.** `make rootfs` with
+> `BR2_PACKAGE_HELIXSCREEN=y` produces a 9.4 MB stripped `helix-screen` + assets;
+> `tests/qemu-harness/helix-render.sh` boots it and it paints its first-run
+> language-setup wizard at 800×480 (2417 colours) — see
+> `docs/screenshots/helixscreen-qemu-800x480.png`. No `/dev/disp` issue (its LVGL
+> fbdev backend paints `/dev/fb0` directly). The build was a real port — the
+> blockers + their fixes are baked into `br-external/package/helixscreen/`
+> (POST_PATCH git-init of the LVGL/libhv submodules so HelixScreen's `git apply`
+> patching works, host-contamination guards for spdlog/libusb, libhv forced
+> static, env flag-passing). Still TODO before any ship decision: RAM probe vs
+> GuppyScreen, the splash/watchdog helper binaries (separate link issue), strip/
+> size review, and a real `SCREEN_MODE=HELIX` boot path.
+
+
 Chosen over KlipperScreen for the on-screen-UI eval: **HelixScreen is GuppyScreen-class**
 (C++, LVGL 9, **direct framebuffer** `/dev/fb0`, libhv + spdlog) — *not* the GTK3/X11/mesa/python
 stack KlipperScreen needs. So it fits ReForge's model (a single fbdev binary, no display server,

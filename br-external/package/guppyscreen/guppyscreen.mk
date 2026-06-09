@@ -31,6 +31,14 @@ define GUPPYSCREEN_BUILD_CMDS
 		$(@D)/patches/0001-lv_driver_fb_ioctls_flashforge_ad5m.patch || true
 	patch --forward -N -d $(@D)/spdlog -p1 < \
 		$(@D)/patches/0002-spdlog_fmt_initializer_list.patch || true
+	# ReForge: make the /dev/disp open non-fatal. DISPDEV_PATH (/dev/disp, the
+	# Allwinner display engine, added by 0001 above) is absent under qemu's
+	# virtio-gpu / any non-AD5M panel; fbdev_init() used to `return` there BEFORE
+	# mmap'ing /dev/fb0, so LVGL never painted (blank screen). Drop that early
+	# return — we lose only HW backlight (the DISP_LCD_* ioctls already no-op on a
+	# bad fd) and keep rendering to /dev/fb0 everywhere.
+	$(SED) '/cannot open display device/{n;s|return;|/* ReForge: non-fatal — /dev/disp optional */|;}' \
+		$(@D)/lv_drivers/display/fbdev.c
 	GUPPY_FF5M_SCREEN=1 $(MAKE) $(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS) $(GUPPYSCREEN_CFLAGS_EXTRA)" \
 		CXXFLAGS="$(TARGET_CXXFLAGS) $(GUPPYSCREEN_CFLAGS_EXTRA)" \
