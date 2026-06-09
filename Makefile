@@ -3,7 +3,7 @@ BUILD := tools/build/build.sh
         run-from-mod \
         bsp-kernel-rebuild bsp-kernel-stock \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
-        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-stockui-real qemu-guppy qemu-live qemu-live-ota qemu-pid1-pivot qemu-stock-preinit qemu-mem qemu-ota shots-reforge vmtune-bench
+        qemu-stock-rootfs qemu-run qemu-update qemu-render qemu-stockui qemu-stockui-real qemu-guppy qemu-helix qemu-dinit qemu-live qemu-live-ota qemu-pid1-pivot qemu-stock-preinit qemu-mem qemu-ota shots-reforge vmtune-bench
 # lint: shellcheck our own shell scripts (skips cleanly if shellcheck absent)
 lint:              ; tools/lint/shellcheck.sh
 # Single image: `make rootfs` builds the full ReForge stack (klipper + moonraker
@@ -112,6 +112,8 @@ vmtune-bench:      ; tests/qemu-harness/vmtune-bench.sh
 # for Moonraker/OTA/API testing; the on-screen guppy capture is still blank (an
 # LVGL-vs-virtio-gpu fb-flush limitation — see the script header). Rootless.
 qemu-guppy:        ; tests/qemu-harness/guppy-render.sh
+qemu-helix:        ; tests/qemu-harness/helix-render.sh
+qemu-dinit:        ; tests/qemu-harness/dinit-boot-test.sh
 
 # --- memory probe: boot the full stack at -m 128, dump per-process Pss ---
 # A/B runtime levers without rebuilding, e.g.:
