@@ -51,7 +51,7 @@ mkdir -p "${MOD}/init.d" "${MOD}/etc/reforge" "${MOD}/modules" \
 # They were staged into ${TARGET_DIR}/etc/init.d by the rootfs overlay; move
 # them into mod/ and remove the originals so there is NO /etc/init.d mirror.
 # ---------------------------------------------------------------------------
-for s in S00cloudblock S35zram S60klipper S65moonraker S70httpd S72camera S75guppyscreen S99ok; do
+for s in S00cloudblock S35zram S60klipper S65moonraker S70httpd S72camera S75guppyscreen S76helixscreen S99ok; do
     if [ -f "${TARGET_DIR}/etc/init.d/${s}" ]; then
         cp -a "${TARGET_DIR}/etc/init.d/${s}" "${MOD}/init.d/${s}"
         rm -f "${TARGET_DIR}/etc/init.d/${s}"
@@ -151,6 +151,10 @@ cat > "${MOD}/services/guppyscreen" <<'EOF'
 #!/bin/sh
 exec /mod/init.d/S75guppyscreen "$1"
 EOF
+cat > "${MOD}/services/helixscreen" <<'EOF'
+#!/bin/sh
+exec /mod/init.d/S76helixscreen "$1"
+EOF
 cat > "${MOD}/services/reforge" <<'EOF'
 #!/bin/sh
 # The `reforge` component itself: start/stop the whole S-chain.
@@ -196,6 +200,10 @@ for s in "${MOD}"/init.d/S*; do
             # Only launch the GUI when GuppyScreen mode is selected; the script
             # self-skips without a framebuffer regardless.
             [ "$SCREEN_MODE" = "GUPPY" ] || continue
+            ;;
+        S76helixscreen)
+            # HelixScreen GUI — only when SCREEN_MODE=HELIX. Self-skips with no fb.
+            [ "$SCREEN_MODE" = "HELIX" ] || continue
             ;;
     esac
     echo "[start.sh] $(basename "$s") start"

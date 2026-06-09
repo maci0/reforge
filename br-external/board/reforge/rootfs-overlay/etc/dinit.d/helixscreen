@@ -1,0 +1,11 @@
+# helixscreen — native C++/LVGL touchscreen UI (framebuffer, Moonraker WS client).
+# CONDITIONAL: only meaningful with SCREEN_MODE=HELIX and a framebuffer
+# (/dev/fb0). Not pulled in by the `boot` target; the SCREEN_MODE selector starts
+# it on demand. Lab/eval UI (present only when BR2_PACKAGE_HELIXSCREEN=y);
+# ReForge ships guppyscreen by default. jemalloc-capped like the others.
+type = process
+working-dir = /opt/helixscreen
+command = /usr/bin/env LD_PRELOAD=/usr/lib/libjemalloc.so.2 MALLOC_CONF=narenas:1,dirty_decay_ms:0,muzzy_decay_ms:0 HELIX_CACHE_DIR=/data/helixscreen/cache HELIX_CONFIG_DIR=/data/helixscreen/config /opt/helixscreen/bin/helix-screen
+depends-on = prepare
+waits-for = moonraker
+restart = true

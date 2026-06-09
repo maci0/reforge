@@ -1,0 +1,53 @@
+#!/bin/sh
+#
+# S76helixscreen — start/stop HelixScreen (C++/LVGL touch UI for Klipper/Moonraker)
+#
+# Sibling to S75guppyscreen. Selected by SCREEN_MODE=HELIX (the /mod/start.sh
+# dispatch gates on it); only launched when a framebuffer (/dev/fb0) is present,
+# so it self-skips in chroot/QEMU/headless without crash-looping. HelixScreen is
+# a lab/eval UI — this script is a no-op unless the helixscreen package is built
+# in (BR2_PACKAGE_HELIXSCREEN=y); ReForge ships GuppyScreen by default.
+#
+# HelixScreen keeps cache/config/logs under $HELIX_DATA (persistent /data) and is
+# pointed there via HELIX_CACHE_DIR/HELIX_CONFIG_DIR; assets + ui_xml load
+# relative to the binary dir, so the working directory must be /opt/helixscreen.
+#
+
+HELIX_DIR=/opt/helixscreen
+DAEMON="$HELIX_DIR/bin/helix-screen"
+PIDFILE=/run/helixscreen.pid
+NAME=helixscreen
+HELIX_DATA=/data/helixscreen
+
+case "$1" in
+	start)
+		[ -x "$DAEMON" ] || { echo "$NAME: not installed — skipping."; exit 0; }
+		if [ ! -e /dev/fb0 ]; then
+			echo "$NAME: no framebuffer (/dev/fb0 absent) — skipping."
+			exit 0
+		fi
+		echo "Starting $NAME..."
+		mkdir -p "$HELIX_DATA/cache" "$HELIX_DATA/config" "$HELIX_DATA/log"
+		cd "$HELIX_DIR" || exit 1
+		# Multi-threaded (LVGL loop + Moonraker WS client) — cap glibc malloc
+		# arenas like klippy/moonraker/guppyscreen to save RSS on the 128 MB box.
+		export LD_PRELOAD=/usr/lib/libjemalloc.so.2
+		export MALLOC_CONF=narenas:1,dirty_decay_ms:0,muzzy_decay_ms:0
+		export HELIX_CACHE_DIR="$HELIX_DATA/cache"
+		export HELIX_CONFIG_DIR="$HELIX_DATA/config"
+		start-stop-daemon -S -b -m -p "$PIDFILE" -N 10 -x "$DAEMON"
+		;;
+	stop)
+		echo "Stopping $NAME..."
+		start-stop-daemon -K -p "$PIDFILE" -x "$DAEMON" -o
+		rm -f "$PIDFILE"
+		;;
+	restart)
+		"$0" stop
+		"$0" start
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+		;;
+esac

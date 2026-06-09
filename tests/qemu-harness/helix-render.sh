@@ -66,12 +66,9 @@ chmod +x "${MNT}/mod/init.d/S60klipper"
 cat > "${MNT}/etc/init.d/S98helix" <<'EOF'
 #!/bin/sh
 [ "$1" = start ] || exit 0
-[ -x /mod/start.sh ] && SCREEN_MODE=HEADLESS /mod/start.sh > /dev/console 2>&1
-sleep 6
-mkdir -p /data/helixscreen/cache /data/helixscreen/config /data/helixscreen/log
-( cd /opt/helixscreen && HELIX_CACHE_DIR=/data/helixscreen/cache \
-    HELIX_CONFIG_DIR=/data/helixscreen/config \
-    exec /opt/helixscreen/bin/helix-screen > /dev/console 2>&1 ) &
+# Proper boot path: SCREEN_MODE=HELIX -> /mod/start.sh dispatches S76helixscreen
+# (the wired SCREEN_MODE selector), which launches helix-screen.
+[ -x /mod/start.sh ] && SCREEN_MODE=HELIX /mod/start.sh > /dev/console 2>&1
 ( sleep "__FBDUMP_AT__"
   dd if=/dev/fb0 of=/dev/vdb bs=1M 2>/dev/null; sync
   echo "===FBDUMPED===" > /dev/console ) &
