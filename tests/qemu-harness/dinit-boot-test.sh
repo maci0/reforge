@@ -72,14 +72,14 @@ type = scripted
 command = /bin/true
 EOF
 # Override the `boot` target (what dinit runs by default as PID 1) with the test
-# chain. We skip cloudblock/zram/ok here: those units invoke /etc/init.d/S*
-# scripts that post-build.sh MOVES to /mod/init.d (so they 'No such file' under a
-# plain rootfs boot) — out of scope for exercising dinit's ordering + the GUI.
+# chain. cloudblock is included to prove a /mod/init.d S-script unit runs under
+# dinit (its path is now fixed). zram (loads a kernel module) and ok (LKG promote)
+# are left out: they have qemu-specific concerns orthogonal to the path fix.
 cat > "${MNT}/etc/dinit.d/boot" <<'EOF'
-# (dinit-boot-test override) top-level target: the dependency chain minus the
-# MCU/LKG/host-script bits, plus the GUI.
+# (dinit-boot-test override) top-level target: the dependency chain plus the GUI.
 type = internal
 depends-on = prepare
+depends-on = cloudblock
 depends-on = klipper
 depends-on = moonraker
 depends-on = httpd
@@ -99,11 +99,9 @@ mount -t tmpfs    tmp  /run       2>/dev/null
 mount -t tmpfs    tmp  /tmp       2>/dev/null
 mount -t tmpfs    tmp  /var/log   2>/dev/null
 ifconfig lo 127.0.0.1 up 2>/dev/null
-# The daemons read /etc/reforge/* but post-build moves the real configs to
-# /mod/etc/reforge and /mod/start.sh recreates the symlink at boot. A pure-dinit
-# boot skips start.sh, so make the link here (FINDING: the prepare dinit unit
-# should own this once dinit is the real PID 1, so the units are self-sufficient).
-[ -e /etc/reforge ] || ln -s /mod/etc/reforge /etc/reforge 2>/dev/null
+# NOTE: /etc/reforge -> /mod/etc/reforge is now created by the `prepare` dinit
+# unit itself (not here) — this test relies on that, proving the units are
+# self-sufficient under dinit PID 1 (no /mod/start.sh setup borrowed).
 # Background diagnostics (reparented to dinit/PID 1 when we exec below): after the
 # GUI settles, dump /dev/fb0 to /dev/vdb + report dinit + Moonraker state. A plain
 # background process so it can NEVER fail the boot target.

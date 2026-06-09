@@ -2,5 +2,5 @@
 # sysctls. One-shot; reuses the tested init script (also sources
 # reforge-vmtune.sh). stop-command tears the swap back down.
 type = scripted
-command = /etc/init.d/S35zram start
-stop-command = /etc/init.d/S35zram stop
+command = /mod/init.d/S35zram start
+stop-command = /mod/init.d/S35zram stop

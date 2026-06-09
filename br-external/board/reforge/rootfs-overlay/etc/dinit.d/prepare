@@ -1,4 +1,8 @@
 # prepare — create the runtime dirs the daemons expect (tmpfs /var/log, /run,
-# and moonraker's datadir/logs). One-shot; the daemons depend on it.
+# and moonraker's datadir/logs) AND the /etc/reforge -> /mod/etc/reforge symlink
+# the daemons read their configs through. The sequential /mod/start.sh makes that
+# link itself; putting it in `prepare` too makes the dinit units self-sufficient
+# for when dinit is PID 1 (idempotent — start.sh's own `[ ! -L ]` guard still
+# holds, and the two boot paths never run together). One-shot; daemons depend on it.
 type = scripted
-command = /bin/sh -c "mkdir -p /var/log /run /var/lib/moonraker/logs"
+command = /bin/sh -c "mkdir -p /var/log /run /var/lib/moonraker/logs; [ -e /etc/reforge ] || ln -s /mod/etc/reforge /etc/reforge"

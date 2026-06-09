@@ -2,4 +2,4 @@
 # /etc/hosts. One-shot; reuses the existing, tested init script as the
 # implementation so there is a single source of truth for the host list.
 type = scripted
-command = /etc/init.d/S00cloudblock start
+command = /mod/init.d/S00cloudblock start
