@@ -30,7 +30,6 @@ define HELIXSCREEN_FIXUP_FOR_BUILDROOT
 	done
 	$(SED) 's#CXXFLAGS += -isystem /usr/include/libusb-1.0 -DHELIX_HAS_LIBUSB=1#\# ReForge: libusb disabled for ad5m (host path is cross-unsafe)#' $(@D)/Makefile
 	$(SED) 's#EXTRA_CFLAGS="$$(WPA_CFLAGS) $$(LIBNL_INC)"#EXTRA_CFLAGS="$$(WPA_CFLAGS) $$(LIBNL_INC) -I$$(abspath $$(WPA_DIR)/src) -I$$(abspath $$(WPA_DIR)/src/utils)"#' $(@D)/mk/deps.mk
-	$(SED) 's#EXTRA_CFLAGS="$$(WPA_CFLAGS) $$(LIBNL_INC)"#&#' $(@D)/mk/deps.mk
 	# libhv defaults to building BOTH shared+static; the shared (.so) link pulls in
 	# the app LDFLAGS (libhv.a, -lusb) and fails. HelixScreen only links libhv.a —
 	# force libhv static-only so the leaking .so is never built.
@@ -38,32 +37,21 @@ define HELIXSCREEN_FIXUP_FOR_BUILDROOT
 endef
 HELIXSCREEN_POST_PATCH_HOOKS += HELIXSCREEN_FIXUP_FOR_BUILDROOT
 
-# Pass the cross toolchain flags as ENVIRONMENT, not make command-line overrides.
-# HelixScreen's nested makefiles (libhv, the bundled wpa_supplicant, the watchdog
-# helper) build up their own include paths with `CPPFLAGS/CFLAGS += -I...`. A
-# make command-line `CPPFLAGS=...` (what `$(MAKE) $(TARGET_CONFIGURE_OPTS)` does)
-# OVERRIDES those `+=`, so the components lose their -I and fail (hexport.h,
-# common/ieee802_11_defs.h, spdlog/spdlog.h "No such file"). As env vars the
-# package's `+=` appends correctly.
-# SPDLOG_SYSTEM_HEADER= : HelixScreen probes the BUILD HOST's /usr/include for a
-# system spdlog ($(wildcard /usr/include/spdlog/spdlog.h ...)) and, if found,
-# empties SPDLOG_INC assuming the *target* has it too — which breaks the cross
-# build on any dev box that has system spdlog installed (the PR's clean CI host
-# doesn't, so it never hits this). Force it empty so the bundled lib/spdlog is used.
-# CPPFLAGS= : build like upstream/the PR (flags as make command-line vars) but
-# override CPPFLAGS to EMPTY so it does not clobber each component's
-# `CPPFLAGS += -I` (libhv/wpa). We must NOT pass flags as env instead: that leaks
-# the app LDFLAGS (build/ad5m-br/lib/libhv.a, -lusb-1.0) into libhv's own .so
-# link, which then fails. Build only the main binary; the splash/watchdog helpers
-# have a separate link issue and aren't needed for the on-screen UI.
+# SPDLOG_SYSTEM_HEADER= forces the bundled lib/spdlog: HelixScreen probes the
+# BUILD HOST's /usr/include for a system spdlog and, if found, empties SPDLOG_INC
+# assuming the *target* has it too — which breaks the cross build on any dev box
+# with system spdlog installed (the PR's clean CI host never hits this).
 HELIXSCREEN_MAKE_OPTS = PLATFORM_TARGET=ad5m-br SPDLOG_SYSTEM_HEADER=
 
-# Pass the toolchain flags as ENV (not make command-line): HelixScreen sets its
-# own CXXFLAGS (-DHELIX_*, -march, -std=c++17) with `:=`, which a command-line
-# CXXFLAGS would override (emptying it loses everything; passing buildroot's
-# clobbers HelixScreen's). Env lets HelixScreen's `:=`/`+=` win. The one hazard
-# of env — the app LDFLAGS (libhv.a, -lusb) leaking into libhv's own .so link —
-# is closed by the POST_PATCH `LDFLAGS=` added to libhv's sub-make above.
+# Pass the toolchain flags as ENV (via TARGET_MAKE_ENV), NOT as make command-line
+# vars. HelixScreen sets its own CXXFLAGS (-DHELIX_*, -march, -std=c++17) with
+# `:=`, and its nested makefiles build include paths with `+=`; a command-line
+# CXXFLAGS/CPPFLAGS would override both (passing buildroot's clobbers HelixScreen's
+# -DHELIX_*; emptying them loses everything). Env lets HelixScreen's own flags win.
+# The one env hazard — the app LDFLAGS leaking into libhv's shared-lib link — is
+# avoided by forcing libhv static-only in the POST_PATCH above (no .so is built).
+# Build only the main binary; the splash/watchdog helpers have a separate link
+# issue and aren't needed for the on-screen UI.
 define HELIXSCREEN_BUILD_CMDS
 	$(TARGET_MAKE_ENV) $(TARGET_CONFIGURE_OPTS) $(MAKE) $(HELIXSCREEN_MAKE_OPTS) -C $(@D) build/ad5m-br/bin/helix-screen
 endef
