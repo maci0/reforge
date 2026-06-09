@@ -1,0 +1,34 @@
+From: ReForge <noreply@reforge>
+Date: Mon, 9 Jun 2026 00:00:00 +0000
+Subject: [PATCH] libhv: override CPPFLAGS so the -I include dirs survive
+
+HelixScreen bundles libhv (lib/libhv) and builds it from Makefile.in. libhv adds
+its own header search paths with `CPPFLAGS += -I$(INCDIRS) -I$(SRCDIRS)` (the `.`
+root carries hexport.h, hconfig.h). Buildroot invokes the package with CPPFLAGS
+set as a make command-line variable (via TARGET_CONFIGURE_OPTS), which takes
+precedence over a plain `+=` in the makefile — so libhv's -I dirs are dropped and
+the build fails with "event/hloop.h:4:10: fatal error: hexport.h: No such file".
+
+Use `override` so libhv's include dirs are appended even when CPPFLAGS comes from
+the command line. (Same fix the guppyscreen package applies to its libhv copy.)
+
+Signed-off-by: ReForge <noreply@reforge>
+---
+ lib/libhv/Makefile.in | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+--- a/lib/libhv/Makefile.in
++++ b/lib/libhv/Makefile.in
+@@ -156,9 +156,9 @@ ifeq ($(USE_MULTIMAP), yes)
+ 	CPPFLAGS += -DUSE_MULTIMAP
+ endif
+
+-CPPFLAGS += $(addprefix -D, $(DEFINES))
+-CPPFLAGS += $(addprefix -I, $(INCDIRS))
+-CPPFLAGS += $(addprefix -I, $(SRCDIRS))
++override CPPFLAGS += $(addprefix -D, $(DEFINES))
++override CPPFLAGS += $(addprefix -I, $(INCDIRS))
++override CPPFLAGS += $(addprefix -I, $(SRCDIRS))
+
+ # LDFLAGS
+ ifeq ($(OS), Windows)

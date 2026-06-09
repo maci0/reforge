@@ -37,7 +37,34 @@ virtio-gpu DRM/KMS
 - `stack-render-test.sh` — step-1 harness: boot the eval image, start cage + a GTK probe on
   virtio-gpu DRM, screendump. (added once the stack builds)
 
-## Finding from the dependency analysis (before building)
+## How forge-x / zmod actually build it (the proven recipe)
+
+forge-x (`DrA1ex/ff5m`) **extends zmod**; the base klipper-mod (`xblax/flashforge_ad5m_klipper_mod`,
+Buildroot, same AD5M / 128 MB) ships a `variant-klipperscreen` and it is **not GL-heavy** — my
+wlroots/LLVM framing below was wrong (that's the *Wayland* path, which nobody uses here). The
+real stack is plain **X11 on the framebuffer with software mesa**:
+
+- **mesa3d SWRAST** — `BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_SWRAST` + `_OPENGL_GLX` + `_NEEDS_X11`,
+  `BR2_PACKAGE_PROVIDES_LIBGL="mesa3d"`. Software GL, **no LLVM/llvmpipe**, just to satisfy
+  libgtk3-x11's `libGL` link dep. GTK renders 2D via cairo.
+- **Xorg** — `XSERVER_XORG_SERVER` (modular) + `XLIB_LIBX11`, driver `xf86-video-fbturbo`
+  (Allwinner; **use generic `xf86-video-fbdev` for qemu** — fbturbo wants the Allwinner G2D /
+  `/dev/disp` that virtio-gpu lacks), input `xf86-input-evdev` + `tslib`. `xorg.conf`:
+  `Driver "fbturbo"`, `Option "fbdev" "/dev/fb0"`.
+- **GTK** — `libgtk3` + `LIBGTK3_X11` (not broadway).
+- **KlipperScreen package** — git pin `6b6f63b6639e5b85a2b3f4b0b0cd7677ac9cda3d`, deps
+  `python-{jinja2,requests,mpv,gobject,pycairo,websocket-client,psutil}` + `libevdev` +
+  `iwd`+`dbus` (network panel) + `host-librsvg`; an `svg2png` post-patch converts assets to PNG
+  (no runtime librsvg); installs to `/opt/klipperscreen`, run as `python3 screen.py`.
+- **Launch** — `S40xorg` (`Xorg :0.0 vt01 -s 0 -noreset`) → `S35tslib` → `S80klipperscreen`
+  (`DISPLAY=:0`, splash `xzcat …img.xz > /dev/fb0`, then `python3 /opt/klipperscreen/screen.py`).
+
+The xblax docs flag the KlipperScreen variant as the RAM-heavy one ("check the default variant if
+you hit resource exhaustion") — but it **does run on the 128 MB device**. So the eval is now: copy
+this proven recipe into a ReForge lab image (swap fbturbo→fbdev for qemu), render it, and measure
+RSS vs GuppyScreen.
+
+## (superseded) earlier dependency guess — wlroots/LLVM
 
 Every "real display" path for KlipperScreen in qemu pulls in a GL provider:
 
