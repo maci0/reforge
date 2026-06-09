@@ -16,6 +16,28 @@ unblocked. Upstream: <https://github.com/prestonbrown/helixscreen> (GPL-3.0). Re
 - `tests/qemu-harness/helix-render.sh` — render rig: boot HEADLESS (moonraker + fake-klippy),
   launch `helix-screen` directly (stderr→console), dump `/dev/fb0` → PNG. Mirrors `guppy-render.sh`.
 
+## Reality check: this is a package PORT, not a quick eval
+
+HelixScreen vendors + cross-builds ~7 libs and 3 binaries (main / watchdog / splash), each with
+its own flag handling. The reference (xblax PR #367) builds it as a whole Buildroot **variant**;
+porting it into ReForge's Buildroot surfaces a chain of cross-build issues. The **key unlock** was
+realising ReForge passes `CFLAGS/CPPFLAGS` as make **command-line** vars, which clobber every
+component's `+= -I` — fixed by passing them as **env** vars in `helixscreen.mk` (the package now
+uses `$(TARGET_MAKE_ENV) $(TARGET_CONFIGURE_OPTS) $(MAKE) …`). That un-clobbered all the good
+includes at once — but also un-dropped a **bad hardcoded host path** (`-isystem /usr/include/libusb-1.0`)
+the reference's clobber had been silently hiding. After disabling that (ad5m has no libusb —
+backlight is `/dev/disp`), the next layer appears (watchdog's `mk/watchdog.mk` not propagating
+`SPDLOG_INC`, splash `-D` redefinition conflicts). It does **not converge quickly** — each fix
+reveals 2-3 more component issues.
+
+**Two ways forward:**
+1. **Finish the source port** — dedicated effort: make each component (`mk/{watchdog,splash}.mk`)
+   carry `SPDLOG_INC`/`LIBHV_INC`, resolve the `-D` conflicts, then link + the likely `/dev/disp`
+   render fix (same as guppy). Tractable (the reference proves it builds), but it's a real port.
+2. **Eval via the prebuilt binary** — for the *render + RAM* question we don't need to build from
+   source: drop the xblax `variant-helixscreen` image's prebuilt `/opt/helixscreen/bin/helix-screen`
+   + assets into the rig and run it. Fast path to the actual comparison vs GuppyScreen.
+
 ## Build bring-up status (multi-submodule — in progress)
 
 HelixScreen vendors + cross-builds several libs (libhv, wpa_supplicant, libnl, lvgl, spdlog, fmt,

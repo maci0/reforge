@@ -16,12 +16,19 @@ HELIXSCREEN_LICENSE = GPL-3.0-or-later
 HELIXSCREEN_LICENSE_FILES = LICENSE
 HELIXSCREEN_DEPENDENCIES = libevdev openssl tslib
 
+# Pass the cross toolchain flags as ENVIRONMENT, not make command-line overrides.
+# HelixScreen's nested makefiles (libhv, the bundled wpa_supplicant, the watchdog
+# helper) build up their own include paths with `CPPFLAGS/CFLAGS += -I...`. A
+# make command-line `CPPFLAGS=...` (what `$(MAKE) $(TARGET_CONFIGURE_OPTS)` does)
+# OVERRIDES those `+=`, so the components lose their -I and fail (hexport.h,
+# common/ieee802_11_defs.h, spdlog/spdlog.h "No such file"). As env vars the
+# package's `+=` appends correctly.
 define HELIXSCREEN_BUILD_CMDS
-	$(MAKE) $(TARGET_CONFIGURE_OPTS) PLATFORM_TARGET=ad5m-br -C $(@D)
+	$(TARGET_MAKE_ENV) $(TARGET_CONFIGURE_OPTS) $(MAKE) PLATFORM_TARGET=ad5m-br -C $(@D)
 endef
 
 define HELIXSCREEN_INSTALL_TARGET_CMDS
-	$(MAKE) $(TARGET_CONFIGURE_OPTS) PLATFORM_TARGET=ad5m-br \
+	$(TARGET_MAKE_ENV) $(TARGET_CONFIGURE_OPTS) $(MAKE) PLATFORM_TARGET=ad5m-br \
 		install DESTDIR=$(TARGET_DIR) -C $(@D)
 endef
 
