@@ -30,6 +30,28 @@ unblocked. Upstream: <https://github.com/prestonbrown/helixscreen> (GPL-3.0). Re
 - `tests/qemu-harness/helix-render.sh` — render rig: boot HEADLESS (moonraker + fake-klippy),
   launch `helix-screen` directly (stderr→console), dump `/dev/fb0` → PNG. Mirrors `guppy-render.sh`.
 
+## RAM: HelixScreen vs GuppyScreen (the eval's core question)
+
+Measured in qemu (`MEM=256`, identical fake-klippy + Moonraker stack, the
+`RAMPROBE` blocks in `helix-render.sh` / `guppy-render.sh`), per-process `VmRSS`:
+
+| UI            | UI process RSS | notes |
+|---------------|---------------:|-------|
+| **GuppyScreen** | **~8.2 MB**  | home screen |
+| **HelixScreen** | **~11.7 MB** | first-run language wizard |
+
+GuppyScreen is **~3.5 MB (~43%) lighter**, but both are tiny LVGL/fbdev C++
+binaries — neither is anywhere near the GTK3/Python/Xorg weight that got
+KlipperScreen excluded. The shared stack dominates either way (Moonraker python3
+~39 MB + fake-klippy ~7.5 MB). With both UIs `MemAvailable` was ~167 MB of 238 MB,
+i.e. ~67 MB used — fits the 128 MB device comfortably (plus zram swap).
+
+Caveat: these are early-boot RSS (Helix on its first-run wizard); a fully-loaded
+printer UI + the 73 MB of Helix assets paged in would push both higher, but the
+relative ordering (Helix a few MB heavier) should hold. So **HelixScreen is a
+viable GuppyScreen alternative on RAM** — the choice is about features/UX, not a
+128 MB blocker.
+
 ## Reality check: this is a package PORT, not a quick eval
 
 HelixScreen vendors + cross-builds ~7 libs and 3 binaries (main / watchdog / splash), each with

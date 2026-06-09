@@ -109,7 +109,14 @@ cat > "${MNT}/etc/init.d/S98guppy" <<'EOF'
   echo "--- guppyscreen log ---"
   GL=$(find / -name 'guppyscreen.log' -o -name 'guppy*.log' 2>/dev/null | head -1)
   echo "log: ${GL:-none}"; [ -n "$GL" ] && { echo "[HEAD]"; head -45 "$GL"; echo "[TAIL]"; tail -8 "$GL"; } 2>/dev/null
-  echo "--- /dev/fb0 + fbset ---"; ls -la /dev/fb0 2>&1; fbset 2>/dev/null | head -6
+  echo "===RAMPROBE guppyscreen==="
+  grep -E 'MemTotal|MemFree|MemAvailable|Buffers|^Cached|SwapTotal|SwapFree' /proc/meminfo
+  echo "-- per-proc VmRSS (KB) --"
+  for d in /proc/[0-9]*; do
+    n=$(cat $d/comm 2>/dev/null); r=$(awk '/^VmRSS/{print $2}' $d/status 2>/dev/null)
+    [ -n "$r" ] && echo "$r $n"
+  done | sort -rn | head -14
+  echo "===/RAMPROBE==="
   echo "--- guppy proc ---"; ps 2>/dev/null | grep -iE 'guppy|moonrak|fake-klippy' | grep -v grep
   echo "===/GUPPYDIAG===" ) > /dev/console 2>&1 &
 EOF

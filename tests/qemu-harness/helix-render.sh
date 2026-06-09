@@ -77,10 +77,16 @@ mkdir -p /data/helixscreen/cache /data/helixscreen/config /data/helixscreen/log
   echo "===FBDUMPED===" > /dev/console ) &
 ( sleep 60
   echo "===HELIXDIAG==="
-  wget -qO- http://127.0.0.1:7125/server/info 2>/dev/null | head -c 400; echo
+  wget -qO- http://127.0.0.1:7125/server/info 2>/dev/null | head -c 200; echo
+  echo "===RAMPROBE helixscreen==="
+  grep -E 'MemTotal|MemFree|MemAvailable|Buffers|^Cached|SwapTotal|SwapFree' /proc/meminfo
+  echo "-- per-proc VmRSS (KB) --"
+  for d in /proc/[0-9]*; do
+    n=$(cat $d/comm 2>/dev/null); r=$(awk '/^VmRSS/{print $2}' $d/status 2>/dev/null)
+    [ -n "$r" ] && echo "$r $n"
+  done | sort -rn | head -14
+  echo "===/RAMPROBE==="
   echo "--- helix proc ---"; ps 2>/dev/null | grep -iE 'helix|moonrak|fake-klippy' | grep -v grep
-  echo "--- helix log ---"; tail -25 /data/helixscreen/log/*.log 2>/dev/null
-  echo "--- /dev/fb0 ---"; ls -la /dev/fb0 2>&1; fbset 2>/dev/null | head -6
   echo "===/HELIXDIAG===" ) > /dev/console 2>&1 &
 EOF
 sed -i "s/__FBDUMP_AT__/${FBDUMP_AT}/" "${MNT}/etc/init.d/S98helix"
