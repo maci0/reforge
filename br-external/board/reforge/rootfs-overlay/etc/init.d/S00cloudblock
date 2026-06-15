@@ -4,19 +4,34 @@
 #
 # Pins all known FlashForge cloud hosts, stock OTA endpoints, Flash Studio
 # MQTT bootstrap, VoxelShare model-sharing, and NetEase IM (Yunxin) backbone
-# hosts to 127.0.0.1 in /etc/hosts.  Idempotent: each host is added at most
-# once, guarded by an anchored grep so apex and subdomain are treated as
-# distinct entries.
+# hosts to 127.0.0.1 in /etc/hosts.
 #
 # Host set sourced from string-analysis of stock firmwareExe (5.0.x–5.1.4)
 # and nim.tar (libnim.so / libnim_chatroom.so).  The union is kept so older
 # 5.0.x–5.1.2 printers are equally protected (extra entries are inert no-ops
 # on 5.1.4 where some hosts were reshuffled).
 #
+# Toggle + safe-edit logic ported from DrA1ex/ff5m PR #65 (Alex's block_cloud
+# rework), kept marker-compatible with forge-x:
+#   * every entry we add is tagged with a trailing "# block_cloud" MARKER;
+#   * BLOCK_CLOUD=1 adds only the missing marked entries (idempotent, no dupes);
+#   * BLOCK_CLOUD=0 removes ONLY our marked entries — /etc/hosts lines a user
+#     added by hand (no marker) are left untouched;
+#   * host matching is a literal awk field compare ($1==127.0.0.1 && $2==host),
+#     so dots aren't regex metacharacters and entries with a trailing comment
+#     still match (no apex-vs-subdomain false positives, no double-insert).
+# Reforge defaults this ON (privacy mod); set BLOCK_CLOUD=0 in
+# /config/screen.conf to lift the block on the next init. forge-x defaults off.
+#
 # NOTE: model uploads use AlibabaCloud OSS via dynamic signed URLs whose
 # hostnames are generated at runtime and cannot be blocked via /etc/hosts.
 # Block those at the router/firewall for a full air-gap.
 #
+
+# Reforge runtime config (same KEY=value file SCREEN_MODE lives in). Inside the
+# chroot REFORGE_DIR is /, so the config resolves to /config/screen.conf.
+CONF=/config/screen.conf
+MARK="# block_cloud"
 
 BLOCKED_HOSTS="
 api.fdmcloud.flashforge.com
@@ -48,17 +63,43 @@ wanproxy.127.net
 statistic.live.126.net
 "
 
+# Read the toggle (default ON). cut at the first '=' so values with no spaces
+# survive; trim any stray whitespace/CR.
+block_cloud_enabled() {
+	_bc=1
+	if [ -f "$CONF" ]; then
+		_v="$(grep '^BLOCK_CLOUD=' "$CONF" | head -n 1 | cut -d= -f2 | tr -d ' \t\r')"
+		[ -n "$_v" ] && _bc="$_v"
+	fi
+	[ "$_bc" = "1" ]
+}
+
 case "$1" in
 	start)
-		echo "Applying cloud-block entries to /etc/hosts..."
-		for host in $BLOCKED_HOSTS; do
-			# Anchored match prevents e.g. "voxelshare.com" matching the
-			# "api.voxelshare.com" line already inserted.
-			grep -qE "[[:space:]]${host}\$" /etc/hosts || \
-				printf '127.0.0.1 %s\n' "$host" >> /etc/hosts
-		done
-		sync
-		echo "Cloud-block applied."
+		if block_cloud_enabled; then
+			echo "Applying cloud-block entries to /etc/hosts..."
+			for host in $BLOCKED_HOSTS; do
+				# Literal field compare: treat the hostname as a string (dots
+				# are not regex), tolerate any spacing and a trailing comment.
+				awk -v host="$host" '
+					$1 == "127.0.0.1" && $2 == host { found = 1 }
+					END { exit !found }
+				' /etc/hosts || printf '127.0.0.1 %s %s\n' "$host" "$MARK" >> /etc/hosts
+			done
+			sync
+			echo "Cloud-block applied."
+		else
+			# Disabled: remove only the entries WE added (marker-tagged). Leave
+			# any user-managed 127.0.0.1 lines alone. Skip the write (and flash
+			# wear) when there is nothing of ours to remove.
+			if grep -Fq "$MARK" /etc/hosts; then
+				sed -i "\|${MARK}\$|d" /etc/hosts
+				sync
+				echo "Cloud-block lifted (mod entries removed)."
+			else
+				echo "Cloud-block disabled; no mod entries to remove."
+			fi
+		fi
 		;;
 	stop)
 		# Nothing to undo at shutdown; entries persist in /etc/hosts
