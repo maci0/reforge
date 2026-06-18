@@ -48,3 +48,6 @@ tools/recovery/archive/
 # pinned in pins.lock; only needed for byte-identical-attempt build).
 /vendor/toolchains/gcc-linaro-5.3.1.tar.xz
 /vendor/toolchains/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi/
+
+# graphify knowledge-graph output — regenerable via `graphify update .` (~2 GB)
+graphify-out/

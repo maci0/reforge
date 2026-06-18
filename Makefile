@@ -1,5 +1,5 @@
 BUILD := tools/build/build.sh
-.PHONY: lint unit rootfs defconfig clean kernel kernel-virt smoke repro integration smoke-guppy tgz live-usb validate-loopback \
+.PHONY: lint unit rootfs defconfig clean clean-artifacts kernel kernel-virt smoke repro integration smoke-guppy tgz live-usb validate-loopback \
         run-from-mod \
         bsp-kernel-rebuild bsp-kernel-stock \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
@@ -11,6 +11,18 @@ lint:              ; tools/lint/shellcheck.sh
 rootfs:            ; $(BUILD) rootfs
 defconfig:         ; $(BUILD) defconfig
 clean:             ; $(BUILD) clean
+# clean-artifacts: reclaim regenerable disk WITHOUT a full buildroot rebuild.
+# Drops the qemu test images (.ext4/.img/.raw/.ppm — each re-baked by its harness
+# in seconds) but KEEPS screenshots (*.png) + serial logs, the stale helixscreen
+# package build tree (binary already installed in target/; buildroot re-extracts
+# on demand), and the host ccache. Prints reclaimed size.
+clean-artifacts:
+	@before=$$(du -sb tests/qemu-harness/build build/output/build/helixscreen-* 2>/dev/null | awk '{s+=$$1} END{print s}'); \
+	rm -f tests/qemu-harness/build/*.ext4 tests/qemu-harness/build/*.img \
+	      tests/qemu-harness/build/*.raw tests/qemu-harness/build/*.raw.frame \
+	      tests/qemu-harness/build/*.ppm 2>/dev/null; \
+	rm -rf build/output/build/helixscreen-*/ 2>/dev/null; \
+	echo "clean-artifacts: reclaimed ~$$(( before/1024/1024 )) MB (qemu images + stale helixscreen build); kept *.png + *serial.log"
 # kernel / kernel-virt: build ONLY the Linux kernel via Buildroot (same vendor
 # Tina source). `kernel` = the device stock config; `kernel-virt` = the qemu
 # `-M virt` test config (ARCH_SUNXI off + virtio/drm/fb). Output: build/output/
