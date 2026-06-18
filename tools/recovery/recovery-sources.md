@@ -28,6 +28,7 @@ forge-x dump also keeps a `.partitions.txt` GPT map.
 | `Adventurer5M-3.x.x-2.2.3-recovery-full.tgz` | `07268f627fada7fd9299274dbed8d53877fec58fed4fd363eecc19b1afb7cad7` | 212 MB | forge-x file-chunk system backup (`system/system_*.tar.gz`) | **YES** (chunked) |
 | `Adventurer5MPro-factory-3.1.3.tgz` | `7917f992121b79e68bf77031cae373e34ff806ec287fe95396538a7a44e55764` | 192 KB | unbrick launcher (expects `Adventurer5M-factory.tar.xz` on USB) | no (loader only) |
 | `Adventurer5MPro-5.1.2-2.2.3-20260418.tgz` | `355be24caa28486dd47a9f4c117cee7bef49fb59caf5cf18a74103c532613457` | 66 MB | OTA overlay (app/lib/kernel/mcu + fb splash) | no (overlay) |
+| `Adventurer5MPro-5.1.7-2.2.3-20260605.tgz` | `58076910fe0a659f212c19150b780272bdbc09ccc8a8eb30479b650b3f7a5ffd` | 65 MB | OTA overlay (latest Pro; vs 5.1.4 = firmwareExe-only — see [stock-fw-5.1.7-diff](../../docs/reverse-engineering/stock-fw-5.1.7-diff.md)) | no (overlay) |
 
 ## URLs
 
@@ -37,6 +38,7 @@ forge-x dump also keeps a `.partitions.txt` GPT map.
 | recovery-full | https://github.com/DrA1ex/ff5m/releases/download/1.2.0/Adventurer5M-3.x.x-2.2.3-recovery-full.tgz | DrA1ex (forge-x) — **community dump** |
 | Pro unbrick launcher | https://github.com/ghzserg/FF/releases/download/R/Adventurer5MPro-factory-3.1.3.tgz | ghzserg |
 | Pro OTA 5.1.2 | https://github.com/ghzserg/FF/releases/download/R/Adventurer5MPro-5.1.2-2.2.3-20260418.tgz | ghzserg (re-host of FF-official OTA) |
+| Pro OTA 5.1.7 | https://flashforge-resource.oss-us-east-1.aliyuncs.com/AD5MP%E5%9B%BA%E4%BB%B6/Adventurer5MPro-5.1.7-2.2.3-20260605.tgz | **FlashForge official OSS** (Aliyun us-east-1) |
 | FEL full eMMC `dump.bin` | https://disk.yandex.ru/d/oie2Chx1rexkgw | community (Yandex), flashed via `xfel`/`xfel_t113_ds` |
 | FF official OTA firmware | https://www.flashforge.com/blogs/download-document/adventurer-5m-pro | **FlashForge official — OTA overlays only, no full image** |
 
