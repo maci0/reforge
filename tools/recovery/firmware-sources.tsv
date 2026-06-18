@@ -1,0 +1,28 @@
+# Every downloadable FlashForge Adventurer 5M / 5M Pro stock firmware release.
+# Tracked URL list; fetch-all-firmware.sh downloads + hashes + fingerprints these
+# into firmware-manifest.tsv (the blobs land in archive/firmware/, gitignored).
+# Columns: model<TAB>version<TAB>date<TAB>url
+# Sources: FF official OSS (flashforge-resource.oss / en.fss.flashforge.com) where
+# available, else the ghzserg/FF community mirror (verified re-host of FF OTA).
+5MPro	2.3.1	20230921	https://en.fss.flashforge.com/10000/software/56325c0f8ef9ba15ff5c9a9e4becbd46.zip
+5MPro	2.3.7	20231110	https://en.fss.flashforge.com/10000/software/181d48e6ca1448f9e72edf138f10e47e.zip
+5MPro	2.4.5	20240118	https://en.fss.flashforge.com/10000/software/1c835cfd58eff9e3bc3c7ae74ddb2f77.zip
+5MPro	3.1.3	20250107	https://github.com/ghzserg/FF/releases/download/R/Adventurer5MPro-3.1.3-2.2.3-20250107-Factory.tgz
+5MPro	3.1.4	20250116	https://flashforge-resource.oss-us-east-1.aliyuncs.com/B2B/Adventurer5MPro-3.1.4-2.2.3-20250116.rar
+5MPro	3.1.5	20250212	https://flashforge-resource.oss-us-east-1.aliyuncs.com/AD5MP%E5%9B%BA%E4%BB%B6/Adventurer5MPro-3.1.5-2.2.3-20250212.tgz
+5MPro	3.2.3	20251017	https://github.com/ghzserg/FF/releases/download/R/Adventurer5MPro-3.2.3-2.2.3-20251017-Factory.tgz
+5MPro	3.2.4	20251114	https://github.com/ghzserg/FF/releases/download/R/Adventurer5MPro-3.2.4-2.2.3-20251114-Factory.tgz
+5MPro	3.2.5	20251126	https://github.com/ghzserg/FF/releases/download/R/Adventurer5MPro-3.2.5-2.2.3-20251126-Factory.tgz
+5MPro	3.2.7	20251217	https://flashforge-resource.oss-us-east-1.aliyuncs.com/AD5MP%E5%9B%BA%E4%BB%B6/Adventurer5MPro-3.2.7-2.2.3-20251217.tgz
+5MPro	5.0.3	20260122	https://github.com/ghzserg/FF/releases/download/R/Adventurer5MPro-5.0.3-2.2.3-20260122.tgz
+5MPro	5.1.2	20260418	https://github.com/ghzserg/FF/releases/download/R/Adventurer5MPro-5.1.2-2.2.3-20260418.tgz
+5MPro	5.1.4	20260515	https://flashforge-resource.oss-us-east-1.aliyuncs.com/AD5MP%E5%9B%BA%E4%BB%B6/Adventurer5MPro-5.1.4-2.2.3-20260515.tgz
+5MPro	5.1.7	20260605	https://flashforge-resource.oss-us-east-1.aliyuncs.com/AD5MP%E5%9B%BA%E4%BB%B6/Adventurer5MPro-5.1.7-2.2.3-20260605.tgz
+5M	3.1.3	20250107	https://github.com/ghzserg/FF/releases/download/R/Adventurer5M-3.1.3-2.2.3-20250107-Factory.tgz
+5M	3.1.9	20250807	https://github.com/ghzserg/FF/releases/download/R/Adventurer5M-3.1.9-2.2.3-20250807-Factory.tgz
+5M	3.2.3	20251016	https://github.com/ghzserg/FF/releases/download/R/Adventurer5M-3.2.3-2.2.3-20251016-Factory.tgz
+5M	3.2.5	20251205	https://github.com/ghzserg/FF/releases/download/R/Adventurer5M-3.2.5-2.2.3-20251205-Factory.tgz
+5M	3.2.6	20251212	https://github.com/ghzserg/FF/releases/download/R/Adventurer5M-3.2.6-2.2.3-20251212-Factory.tgz
+5M	3.2.7	20251217	https://github.com/ghzserg/FF/releases/download/R/Adventurer5M-3.2.7-2.2.3-20251217-Factory.tgz
+5M	5.0.3	20260122	https://github.com/ghzserg/FF/releases/download/R/Adventurer5M-5.0.3-2.2.3-20260122.tgz
+5M	5.1.1	20260417	https://github.com/ghzserg/FF/releases/download/R/Adventurer5M-5.1.1-2.2.3-20260417.tgz

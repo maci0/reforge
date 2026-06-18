@@ -5,6 +5,15 @@ content hashes. Large blobs live in `tools/recovery/archive/` (gitignored); this
 is the tracked record. Background + provenance analysis:
 [`docs/research/kernel/2026-06-01-stock-recovery-images.md`](../../docs/research/kernel/2026-06-01-stock-recovery-images.md).
 
+> **Full firmware archive.** Every downloadable AD5M / AD5M Pro OTA release (2.3.x → 5.1.7,
+> both models — 22 packages) is mirrored to `archive/firmware/` with sha256 + component
+> fingerprints recorded in [`firmware-manifest.tsv`](firmware-manifest.tsv) (URLs in
+> [`firmware-sources.tsv`](firmware-sources.tsv); refresh with `fetch-all-firmware.sh`). The
+> per-version changelog built from it is
+> [`docs/reverse-engineering/stock-fw-changelog.md`](../../docs/reverse-engineering/stock-fw-changelog.md).
+> The hand-pinned rows below are the few images used directly by other tooling (recovery,
+> qemu); the manifest is the complete record.
+
 ## Curated local full-eMMC images (naming convention)
 
 Large binaries — **gitignored**, kept on local disk / external backup. The names encode
