@@ -28,18 +28,40 @@ config. All findings were verified against the on-device binary (`arm-linux-gnue
 - [ad5m-pro-klipper-hardware-config.md](ad5m-pro-klipper-hardware-config.md) — complete pin map / printer.cfg
   (cross-validated against firmwareExe 5.1.4, factory 3.1.3, and the forge-x live config).
 
-## Stock kernel / modules
+## Stock kernel / modules / SoC
+- [stock-kernel-genealogy.md](stock-kernel-genealogy.md) — **start here for the kernel
+  lineage:** mainline 5.4 → Allwinner sun8iw20 BSP fork → Tina-Linux → **T113-Linux-Auto-v1.1**
+  (automotive SDK) → FF build. Exact Wi-Fi driver (RTL8821CU v5.12.0), the sunxi subsystems on
+  top of base Tina, and the **public-vs-NDA boundary**.
 - [stock-kernel-modules-packaging.md](stock-kernel-modules-packaging.md) — how FF packages
   and loads kernel modules: standard `/lib/modules/5.4.61/` kbuild layout + a flat duplicate
   of `8821cu.ko` at `/lib/modules/8821cu.ko` (insmod'd by `auto_run.sh`); the unstripped
-  DWARF is a build-pipeline artifact, not a runtime gdb capability; the `comp_dir`
-  identifies the SDK as Allwinner's proprietary **T113-Linux-Auto-v1.1** Auto distribution.
+  DWARF is a build-pipeline artifact, not a runtime gdb capability.
 - [stock-kernel-byte-identical-build.md](stock-kernel-byte-identical-build.md) — **reference
   method** for reproducing the stock `Image` host-only from public source (Linaro GCC 5.3.1 +
   exact build path), reaching +128 bytes (a 256-byte linker-alignment artifact). The dated
   experiment + dead-driver audit is in
   [`../research/kernel/2026-06-04-byte-identical-kernel-reproduction.md`](../research/kernel/2026-06-04-byte-identical-kernel-reproduction.md);
   for the mainline alternative see [`../research/kernel/2026-06-01-t113-mainline-kernel-support.md`](../research/kernel/2026-06-01-t113-mainline-kernel-support.md).
+
+## Stock firmware releases & MCU
+- [stock-fw-changelog.md](stock-fw-changelog.md) — **artifact-grounded changelog of every
+  downloadable AD5M/Pro release** (2.3.x → 5.1.7): the per-version component fingerprint
+  (software/kernel/library/control) and exactly when each sub-UI layer changed. Built from the
+  archived set ([`tools/recovery/firmware-manifest.tsv`](../../tools/recovery/firmware-manifest.tsv),
+  sha256 + URLs; refreshed by `tools/recovery/fetch-all-firmware.sh`).
+- [stock-fw-5.1.7-diff.md](stock-fw-5.1.7-diff.md) — deep single-version diff 5.1.4 → 5.1.7
+  (firmwareExe-only +354 B; everything else byte-identical).
+- [ad5m-mcu-firmware-and-config.md](ad5m-mcu-firmware-and-config.md) — the N32G455 MCU firmware
+  (Klipper v11/v13) + config baselines.
+
+## The full stock picture — companion dirs
+Stock-firmware analysis spans three layers; this folder is the *binary/RE* layer. Its companions:
+- **Hardware/platform** → [`../board-notes/`](../board-notes/): partition map, stock-rootfs
+  provenance (Tina vs FF), the five firmware-upgrade paths, device overview, stock kernel config.
+- **Dated investigations** → [`../research/kernel/`](../research/README.md): T113 mainline-kernel
+  support, BSP rebuild, recovery-image landscape.
+- **Archived firmware blobs + checksums** → [`tools/recovery/`](../../tools/recovery/recovery-sources.md).
 
 ## Related (not stock-fw RE)
 - [`../board-notes/device-overview.md`](../board-notes/device-overview.md) — hardware/stack inventory + consolidated security findings.
