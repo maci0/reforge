@@ -69,7 +69,7 @@ The only out-of-tree module shipped (`/lib/modules/5.4.61/8821cu.ko`):
 
 So the Wi-Fi stack is a **2021-01 Realtek driver**, frozen — and **byte-identical
 across every stock release 3.1.3 → 5.1.7** (see the
-[firmware changelog](stock-fw-changelog.md): `kernel-2.1.6` never moves).
+firmware changelog (workspace `fw-archive/analysis/stock-fw-changelog.md`): `kernel-2.1.6` never moves).
 
 ## What's layered on top of base Tina (the non-mainline sunxi subsystems)
 

@@ -177,7 +177,7 @@ Artifacts:
 - `autoresearch.md` — dashboard with full iter table + diagnosis
 - `autoresearch.jsonl` — raw iter log
 - `autoresearch.sh` — benchmark wrapper (`bash autoresearch.sh`)
-- `outputs/kallsyms-symbol-diff.md` — full symbol-set diff with classification
+- `reverse-engineering/kallsyms-symbol-diff.md` — full symbol-set diff with classification
 
 Decision: documented current +128 B as the iLotusK9-vs-FF snapshot drift
 ceiling and stopping. Will revisit if Auto SDK arrives.

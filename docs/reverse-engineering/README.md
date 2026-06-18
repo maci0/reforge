@@ -43,25 +43,26 @@ config. All findings were verified against the on-device binary (`arm-linux-gnue
   experiment + dead-driver audit is in
   [`../research/kernel/2026-06-04-byte-identical-kernel-reproduction.md`](../research/kernel/2026-06-04-byte-identical-kernel-reproduction.md);
   for the mainline alternative see [`../research/kernel/2026-06-01-t113-mainline-kernel-support.md`](../research/kernel/2026-06-01-t113-mainline-kernel-support.md).
+- [kallsyms-symbol-diff.md](kallsyms-symbol-diff.md) — full ours-vs-stock kallsyms symbol-set classification (the data behind the byte-identical +236 B kallsyms delta).
 
 ## Stock firmware releases & MCU
-- [stock-fw-changelog.md](stock-fw-changelog.md) — **artifact-grounded changelog of every
-  downloadable AD5M/Pro release** (2.3.x → 5.1.7): the per-version component fingerprint
-  (software/kernel/library/control) and exactly when each sub-UI layer changed. Built from the
-  archived set ([`tools/recovery/firmware-manifest.tsv`](../../tools/recovery/firmware-manifest.tsv),
-  sha256 + URLs; refreshed by `tools/recovery/fetch-all-firmware.sh`).
-- [stock-fw-5.1.7-diff.md](stock-fw-5.1.7-diff.md) — deep single-version diff 5.1.4 → 5.1.7
-  (firmwareExe-only +354 B; everything else byte-identical).
+- **Per-version firmware changelog + the archive itself** live in the shared, workspace-level
+  **`fw-archive/`** repo (sibling of `reforge/`) — `fw-archive/analysis/stock-fw-changelog.md`
+  (artifact-grounded changelog of every downloadable AD5M/Pro release, 2.3.x → 5.1.7, with the
+  per-version software/kernel/library/control fingerprint) and `stock-fw-5.1.7-diff.md` (the deep
+  5.1.4 → 5.1.7 diff), backed by `fw-archive/firmware-manifest.tsv` (sha256 + fingerprints) and
+  `fetch-all-firmware.sh`. The blobs are archived there, not in this repo.
 - [ad5m-mcu-firmware-and-config.md](ad5m-mcu-firmware-and-config.md) — the N32G455 MCU firmware
   (Klipper v11/v13) + config baselines.
 
-## The full stock picture — companion dirs
-Stock-firmware analysis spans three layers; this folder is the *binary/RE* layer. Its companions:
+## The full stock picture — companion locations
+Stock-firmware analysis spans several layers; this folder is the *binary/RE* layer. Its companions:
 - **Hardware/platform** → [`../board-notes/`](../board-notes/): partition map, stock-rootfs
   provenance (Tina vs FF), the five firmware-upgrade paths, device overview, stock kernel config.
 - **Dated investigations** → [`../research/kernel/`](../research/README.md): T113 mainline-kernel
   support, BSP rebuild, recovery-image landscape.
-- **Archived firmware blobs + checksums** → [`tools/recovery/`](../../tools/recovery/recovery-sources.md).
+- **Firmware archive + version changelog + checksums** → the workspace **`fw-archive/`** repo.
+- **Full-eMMC recovery images + procedures** → [`../../tools/recovery/`](../../tools/recovery/recovery-sources.md).
 
 ## Related (not stock-fw RE)
 - [`../board-notes/device-overview.md`](../board-notes/device-overview.md) — hardware/stack inventory + consolidated security findings.

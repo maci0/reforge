@@ -512,7 +512,7 @@ closed (Path C in §8).
 - the 2026-06-04 autoresearch optimization loop, iters 0–4 (baseline →
   substitutions → alignment diagnosis) — progression summarized in Appendix A
   below (the loop's own `autoresearch.*` working files were not retained)
-- [`../../outputs/kallsyms-symbol-diff.md`](../../outputs/kallsyms-symbol-diff.md)
+- [`kallsyms-symbol-diff.md`](kallsyms-symbol-diff.md)
   — the full ours-vs-stock kallsyms classification (baseline +
   post-iter-4 snapshot)
 - `build/bsp-kernel-rebuild/artifacts/Image.stock` — golden stock image
@@ -564,7 +564,7 @@ closed (Path C in §8).
 - Linux kernel `scripts/setlocalversion` — `.scmversion` semantics for
   the trailing `+` suppression
 - Linux kernel `kernel/kallsyms.c` — kallsyms encoding format used by
-  our from-scratch decoder (`outputs/kallsyms-symbol-diff.md`)
+  our from-scratch decoder (`kallsyms-symbol-diff.md`)
 
 ---
 

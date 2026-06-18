@@ -396,7 +396,7 @@ hybrid, forensic auditability) the +128 B delta is irrelevant:
 - `autoresearch.md` / `autoresearch.jsonl` / `autoresearch.sh` — the
   iter 0–4 progression (baseline → substitutions → alignment
   diagnosis)
-- `outputs/kallsyms-symbol-diff.md` — the full ours-vs-stock kallsyms
+- `../../reverse-engineering/kallsyms-symbol-diff.md` — the full ours-vs-stock kallsyms
   symbol-set classification (baseline + post-iter-4 snapshot)
 
 ### Dead-driver audit evidence trail
