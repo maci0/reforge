@@ -7,6 +7,10 @@ base \u2014 a Buildroot-derived Linux distribution Allwinner brands as
 "Allwinner KunoOS Platform" (see `/etc/issue`). The "FlashForge added"
 column is everything FF layered on top to build a printer firmware.
 
+For the **kernel** lineage specifically — the mainline → sunxi BSP → Tina-Auto
+SDK fork, the exact Wi-Fi driver version, and the public-vs-NDA boundary — see
+[`reverse-engineering/stock-kernel-genealogy.md`](../reverse-engineering/stock-kernel-genealogy.md).
+
 This is mostly a reference for Mode 3 (full-replacement) work: when we build
 our own rootfs we want to know what's strictly required by the board, what
 we can drop entirely, and what FF added that we'd be replacing anyway.
