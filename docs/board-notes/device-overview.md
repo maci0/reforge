@@ -21,6 +21,17 @@ Top-level map of the FlashForge Adventurer 5M Pro hardware/software stack (this 
   toolhead `eboard` `/dev/ttyS1`, both Klipper @ 230400. Stock MCU fw = Klipper 0.11; mods flash
   0.13. See [`../reverse-engineering/ad5m-mcu-firmware-and-config.md`](../reverse-engineering/ad5m-mcu-firmware-and-config.md).
 - **Display**: SPI/RGB LCD via Allwinner `dispdbg` backlight + GPIO203; touch via `libts`.
+- **Network**:
+  - **WiFi**: Realtek **RTL8821CU** (USB, 802.11ac 1×1) via the `8821cu` module. Primary link;
+    this unit runs over WiFi (`wlan0`).
+  - **Ethernet**: native **`eth0` = T113 on-SoC EMAC** (`allwinner,sunxi-gmac`,
+    `/soc@3000000/eth@4500000`), on-board external PHY (`phy-rst` GPIO) + RJ45. **Speed: 100 Mbit/s
+    (Fast Ethernet).** The DT wires the MAC as **`phy-mode = rmii`**, and RMII carries 10/100 only,
+    so 100 Mbit is the hard ceiling, even though the T113 GMAC IP itself can do 10/100/1000 over
+    RGMII (per the T113-S3 datasheet). The driver is **compiled into the kernel** (not a loadable
+    module: absent from `lsmod` / `/proc/modules`), so there is no module to load. **Not** USB. On
+    this unit `eth0` is link-down (`operstate=down`, no cable); plug a cable + `ifconfig eth0 up`
+    (udhcpc) to use it.
 
 ## Software stack
 - **Stock**: buildroot Linux + QT4 UI `firmwareExe` (`/opt/PROGRAM/software/5.1.4/`) + Klipper

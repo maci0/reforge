@@ -4,8 +4,17 @@
 # ("free(): invalid size") right after reaching ready — glibc malloc runs it
 # cleanly. Klippy keeps its own structured log via -l; the UDS at
 # /tmp/klippy_uds matches moonraker.conf.
+#
+# Real-time scheduling: launched under SCHED_RR (prio 5) via chrt so klippy and
+# every thread it spawns (threads inherit the policy) preempt moonraker, the web
+# UI and the camera on the dual-core T113. This is what stops CPU-contention
+# "Timer too close" / MCU-timeout underruns under load. The low priority plus the
+# kernel RT throttle (sched_rt_runtime_us, 95% of a core) keep a runaway from
+# hard-locking the system. dinit re-applies it on every (re)start. chrt is the
+# busybox applet (CONFIG_CHRT=y). dinit exposes `nice` but no RT-policy setting,
+# hence chrt in the command.
 type = process
-command = /usr/bin/python3 /opt/klipper/klippy/klippy.py /etc/reforge/printer.cfg -a /tmp/klippy_uds -l /var/log/klippy.log
+command = /usr/bin/chrt -r 5 /usr/bin/python3 /opt/klipper/klippy/klippy.py /etc/reforge/printer.cfg -a /tmp/klippy_uds -l /var/log/klippy.log
 depends-on = prepare
 depends-on = eboard
 restart = true

@@ -91,6 +91,7 @@ reports** (firmwareExe analysis + the stock Klipper pin map) live in
 - [forge-x-boot-architecture.md](forge-x-boot-architecture.md) — the forge-x mod boot/chroot/service stack.
 - [forge-x-camera.md](forge-x-camera.md) — the mod camera (mjpg_streamer MJPEG passthrough) + how to configure it.
 - [usb-serial-kmod.md](usb-serial-kmod.md) — building out-of-tree USB-serial kmods (ftdi_sio/ch341/pl2303) against the 5.4.61 BSP + sources.
+- [t113-s4-256mb-ram-upgrade.md](t113-s4-256mb-ram-upgrade.md) — SoC swap to T113-S4 for 256 MB RAM (FEL enablement + boot0/DTB flash), the permanent fix for the 128 MB OOM pressure; includes the USB-2.0/swap analysis. (The stock-2.7.2 eMMC dump teardown it references lives in `fw-archive/analysis/stock-emmc-dump-2.7.2-aceofbase.md`.)
 - `stock-kernel-config-5.4.61.txt.gz`, `running-unit-probe.txt` — captured kernel config + unit probe.
 
 ### Related
