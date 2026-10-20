@@ -29,10 +29,6 @@ FRAGMENT="${2:?usage: build-variant.sh <variant> <fragment>}"
 
 VARIANT_OUT="${REFORGE_ROOT}/build/output-${VARIANT}"
 VARIANT_LOG="${REFORGE_ROOT}/build/output-${VARIANT}.log"
-VARIANT_DEFCONFIG_DIR="${REFORGE_ROOT}/build/variant-configs"
-VARIANT_DEFCONFIG="${VARIANT_DEFCONFIG_DIR}/reforge_${VARIANT}_defconfig"
-
-mkdir -p "${VARIANT_DEFCONFIG_DIR}"
 
 # Concatenate baseline defconfig + fragment.  Buildroot reads the named
 # defconfig from BR2_EXTERNAL/configs/, so we copy our merged config into the

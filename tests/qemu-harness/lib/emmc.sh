@@ -10,6 +10,7 @@
 #
 # Then boot with:  qemu-system-arm ... -append "${EMMC_ROOT} ..." ${EMMC_QEMU_ARGS}
 
+# shellcheck disable=SC2034 # Output variables are read by scripts sourcing this file.
 EMMC_BUILDER="${LIBDIR}/build-emmc-image.sh"
 EMMC_ROOT="root=/dev/mmcblk0p6"
 

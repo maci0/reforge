@@ -29,7 +29,6 @@
 # =============================================================================
 set -euo pipefail
 
-TAG=stockui-rk
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "${SELF_DIR}/lib/common.sh"   # REPO_ROOT, QH_DIR, BUILD_DIR, log/die/skip, need_cmd
 . "${SELF_DIR}/lib/inject.sh"   # robust_inject

@@ -188,6 +188,7 @@ log "pivot complete: / = ReForge ${VER}, /oldroot = stock Tina"
 #    and runs /etc/init.d/rcS → /etc/init.d/S?? → /mod/start.sh.
 #    See br-external/board/reforge/rootfs-overlay/etc/inittab (custom).
 # ---------------------------------------------------------------------------
+# shellcheck disable=SC2093 # PID 1 must be replaced; success never reaches fallback.
 exec /sbin/init
 # Unreachable in success path — exec replaces us. If we get here, exec failed.
 fallback "exec /sbin/init failed"

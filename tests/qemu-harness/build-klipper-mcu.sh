@@ -46,7 +46,7 @@ WORK="$(mktemp -d /tmp/klipper-mcu-build-XXXXXX)"
 trap 'rm -rf "${WORK}"' EXIT
 cp -a "${KSRC}/." "${WORK}/"
 
-cd "${WORK}"
+cd "${WORK}" || exit 1
 # Patch the Linux MCU to take its socket path as a positional arg (upstream
 # hardcodes /tmp/klipper_host_mcu). Lets us run TWO instances on two sockets to
 # mirror the printer's dual-MCU topology (main board + toolhead "eboard").

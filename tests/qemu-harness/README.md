@@ -151,3 +151,16 @@ boot). Every `mke2fs` in the suite still routes through the `orphan_file`-disabl
 
 ## Screenshots
 Captured GUI renders (GuppyScreen; firmwareExe result) are in [`docs/screenshots/`](../../docs/screenshots/README.md) — all at the pinned 800x480, pixel-identical to the real panel.
+
+## Forge-X API probe
+
+`python3 tests/qemu-harness/board_mcu.py --self-test` checks the simulated
+N32G455 wire protocol without a guest. `tests/qemu-harness/api-probe-forgex.sh`
+boots working copies of `build/forgex-rootfs.ext4` and `build/forgex-data.ext4`
+with `build/zImage`, waits for Klippy readiness, and captures read-only API
+responses under `build/api-probe-forgex/`. Those source images are local fixtures,
+not distributed firmware. The probe terminates only its own QEMU process.
+
+Set `PHOBOS_BIN` to an absolute static ARM binary path to also run Phobos on
+guest port 7126 with a private database. Host forwards bind
+to loopback; `HOST_PORT`, `KLIPPY_PORT`, and `PHOBOS_HOST_PORT` select their ports.
