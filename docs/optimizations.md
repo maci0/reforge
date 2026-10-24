@@ -10,7 +10,7 @@ write-ups: [`docs/research/`](research/).
 
 | lever | what it does | measured impact | where |
 |---|---|---|---|
-| **gcc 15.2 (toolchain)** | flip `BR2_GCC_VERSION_15_X=y` (up from BR 2026.02.2 LTS's default gcc 14.3); newer optimizer + tuned glibc give 25–50 % smaller shared libraries that get mmap'd into every process | **−10.16 MB Σ Pss (−17.0 %)** at `-m 128` under qemu virt, NOSWAP. Per-binary: libpython3.14.so −29.5 %, numpy `_multiarray_umath` −34.4 %, libcrypto.so.3 −27.0 %, libc.so.6 −36.8 %, libsqlite3 −48.4 %, klippy `c_helper.so` −26.6 %. rootfs.tar 157 MB → 144 MB (−8.3 %). Loop: the 2026-06-04 toolchain sweep (variant fragments in [`experiments/2026-06-04-toolchain-memory/`](../experiments/2026-06-04-toolchain-memory/)). | `reforge_defconfig` (`BR2_GCC_VERSION_15_X`) |
+| **gcc 15.2 (toolchain)** | flip `BR2_GCC_VERSION_15_X=y` (up from BR 2026.02.2 LTS's default gcc 14.3); newer optimizer + tuned glibc give 25–50 % smaller shared libraries that get mmap'd into every process | **−10.16 MB Σ Pss (−17.0 %)** at `-m 128` under qemu virt, NOSWAP. Per-binary: libpython3.14.so −29.5 %, numpy `_multiarray_umath` −34.4 %, libcrypto.so.3 −27.0 %, libc.so.6 −36.8 %, libsqlite3 −48.4 %, klippy `c_helper.so` −26.6 %. rootfs.tar 157 MB → 144 MB (−8.3 %). Loop: the 2026-06-04 toolchain sweep (variant fragments in [`lab/toolchain-memory/`](../lab/toolchain-memory/)). | `reforge_defconfig` (`BR2_GCC_VERSION_15_X`) |
 | **jemalloc (tuned)** | `LD_PRELOAD` jemalloc with `MALLOC_CONF=narenas:1,tcache:false,dirty_decay_ms:0,muzzy_decay_ms:0` — single arena + **no thread-cache** + zero-decay (return freed pages to the OS immediately) | **−6.5 MB Σ Pss (−11.2 %)** vs glibc (the original 2026-05 measurement), plus **another −0.9 MB** from adding `tcache:false` (iter 3, 2026-06-04 — jemalloc's per-thread cache otherwise hoards memory). _Measured with jemalloc on all daemons under qemu; klippy was later reverted (see note), so the on-device win is smaller._ | `reforge_defconfig` (`BR2_PACKAGE_JEMALLOC`) + `S65moonraker`/`S75guppyscreen` (**not** klippy) |
 | **Thumb-2 + -Os + locale purge** | smaller code → fewer resident code pages across every process; smaller rootfs | **−4.9 MB Σ Pss (−8.2 %)**, **−1.08 MB** rootfs | `reforge_defconfig` (`BR2_ARM_INSTRUCTIONS_THUMB2`, `BR2_OPTIMIZE_S`, `BR2_ENABLE_LOCALE_PURGE`) |
 | **LTO (all packages)** | link-time cross-TU dead-code elimination + inlining → smaller `.text`/rootfs on top of -Os/Thumb-2 | _enabled; cross-package effect overlaps with LTO so the marginal `-ffunction-sections -fdata-sections` win is null (autoresearch iter 8: +75 kB, noise)_ | `reforge_defconfig` (`BR2_ENABLE_LTO`) |
@@ -96,7 +96,7 @@ so they're out of reach for P1–P3. They become available when ReForge ships it
   | + Phase 1 × Phase 2 stack (**PRODUCTION**) | **47 488** | **−12 099** | **−20.3 %** |
 
   Noise floor: σ(Σ Pss) = 33.5 kB over 3 warm reruns; 3σ signal threshold = 100 kB.
-  Per-iter variant fragments: [`experiments/2026-06-04-toolchain-memory/`](../experiments/2026-06-04-toolchain-memory/).
+  Per-iter variant fragments: [`lab/toolchain-memory/`](../lab/toolchain-memory/).
 
 - Measurements are **idle** (klippy in no-MCU state, Moonraker threadpool quiescent). jemalloc's
   advantage typically **grows under load** (allocation churn), so −6.5 MB is a floor.
@@ -118,7 +118,7 @@ so they're out of reach for P1–P3. They become available when ReForge ships it
 - The 2026-06-04 toolchain loop drove the gcc/jemalloc sweep; pass `NOSWAP=0` to the probe for
   production-realistic measurements (zram + eMMC overflow ON) or `NOSWAP=1` for clean RAM-pressure
   A/B. Variant fragments under
-  [`experiments/2026-06-04-toolchain-memory/`](../experiments/2026-06-04-toolchain-memory/).
+  [`lab/toolchain-memory/`](../lab/toolchain-memory/).
 - For a forge-x comparison run: `tests/qemu-harness/mem-probe-forgex.sh <label>` (slices the
   forge-x rootfs from `tools/recovery/forge-x-*.img.gz`, patches out `ffstartup-arm`, launches
   klippy directly, snapshots like the ReForge probe).

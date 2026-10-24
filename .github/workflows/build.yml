@@ -5,6 +5,8 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 4 * * 0'   # weekly: catch reproducibility regressions
+permissions:
+  contents: read
 jobs:
   lint:
     # ShellCheck our own shell scripts. No submodules: the linter selects from
@@ -12,10 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: install shellcheck
-        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: install host check tools
+        run: sudo apt-get update && sudo apt-get install -y shellcheck busybox
       - name: shellcheck
         run: make lint
+      - name: host unit checks
+        run: make unit
       - name: actionlint (workflow files)
         run: |
           bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) >/dev/null 2>&1 || true

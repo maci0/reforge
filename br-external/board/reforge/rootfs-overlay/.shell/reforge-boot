@@ -49,10 +49,10 @@ fi
 
 # ---------------------------------------------------------------------------
 # Fire/ember boot banner (the script lives in the ReForge rootfs; it is plain
-# sh+printf, so we can render it from the stock side before the chroot).
+# sh+awk, so we can render it from the stock side before the chroot).
 # ---------------------------------------------------------------------------
 if [ -f "${REFORGE_DIR}/usr/bin/reforge-banner" ]; then
-    sh "${REFORGE_DIR}/usr/bin/reforge-banner" 2>/dev/null || true
+    TERM=linux sh "${REFORGE_DIR}/usr/bin/reforge-banner" --animate 2>/dev/null || true
 fi
 
 # ---------------------------------------------------------------------------

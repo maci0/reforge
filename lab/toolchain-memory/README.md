@@ -1,0 +1,16 @@
+# Toolchain memory experiments
+
+Buildroot config fragments from the 2026-06-04 compiler and memory measurements.
+Each fragment is combined with the current ReForge defconfig by the variant builder:
+
+```sh
+tools/build/build-variant.sh gcc15-base lab/toolchain-memory/gcc15-base.fragment
+tools/build/build-variant.sh gcc15-funcsec lab/toolchain-memory/gcc15-funcsec.fragment
+```
+
+Build output and logs go under `build/`. Generated variant defconfigs under
+`br-external/configs/` are ignored by Git.
+
+Results and measurement conditions are recorded in
+[optimizations.md](../../docs/optimizations.md) and the
+[memory comparison](../../docs/research/memory/2026-06-05-reforge-vs-forgex-memory.md).

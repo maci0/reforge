@@ -1,11 +1,11 @@
 # ReForge
 
-A from-scratch, mainline-based firmware stack for the **FlashForge Adventurer 5M Pro**
-(Allwinner T113-S3 / sun8iw20, Cortex-A7). Fresh upstream Buildroot (glibc) + latest
+A firmware stack under development for the **FlashForge Adventurer 5M Pro**
+(Allwinner T113-S3 / sun8iw20, Cortex-A7). Upstream Buildroot (glibc) +
 pinned Klipper / Moonraker / Mainsail / GuppyScreen, built to run on the stock vendor
 kernel today and a mainline kernel + self-ported T113 display driver later.
 
-![ReForge bootsplash](docs/screenshots/reforge-bootsplash.png)
+![ReForge animated console bootsplash](docs/screenshots/reforge-bootsplash.gif)
 
 The **stock FlashForge touch UI runs unmodified on ReForge's own upstream Klipper** —
 `firmwareExe` is a standard Klipper `api_server` client, so it drives our Klipper over the
@@ -31,12 +31,14 @@ Three trees — **product** (what we author), **vendor** (third-party, pinned), 
 
 ```
 br-external/  the firmware (Buildroot BR2_EXTERNAL tree)
-modules/      out-of-tree kernel modules (zram + the live-mode loop/crc32/f2fs)
+modules/      out-of-tree kernel modules (zram, f2fs, overlayfs)
 packaging/    stock-format .tgz installer + the live-from-USB launcher
 tests/        qemu harness + smoke + loopback install test
 tools/        build entry + golden-dump recovery
 docs/         specs, plans, research, board notes, screenshots
 vendor/       buildroot + BSP kernel (submodules) + toolchain (pinned tarball)
+reference/    captured stock and Forge-X printer configs, with provenance
+contrib/      work intended for upstream projects
 lab/          experiments / scratch (not shipped)
 ```
 
@@ -55,8 +57,7 @@ make tgz                 # -> packaging/dist/reforge-<ver>.tgz
 ```
 
 `pins.lock` is the authoritative version manifest; `vendor/fetch.sh` reconstructs all
-third-party trees at exactly those pins. Build paths are driven by the `Makefile`
-(`make help` lists targets).
+third-party trees at exactly those pins. The [Makefile](Makefile) lists build and test targets.
 
 ## How it works (diagrams)
 
@@ -137,3 +138,12 @@ closes the LAN-side ones without waiting for our own kernel.
 This repo commits **zero proprietary FlashForge assets** (`firmwareExe`, Qt blobs,
 `/opt/PROGRAM/` contents) — a CI guard enforces it. Stock-UI investigation extracts those
 only into a gitignored scratch area.
+
+For development checks and contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+ReForge's original code is licensed under [GNU GPL version 3](LICENSE)
+(`GPL-3.0-only`), except where a file specifies another license. Third-party code,
+kernel modules, source excerpts, and submodules retain their existing licenses;
+see their license headers and provenance documentation.

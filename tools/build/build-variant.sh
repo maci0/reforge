@@ -10,7 +10,7 @@
 #   tools/build/build-variant.sh <variant-name> <fragment-file>
 #
 # Example (gcc15 phase-2 iter 7):
-#   tools/build/build-variant.sh gcc15-base experiments/2026-06-04-toolchain-memory/gcc15-base.fragment
+#   tools/build/build-variant.sh gcc15-base lab/toolchain-memory/gcc15-base.fragment
 #
 # Output:
 #   build/output-<variant>/images/rootfs.tar

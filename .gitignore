@@ -13,6 +13,8 @@ tools/recovery/.work/
 
 # Transient build output (top-level, gitignored whole)
 /build/
+# build-variant.sh generates these alongside the source defconfig.
+/br-external/configs/reforge_*_defconfig
 *.tar
 *.tar.xz
 *.tgz
@@ -30,6 +32,20 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Local Python environments and test caches
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local secrets (keep example templates trackable)
+.env
+.env.*
+!.env.example
+
 # Packaging build artifacts
 packaging/dist/
 *.img
@@ -43,11 +59,6 @@ lab/spike-stockui/extracted/
 
 # Recovery image archive — large third-party blobs (never commit)
 tools/recovery/archive/
-
-# Linaro 5.3.1 toolchain (downloaded by `FETCH_LINARO=1 ./vendor/fetch.sh`,
-# pinned in pins.lock; only needed for byte-identical-attempt build).
-/vendor/toolchains/gcc-linaro-5.3.1.tar.xz
-/vendor/toolchains/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi/
 
 # graphify knowledge-graph output — regenerable via `graphify update .` (~2 GB)
 graphify-out/

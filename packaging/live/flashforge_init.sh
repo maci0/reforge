@@ -230,7 +230,7 @@ chroot "${ROOT}" /usr/bin/reforge-boot-eboard >> "${USB_LOG}" 2>&1 \
 
 # Paint the fire/ember boot splash (with the LIVE badge) on the console, the way
 # reforge-boot would on a normal boot. TERM=linux so the framebuffer console colorizes.
-REFORGE_LIVE=1 TERM=linux chroot "${ROOT}" /usr/bin/reforge-banner > "${LIVE_LOG}" 2>&1 || true
+REFORGE_LIVE=1 TERM=linux chroot "${ROOT}" /usr/bin/reforge-banner --animate > "${LIVE_LOG}" 2>&1 || true
 
 # Bring up the network (best-effort) BEFORE the chroot: in live mode we block stock's
 # auto_run, so the stock WiFi init never runs and the box has no LAN. net-up.sh reuses

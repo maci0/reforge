@@ -10,8 +10,9 @@ shaper figure quoted below is one observed sample, not "the" stock value. See
 1. **Stock firmwareExe 5.1.4** — recovered verbatim from embedded config fragments in
    `/opt/PROGRAM/software/5.1.4/firmwareExe` (not stripped).
 2. **Stock factory 3.1.3** — `printer.cfg`/`printer.base.cfg` from the ff5m 1.2.0 factory image
-   (`vendor/stock-printer-cfg/`).
-3. **forge-x live** — the on-unit `/opt/config/printer.cfg` (forge-x restructures it; values same).
+   ([`reference/ad5m-factory-config/`](../../reference/ad5m-factory-config/)).
+3. **forge-x live** — the on-unit `/opt/config/printer.cfg` (forge-x restructures it; values same;
+   captured copies in [`reference/ad5m-forge-x-config/`](../../reference/ad5m-forge-x-config/)).
 
 Live on-device paths: `/opt/config/printer.cfg`, `/opt/config/printer.base.cfg`
 (`[include printer.base.cfg]`), `/opt/config/levelPrint.cfg`. Needed to author a from-scratch
@@ -120,7 +121,7 @@ calibration persists independently of the base config. `heater_bed` + the chambe
 into `printer.cfg`; `pcb_fan` is dropped; `chamber_led`→`chamber_light` (+ `cycle_time` for PWM
 smoothing). Whitespace is normalized (trailing spaces trimmed). The pin assignments are untouched.
 
-Canonical factory copies are committed at `vendor/stock-printer-cfg/` (factory 3.1.3).
+Canonical factory copies are committed at `reference/ad5m-factory-config/` (factory 3.1.3).
 
 ## ReForge notes
 - A from-scratch config must instantiate **both** `[mcu]` (`/dev/ttyS5`) and `[mcu eboard]`

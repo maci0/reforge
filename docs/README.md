@@ -47,6 +47,8 @@ Documentation that lives next to its subject. Worth knowing about:
 | [`../modules/zram-bsp/README.md`](../modules/zram-bsp/README.md) | building zram + zsmalloc out-of-tree against the stock 5.4.61 BSP kernel for live mode |
 | [`../br-external/README.md`](../br-external/README.md) | the Buildroot external tree (`BR2_EXTERNAL`) layout |
 | [`../tools/README.md`](../tools/README.md) | build / release / recovery / OTA tooling index |
+| [`../reference/README.md`](../reference/README.md) | stock firmware and Forge-X config captures with provenance |
+| [`../CONTRIBUTING.md`](../CONTRIBUTING.md) | development checks and source/artifact conventions |
 | [`../tools/ota/README.md`](../tools/ota/README.md) | the OTA test harness + mock GitHub release server |
 | [`../lab/README.md`](../lab/README.md) | experiments / scratch — not shipped, kept for reproducibility |
 | [`../contrib/forge-x-shared-python/README.md`](../contrib/forge-x-shared-python/README.md) | upstream contribution: shared Python interpreter for forge-x |

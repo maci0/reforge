@@ -11,9 +11,9 @@
 # Fully ROOTLESS: mke2fs -d, unprivileged qemu.
 #
 # Usage:  tests/qemu-harness/shots-reforge.sh
-# Needs:  qemu-system-arm, mke2fs (e2fsprogs), socat, python3 (Pillow), build/zImage,
+# Needs:  qemu-system-arm, mke2fs (e2fsprogs), python3 (Pillow), build/zImage,
 #         build/output/images/rootfs.tar[.xz]
-# Out:    docs/screenshots/reforge-bootsplash.png, -bootsplash-live.png, -boot-console.png
+# Out:    docs/screenshots/reforge-bootsplash.{png,gif}, -bootsplash-live.png, -boot-console.png
 # =============================================================================
 set -euo pipefail
 
@@ -34,7 +34,6 @@ ROOTFS_TAR="${ROOTFS_TAR:-${REPO_ROOT}/build/output/images/rootfs.tar}"
 [ -f "${ROOTFS_TAR}" ] || skip "no rootfs.tar (make rootfs)"
 command -v qemu-system-arm >/dev/null || die "qemu-system-arm not installed"
 command -v mke2fs >/dev/null || die "mke2fs not installed"
-command -v socat  >/dev/null || skip "socat not installed (needed for screendump)"
 python3 -c 'import PIL' 2>/dev/null || skip "python3 Pillow not installed"
 
 WORK="$(mktemp -d)"; trap 'rm -rf "${WORK}"' EXIT
@@ -58,7 +57,7 @@ cat > "${STAGE}/sbin/shot-splash" <<EOF
 #!/bin/sh
 ${paint_head}
 printf '\033[2J\033[H'    # clear the kernel boot text for a clean splash
-TERM=linux REFORGE_LIVE=0 /usr/bin/reforge-banner
+TERM=linux REFORGE_LIVE=0 /usr/bin/reforge-banner --animate
 while true; do sleep 3600; done
 EOF
 cat > "${STAGE}/sbin/shot-splash-live" <<EOF
@@ -66,7 +65,7 @@ cat > "${STAGE}/sbin/shot-splash-live" <<EOF
 ${paint_head}
 printf '\033[2J\033[H'
 : > /run/reforge-live 2>/dev/null || true
-TERM=linux REFORGE_LIVE=1 /usr/bin/reforge-banner
+TERM=linux REFORGE_LIVE=1 /usr/bin/reforge-banner --animate
 while true; do sleep 3600; done
 EOF
 cat > "${STAGE}/sbin/shot-console" <<EOF
@@ -90,34 +89,87 @@ chmod 0755 "${STAGE}/sbin/shot-splash" "${STAGE}/sbin/shot-splash-live" "${STAGE
 IMG="${BUILD_DIR}/shots-reforge.ext4"
 rm -f "${IMG}"; mke2fs -q -F -t ext4 -O ^orphan_file,^metadata_csum_seed -d "${STAGE}" "${IMG}" 1280M
 
-capture() {  # <init> <settle-seconds> <out.png>
-    local init="$1" settle="$2" out="$3"
-    local mon="${BUILD_DIR}/shots-reforge-mon.sock" ser="${BUILD_DIR}/shots-reforge-ser.log"
-    local ppm="${BUILD_DIR}/shots-reforge.ppm"
-    rm -f "${mon}" "${ser}" "${ppm}"
-    log "boot ${init} (settle ${settle}s) ..."
-    qemu-system-arm -M virt,highmem=off -cpu cortex-a7 -smp 2 -m 256 \
-        -kernel "${ZIMAGE}" \
-        -append "console=tty0 console=ttyAMA0,115200 root=/dev/vda rw rootwait loglevel=3 init=${init}" \
-        -device virtio-gpu-pci,xres=800,yres=480 \
-        -display none -monitor "unix:${mon},server,nowait" -serial file:"${ser}" \
-        -drive "file=${IMG},if=virtio,format=raw,cache=writeback" \
-        -netdev user,id=n0 -device virtio-net-pci,netdev=n0 >/dev/null 2>&1 &
-    local qp=$!
-    local w=0; while [ ! -S "${mon}" ] && [ "${w}" -lt 25 ]; do sleep 1; w=$((w+1)); done
-    [ -S "${mon}" ] || { kill -9 "${qp}" 2>/dev/null; die "monitor socket never appeared"; }
-    sleep "${settle}"
-    printf 'screendump %s\n' "${ppm}" | socat - "UNIX-CONNECT:${mon}" >/dev/null 2>&1 || true
-    sleep 2
-    kill -9 "${qp}" 2>/dev/null || true
-    [ -s "${ppm}" ] || { warn_missing "${out}"; return 0; }
-    python3 -c "from PIL import Image; Image.open('${ppm}').save('${out}')"
-    log "  wrote ${out}"
-}
-warn_missing() { echo "[shots-reforge] WARN: no screendump for $1 (see serial log)"; }
+# Use the stdio monitor: no local socket server or socat is needed.
+python3 - "${ZIMAGE}" "${IMG}" "${BUILD_DIR}" "${OUTDIR}" <<'PY_CAPTURE'
+from pathlib import Path
+import subprocess
+import sys
+import time
+from PIL import Image
 
-mkdir -p "${OUTDIR}"
-capture /sbin/shot-splash       14 "${OUTDIR}/reforge-bootsplash.png"
-capture /sbin/shot-splash-live  14 "${OUTDIR}/reforge-bootsplash-live.png"
-capture /sbin/shot-console      75 "${OUTDIR}/reforge-boot-console.png"
+kernel, image, build, out = map(Path, sys.argv[1:])
+out.mkdir(parents=True, exist_ok=True)
+ppm = build / "shots-reforge.ppm"
+
+
+def capture(init, settle, name, animated=False):
+    log = build / "shots-reforge-qemu.log"
+    serial = build / "shots-reforge-ser.log"
+    print(f"[shots-reforge] boot {init}", flush=True)
+    with log.open("wb") as errors:
+        proc = subprocess.Popen([
+            "qemu-system-arm", "-M", "virt,highmem=off", "-cpu", "cortex-a7",
+            "-smp", "2", "-m", "256", "-kernel", str(kernel),
+            "-append", f"console=tty0 console=ttyAMA0,115200 root=/dev/vda rw rootwait loglevel=3 init={init}",
+            "-device", "virtio-gpu-pci,xres=800,yres=480", "-display", "none",
+            "-monitor", "stdio", "-serial", f"file:{serial}",
+            "-drive", f"file={image},if=virtio,format=raw,cache=writeback", "-nic", "none",
+        ], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=errors)
+        try:
+            def frame():
+                ppm.unlink(missing_ok=True)
+                proc.stdin.write(f"screendump {ppm}\n".encode())
+                proc.stdin.flush()
+                for _ in range(200):
+                    if proc.poll() is not None:
+                        raise RuntimeError(log.read_text())
+                    try:
+                        with Image.open(ppm) as shot:
+                            return shot.convert("RGB")
+                    except OSError:
+                        time.sleep(0.01)
+                raise RuntimeError("QEMU screendump timed out; see " + str(log))
+
+            started = time.monotonic()
+            frames = []
+            if animated:
+                # The wordmark uses yellow; kernel boot text does not. Start the
+                # recording once it appears, regardless of host boot speed.
+                while time.monotonic() - started < settle:
+                    shot = frame()
+                    yellow = sum(count for count, (r, g, b)
+                                 in shot.crop((100, 190, 700, 290)).getcolors(60000)
+                                 if r > 100 and g > 100 and b < 90)
+                    if yellow > 200:
+                        # Let the remaining logo/footer lines finish painting.
+                        time.sleep(0.15)
+                        frames.append(frame())
+                        break
+                    time.sleep(0.05)
+                if not frames:
+                    raise RuntimeError("Splash never appeared; see " + str(serial))
+                for _ in range(27):
+                    time.sleep(0.06)
+                    frames.append(frame())
+                # Reuse the first frame palette so the logo stays stable.
+                palette = frames[0].quantize(colors=16, dither=Image.Dither.NONE)
+                frames = [f.quantize(palette=palette, dither=Image.Dither.NONE) for f in frames]
+                frames[0].save(out / "reforge-bootsplash.gif", save_all=True,
+                               append_images=frames[1:], duration=70, loop=0)
+            time.sleep(max(0, settle - (time.monotonic() - started)))
+            frame().save(out / name)
+            print(f"[shots-reforge] wrote {name}", flush=True)
+        finally:
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+
+
+capture("/sbin/shot-splash", 14, "reforge-bootsplash.png", animated=True)
+capture("/sbin/shot-splash-live", 14, "reforge-bootsplash-live.png")
+capture("/sbin/shot-console", 75, "reforge-boot-console.png")
+PY_CAPTURE
 log "done."

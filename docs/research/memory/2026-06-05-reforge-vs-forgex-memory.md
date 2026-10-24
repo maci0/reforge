@@ -90,7 +90,7 @@ ReForge's moonraker.conf still has `[history]` and the full `[update_manager]` t
 ```sh
 # 1. ReForge rootfs (production): the gcc15 build + the autoresearch tweaks
 make rootfs                                        # via tools/build/build.sh or:
-tools/build/build-variant.sh gcc15-base experiments/2026-06-04-toolchain-memory/gcc15-base.fragment
+tools/build/build-variant.sh gcc15-base lab/toolchain-memory/gcc15-base.fragment
 
 # 2. Slice the forge-x rootfs from the eMMC dump (rootless)
 gzip -dc tools/recovery/forge-x-20260531-152104.img.gz > /tmp/fx.img

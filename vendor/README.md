@@ -1,8 +1,8 @@
 # vendor/ — third-party trees we don't author
 
-Everything here is upstream code/toolchains. None of it is committed as files — it's
-either a **git submodule** (pinned commit) or a **pinned tarball** (downloaded + sha256
-verified). A fresh clone reconstructs it all with one command:
+Upstream source trees are **git submodules** pinned to commits; toolchains are
+**pinned tarballs** downloaded and checked by SHA-256. Build patches and small source
+excerpts are committed as files with their provenance. Fetch the source trees and toolchains with:
 
 ```sh
 ./vendor/fetch.sh
@@ -15,6 +15,8 @@ verified). A fresh clone reconstructs it all with one command:
 | `buildroot/` | gitlab.com/buildroot.org/buildroot @ `2026.02.2` | `.gitmodules` + `pins.lock` | git submodule |
 | `kernels/tina-bsp-kernel/` | github.com/iLotusK9/linux_kernel_aw_t113 branch `5.4.61` (`349a0b9`) | `.gitmodules` + `pins.lock` | git submodule |
 | `toolchains/gcc-9.5.0-nolibc/` | kernel.org crosstool GCC 9.5.0 `arm-linux-gnueabi` (nolibc) | `pins.lock` sha256 | tarball, fetched + verified |
+| `kernels/patches/` | local patches for the pinned BSP | [patch documentation](kernels/patches/README.md) | tracked patch files |
+| `upstream-snippets/` | individual upstream source excerpts | [PWM source provenance](upstream-snippets/pwm-sunxi-g_dev/README.md) | tracked source with its original license header |
 
 The BSP (`tina-bsp-kernel`) is the **layout-exact** stock-kernel source — the build target
 for both the zram modules (`modules/zram-bsp/`) and the qemu virt test kernel

@@ -1,70 +1,137 @@
 #!/bin/sh
-# ReForge boot/login banner — fire/ember art, sized to the 800x480 framebuffer
-# console (8x16 font = 100x30 chars). Uses block/shade/box-drawing glyphs present
-# in the kernel VGA/CP437 console font (█ ▓ ▒ ░ ▟ ▙ ▛ ▜ ▄ ▀ ═ ║ ╔ ╗ ╚ ╝), so it
-# renders on the real panel; degrades to plain text on a dumb terminal. Fire
-# gradient yellow(226) -> red(196). LIVE mode adds a run-from-USB badge.
-# All elements are centred on a common axis; keep that when editing.
+# Console-native splash; --animate adds a short Doom-style fire at boot.
+# Uses only stock BusyBox tools and the VGA console font. SSH logins stay static.
 
-if [ -t 1 ] && [ "${TERM:-dumb}" != "dumb" ]; then
-    # Centre the ~49-col art block on the actual console width: the pty size for an
-    # SSH login, or the framebuffer width / 8 (8px font) on the boot console.
-    _cols="$(tput cols 2>/dev/null || true)"
-    [ -z "${_cols}" ] && _cols="$(stty size 2>/dev/null | cut -d' ' -f2)"
-    if [ -z "${_cols}" ]; then
-        _w="$(cut -d, -f1 /sys/class/graphics/fb0/virtual_size 2>/dev/null || true)"
-        [ -n "${_w}" ] && _cols="$((_w / 8))"
+_cols=80
+_rows=30
+_color=0
+if [ -t 1 ] && [ "${TERM:-dumb}" != dumb ]; then
+    _color=1
+    _cols=0
+    _rows=0
+    _size="$(stty size 2>/dev/null || true)"
+    if [ -n "${_size}" ]; then
+        _rows="${_size% *}"
+        _cols="${_size#* }"
     fi
-    [ -z "${_cols}" ] && _cols=80
-    _pad=$(( (_cols - 49) / 2 )); [ "${_pad}" -lt 0 ] && _pad=0
-    PAD="$(printf "%${_pad}s" '')"
-    c() { printf '\033[1;38;5;%sm%s%s\033[0m\n' "$1" "${PAD}" "$2"; }   # bold colored line
-    d() { printf '\033[38;5;%sm%s%s\033[0m\n'   "$1" "${PAD}" "$2"; }   # dim colored line
-else
-    c() { printf '%s\n' "$2"; }
-    d() { printf '%s\n' "$2"; }
+    if [ "${_cols}" -le 0 ] && [ -r /sys/class/graphics/fb0/virtual_size ]; then
+        IFS=, read -r _width _height < /sys/class/graphics/fb0/virtual_size
+        _cols=$((_width / 8))
+        _rows=$((_height / 16))
+    fi
+    [ "${_cols}" -gt 0 ] || _cols=80
+    [ "${_rows}" -gt 0 ] || _rows=30
 fi
 
-printf '\n'
-# Flame tongues in shaded blocks, cooling top to bottom.
-d 226 '              ░▒▓    ▓▒░     ▒▓░'
-c 220 '            ░▒▓█▓▒ ░▓██▓▒░  ▒▓█▓▒'
-c 208 '          ▒▓██████▓▒████████▒██████▓▒'
-printf '\n'
-# REFORGE — solid block letters (R E F O R G E), vertical fire gradient.
-c 226 '         ███ ███ ███ ███ ███ ███ ███'
-c 220 '         █ █ █   █   █ █ █ █ █   █  '
-c 214 '         ███ ██  ██  █ █ ███ █▄█ ██ '
-c 208 '         █ █ █   █   █ █ █ █ █ █ █  '
-c 202 '         █ █ ███ █   ███ █ █ ███ ███'
-c 208 '         ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀'
-printf '\n'
-# Steel anvil over the forge base (CP437-safe glyphs only: full/half blocks).
-d 250 '                ▄████████████▄'
-c 248 '              ▄████████████████▄'
-c 246 '              ████████████████████'
-d 245 '               ▀▀████████████▀▀'
-d 243 '                    ██    ██'
-c 202 '                ▄████████████████▄'
-c 196 '                ████████████████████'
-printf '\n'
-c 214 '            ReForge  -  Klipper, reforged'
-
-# Version, if recorded by the build.
-if [ -r /etc/reforge-version ]; then
-    d 245 "            $(cat /etc/reforge-version 2>/dev/null)"
-elif [ -r /etc/os-release ]; then
-    _v="$(. /etc/os-release 2>/dev/null; echo "${VERSION:-}")"
-    [ -n "${_v}" ] && d 245 "            ${_v}"
+_animate=0
+if [ "${1:-}" = --animate ] && [ "${_color}" = 1 ] &&
+   [ "${_cols}" -ge 64 ] && [ "${_rows}" -ge 28 ] && command -v awk >/dev/null 2>&1; then
+    _animate=1
+    # Always restore the cursor if startup is interrupted during the animation.
+    trap 'printf "\033[0m\033[?25h"; exit 0' HUP INT TERM
+    printf '\033[2J\033[H\033[?25l'
 fi
 
-# LIVE badge — run-from-USB, nothing written to eMMC. Triggered by REFORGE_LIVE
-# (set by the live launcher) or a marker file. Interior is a fixed 40 columns so
-# the double-box frame stays aligned.
-if [ "${REFORGE_LIVE:-0}" = "1" ] || [ -e /run/reforge-live ] || [ -e /tmp/.reforge-live ]; then
+_pad=$(( (_cols - 64) / 2 )); [ "${_pad}" -ge 0 ] || _pad=0
+PAD="$(printf "%${_pad}s" '')"
+c() {
+    if [ "${_color}" = 1 ]; then
+        printf '\033[%sm%s%s\033[0m\n' "$1" "${PAD}" "$2"
+    else
+        printf '%s\n' "$2"
+    fi
+}
+
+fire() {
+    awk -v frames="$1" -v pad="${_pad}" '
+    BEGIN {
+        srand()
+        width = 64; height = 10
+        for (x = 0; x < pad; x++) padding = padding " "
+        split("0;30 0;31 0;31 0;31 1;31 1;31 0;33 0;33 1;33 1;33 1;37", palette, " ")
+        for (x = 0; x < width; x++) heat[height * width + x] = 32
+        for (frame = 0; frame < 48 + frames; frame++) {
+            # Heat rises from the furnace floor, cools and drifts sideways.
+            for (y = 0; y < height; y++) {
+                for (x = 0; x < width; x++) {
+                    below = (y + 1) * width + (x + int(rand() * 3) - 1 + width) % width
+                    value = heat[below] - int(rand() * 7)
+                    heat[y * width + x] = value > 0 ? value : 0
+                }
+            }
+            if (frame < 48) continue
+            if (frames > 1) printf "\033[2;1H"
+            output = ""
+            for (y = 0; y < height; y++) {
+                output = output padding
+                last = -1
+                for (x = 0; x < width; x++) {
+                    value = heat[y * width + x]
+                    color = int(value / 3) + 1
+                    if (color != last) output = output "\033[" palette[color] "m"
+                    last = color
+                    glyph = value < 3 ? " " : (value < 10 ? "░" : (value < 20 ? "▒" : (value < 27 ? "▓" : "█")))
+                    output = output glyph
+                }
+                output = output "\033[0m\n"
+            }
+            printf "%s", output
+            fflush()
+            if (frames > 1) system("sleep 0.06")
+        }
+    }'
+}
+
+printf '\n'
+if [ "${_color}" = 1 ] && [ "${_cols}" -ge 64 ]; then
+    if command -v awk >/dev/null 2>&1; then
+        fire 1
+    else
+        c '1;91' '                 ░▒▓████▓▒░   ░▒▓██▓▒░'
+    fi
     printf '\n'
-    c 51 '       ╔════════════════════════════════════════╗'
-    c 51 '       ║   LIVE  -  running from USB            ║'
-    c 45 '       ║   eMMC untouched, pull+reboot = stock  ║'
-    c 51 '       ╚════════════════════════════════════════╝'
+    c '1;97' '         ████   █████  █████   ███   ████    ████  █████'
+    c '1;93' '         █   █  █      █      █   █  █   █  █      █    '
+    c '1;93' '         ████   ████   ████   █   █  ████   █ ███  ████ '
+    c '1;33' '         █  █   █      █      █   █  █  █   █   █  █    '
+    c '1;91' '         █   █  █████  █       ███   █   █   ███   █████'
+    c '31'   '         ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀'
+    printf '\n'
+    c '37'   '                        KLIPPER, REFORGED'
+else
+    c 0 'ReForge - Klipper, reforged'
+fi
+
+if [ -r /etc/reforge-version ]; then
+    _version="$(cat /etc/reforge-version 2>/dev/null)"
+elif [ -r /etc/os-release ]; then
+    _version="$(. /etc/os-release 2>/dev/null; printf '%s' "${VERSION:-}")"
+fi
+if [ -n "${_version:-}" ]; then
+    if [ "${_color}" = 1 ] && [ "${_cols}" -ge 64 ]; then
+        _version_pad=$(( (64 - ${#_version}) / 2 ))
+        [ "${_version_pad}" -ge 0 ] || _version_pad=0
+        c 37 "$(printf "%${_version_pad}s" '')${_version}"
+    else
+        c 0 "${_version}"
+    fi
+fi
+
+if [ "${REFORGE_LIVE:-0}" = 1 ] || [ -e /run/reforge-live ] || [ -e /tmp/.reforge-live ]; then
+    printf '\n'
+    if [ "${_color}" = 1 ] && [ "${_cols}" -ge 64 ]; then
+        c '1;96' '             ╔════════════════════════════════════╗'
+        c '1;96' '             ║         LIVE  /  USB BOOT          ║'
+        c '36'   '             ╚════════════════════════════════════╝'
+    else
+        c 0 'LIVE / USB BOOT'
+    fi
+fi
+printf '\n'
+
+if [ "${_animate}" = 1 ]; then
+    printf '\0337'
+    fire 28
+    printf '\0338\033[0m\033[?25h'
+    trap - HUP INT TERM
 fi

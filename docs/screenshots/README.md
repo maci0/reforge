@@ -1,31 +1,37 @@
 # Screenshots
 
 All images are captured from `qemu-system-arm` with `/dev/fb0` pinned to the printer's exact
-panel (**800×480, 32 bpp**), via the QEMU monitor `screendump` — **pixel-identical to the real
-4.3" screen**. The boot splash + console are real framebuffer-console captures (16-color VGA/CP437
+panel resolution (**800×480, 32 bpp**), via the QEMU monitor `screendump`.
+The boot splash + console are real framebuffer-console captures (16-color VGA/CP437
 fbcon, not rasterized approximations) produced by `tests/qemu-harness/shots-reforge.sh`
 (`make shots-reforge`), which injects the working-tree banner, boots the virt kernel with
 virtio-gpu, and screendumps the live fbcon.
 
-## Bootsplash (fire/ember "ReForge")
+## Bootsplash (Doom-style fire)
 
-![ReForge bootsplash](reforge-bootsplash.png)
+![ReForge animated bootsplash](reforge-bootsplash.gif)
 
-The fire/ember banner from `board/reforge/rootfs-overlay/usr/bin/reforge-banner` — shown on the
-boot console (via `reforge-boot`) and on interactive login (`/etc/profile.d`). Block-glyph
-REFORGE wordmark in a fire gradient, shaded-block flames, a steel anvil over the forge base,
-tagline *"ReForge - Klipper, reforged"*. Drawn with VGA/CP437 console glyphs only (`█ ▓ ▒ ░ ▀ ▄`,
-single/double box) so every glyph exists in the framebuffer console font; 256-color ANSI that the
-16-color fbcon maps to the fire palette (yellow→red), degrading to plain text on dumb terminals.
-Self-centres to the console width and fits the 30-row console without scrolling.
+The animated preview is captured from the same QEMU console as the
+[static screenshot](reforge-bootsplash.png). `make shots-reforge` regenerates both.
+
+The console splash is drawn by
+[`reforge-banner`](../../br-external/board/reforge/rootfs-overlay/usr/bin/reforge-banner).
+A larger block wordmark sits beneath a Doom-style fire simulation: heat rises from
+an incandescent base, drifts sideways, and cools through white, yellow, and red.
+It uses the standard 16-color console palette and VGA/CP437 glyphs.
+
+Boot callers pass `--animate` for 28 frames with 60 ms pauses, then leave the last
+frame visible and restore the cursor. SSH logins show a static splash; redirected
+output, dumb terminals, and narrow terminals get a compact text banner. Animation
+requires at least 64 columns and 28 rows. The implementation uses shell and AWK,
+with no image decoder, video player, or additional service.
 
 ### LIVE mode
 
 ![ReForge bootsplash, LIVE](reforge-bootsplash-live.png)
 
 In [live mode](../live-mode.md) the launcher sets `REFORGE_LIVE=1` and drops a `/run/reforge-live`
-marker, so the banner adds a cyan badge — **running from USB · eMMC untouched · pull+reboot =
-stock** — making the run-from-USB state obvious on the panel and at every login.
+marker, so the banner adds a cyan **LIVE / USB BOOT** badge, making the run-from-USB state obvious on the panel and at every login.
 
 ## Boot process
 
