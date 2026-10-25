@@ -1,0 +1,2 @@
+# Preserve whitespace in deleted vendor-source lines within the reconstruction patch.
+vendor/kernels/stock-patches/rtl8821cu.patch whitespace=-blank-at-eol

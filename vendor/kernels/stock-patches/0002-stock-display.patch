@@ -1,0 +1,127 @@
+--- a/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c
+@@ -1532 +1532 @@
+-	unsigned int flags = ION_FLAG_CACHED;
++	unsigned int flags = 0;
+@@ -2441,0 +2442,3 @@
++	pr_info("wait for new fb take effect\n");
++	msleep(30);
++	fb_free_bootlogo_buffer();
+--- a/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.h
++++ b/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.h
+@@ -311,0 +312 @@
++extern s32 fb_free_bootlogo_buffer(void);
+--- a/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
+@@ -1333,0 +1334 @@
++static bool need_free_boot_fb;
+@@ -1528,0 +1530,109 @@
++	need_free_boot_fb = true;
++	return 0;
++}
++
++/*
++ * The bootloader buffer remains reserved until the replacement
++ * framebuffer has been enabled.
++ */
++s32 fb_free_bootlogo_buffer(void)
++{
++	enum {
++		BOOT_FB_ADDR = 0,
++		BOOT_FB_WIDTH,
++		BOOT_FB_HEIGHT,
++		BOOT_FB_BPP,
++		BOOT_FB_STRIDE,
++		BOOT_FB_CROP_L,
++		BOOT_FB_CROP_T,
++		BOOT_FB_CROP_R,
++		BOOT_FB_CROP_B,
++	};
++
++	char *boot_fb_str = NULL;
++	char *src_phy_addr = NULL;
++	int src_width = 0;
++	int src_height = 0;
++	int fb_height = 0;
++	int src_bpp = 0;
++	int src_stride = 0;
++	int src_crop_l = 0;
++	int src_crop_t = 0;
++	int src_crop_r = 0;
++	int src_crop_b = 0;
++
++	int ret;
++
++	if (!need_free_boot_fb) {
++		__wrn("not call Fb_copy_boot_fb before, will not free boot_fb\n");
++		return -1;
++	}
++	boot_fb_str = (char *)disp_boot_para_parse_str("boot_fb0");
++	if (boot_fb_str != NULL) {
++		int i = 0;
++		char boot_fb[128] = { 0 };
++		int len = strlen(boot_fb_str);
++
++		if (sizeof(boot_fb) - 1 < len) {
++			__wrn("need bigger array size[%d] for boot_fb\n", len);
++			return -1;
++		}
++		memcpy((void *)boot_fb, (void *)boot_fb_str, len);
++		boot_fb[len] = '\0';
++		boot_fb_str = boot_fb;
++		for (i = 0;; ++i) {
++			char *p = strstr(boot_fb_str, ",");
++
++			if (p != NULL)
++				*p = '\0';
++			if (i == BOOT_FB_ADDR) {
++				ret = kstrtoul(boot_fb_str, 16,
++				    (unsigned long *)&src_phy_addr);
++				if (ret)
++					pr_warn("parse src_phy_addr fail!\n");
++			} else if (i == BOOT_FB_WIDTH) {
++				ret = kstrtou32(boot_fb_str, 16, &src_width);
++				if (ret)
++					pr_warn("parse src_width fail!\n");
++			} else if (i == BOOT_FB_HEIGHT) {
++				ret = kstrtou32(boot_fb_str, 16, &src_height);
++				fb_height = src_height;
++				if (ret)
++					pr_warn("parse src_height fail!\n");
++			} else if (i == BOOT_FB_BPP) {
++				ret = kstrtou32(boot_fb_str, 16, &src_bpp);
++				if (ret)
++					pr_warn("parse src_bpp fail!\n");
++			} else if (i == BOOT_FB_STRIDE) {
++				ret = kstrtou32(boot_fb_str, 16, &src_stride);
++				if (ret)
++					pr_warn("parse src_stride fail!\n");
++			} else if (i == BOOT_FB_CROP_L) {
++				ret = kstrtou32(boot_fb_str, 16, &src_crop_l);
++				if (ret)
++					pr_warn("parse src_crop_l fail!\n");
++			} else if (i == BOOT_FB_CROP_T) {
++				ret = kstrtou32(boot_fb_str, 16, &src_crop_t);
++				if (ret)
++					pr_warn("parse src_crop_t fail!\n");
++			} else if (i == BOOT_FB_CROP_R) {
++				ret = kstrtou32(boot_fb_str, 16, &src_crop_r);
++				if (ret)
++					pr_warn("parse src_crop_r fail!\n");
++			} else if (i == BOOT_FB_CROP_B) {
++				ret = kstrtou32(boot_fb_str, 16, &src_crop_b);
++				if (ret)
++					pr_warn("parse src_crop_b fail!\n");
++			} else {
++				break;
++			}
++
++			if (p == NULL)
++				break;
++			boot_fb_str = p + 1;
++		}
++	} else {
++		__wrn("no boot_fb0\n");
++		return -1;
++	}
++

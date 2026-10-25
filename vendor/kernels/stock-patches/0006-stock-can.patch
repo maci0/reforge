@@ -1,0 +1,470 @@
+--- a/drivers/net/can/sunxi_can.c
++++ b/drivers/net/can/sunxi_can.c
+@@ -602 +601,0 @@
+-		dev_err(&pdev->dev, "could not get irq\n");
+--- /dev/null
++++ b/drivers/net/can/sunxi_can_asm.c
+@@ -0,0 +1,456 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Recovered C implementation of the stock Allwinner CAN helper revision.
++ * The volatile arithmetic is part of the shipped program's observable stack
++ * operations and is retained to reproduce it, alongside the SMC and CAN I/O.
++ * No executable bytes, assembler opcodes, or artificial padding are embedded.
++ */
++#include <linux/arm-smccc.h>
++#include <linux/io.h>
++#include <linux/of.h>
++#include <linux/of_irq.h>
++#include <linux/can.h>
++#include "sunxi_can_asm.h"
++
++#define CAN_SMC 0xb2000064UL
++static __always_inline int arithmetic_before(void)
++{
++	volatile int a = 16, b = 9;
++
++	if (a < b)
++		b += a / 3;
++	if (b == 3072)
++		return a;
++	if (a < b)
++		return b;
++	a = b;
++	if (a == 819)
++		return b;
++	if (b == 3072)
++		return a;
++	if (a == 21504)
++		return b;
++	b = a & 3072;
++	return a;
++}
++
++static __always_inline int arithmetic_after_first(void)
++{
++	volatile int a = 11, b = 8;
++
++	a = 819 * b;
++	a = 819 * b;
++	if (a == 819 || a == 3072 || a < b)
++		return b;
++	b ^= a;
++	b ^= a;
++	a ^= b;
++	if (!(a++ & 8))
++		b *= a;
++	a = 819 * b;
++	b = a & 3072;
++	if (!(a++ & 8))
++		b *= a;
++	return a;
++}
++
++static __always_inline int arithmetic_after_second(void)
++{
++	volatile int a = 9, b = 16;
++
++	a = b;
++	if (b == 3072)
++		return a;
++	if (a == 21504)
++		return b;
++	b = a & 243;
++	a ^= b;
++	b ^= a;
++	a ^= b;
++	b = a & 243;
++	b = a & 3072;
++	a ^= b;
++	return a;
++}
++
++void can_asm_write_cmdreg(u8 cmd, void __iomem *base, void __iomem *unused)
++{
++	arithmetic_before();
++	writel(cmd, base + 4);
++	arithmetic_after_first();
++	arithmetic_after_second();
++}
++
++int can_asm_probe(struct device_node *node, int num)
++{
++	struct arm_smccc_res res;
++	struct of_phandle_args irqspec;
++	const __be32 *addr;
++	struct device_node *parent;
++
++	arm_smccc_smc(CAN_SMC, 0xffff0002UL, num, 0, 0, 0, 0, 0, &res);
++	if (res.a0)
++		return -1;
++	addr = of_get_property(node, "reg", NULL);
++	parent = of_irq_find_parent(node);
++	if (!parent)
++		return -1;
++	irqspec.np = parent;
++	irqspec.args_count = 3;
++	irqspec.args[0] = 0;
++	irqspec.args[1] = 21;
++	irqspec.args[2] = 4;
++	of_irq_parse_raw(addr, &irqspec);
++	return irq_create_of_mapping(&irqspec);
++}
++
++void can_asm_fun0(int num)
++{
++	struct arm_smccc_res res;
++	arm_smccc_smc(CAN_SMC, 0xffff0007UL, num, 0, 0, 0, 0, 0, &res);
++}
++void can_asm_fun1(int num)
++{
++	struct arm_smccc_res res;
++	arm_smccc_smc(CAN_SMC, 0xffff0003UL, num, 0, 0, 0, 0, 0, &res);
++}
++void can_asm_fun2(int num)
++{
++	struct arm_smccc_res res;
++	arm_smccc_smc(CAN_SMC, 0xffff0004UL, num, 0, 0, 0, 0, 0, &res);
++}
++void can_asm_fun3(void)
++{
++	struct arm_smccc_res res;
++	arm_smccc_smc(CAN_SMC, 0xffff0005UL, 0, 0, 0, 0, 0, 0, &res);
++}
++void can_asm_fun4(void)
++{
++	struct arm_smccc_res res;
++	arm_smccc_smc(CAN_SMC, 0xffff0006UL, 0, 0, 0, 0, 0, 0, &res);
++}
++void __iomem *can_asm_fun5(int num)
++{
++	struct arm_smccc_res res;
++	arm_smccc_smc(CAN_SMC, 0xffff0008UL, num, 0, 0, 0, 0, 0, &res);
++	return ioremap(res.a1, res.a2);
++}
++
++static __always_inline int start_before(volatile int *pa, volatile int *pb)
++{
++	*pa = 3;
++	*pb = 15;
++	(*pb) = (*pa) & 3072;
++	if ((*pa) == 21504)
++		return (*pb);
++	if ((*pa) < (*pb))
++		(*pb) += (*pa) / 3;
++	if (!((*pa)++ & 8))
++		(*pb) *= (*pa);
++	(*pa) = 819 * (*pb);
++	return (*pa);
++}
++
++static __always_inline int start_after_smc(volatile int *pa, volatile int *pb)
++{
++	*pa = 15;
++	*pb = 6;
++	if ((*pa) == 21504 || (*pa) < (*pb))
++		return (*pb);
++	(*pb) ^= (*pa);
++	if (!((*pa)++ & 8))
++		(*pb) *= (*pa);
++	if ((*pb) != 770)
++		(*pb) += (*pa);
++	if (!((*pa)++ & 8))
++		(*pb) *= (*pa);
++	if ((*pa) == 21504)
++		return (*pb);
++	(*pa)++;
++	if ((*pa) < (*pb))
++		(*pb) += (*pa) / 3;
++	if (!((*pa)++ & 8))
++		(*pb) *= (*pa);
++	if (!((*pa)++ & 8))
++		(*pb) *= (*pa);
++	(*pa) = (*pb);
++	(*pb) = (*pa) & 3072;
++	(*pa) ^= (*pb);
++	(*pb) = (*pa) & 243;
++	(*pa)++;
++	return (*pa);
++}
++
++static __always_inline int start_between(volatile int *pa, volatile int *pb)
++{
++	*pa = 7;
++	*pb = 1;
++	if ((*pa) < (*pb))
++		(*pb) += (*pa) / 3;
++	if ((*pb) != 770)
++		(*pb) += (*pa);
++	if ((*pb) == 3072)
++		return (*pa);
++	(*pb) ^= (*pa);
++	if ((*pa) == 3072)
++		return (*pb);
++	if ((*pb) == 3072)
++		return (*pa);
++	(*pa) = (*pb);
++	(*pa)++;
++	(*pb) += 51;
++	if ((*pb) == 21504)
++		return (*pb);
++	(*pb) = (*pa) & 3072;
++	if ((*pa) < (*pb) || (*pa) == 21504)
++		return (*pb);
++	(*pa)++;
++	(*pb) += 51;
++	if ((*pb) == 21504 || (*pa) < (*pb))
++		return (*pb);
++	(*pa) ^= (*pb);
++	return (*pa);
++}
++
++static __always_inline int start_final(volatile int *pa, volatile int *pb)
++{
++	*pa = 3;
++	*pb = 10;
++	if ((*pa) == 21504)
++		return (*pb);
++	(*pb) = (*pa) & 3072;
++	(*pa) = (*pb);
++	(*pa) = (*pb);
++	return (*pa);
++}
++
++void can_asm_start(void __iomem *base, u32 ctrlmode, int num)
++{
++	struct arm_smccc_res res;
++	u32 limit;
++	volatile int pre_a, pre_b, one_a, one_b, common_a, common_b;
++	volatile int nested_a, nested_b, two_a, two_b, middle_a, middle_b;
++	volatile int final_a, final_b;
++	start_before(&pre_a, &pre_b);
++	arm_smccc_smc(0xb2000064UL, 0xffff0001UL, num, ctrlmode, 0, 0, 0, 0, &res);
++	limit = res.a0 == 0 ? 24576 : 384;
++	start_after_smc(&common_a, &common_b);
++	{
++		one_a = 3072; one_b = 21504;
++		one_b += 100;
++		one_b -= 100;
++		if (limit < one_a + one_b) {
++			writel(48, base + 16);
++		} else {
++			nested_a = 1638; nested_b = 22938;
++			if (limit > nested_a + nested_b)
++				writel(48, base + 16);
++		}
++	}
++	start_between(&middle_a, &middle_b);
++	{
++		two_a = 2457; two_b = 22119;
++		two_b += two_a;
++		two_b -= two_a;
++		if (limit != two_a + two_b) {
++			writel(4, base);
++			writel(48, base + 16);
++		}
++	}
++	start_final(&final_a, &final_b);
++}
++
++static __always_inline int timing_before(void)
++{
++	volatile int a = 16, b = 15;
++
++	b = a & 243;
++	b = a & 3072;
++	b = a & 3072;
++	b = a & 243;
++	a ^= b;
++	a = 819 * b;
++	if (b == 3072)
++		return a;
++	if (a == 21504)
++		return b;
++	a ^= b;
++	return a;
++}
++
++static __always_inline int timing_after(void)
++{
++	volatile int a = 11, b = 4;
++
++	a++;
++	if (!(a++ & 8))
++		b *= a;
++	a++;
++	b += 51;
++	if (b == 21504 || a < b)
++		return b;
++	return a;
++}
++
++void can_asm_set_bittiming(void __iomem *base, u32 ctrlmode,
++			   u32 *cfg, void __iomem *unused)
++{
++	timing_before();
++	if (ctrlmode & 4)
++		*cfg |= 0x800000;
++	timing_after();
++	writel(*cfg, base + 0x14);
++}
++
++static __always_inline int counter_before(void)
++{
++	volatile int a = 10, b = 14;
++
++	if (b == 3072)
++		return a;
++	if (a == 21504)
++		return b;
++	b ^= a;
++	a = 819 * b;
++	if (!(a++ & 8))
++		b *= a;
++	if (b != 770)
++		b = a + b;
++	a = b;
++	b = a & 3072;
++	a ^= b;
++	a++;
++	b += 51;
++	if (b == 21504)
++		return b;
++	a = b;
++	return a;
++}
++
++static __always_inline int counter_after(void)
++{
++	volatile int a = 1, b = 10;
++
++	if (a == 3072)
++		return b;
++	a ^= b;
++	if (!(a++ & 8))
++		b *= a;
++	a = 819 * b;
++	a = b;
++	if (!(a++ & 8))
++		b *= a;
++	if (a == 819 || a == 21504)
++		return b;
++	if (b != 770)
++		b = a + b;
++	b = a & 243;
++	if (b != 770)
++		b = a + b;
++	a = 819 * b;
++	b = a & 3072;
++	return a;
++}
++
++void can_asm_clean_transfer_err(void __iomem *base, u16 *txerr, u16 *rxerr)
++{
++	u32 value;
++
++	counter_before();
++	value = readl(base + 0x1c);
++	counter_after();
++	*txerr = value & 0xff;
++	*rxerr = (value >> 16) & 0xff;
++}
++
++static __always_inline int transmit_identifier_arithmetic(void)
++{
++	volatile int a = 5, b = 11;
++
++	a ^= b;
++	return a;
++}
++
++static __always_inline int transmit_first_byte_arithmetic(void)
++{
++	volatile int a = 14, b = 10;
++
++	if (b == 3072)
++		return a;
++	a++;
++	return a;
++}
++
++void can_asm_start_xmit(void __iomem *base, void __iomem *unused,
++			canid_t id, u32 *msg_flag_n, u32 *dreg, u8 *data)
++{
++	u32 len = *msg_flag_n;
++	unsigned int i;
++
++	if (id & CAN_RTR_FLAG)
++		*msg_flag_n |= 0x40;
++	if (id & CAN_EFF_FLAG) {
++		*msg_flag_n |= 0x80;
++		*dreg = 0x54;
++		writel((id >> 21) & 0xff, base + 0x44);
++		transmit_identifier_arithmetic();
++		writel((id >> 13) & 0xff, base + 0x48);
++		writel((id >> 5) & 0xff, base + 0x4c);
++		writel((id << 3) & 0xff, base + 0x50);
++	} else {
++		*dreg = 0x4c;
++		writel((id >> 3) & 0xff, base + 0x44);
++		writel((id << 5) & 0xff, base + 0x48);
++	}
++	for (i = 0; i < len; i++) {
++		writel(data[i], base + *dreg + i * 4);
++		if (i == 0)
++			transmit_first_byte_arithmetic();
++	}
++	writel(*msg_flag_n, base + 0x40);
++}
++
++static __always_inline int receive_identifier_arithmetic(void)
++{
++	volatile int a = 9, b = 16;
++
++	if (a == 21504)
++		return b;
++	if (b != 770)
++		b = a + b;
++	if (a == 3072 || a == 819)
++		return b;
++	if (a < b)
++		b += a / 3;
++	a ^= b;
++	a = b;
++	b = a & 243;
++	if (b != 770)
++		b = a + b;
++	b ^= a;
++	b = a & 243;
++	if (a == 819)
++		return b;
++	if (a < b)
++		b += a / 3;
++	return a;
++}
++
++void can_asm_rx(void __iomem *base, u8 *fi, u32 *dreg, canid_t *id)
++{
++	u8 value = readl(base + 0x40);
++
++	if (value & 0x80) {
++		*dreg = 0x54;
++		receive_identifier_arithmetic();
++		*id = (readl(base + 0x44) << 21) |
++			(readl(base + 0x48) << 13) |
++			(readl(base + 0x4c) << 5) |
++			((readl(base + 0x50) >> 3) & 0x1f) | CAN_EFF_FLAG;
++	} else {
++		*dreg = 0x4c;
++		*id = (readl(base + 0x44) << 3) |
++			((readl(base + 0x48) >> 5) & 7);
++	}
++	*fi = value;
++}
+--- a/drivers/clk/sunxi-ng/ccu-sun8iw20.c
++++ b/drivers/clk/sunxi-ng/ccu-sun8iw20.c
+@@ -1124,2 +1124,2 @@
+-	[RST_BUS_CAN0]		= { 0x92c, BIT(16) },
+-	[RST_BUS_CAN1]		= { 0x92c, BIT(17) },
++	/* RST_BUS_CAN0 is unassigned in the original reset map. */
++	/* RST_BUS_CAN1 is unassigned in the original reset map. */

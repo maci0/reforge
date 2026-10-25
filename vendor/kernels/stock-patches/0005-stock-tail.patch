@@ -1,0 +1,73 @@
+--- a/drivers/dma/sun6i-dma.c
++++ b/drivers/dma/sun6i-dma.c
+@@ -586,2 +586,4 @@
+-					vchan_cookie_complete(&pchan->desc->vd);
+-					pchan->done = pchan->desc;
++					if (pchan->desc) {
++						vchan_cookie_complete(&pchan->desc->vd);
++						pchan->done = pchan->desc;
++					}
+--- a/drivers/input/touchscreen/sun4i-ts.c
++++ b/drivers/input/touchscreen/sun4i-ts.c
+@@ -243 +243 @@
+-			pr_debug("sun4i-ts ignore first fifo dataY \n");
++			printk(KERN_DEBUG "sun4i-ts ignore first fifo dataY \n");
+@@ -249 +249 @@
+-		pr_debug("sun4i-ts up pending \n");
++		printk(KERN_DEBUG "sun4i-ts up pending \n");
+@@ -278,0 +279,2 @@
++
++	printk(KERN_DEBUG "sun4i-ts open \n");
+@@ -453,0 +456 @@
++		printk(KERN_DEBUG "sun8i_ts");
+@@ -455 +458 @@
+-			| ADC_CLK_DIV(0x2) | FS_DIV(2) | T_ACQ(5),
++			| ADC_CLK_DIV(0x2) | FS_DIV(7) | T_ACQ(63),
+@@ -468 +471 @@
+-		writel(reg | PRE_MEA_THRE_CNT(0xfff), ts->base + TP_CTRL2);
++		writel(reg | PRE_MEA_THRE_CNT(0xffffff), ts->base + TP_CTRL2);
+--- a/drivers/iommu/sunxi-iommu.c
++++ b/drivers/iommu/sunxi-iommu.c
+@@ -1812,0 +1813,2 @@
++	clk_prepare_enable(global_iommu_dev->clk);
++
+--- a/fs/fuse/dir.c
++++ b/fs/fuse/dir.c
+@@ -314 +314 @@
+-	path_name = (char*)__get_free_page(GFP_KERNEL);
++	path_name = (char *)get_zeroed_page(GFP_KERNEL);
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+@@ -868,0 +869,4 @@
++		#ifdef SUPPORT_COMBO_DPHY
++			if (i != 0)
++				clk_disable_unprepare(lcdp->clk_mipi_dsi[i]);
++		#else
+@@ -869,0 +874 @@
++		#endif
+@@ -947,0 +953,5 @@
++	void *qa_addr = NULL, *ic_ver_addr = NULL, *disp_cfg_addr = NULL;
++
++	qa_addr = ioremap(0x0300621c, 4);
++	ic_ver_addr = ioremap(0x03000024, 4);
++	disp_cfg_addr = ioremap(0x03006218, 4);
+@@ -955 +965,6 @@
+-	qa_val = readl(ioremap(0x0300621c, 4));
++	if (!qa_addr || !ic_ver_addr || !disp_cfg_addr) {
++		DE_WRN("ioremap fail!%p %p %p\n", qa_addr, ic_ver_addr,
++		       disp_cfg_addr);
++		goto OUT;
++	}
++	qa_val = readl(qa_addr);
+@@ -957,2 +972,2 @@
+-	ic_ver = readl(ioremap(0x03000024, 4)) & 0x00000007;
+-	display_cfg_flag = (readl(ioremap(0x03006218, 4)) >> 12) & 0x00000001;
++	ic_ver = readl(ic_ver_addr) & 0x00000007;
++	display_cfg_flag = (readl(disp_cfg_addr) >> 12) & 0x00000001;
+@@ -1055,0 +1071 @@
++#endif
+@@ -1057,0 +1074,4 @@
++#if defined(CONFIG_ARCH_SUN50IW10)
++	iounmap(qa_addr);
++	iounmap(ic_ver_addr);
++	iounmap(disp_cfg_addr);

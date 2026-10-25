@@ -1,0 +1,199 @@
+--- a/drivers/net/can/Kconfig
++++ b/drivers/net/can/Kconfig
+@@ -122,0 +123,9 @@
++config CAN_SUN8I
++	tristate "Allwinner sun8i CAN bus controller"
++	depends on OF && HAS_IOMEM
++	help
++	  This is the Allwinner sun8i CAN bus driver, used by T113 / D1 /
++	  R528 SoCs. Imported from the Allwinner T113-Linux-Auto SDK
++	  vendor patch series; corresponds to drivers/net/can/sunxi_can.c
++	  + drivers/net/can/sunxi_can_asm.S in the BSP source tree.
++
+--- a/drivers/net/can/Makefile
++++ b/drivers/net/can/Makefile
+@@ -28,0 +29 @@
++obj-$(CONFIG_CAN_SUN8I)		+= sunxi_can.o sunxi_can_asm.o
+--- /dev/null
++++ b/drivers/net/can/sunxi_can_asm.h
+@@ -0,0 +1,170 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * sunxi_can_asm.h — reconstructed header for the Allwinner sun8i CAN driver.
++ *
++ * BACKGROUND:
++ *   The Allwinner T113-Linux-Auto SDK shipped this header alongside
++ *   sunxi_can.c and sunxi_can_asm.S (the latter compiled from a closed
++ *   sunxi_can_asm.c). The public iLotusK9 BSP snapshot omits the header,
++ *   leaving sunxi_can.c uncompilable.
++ *
++ * RECONSTRUCTION SOURCES:
++ *   1. Call-site analysis of sunxi_can.c (locally in this tree):
++ *        - 30 SUNXI_* identifiers (registers + bit masks + a retry cap)
++ *        - 12 can_asm_* function prototypes (signatures inferred from
++ *          calling conventions + adjacent variable types)
++ *   2. Canonical sun4i/sun7i/sun8i CAN register map from mainline
++ *      drivers/net/can/sun4i_can.c (the Allwinner CAN IP is consistent
++ *      across these SoCs: T113-S3, D1, R528, R40, A20, etc.).
++ *   3. Bittiming bit packing read off sunxican_set_bittiming() in the
++ *      local sunxi_can.c: brp[9:0], sjw[15:14], prop+phase1[19:16],
++ *      phase2[22:20] — matches the standard register layout.
++ *
++ * VERIFICATION:
++ *   - All 30 SUNXI_* identifiers used in sunxi_can.c are defined.
++ *   - Function signatures match all call sites:
++ *       can_asm_write_cmdreg(u8, void __iomem *, void __iomem *)
++ *       can_asm_set_bittiming(void __iomem *, u32, u32 *, void __iomem *)
++ *       can_asm_clean_transfer_err(void __iomem *, u16 *, u16 *)
++ *       can_asm_start(void __iomem *, u32, int)
++ *       can_asm_start_xmit(void __iomem *, void __iomem *, canid_t, u32 *, u32 *, u8 *)
++ *       can_asm_rx(void __iomem *, u8 *, u32 *, canid_t *)
++ *       can_asm_probe(struct device_node *, int) -> int
++ *       can_asm_fun0/fun1/fun2(int) — no-ret init helpers
++ *       can_asm_fun5(int) -> void __iomem * (with IS_ERR check)
++ *
++ * NOT VERIFIED AT RUNTIME:
++ *   This driver is built for binary-comparison purposes against the stock
++ *   FlashForge AD5M Pro kernel. ReForge does not deploy the resulting
++ *   sunxi_can.ko (no CAN bus on the AD5M Pro). The reconstruction is
++ *   close enough to compile cleanly; small discrepancies in field offsets
++ *   or behaviour would surface only if the driver were loaded on hardware,
++ *   which is not in our use case.
++ */
++
++#ifndef __SUNXI_CAN_ASM_H__
++#define __SUNXI_CAN_ASM_H__
++
++#include <linux/bitops.h>
++#include <linux/io.h>
++#include <linux/can.h>
++#include <linux/of.h>
++
++/* -----------------------------------------------------------------------
++ * Register offsets (matches mainline sun4i_can.c — same IP across sun4i/8i)
++ * ---------------------------------------------------------------------- */
++#define SUNXI_REG_MSEL_ADDR              0x0000  /* CAN Mode Select */
++#define SUNXI_REG_CMD_ADDR               0x0004  /* CAN Command */
++#define SUNXI_REG_STA_ADDR               0x0008  /* CAN Status */
++#define SUNXI_REG_INT_ADDR               0x000c  /* CAN Interrupt Flag */
++#define SUNXI_REG_INTEN_ADDR             0x0010  /* CAN Interrupt Enable */
++#define SUNXI_REG_BTIME_ADDR             0x0014  /* CAN Bus Timing 0 */
++#define SUNXI_REG_TEWL_ADDR              0x0018  /* CAN Tx Error Warning Limit */
++#define SUNXI_REG_ERRC_ADDR              0x001c  /* CAN Error Counter */
++#define SUNXI_REG_RMCNT_ADDR             0x0020  /* CAN Rx Message Counter */
++#define SUNXI_REG_RBUFSA_ADDR            0x0024  /* CAN Rx Buffer Start Address */
++#define SUNXI_REG_BUF0_ADDR              0x0040  /* CAN Tx/Rx Buffer 0 */
++#define SUNXI_REG_ACPC_ADDR              0x0040  /* CAN Acceptance Code */
++#define SUNXI_REG_ACPM_ADDR              0x0044  /* CAN Acceptance Mask */
++#define SUNXI_REG_RBUF_RBACK_START_ADDR  0x0180  /* CAN Rx buffer playback start */
++#define SUNXI_REG_RBUF_RBACK_END_ADDR    0x01b0  /* CAN Rx buffer playback end */
++
++/* Mode-select register bits */
++#define SUNXI_MSEL_RESET_MODE            BIT(0)
++#define SUNXI_MSEL_LISTEN_ONLY           BIT(1)
++#define SUNXI_MSEL_LOOPBACK_MODE         BIT(2)
++#define SUNXI_MSEL_SLEEP_MODE            BIT(4)
++
++/* Command-register bits */
++#define SUNXI_CMD_BUS_OFF_REQ            BIT(5)
++#define SUNXI_CMD_SELF_RCV_REQ           BIT(4)
++#define SUNXI_CMD_CLEAR_OR_FLAG          BIT(3)
++#define SUNXI_CMD_RELEASE_RBUF           BIT(2)
++#define SUNXI_CMD_ABORT_REQ              BIT(1)
++#define SUNXI_CMD_TRANS_REQ              BIT(0)
++
++/* Interrupt-enable / interrupt-flag bits */
++#define SUNXI_INT_BUS_ERR                BIT(7)
++#define SUNXI_INT_ARB_LOST               BIT(6)
++#define SUNXI_INT_ERR_PASSIVE            BIT(5)
++#define SUNXI_INT_WAKEUP                 BIT(4)
++#define SUNXI_INT_DATA_OR                BIT(3)
++#define SUNXI_INT_ERR_WRN                BIT(2)
++#define SUNXI_INT_TBUF_VLD               BIT(1)
++#define SUNXI_INT_RBUF_VLD               BIT(0)
++
++/* Status-register bits (mainline naming) */
++#define SUNXI_STA_BUS_OFF                BIT(7)
++#define SUNXI_STA_ERR_STA                BIT(6)
++#define SUNXI_STA_TRANS_BUSY             BIT(5)
++#define SUNXI_STA_RCV_BUSY               BIT(4)
++#define SUNXI_STA_TRANS_OK               BIT(3)
++#define SUNXI_STA_RCV_OK                 BIT(2)
++#define SUNXI_STA_DATA_ORUN              BIT(1)
++#define SUNXI_STA_RBUF_RDY               BIT(0)
++
++/* Error-segment code field (bits [20:16]) */
++#define SUNXI_STA_ERR_SEG_CODE           (0x1f << 16)
++/* Error direction: 0 = transmit, 1 = receive */
++#define SUNXI_STA_ERR_DIR                BIT(21)
++/* Error type field (bits [23:22]) */
++#define SUNXI_STA_BIT_ERR                (0x00 << 22)
++#define SUNXI_STA_FORM_ERR               (0x01 << 22)
++#define SUNXI_STA_STUFF_ERR              (0x02 << 22)
++#define SUNXI_STA_OTHER_ERR              (0x03 << 22)
++#define SUNXI_STA_MASK_ERR               (0x03 << 22)
++
++/* Message-info Remote-Transmission-Request flag */
++#define SUNXI_MSG_RTR_FLAG               BIT(6)
++
++/* BSP-specific retry/IRQ caps */
++#define SUNXI_MODE_MAX_RETRIES           100
++#define SUNXI_CAN_MAX_IRQ                20
++
++/* -----------------------------------------------------------------------
++ * Functions provided by sunxi_can_asm.S (closed-source delivery from the
++ * Allwinner Auto SDK; signatures reconstructed from call sites in
++ * sunxi_can.c).
++ * ---------------------------------------------------------------------- */
++
++void can_asm_write_cmdreg(u8 val, void __iomem *base, void __iomem *iomem_t);
++
++/* Sets the bittiming. cfg is a pre-packed u32 register value:
++ *    bits [9:0]    BRP - 1
++ *    bits [15:14]  SJW - 1
++ *    bits [19:16]  prop_seg + phase_seg1 - 1
++ *    bits [22:20]  phase_seg2 - 1
++ */
++void can_asm_set_bittiming(void __iomem *base, u32 ctrlmode,
++			   u32 *cfg, void __iomem *iomem_t);
++
++void can_asm_clean_transfer_err(void __iomem *base, u16 *txerr, u16 *rxerr);
++
++void can_asm_start(void __iomem *base, u32 ctrlmode, int num);
++
++/* Frames a CAN frame for transmit: writes id + flag-n + dreg + data to the
++ * controller's TX buffer registers. */
++void can_asm_start_xmit(void __iomem *base, void __iomem *iomem_t,
++			canid_t id, u32 *msg_flag_n, u32 *dreg, u8 *data);
++
++/* Reads a received CAN frame from the controller's RX buffer.
++ * fi  : frame info byte (RTR + DLC)
++ * dreg: data length + data words register snapshot
++ * id  : decoded CAN id (with SFF/EFF flags) */
++void can_asm_rx(void __iomem *base, u8 *fi, u32 *dreg, canid_t *id);
++
++/* Per-instance probe helper: parse DT node, return IRQ number on success
++ * or -errno on failure. */
++int can_asm_probe(struct device_node *node, int num);
++
++/* Internal helpers called by sunxi_can.c — best-effort signatures. */
++void can_asm_fun0(int num);
++void can_asm_fun1(int num);
++void can_asm_fun2(int num);
++void can_asm_fun3(void);
++void can_asm_fun4(void);
++
++/* Returns a void __iomem * (with IS_ERR check at the call site). */
++void __iomem *can_asm_fun5(int num);
++
++#endif /* __SUNXI_CAN_ASM_H__ */
+--- a/drivers/staging/Kconfig
++++ b/drivers/staging/Kconfig
+@@ -41,0 +42,2 @@
++
++source "drivers/staging/rtl8821cu/Kconfig"
+--- a/drivers/staging/Makefile
++++ b/drivers/staging/Makefile
+@@ -55,0 +56,2 @@
++
++obj-$(CONFIG_RTL8821CU) += rtl8821cu/

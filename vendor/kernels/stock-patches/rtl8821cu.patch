@@ -1,0 +1,672 @@
+--- a/Makefile
++++ b/Makefile
+@@ -17 +17 @@
+-EXTRA_CFLAGS += -Wimplicit-fallthrough=3
++# GCC 5.3 does not support -Wimplicit-fallthrough=3
+@@ -24 +24 @@
+-EXTRA_CFLAGS += -I$(src)/include
++EXTRA_CFLAGS += -I$(srctree)/$(src)/include
+@@ -83 +83 @@
+-CONFIG_WIFI_MONITOR = y
++CONFIG_WIFI_MONITOR = n
+@@ -105 +105 @@
+-CONFIG_RTW_DEBUG = y
++CONFIG_RTW_DEBUG = n
+@@ -276 +276 @@
+-EXTRA_CFLAGS += -I$(src)/platform
++EXTRA_CFLAGS += -I$(srctree)/$(src)/platform
+@@ -279 +279 @@
+-EXTRA_CFLAGS += -I$(src)/hal/btc
++EXTRA_CFLAGS += -I$(srctree)/$(src)/hal/btc
+@@ -2448 +2448 @@
+-EXTRA_CFLAGS += -I$(src)/core/crypto
++EXTRA_CFLAGS += -I$(srctree)/$(src)/core/crypto
+@@ -2559,0 +2560,3 @@
++
++# Recovered stock build identity; GCC 5.3 predates SOURCE_DATE_EPOCH support.
++CFLAGS_core/rtw_debug.o += -Wno-builtin-macro-redefined -D__DATE__='"Jul 24 2023"' -D__TIME__='"11:32:28"'
+--- a/core/rtw_br_ext.c
++++ b/core/rtw_br_ext.c
+@@ -19,0 +20,4 @@
++	#include <linux/version.h>
++	#if (LINUX_VERSION_CODE <= KERNEL_VERSION(5, 14, 0))
++	#include <net/ipx.h>
++	#endif
+@@ -83 +87 @@
+-static unsigned char *__nat25_find_pppoe_tag(struct pppoe_hdr *ph, unsigned short type)
++static __inline__ unsigned char *__nat25_find_pppoe_tag(struct pppoe_hdr *ph, unsigned short type)
+@@ -101 +105 @@
+-static int __nat25_add_pppoe_tag(struct sk_buff *skb, struct pppoe_tag *tag)
++static __inline__ int __nat25_add_pppoe_tag(struct sk_buff *skb, struct pppoe_tag *tag)
+@@ -141 +145 @@
+-static unsigned long __nat25_timeout(_adapter *priv)
++static __inline__ unsigned long __nat25_timeout(_adapter *priv)
+@@ -151 +155 @@
+-static int  __nat25_has_expired(_adapter *priv,
++static __inline__ int  __nat25_has_expired(_adapter *priv,
+@@ -161 +165 @@
+-static void __nat25_generate_ipv4_network_addr(unsigned char *networkAddr,
++static __inline__ void __nat25_generate_ipv4_network_addr(unsigned char *networkAddr,
+@@ -171 +175,36 @@
+-static void __nat25_generate_pppoe_network_addr(unsigned char *networkAddr,
++#if (LINUX_VERSION_CODE <= KERNEL_VERSION(5, 14, 0))
++static __inline__ void __nat25_generate_ipx_network_addr_with_node(unsigned char *networkAddr,
++		unsigned int *ipxNetAddr, unsigned char *ipxNodeAddr)
++{
++	memset(networkAddr, 0, MAX_NETWORK_ADDR_LEN);
++
++	networkAddr[0] = NAT25_IPX;
++	memcpy(networkAddr + 1, (unsigned char *)ipxNetAddr, 4);
++	memcpy(networkAddr + 5, ipxNodeAddr, 6);
++}
++
++
++static __inline__ void __nat25_generate_ipx_network_addr_with_socket(unsigned char *networkAddr,
++		unsigned int *ipxNetAddr, unsigned short *ipxSocketAddr)
++{
++	memset(networkAddr, 0, MAX_NETWORK_ADDR_LEN);
++
++	networkAddr[0] = NAT25_IPX;
++	memcpy(networkAddr + 1, (unsigned char *)ipxNetAddr, 4);
++	memcpy(networkAddr + 5, (unsigned char *)ipxSocketAddr, 2);
++}
++
++
++static __inline__ void __nat25_generate_apple_network_addr(unsigned char *networkAddr,
++		unsigned short *network, unsigned char *node)
++{
++	memset(networkAddr, 0, MAX_NETWORK_ADDR_LEN);
++
++	networkAddr[0] = NAT25_APPLE;
++	memcpy(networkAddr + 1, (unsigned char *)network, 2);
++	networkAddr[3] = *node;
++}
++#endif
++
++
++static __inline__ void __nat25_generate_pppoe_network_addr(unsigned char *networkAddr,
+@@ -291 +330 @@
+-static int __nat25_network_hash(unsigned char *networkAddr)
++static __inline__ int __nat25_network_hash(unsigned char *networkAddr)
+@@ -343 +382 @@
+-static void __network_hash_link(_adapter *priv,
++static __inline__ void __network_hash_link(_adapter *priv,
+@@ -360 +399 @@
+-static void __network_hash_unlink(struct nat25_network_db_entry *ent)
++static __inline__ void __network_hash_unlink(struct nat25_network_db_entry *ent)
+@@ -857,0 +897,223 @@
++#if (LINUX_VERSION_CODE <= KERNEL_VERSION(5, 14, 0))
++	/*---------------------------------------------------*/
++	/*         Handle IPX and Apple Talk frame          */
++	/*---------------------------------------------------*/
++	else if ((protocol == __constant_htons(ETH_P_IPX)) ||
++		 (protocol == __constant_htons(ETH_P_ATALK)) ||
++		 (protocol == __constant_htons(ETH_P_AARP))) {
++		unsigned char ipx_header[2] = {0xFF, 0xFF};
++		struct ipxhdr	*ipx = NULL;
++		struct elapaarp	*ea = NULL;
++		struct ddpehdr	*ddp = NULL;
++		unsigned char *framePtr = skb->data + ETH_HLEN;
++
++		if (protocol == __constant_htons(ETH_P_IPX)) {
++			RTW_INFO("NAT25: Protocol=IPX (Ethernet II)\n");
++			ipx = (struct ipxhdr *)framePtr;
++		} else { /* if(protocol <= __constant_htons(ETH_FRAME_LEN)) */
++			if (!memcmp(ipx_header, framePtr, 2)) {
++				RTW_INFO("NAT25: Protocol=IPX (Ethernet 802.3)\n");
++				ipx = (struct ipxhdr *)framePtr;
++			} else {
++				unsigned char ipx_8022_type =  0xE0;
++				unsigned char snap_8022_type = 0xAA;
++
++				if (*framePtr == snap_8022_type) {
++					unsigned char ipx_snap_id[5] = {0x0, 0x0, 0x0, 0x81, 0x37};		/* IPX SNAP ID */
++					unsigned char aarp_snap_id[5] = {0x00, 0x00, 0x00, 0x80, 0xF3};	/* Apple Talk AARP SNAP ID */
++					unsigned char ddp_snap_id[5] = {0x08, 0x00, 0x07, 0x80, 0x9B};	/* Apple Talk DDP SNAP ID */
++
++					framePtr += 3;	/* eliminate the 802.2 header */
++
++					if (!memcmp(ipx_snap_id, framePtr, 5)) {
++						framePtr += 5;	/* eliminate the SNAP header */
++
++						RTW_INFO("NAT25: Protocol=IPX (Ethernet SNAP)\n");
++						ipx = (struct ipxhdr *)framePtr;
++					} else if (!memcmp(aarp_snap_id, framePtr, 5)) {
++						framePtr += 5;	/* eliminate the SNAP header */
++
++						ea = (struct elapaarp *)framePtr;
++					} else if (!memcmp(ddp_snap_id, framePtr, 5)) {
++						framePtr += 5;	/* eliminate the SNAP header */
++
++						ddp = (struct ddpehdr *)framePtr;
++					} else {
++						DEBUG_WARN("NAT25: Protocol=Ethernet SNAP %02x%02x%02x%02x%02x\n", framePtr[0],
++							framePtr[1], framePtr[2], framePtr[3], framePtr[4]);
++						return -1;
++					}
++				} else if (*framePtr == ipx_8022_type) {
++					framePtr += 3;	/* eliminate the 802.2 header */
++
++					if (!memcmp(ipx_header, framePtr, 2)) {
++						RTW_INFO("NAT25: Protocol=IPX (Ethernet 802.2)\n");
++						ipx = (struct ipxhdr *)framePtr;
++					} else
++						return -1;
++				}
++			}
++		}
++
++		/*   IPX  */
++		if (ipx != NULL) {
++			switch (method) {
++			case NAT25_CHECK:
++				if (!memcmp(skb->data + ETH_ALEN, ipx->ipx_source.node, ETH_ALEN)) {
++					RTW_INFO("NAT25: Check IPX skb_copy\n");
++					return 0;
++				}
++				return -1;
++
++			case NAT25_INSERT: {
++				RTW_INFO("NAT25: Insert IPX, Dest=%08x,%02x%02x%02x%02x%02x%02x,%04x Source=%08x,%02x%02x%02x%02x%02x%02x,%04x\n",
++					 ipx->ipx_dest.net,
++					 ipx->ipx_dest.node[0],
++					 ipx->ipx_dest.node[1],
++					 ipx->ipx_dest.node[2],
++					 ipx->ipx_dest.node[3],
++					 ipx->ipx_dest.node[4],
++					 ipx->ipx_dest.node[5],
++					 ipx->ipx_dest.sock,
++					 ipx->ipx_source.net,
++					 ipx->ipx_source.node[0],
++					 ipx->ipx_source.node[1],
++					 ipx->ipx_source.node[2],
++					 ipx->ipx_source.node[3],
++					 ipx->ipx_source.node[4],
++					 ipx->ipx_source.node[5],
++					 ipx->ipx_source.sock);
++
++				if (!memcmp(skb->data + ETH_ALEN, ipx->ipx_source.node, ETH_ALEN)) {
++					RTW_INFO("NAT25: Use IPX Net, and Socket as network addr\n");
++
++					__nat25_generate_ipx_network_addr_with_socket(networkAddr, &ipx->ipx_source.net, &ipx->ipx_source.sock);
++
++					/* change IPX source node addr to wlan STA address */
++					memcpy(ipx->ipx_source.node, GET_MY_HWADDR(priv), ETH_ALEN);
++				} else
++					__nat25_generate_ipx_network_addr_with_node(networkAddr, &ipx->ipx_source.net, ipx->ipx_source.node);
++
++				__nat25_db_network_insert(priv, skb->data + ETH_ALEN, networkAddr);
++
++				__nat25_db_print(priv);
++			}
++			return 0;
++
++			case NAT25_LOOKUP: {
++				if (!memcmp(GET_MY_HWADDR(priv), ipx->ipx_dest.node, ETH_ALEN)) {
++					RTW_INFO("NAT25: Lookup IPX, Modify Destination IPX Node addr\n");
++
++					__nat25_generate_ipx_network_addr_with_socket(networkAddr, &ipx->ipx_dest.net, &ipx->ipx_dest.sock);
++
++					__nat25_db_network_lookup_and_replace(priv, skb, networkAddr);
++
++					/* replace IPX destination node addr with Lookup destination MAC addr */
++					memcpy(ipx->ipx_dest.node, skb->data, ETH_ALEN);
++				} else {
++					__nat25_generate_ipx_network_addr_with_node(networkAddr, &ipx->ipx_dest.net, ipx->ipx_dest.node);
++
++					__nat25_db_network_lookup_and_replace(priv, skb, networkAddr);
++				}
++			}
++			return 0;
++
++			default:
++				return -1;
++			}
++		}
++
++		/*   AARP  */
++		else if (ea != NULL) {
++			/* Sanity check fields. */
++			if (ea->hw_len != ETH_ALEN || ea->pa_len != AARP_PA_ALEN) {
++				DEBUG_WARN("NAT25: Appletalk AARP Sanity check fail!\n");
++				return -1;
++			}
++
++			switch (method) {
++			case NAT25_CHECK:
++				return 0;
++
++			case NAT25_INSERT: {
++				/* change to AARP source mac address to wlan STA address */
++				memcpy(ea->hw_src, GET_MY_HWADDR(priv), ETH_ALEN);
++
++				RTW_INFO("NAT25: Insert AARP, Source=%d,%d Destination=%d,%d\n",
++					 ea->pa_src_net,
++					 ea->pa_src_node,
++					 ea->pa_dst_net,
++					 ea->pa_dst_node);
++
++				__nat25_generate_apple_network_addr(networkAddr, &ea->pa_src_net, &ea->pa_src_node);
++
++				__nat25_db_network_insert(priv, skb->data + ETH_ALEN, networkAddr);
++
++				__nat25_db_print(priv);
++			}
++			return 0;
++
++			case NAT25_LOOKUP: {
++				RTW_INFO("NAT25: Lookup AARP, Source=%d,%d Destination=%d,%d\n",
++					 ea->pa_src_net,
++					 ea->pa_src_node,
++					 ea->pa_dst_net,
++					 ea->pa_dst_node);
++
++				__nat25_generate_apple_network_addr(networkAddr, &ea->pa_dst_net, &ea->pa_dst_node);
++
++				__nat25_db_network_lookup_and_replace(priv, skb, networkAddr);
++
++				/* change to AARP destination mac address to Lookup result */
++				memcpy(ea->hw_dst, skb->data, ETH_ALEN);
++			}
++			return 0;
++
++			default:
++				return -1;
++			}
++		}
++
++		/*   DDP  */
++		else if (ddp != NULL) {
++			switch (method) {
++			case NAT25_CHECK:
++				return -1;
++
++			case NAT25_INSERT: {
++				RTW_INFO("NAT25: Insert DDP, Source=%d,%d Destination=%d,%d\n",
++					 ddp->deh_snet,
++					 ddp->deh_snode,
++					 ddp->deh_dnet,
++					 ddp->deh_dnode);
++
++				__nat25_generate_apple_network_addr(networkAddr, &ddp->deh_snet, &ddp->deh_snode);
++
++				__nat25_db_network_insert(priv, skb->data + ETH_ALEN, networkAddr);
++
++				__nat25_db_print(priv);
++			}
++			return 0;
++
++			case NAT25_LOOKUP: {
++				RTW_INFO("NAT25: Lookup DDP, Source=%d,%d Destination=%d,%d\n",
++					 ddp->deh_snet,
++					 ddp->deh_snode,
++					 ddp->deh_dnet,
++					 ddp->deh_dnode);
++
++				__nat25_generate_apple_network_addr(networkAddr, &ddp->deh_dnet, &ddp->deh_dnode);
++
++				__nat25_db_network_lookup_and_replace(priv, skb, networkAddr);
++			}
++			return 0;
++
++			default:
++				return -1;
++			}
++		}
++
++		return -1;
++	}
++#endif
++
+--- a/core/rtw_mlme_ext.c
++++ b/core/rtw_mlme_ext.c
+@@ -12216,0 +12217 @@
++#line 12213
+--- a/core/rtw_pwrctrl.c
++++ b/core/rtw_pwrctrl.c
+@@ -669 +668,0 @@
+-#ifdef CONFIG_WIFI_MONITOR
+@@ -671 +669,0 @@
+-#endif
+--- a/core/rtw_xmit.c
++++ b/core/rtw_xmit.c
+@@ -4859,0 +4860 @@
++	struct ieee80211_radiotap_header rtap_hdr;
+@@ -4868,55 +4869,30 @@
+-	int len = skb->len, rtap_len, rtap_remain, alloc_tries, ret;
+-	struct ieee80211_radiotap_header *rtap_hdr; // net/ieee80211_radiotap.h
+-	struct ieee80211_radiotap_iterator iterator; // net/cfg80211.h
+-	u8 rtap_buf[256];
+-
+-
+-	rtw_mstat_update(MSTAT_TYPE_SKB, MSTAT_ALLOC_SUCCESS, skb->truesize);
+-
+-#ifndef CONFIG_CUSTOMER_ALIBABA_GENERAL
+-	if (ndev->type == ARPHRD_IEEE80211_RADIOTAP) {
+-		if (unlikely(skb->len < sizeof(struct ieee80211_radiotap_header)))
+-			goto fail;
+-
+-		_rtw_open_pktfile((_pkt *)skb, &pktfile);
+-		_rtw_pktfile_read(&pktfile, rtap_buf, sizeof(struct ieee80211_radiotap_header));
+-		rtap_hdr = (struct ieee80211_radiotap_header*)(rtap_buf);
+-		rtap_len = ieee80211_get_radiotap_len(rtap_buf);
+-
+-		if (unlikely(rtap_hdr->it_version))
+-			goto fail;
+-
+-		if (unlikely(skb->len < rtap_len))
+-			goto fail;
+-
+-		if (unlikely(rtap_len < sizeof(struct ieee80211_radiotap_header)))
+-			goto fail;
+-
+-		len -= sizeof(struct ieee80211_radiotap_header);
+-		rtap_remain = rtap_len - sizeof(struct ieee80211_radiotap_header);
+-
+-		if (rtap_remain > 0) {
+-			_rtw_pktfile_read(&pktfile, &rtap_buf[sizeof(struct ieee80211_radiotap_header)], rtap_remain);
+-			len -= rtap_remain;
+-		}
+-
+-		// NOTE: we process the radiotap header details later
+-	}
+-#endif
+-
+-	// v5.2.20 had an allocation wrapper (monitor_alloc_mgtxmitframe) that performed a few
+-	// tries to allocate an xmit frame before giving up.  This can be beneficial when there
+-	// is a rapid-fire sequence of injected frames. Without it, frames can be randomly
+-	// dropped.  So this recreates the same functionality.
+-
+-	for (alloc_tries=3; alloc_tries > 0; alloc_tries--) {
+-		pmgntframe = alloc_mgtxmitframe(pxmitpriv);
+-		if (pmgntframe != NULL)
+-			break;
+-		if (alloc_tries <= 1) {
+-			rtw_udelay_os(500);
+-			goto fail;
+-		}
+-		rtw_udelay_os(100);
+-	}
+-
++	u8 dummybuf[32];
++	int len = skb->len, rtap_len;
++
++	if (skb)
++		rtw_mstat_update(MSTAT_TYPE_SKB, MSTAT_ALLOC_SUCCESS, skb->truesize);
++
++	if (unlikely(skb->len < sizeof(struct ieee80211_radiotap_header)))
++		goto fail;
++
++	_rtw_open_pktfile((_pkt *)skb, &pktfile);
++	_rtw_pktfile_read(&pktfile, (u8 *)(&rtap_hdr), sizeof(struct ieee80211_radiotap_header));
++	rtap_len = ieee80211_get_radiotap_len((u8 *)(&rtap_hdr));
++	if (unlikely(rtap_hdr.it_version))
++		goto fail;
++
++	if (unlikely(skb->len < rtap_len))
++		goto fail;
++
++	if (rtap_len != 12) {
++		RTW_INFO("radiotap len (should be 14): %d\n", rtap_len);
++		goto fail;
++	}
++	_rtw_pktfile_read(&pktfile, dummybuf, rtap_len-sizeof(struct ieee80211_radiotap_header));
++	len = len - rtap_len;
++
++	pmgntframe = alloc_mgtxmitframe(pxmitpriv);
++	if (pmgntframe == NULL) {
++		rtw_udelay_os(500);
++		goto fail;
++	}
+@@ -4932,6 +4908 @@
+-
+-	if (unlikely(len < sizeof(struct rtw_ieee80211_hdr_3addr)))
+-		frame_ctl = 0;
+-	else
+-		frame_ctl = le16_to_cpu(pwlanhdr->frame_ctl);
+-
++	frame_ctl = le16_to_cpu(pwlanhdr->frame_ctl);
+@@ -4943 +4914,2 @@
+-		pattrib->rate = MGN_1M; // Override a more practical default rate
++		if (is_broadcast_mac_addr(pwlanhdr->addr3) || is_broadcast_mac_addr(pwlanhdr->addr1))
++			pattrib->rate = MGN_24M;
+@@ -4958,169 +4929,0 @@
+-
+-#ifndef CONFIG_CUSTOMER_ALIBABA_GENERAL
+-
+-	if (ndev->type == ARPHRD_IEEE80211_RADIOTAP) {
+-		// Parse radiotap for injection items and overwrite attribs as needed.
+-		// This code should probably live in core/monitor/rtw_radiotap.c, but we would have to
+-		// pass pointers to a large number of things simply for the sake of organization,
+-		// and it isn't worth it at this preliminary point to get things up and running.
+-		// Let's call it a possible FUTURE-TODO.
+-
+-		ret = ieee80211_radiotap_iterator_init(&iterator, rtap_hdr, rtap_len, NULL);
+-		while (!ret) {
+-			ret = ieee80211_radiotap_iterator_next(&iterator);
+-			if (ret)
+-				continue;
+-
+-			switch (iterator.this_arg_index) {
+-				case IEEE80211_RADIOTAP_RATE:
+-					// This is basic 802.11b/g rate; use MCS/VHT for higher rates
+-					pattrib->rate = *iterator.this_arg;
+-#ifdef CONFIG_80211AC_VHT
+-					pattrib->raid = RATEID_IDX_BGN_40M_1SS;
+-#else
+-					if (pattrib->rate == IEEE80211_CCK_RATE_1MB
+-							|| pattrib->rate == IEEE80211_CCK_RATE_2MB
+-							|| pattrib->rate == IEEE80211_CCK_RATE_5MB
+-							|| pattrib->rate == IEEE80211_CCK_RATE_11MB )
+-						pattrib->raid = rtw_get_mgntframe_raid(padapter, WIRELESS_11B);
+-					else
+-						pattrib->raid = rtw_get_mgntframe_raid(padapter, WIRELESS_11G);
+-#endif
+-
+-					// We have to reset other attributes that may have been set prior for MCS/VHT rates
+-					pattrib->ht_en = _FALSE;
+-					pattrib->ampdu_en = _FALSE;
+-					pattrib->sgi = _FALSE;
+-					pattrib->ldpc = _FALSE;
+-					pattrib->stbc = 0;
+-					pattrib->bwmode = CHANNEL_WIDTH_20;
+-					pattrib->ch_offset = HAL_PRIME_CHNL_OFFSET_DONT_CARE;
+-
+-					break;
+-
+-				case IEEE80211_RADIOTAP_TX_FLAGS: {
+-					u16 txflags = get_unaligned_le16(iterator.this_arg);
+-
+-					if ((txflags & IEEE80211_RADIOTAP_F_TX_NOACK) == 0)
+-						pattrib->retry_ctrl = _TRUE; // Note; already _FALSE by default
+-
+-					if (txflags & 0x0010) { // Use preconfigured seq num
+-						if (len >= sizeof(struct rtw_ieee80211_hdr_3addr)) {
+-							pattrib->seqnum = GetSequence(pwlanhdr);
+-						}
+-					}
+-
+-					break;
+-				}
+-
+-				case IEEE80211_RADIOTAP_MCS: {
+-					u8 mcs_have = iterator.this_arg[0];
+-
+-					// Set up defaults
+-					pattrib->rate = MGN_MCS0;
+-					pattrib->bwmode = IEEE80211_RADIOTAP_MCS_BW_20;
+-					pattrib->ch_offset = HAL_PRIME_CHNL_OFFSET_DONT_CARE;
+-					pattrib->ht_en = _TRUE;
+-					pattrib->sgi = _FALSE;
+-					pattrib->ldpc = _FALSE;
+-					pattrib->stbc = 0;
+-
+-					if (mcs_have & IEEE80211_RADIOTAP_MCS_HAVE_BW) {
+-
+-						u8 bw = (iterator.this_arg[1] & IEEE80211_RADIOTAP_MCS_BW_MASK);
+-						if (bw == IEEE80211_RADIOTAP_MCS_BW_20L) {
+-							bw = IEEE80211_RADIOTAP_MCS_BW_20;
+-							pattrib->ch_offset = HAL_PRIME_CHNL_OFFSET_LOWER;
+-						}
+-						if (bw == IEEE80211_RADIOTAP_MCS_BW_20U) {
+-							bw = IEEE80211_RADIOTAP_MCS_BW_20;
+-							pattrib->ch_offset = HAL_PRIME_CHNL_OFFSET_UPPER;
+-						}
+-	
+-						pattrib->bwmode = bw;
+-					}
+-	
+-					if (mcs_have & IEEE80211_RADIOTAP_MCS_HAVE_MCS) {
+-						u8 fixed_rate = iterator.this_arg[2] & 0x7f;
+-						if(fixed_rate > 31)
+-							fixed_rate = 0;
+-						fixed_rate += MGN_MCS0;
+-						pattrib->rate = fixed_rate;
+-					}
+-
+-					if ((mcs_have & IEEE80211_RADIOTAP_MCS_HAVE_GI) && (iterator.this_arg[1] & IEEE80211_RADIOTAP_MCS_SGI))
+-						pattrib->sgi = _TRUE;
+-
+-					if ((mcs_have & IEEE80211_RADIOTAP_MCS_HAVE_FEC) && (iterator.this_arg[1] & IEEE80211_RADIOTAP_MCS_FEC_LDPC))
+-						pattrib->ldpc = _TRUE;
+-
+-					if (mcs_have & IEEE80211_RADIOTAP_MCS_HAVE_STBC) {
+-						u8 stbc = (iterator.this_arg[1] & IEEE80211_RADIOTAP_MCS_STBC_MASK) >> IEEE80211_RADIOTAP_MCS_STBC_SHIFT;
+-						pattrib->stbc = stbc;
+-					}
+-				}
+-				break;
+-
+-#ifdef CONFIG_80211AC_VHT
+-				case IEEE80211_RADIOTAP_VHT: {
+-					unsigned int mcs, nss;
+-
+-					u8 known = iterator.this_arg[0];
+-					u8 flags = iterator.this_arg[2];
+-
+-					// Set up defaults
+-					pattrib->stbc = 0;
+-					pattrib->sgi = _FALSE;
+-					pattrib->bwmode = CHANNEL_WIDTH_20;
+-					pattrib->ldpc = _FALSE;
+-					pattrib->rate = MGN_VHT1SS_MCS0;
+-					pattrib->raid = RATEID_IDX_VHT_1SS;
+-
+-					// NOTE: this code currently only supports 1SS for radiotap defined rates
+-
+-					if ((known & IEEE80211_RADIOTAP_VHT_KNOWN_STBC) && (flags & IEEE80211_RADIOTAP_VHT_FLAG_STBC))
+-						pattrib->stbc = 1;
+-
+-					if ((known & IEEE80211_RADIOTAP_VHT_KNOWN_GI) && (flags & IEEE80211_RADIOTAP_VHT_FLAG_SGI))
+-						pattrib->sgi = _TRUE;
+-
+-					if (known & IEEE80211_RADIOTAP_VHT_KNOWN_BANDWIDTH) {
+-						u8 bw = iterator.this_arg[3] & 0x1F;
+-						// NOTE: there are various L and U, but we just use straight 20/40/80
+-						// since it's not clear how to set CHNL_OFFSET_LOWER/_UPPER with different
+-						// sideband sizes/configurations.  TODO.
+-						// Also, any 160 is treated as 80 due to lack of WIDTH_160.
+-						if (bw == 0)
+-							pattrib->bwmode = CHANNEL_WIDTH_20;
+-						else if (bw >=1 && bw <= 3)
+-							pattrib->bwmode = CHANNEL_WIDTH_40;
+-						else if (bw >=4 && bw <= 10)
+-							pattrib->bwmode = CHANNEL_WIDTH_80;
+-						else if (bw >= 11 && bw <= 25)
+-							pattrib->bwmode = CHANNEL_WIDTH_80; // Supposed to be 160Mhz, we use 80Mhz
+-					}
+-	
+-					// User 0
+-					nss = iterator.this_arg[4] & 0x0F; // Number of spatial streams
+-					if (nss > 0) {
+-						if (nss > 4) nss = 4;
+-						mcs = (iterator.this_arg[4]>>4) & 0x0F; // MCS rate index
+-						if (mcs > 8) mcs = 9;
+-						pattrib->rate = MGN_VHT1SS_MCS0 + ((nss-1)*10 + mcs);
+-
+-						if (iterator.this_arg[8] & IEEE80211_RADIOTAP_CODING_LDPC_USER0)
+-							pattrib->ldpc = _TRUE;
+-					}
+-
+-				}
+-				break;
+-#endif // CONFIG_80211AC_VHT
+-
+-				default:
+-					break;
+-			}
+-		}
+-	}
+-
+-#endif // CONFIG_CUSTOMER_ALIBABA_GENERAL
+-
+@@ -5128,2 +4930,0 @@
+-	pxmitpriv->tx_pkts++;
+-	pxmitpriv->tx_bytes += skb->len;
+@@ -5539,0 +5341 @@
++#line 5342
+--- a/os_dep/osdep_service.c
++++ b/os_dep/osdep_service.c
+@@ -3092,0 +3093 @@
++#line 3069
+@@ -3481,0 +3483,3 @@
++
++/* Stock module metadata: original namespace imports in this translation unit. */
++MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
+--- a/os_dep/linux/ioctl_cfg80211.c
++++ b/os_dep/linux/ioctl_cfg80211.c
+@@ -730,0 +731 @@
++#line 718
+--- a/os_dep/linux/os_intfs.c
++++ b/os_dep/linux/os_intfs.c
+@@ -23,0 +24 @@
++MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
+@@ -1981,0 +1983 @@
++#line 1979
+@@ -2283,0 +2286 @@
++#line 2277
+@@ -4035 +4037,0 @@
+-	rtw_netif_carrier_on(pnetdev); /* call this func when rtw_joinbss_event_callback return success */
+@@ -4808,0 +4811 @@
++#line 4788
+@@ -5766,0 +5770 @@
++
+--- a/os_dep/linux/rtw_proc.c
++++ b/os_dep/linux/rtw_proc.c
+@@ -134,0 +135 @@
++#line 133
+--- a/os_dep/linux/usb_intf.c
++++ b/os_dep/linux/usb_intf.c
+@@ -266 +265,0 @@
+-	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0xC82C, 0xff, 0xff, 0xff), .driver_info = RTL8821C}, /* 8821CU */
+@@ -269 +267,0 @@
+-	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0x2006, 0xff, 0xff, 0xff), .driver_info = RTL8821C}, /* TOTOLINK A650UA v3 */
+@@ -273 +270,0 @@
+-	{USB_DEVICE_AND_INTERFACE_INFO(0x2001, 0x331d, 0xff, 0xff, 0xff), .driver_info = RTL8821C}, /* D-Link - DWA-171C */
+@@ -283 +279,0 @@
+-	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0xC82C, 0xff, 0xff, 0xff), .driver_info = RTL8822C}, /* Default ID for USB multi-function */
+--- a/hal/phydm/phydm_debug.h
++++ b/hal/phydm/phydm_debug.h
+@@ -92 +92 @@
+-	#define pr_debug		_RTW_DBG
++	#define pr_debug		printk
+--- a/hal/rtl8821c/rtl8821c_ops.c
++++ b/hal/rtl8821c/rtl8821c_ops.c
+@@ -3219 +3219 @@
+-				SET_TX_DESC_RTS_DATA_RTY_LMT_8821C(pbuf, 0);
++				SET_TX_DESC_RTS_DATA_RTY_LMT_8821C(pbuf, 12);
+--- a/hal/rtl8821c/usb/rtl8821cu_xmit.c
++++ b/hal/rtl8821c/usb/rtl8821cu_xmit.c
+@@ -317 +317 @@
+-				SET_TX_DESC_RTS_DATA_RTY_LMT_8821C(ptxdesc, 0);
++				SET_TX_DESC_RTS_DATA_RTY_LMT_8821C(ptxdesc, 12);
+--- a/hal/phydm/phydm.mk
++++ b/hal/phydm/phydm.mk
+@@ -1 +1 @@
+-EXTRA_CFLAGS += -I$(src)/hal/phydm
++EXTRA_CFLAGS += -I$(srctree)/$(src)/hal/phydm
+--- a/hal/phydm/sd4_phydm_2_kernel.mk
++++ b/hal/phydm/sd4_phydm_2_kernel.mk
+@@ -1 +1 @@
+-EXTRA_CFLAGS += -I$(src)/hal/phydm
++EXTRA_CFLAGS += -I$(srctree)/$(src)/hal/phydm

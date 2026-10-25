@@ -1,0 +1,65 @@
+--- a/drivers/net/ethernet/allwinner/sunxi-gmac.c
++++ b/drivers/net/ethernet/allwinner/sunxi-gmac.c
+@@ -640,0 +641 @@
++	u32 value;
+@@ -669 +670 @@
+-		if (new_state)
++		if (new_state) {
+@@ -670,0 +672,7 @@
++			value = readl(priv->base_phy);
++			printk("geth_adjust_link 0x%x\n", value);
++			value &= ~(1 << 17);
++			writel(value, priv->base_phy);
++			value |= (1 << 17);
++			writel(value, priv->base_phy);
++		}
+@@ -1209,0 +1218 @@
++	printk("geth1 clk_value 0x%x\n", clk_value);
+@@ -1238,0 +1248 @@
++	clk_value |= (1 << 17);
+@@ -1325,0 +1336,2 @@
++	} else {
++		printk("geth clk en 0x%x\n", (unsigned int)priv->base_phy);
+@@ -1396,0 +1409,6 @@
++	u32 value;
++
++	value = readl(priv->base_phy);
++	value |= (1 << 17);
++	writel(value, priv->base_phy);
++	printk("eth init2 0x%x\n", (unsigned int)priv->base_phy);
+@@ -1949 +1967 @@
+-	int i;
++	u32 i;
+@@ -1982,0 +2001,5 @@
++
++	i = readl(priv->base_phy);
++	i |= (1 << 17);
++	writel(i, priv->base_phy);
++	printk("eth init 0x%x\n", (unsigned int)priv->base_phy);
+@@ -2144,0 +2168 @@
++	u32 value;
+@@ -2254,0 +2279,4 @@
++	value = readl(priv->base_phy);
++	value |= (1 << 17);
++	writel(value, priv->base_phy);
++	printk("eth init2 0x%x\n", (unsigned int)priv->base_phy);
+--- a/drivers/spi/spi-sunxi.c
++++ b/drivers/spi/spi-sunxi.c
+@@ -792,0 +793 @@
++	u32 poll_time = 0x7ffffff;
+@@ -799,0 +801,4 @@
++	reg_val = readl(base_addr + SPI_FIFO_CTL_REG);
++	while (((reg_val & SPI_FIFO_CTL_RX_RST) ||
++		(reg_val & SPI_FIFO_CTL_TX_RST)) && (--poll_time > 0))
++		reg_val = readl(base_addr + SPI_FIFO_CTL_REG);
+@@ -901,0 +907,2 @@
++/* Preserve diagnostic source locations verified in the stock image. */
++#line 909
+@@ -1373 +1380 @@
+-	while (rx_len) {
++	while (rx_len && (--poll_time > 0)) {
+@@ -1375 +1382 @@
+-		if (spi_query_rxfifo(base_addr) && (--poll_time > 0)) {
++		if (spi_query_rxfifo(base_addr)) {
+@@ -1380,0 +1388 @@
++#line 1394

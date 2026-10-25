@@ -42,7 +42,7 @@ must not be described as an unchanged factory boot chain throughout.
 | boot0 / SPL | Two identical 48 KiB eGON copies at `0x2000` and `0x20000`; commit field `5224261`, DRAM driver `V0.32`, DDR3 at 792 MHz. | Held SDK's `spl-pub/nboot/Makefile` links `board/sun8iw20p1/libsun8iw20p1_sdcard.a`, an ELF relocatable without the DRAM implementation source. No source-only replacement or byte-identical rebuild is claimed. |
 | Primary U-Boot | 2018.05, August 25, 2023 17:05:54 +0800; Linaro GCC 7.2.1 20171011, binutils 2.28.2.20170706. Historical source revision is unknown. | **Byte-identical source reconstruction verified:** 966,656 bytes, SHA-256 `31aaa8a085b4985dafdad87d97637fcc1d35a300101295edfaf51c826ff53019`. Uses pinned older source, recovered source changes and source-compiled control DTS. |
 | OP-TEE secure world | Build `553fe17e2-dirty`, Linaro 5.3.1, build #6 dated February 18, 2022. | Held `lichee.zip` contains U-Boot/Linux client shims, not the secure-world OP-TEE OS source tree. No prebuilt payload is imported into source-build outputs. |
-| Kernel | p1 uImage decompresses to raw Image SHA-256 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`, 12,970,156 bytes. | Cached public-source reconstruction has matching banner and embedded config, but a different complete Image. See comparison below. |
+| Kernel | p1 uImage decompresses to raw Image SHA-256 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`, 12,970,156 bytes. | Source reconstruction verified: all executable and functional data bytes match; full Image differs only in compiler-private symbol names and GNU build-id. The complete file is not byte-identical. |
 | Rootfs / services | ReForge Buildroot source packages. | Existing ReForge build path; no full image boot validation was performed in this audit. |
 | Mainboard / toolhead | Matching Klipper 13 host and MCU source pin. | Integrated [source-build package](../../br-external/package/klipper13/README.md), with per-board checks and image/checksum output. No flashing. |
 
@@ -214,7 +214,81 @@ different bytes at shared offsets in the packed images. The script therefore
 continues to exit nonzero for the strict byte-comparison failure. No hardware
 boot or flashing was performed.
 
-## Kernel comparison and limits
+## Verified kernel source reconstruction
+
+A clean source build in `build/stock-kernel-reproduced/` produced a 12,970,156-byte
+Image. Its complete executable region and every byte outside validated symbol and
+build-id metadata match the original raw Image, SHA-256
+`902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`.
+**The complete rebuilt Image is not byte-identical:** 13,029 differing bytes are
+confined to compressed kallsyms metadata and the 20-byte GNU build-id.
+
+Both Images decode to the same 72,471 symbol addresses and types. Seventeen
+compiler-private numeric UID names differ; all other names agree. The
+[read-only checker](../../tools/build/compare-stock-kernel.py) validates the
+compressed tables, markers, token indexes and zero alignment, checks all decoded
+records, and compares every byte outside those validated metadata regions.
+It reports `payload_equal` separately from `full_file_equal`; it never rewrites
+symbols, build IDs or executable bytes. Its tests reject code/data mutations,
+address/type/public-name changes and malformed metadata.
+
+The foundation is the pinned
+[`guanglun/longan-t113-linux-5.4` source at `d51ad00c047eccd5c88e807aedf56a5a25d9a155`](https://github.com/guanglun/longan-t113-linux-5.4/tree/d51ad00c047eccd5c88e807aedf56a5a25d9a155),
+with selected original CAN/I2C/PWM source from the held BSP pin and the
+[stock source patches](../../vendor/kernels/stock-patches). IDA Pro ARM32 analysis,
+original kallsyms and object comparisons established the remaining changes:
+
+| Area | Recovered original behavior |
+|---|---|
+| Framebuffer | Defer freeing the boot framebuffer until display startup plus 30 ms; use the original uncached ION allocation and panel layout. |
+| Display manager | Restore the canonical 200-byte private state, seven-entry reference history and older DMA-buffer aging/unmap logic. All 66 manager functions match. |
+| CAN | Replace the differing generated-assembly implementation with recovered C: 13 helper routines, 4,292 executable bytes and all unwind descriptors match. Preserve original volatile arithmetic, firmware calls and controller I/O. Restore the original unassigned CAN reset-map entries and C-driver diagnostic behavior. |
+| IR / GMAC / SPI | Restore old receiver globals/PM behavior, MII register dump, GMAC clock/reset behavior, per-transfer SPI buffers and both stock polling fixes. Original diagnostic locations are retained. |
+| Regulator / MMC / touch | Restore the fixed 4-ms CPU-regulator delay, 30-MHz MMC default, original touch sampling thresholds and selected boot diagnostics. |
+| Core / DMA / IOMMU / LCD | Restore zeroed FUSE allocation, DMA NULL guard, IOMMU resume clock enable and original DPHY clock lifetime. The LCD source is pinned to `yangchaohong/AbFixedWings-kernel@d2f4699308d190ad9abc96a879368be296e8dc63`. |
+
+The stock MCU UART links use the existing built-in `sunxi-uart` source; no missing
+separate MCU Linux module was found. `boot_code` is an IR global, not a bootlogo
+function. The earlier missing-symbol-only classification was insufficient;
+whole-file comparison also exposed shared-function and initialized-data changes.
+
+The reconstructed RTL8821CU module is 2,441,368 bytes. All 4,448 functions,
+allocated code/data/firmware sections and canonical relocation targets match the
+original flat `/lib/modules/8821cu.ko`, SHA-256
+`7c0a036726227752359556f8e109683d5ce836bb65ec64afd46bfb754d6afa69`.
+The [module checker](../../tools/build/compare-stock-module.py) additionally checks
+ELF ABI flags and operational module metadata, including vermagic, aliases,
+parameters, license and namespaces. The complete ELF still differs by 688 bytes:
+21 source-version bytes, 20 build-id bytes and 647 compiler-local symbol-string
+bytes. The new source-version hash is genuinely calculated from the reconstructed
+source, not replaced with the historical value. Embedded controller firmware is
+upstream C-array data; its original firmware source has not been reconstructed.
+
+Source builds use the exact captured kernel configuration and the historical
+Linaro 5.3.1 compiler. A private bubblewrap namespace supplies both original build
+paths without changing host `/home/linux` or resetting the BSP checkout.
+The builder rejects existing outputs, verifies all source/reference hashes,
+rejects prebuilt object/archive/module members and records source/toolchain pins.
+Source archives and reference artifacts are separate; target code is compiled
+from C/assembly, including the newly recovered CAN C implementation.
+
+```sh
+curl -fL https://codeload.github.com/guanglun/longan-t113-linux-5.4/tar.gz/d51ad00c047eccd5c88e807aedf56a5a25d9a155 -o /tmp/stock-kernel-source.tar.gz
+curl -fL https://codeload.github.com/rugameuser/8821cu-20210118/tar.gz/b6ad883ea547cbd5d144e6218cc122bb4de4ffc4 -o /tmp/stock-wifi-source.tar.gz
+tools/build/build-bsp-kernel-stock.sh /tmp/stock-kernel-source.tar.gz \
+    /tmp/stock-wifi-source.tar.gz /path/to/original-Image.raw \
+    /path/to/original-flat-8821cu.ko build/stock-kernel-reproduced
+```
+
+Host requirements include bubblewrap, Python with pyelftools, normal kernel build
+tools and the pinned compiler under `vendor/toolchains/`. The captured raw Image
+and flat module must have the reference hashes above. The similarly named module
+under `/lib/modules/5.4.61/` is a different packaging variant and is not this target.
+Artifacts, logs and both comparison reports survive under the new output directory.
+No hardware execution was observed. Original SPI/IR cleanup quirks are retained
+for source fidelity; the reconstruction does not silently repair stock behavior.
+
+## Earlier kernel comparison and limits
 
 The closest cached source reconstruction is
 `build/bsp-kernel-rebuild-stock/artifacts/Image.ours-linaro`, SHA-256
@@ -224,16 +298,15 @@ bytes at shared offsets. The first difference is `0xf968c`: exactly 1,021,580
 leading bytes match, less than 1 MiB. Matching banner and IKCONFIG are useful
 diagnostics, not whole-image identity or hardware-equivalence proof.
 
-The historical `build-bsp-kernel-stock.sh` needs the original absolute source
-path and mutates/resets its source checkout. It is not invoked automatically by
-the U-Boot comparison build. Future integration must use an isolated source copy
-at the original path inside a controlled namespace, rather than reset the shared
-vendor checkout. The historical path is currently not populated with usable source.
-The public-source reproduction also contains a Wi-Fi Kconfig stub, not a working
-source build of the original RTL8821CU module.
+The historical comparison used a Wi-Fi Kconfig stub, not a working source build
+of the original RTL8821CU module. Kernel and Wi-Fi reconstruction checks above
+supersede that source-gap classification; full new artifact equality remains a
+separate check.
 
-Finishing the original source-only bringup requires the original boot0 DRAM
-implementation, secure-world OP-TEE source including dirty changes, original
-U-Boot build inputs/packing, and resolution of the kernel/module source gaps.
+Completing the remaining boot chain requires boot0's DRAM implementation and
+the secure-world OP-TEE source, including vendor changes. Those stages are not
+yet source-built. The primary U-Boot reproduction and kernel execution-payload
+reconstruction are verified above; historical lexical source identity remains
+unproved where explicitly noted.
 Source builds, strict byte comparisons, and recoverable hardware boot validation
 are separate milestones; only observed results are marked above.

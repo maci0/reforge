@@ -1,156 +1,147 @@
 #!/usr/bin/env bash
-# =============================================================================
-# build-bsp-kernel-stock.sh — rebuild the BSP kernel attempting BYTE-IDENTICAL
-# reproduction of stock.
-#
-# Differences vs the sibling `build-bsp-kernel.sh`:
-#
-#   - Uses **Linaro GCC 5.3.1 20160412 + binutils 2.25.0** (the exact stock
-#     toolchain). vendor/toolchains/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi/
-#     The vanilla build script uses our pinned GCC 9.5.0 (deliberate, for
-#     ReForge's shipping toolchain validation).
-#
-#   - Builds **from the exact stock source path**
-#     `/home/linux/work/hard_t113_s3/t113/T113/T113-Linux-Auto-v1.1/kernel/linux-5.4/`
-#     (via a sudo-created symlink to our submodule), so `__FILE__` macros and
-#     `.rodata` strings match stock byte-for-byte. Without this, every
-#     `WARN_ON`/`BUG_ON` site embeds our local path string instead.
-#
-#   - Output: build/bsp-kernel-rebuild-stock/ (separate from the GCC 9.5
-#     build under build/bsp-kernel-rebuild/), gitignored.
-#
-# Status: experiment toward L3 (byte-identical Image) per
-# docs/research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md.
-# Plan: docs/plans/2026-06-04-bsp-kernel-rebuild-and-diff.md
-# =============================================================================
+# Reconstruct the original kernel and modules from pinned source; never flash.
 set -euo pipefail
-
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-
-# The stock-path symlink that points at our submodule (set up once via:
-#   sudo mkdir -p /home/linux/work/hard_t113_s3/t113/T113/T113-Linux-Auto-v1.1/kernel/
-#   sudo chown -R $USER /home/linux
-#   ln -sfn "${REPO_ROOT}/vendor/kernels/tina-bsp-kernel" \
-#       /home/linux/work/hard_t113_s3/t113/T113/T113-Linux-Auto-v1.1/kernel/linux-5.4
-# )
-STOCK_PATH="/home/linux/work/hard_t113_s3/t113/T113/T113-Linux-Auto-v1.1/kernel/linux-5.4"
-
-LINARO_DIR="${REPO_ROOT}/vendor/toolchains/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi"
-TC_PREFIX="${LINARO_DIR}/bin/arm-linux-gnueabi-"
-
-STOCK_CFG_GZ="${REPO_ROOT}/docs/board-notes/stock-kernel-config-5.4.61.txt.gz"
-OUT="${OUT:-${REPO_ROOT}/build/bsp-kernel-rebuild-stock}"
-
-# Build metadata pinned to stock's embedded banner (Wed Aug 23 15:33:33 CST 2023)
-export SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-1692776013}"
-export KBUILD_BUILD_TIMESTAMP="${KBUILD_BUILD_TIMESTAMP:-Wed Aug 23 15:33:33 CST 2023}"
-export KBUILD_BUILD_USER="${KBUILD_BUILD_USER:-root}"
-export KBUILD_BUILD_HOST="${KBUILD_BUILD_HOST:-linux-virtual-machine}"
-export KBUILD_BUILD_VERSION="${KBUILD_BUILD_VERSION:-52}"
-
-JOBS="${BUILD_JOBS:-$(nproc)}"
-
-# Stock build host did not have g++ available, so olddefconfig saw
-# CONFIG_PLUGIN_HOSTCC="" and left CONFIG_GCC_PLUGINS off. With g++ on our
-# host olddefconfig auto-enables GCC_PLUGINS + STACKPROTECTOR_PER_TASK +
-# GCC_PLUGIN_ARM_SSP_PER_TASK, which adds plugin code to the Image and
-# diverges from stock. Forcing HOSTCXX to a non-functional command makes
-# scripts/Kconfig.include's $(success,$(HOSTCXX) -E ...) check fail, which
-# leaves PLUGIN_HOSTCC empty and matches stock's behaviour.
-export HOSTCXX=/bin/false
-
-log()  { echo "[build-bsp-kernel-stock] $*"; }
-die()  { echo "[build-bsp-kernel-stock] ERROR: $*" >&2; exit 1; }
-
-# Stock path can be a symlink (point at our submodule) OR a bind-mount.
-# Both work; the bind-mount approach gets __FILE__ macros stamped with the
-# stock path (because kbuild realpath stops at the mount point), while a
-# symlink leaks the real path back through `realpath`. Prefer bind-mount.
-[ -e "${STOCK_PATH}" ]        || die "Stock-path not set up: ${STOCK_PATH} (run the symlink-or-bind-mount setup)"
-[ -d "${STOCK_PATH}/arch" ]   || die "Stock-path doesn't expose arch/ — setup broken"
-[ -x "${TC_PREFIX}gcc" ]      || die "Linaro toolchain not found: ${TC_PREFIX}gcc"
-[ -f "${STOCK_CFG_GZ}" ]      || die "captured .config not found: ${STOCK_CFG_GZ}"
-
-# --- patch overlay ----------------------------------------------------------
-# Apply the byte-identical-reproduction patches on top of the clean BSP
-# submodule. Patches add CAN_SUN8I wiring, reconstruct sunxi_can_asm.h, stub
-# RTL8821CU, hide 14 newer Kconfig symbols, and force PLUGIN_HOSTCC="".
-# The trap reverts everything on exit so the submodule never has dirty state.
-KSRC_REAL="${REPO_ROOT}/vendor/kernels/tina-bsp-kernel"
-PATCH="${REPO_ROOT}/vendor/kernels/patches/0001-byte-identical-reproduction.patch"
-[ -f "${PATCH}" ] || die "reproduction patch not found: ${PATCH}"
-
-revert_patch() {
-    log "Reverting patch (returning submodule to clean state)"
-    git -C "${KSRC_REAL}" checkout -- . 2>/dev/null || true
-    rm -rf "${KSRC_REAL}/drivers/staging/rtl8821cu"
-    rm -f  "${KSRC_REAL}/drivers/net/can/sunxi_can_asm.h"
-    rm -f  "${KSRC_REAL}/.scmversion"
-}
-trap revert_patch EXIT INT TERM
-
-log "Applying reproduction patch ..."
-if ! git -C "${KSRC_REAL}" apply --check "${PATCH}" 2>/dev/null; then
-    die "patch fails --check; submodule may have stale state. Run: git -C ${KSRC_REAL} checkout -- .  &&  rm -rf ${KSRC_REAL}/drivers/staging/rtl8821cu ${KSRC_REAL}/drivers/net/can/sunxi_can_asm.h"
+if (( $# < 4 || $# > 5 )); then
+    echo "usage: $0 KERNEL_SOURCE_TAR WIFI_SOURCE_TAR STOCK_IMAGE STOCK_WIFI_MODULE [OUTPUT_DIR]" >&2
+    exit 2
 fi
-git -C "${KSRC_REAL}" apply "${PATCH}"
-log "  patch applied (§CAN_SUN8I wiring, sunxi_can_asm.h, RTL8821CU stub, 14 Kconfig hides, PLUGIN_HOSTCC=\"\")"
-
-mkdir -p "${OUT}/artifacts"
-
-# Pin build-version to 51 so the next link increments to 52 (matches stock).
-echo 51 > "${OUT}/.version"
-
-# Suppress the '+' scmversion suffix; stock built from a tagged tree.
-: > "${STOCK_PATH}/.scmversion"
-
-MAKE_ARGS=(
-    -C "${STOCK_PATH}"
-    O="${OUT}"
-    ARCH=arm
-    CROSS_COMPILE="${TC_PREFIX}"
-)
-
-# --- 1. seed the .config from the captured stock config ---------------------
-log "Seeding .config from ${STOCK_CFG_GZ##*/}"
-zcat "${STOCK_CFG_GZ}" > "${OUT}/.config"
-cp "${OUT}/.config" "${OUT}/.config.captured"
-
-# Stock's build had no g++ on the host (PLUGIN_HOSTCC="") so GCC_PLUGINS
-# stayed off. Our build host DOES have g++ + plugin headers, so olddefconfig
-# would auto-enable GCC_PLUGINS + GCC_PLUGIN_ARM_SSP_PER_TASK +
-# STACKPROTECTOR_PER_TASK — adding plugin-emitted code to the Image and
-# diverging from stock. Force these off in the seed so olddefconfig keeps them
-# off (no need to override after).
-cat >> "${OUT}/.config" <<'EOF'
-# CONFIG_GCC_PLUGINS is not set
-# CONFIG_GCC_PLUGIN_ARM_SSP_PER_TASK is not set
-# CONFIG_STACKPROTECTOR_PER_TASK is not set
-EOF
-
-# --- 2. olddefconfig + diff -------------------------------------------------
-log "Running olddefconfig with Linaro 5.3.1 ..."
-make "${MAKE_ARGS[@]}" olddefconfig >/dev/null
-diff "${OUT}/.config.captured" "${OUT}/.config" > "${OUT}/diff-config.txt" || true
-n_diff=$(grep -cE '^[<>]' "${OUT}/diff-config.txt" || true)
-log "  olddefconfig delta: ${n_diff} lines (should be near 0 with matching toolchain)"
-
-# --- 3. build the kernel ----------------------------------------------------
-log "Building Image (Linaro 5.3.1 + stock build path)  JOBS=${JOBS} ..."
-make "${MAKE_ARGS[@]}" -j"${JOBS}" Image 2>&1 | tail -20
-
-# --- 4. stage artifacts -----------------------------------------------------
-log "Staging artifacts ..."
-cp "${OUT}/arch/arm/boot/Image" "${OUT}/artifacts/Image.ours-linaro"
-cp "${OUT}/vmlinux"             "${OUT}/artifacts/vmlinux.ours-linaro"
-cp "${OUT}/System.map"          "${OUT}/artifacts/System.map.ours-linaro"
-cp "${OUT}/.config"             "${OUT}/artifacts/.config.ours-linaro"
-
-# Cross-link the previously-built stock artifact for diffing
-STOCK_REF="${REPO_ROOT}/build/bsp-kernel-rebuild/artifacts/Image.stock"
-[ -f "${STOCK_REF}" ] && ln -sfn "${STOCK_REF}" "${OUT}/artifacts/Image.stock"
-
-log "Build complete. Artifacts:"
-# shellcheck disable=SC2012
-ls -la "${OUT}/artifacts/" | sed 's/^/  /'
-log "Next: diff Image.ours-linaro against Image.stock"
+repo=$(cd "$(dirname "$0")/../.." && pwd)
+kernel_archive=$(realpath "$1")
+wifi_archive=$(realpath "$2")
+reference=$(realpath "$3")
+wifi_reference=$(realpath "$4")
+out=$(realpath -m "${5:-${OUT:-$repo/build/bsp-kernel-rebuild-stock}}")
+die() { echo "build-bsp-kernel-stock: $*" >&2; exit 1; }
+[[ ! -e "$out" ]] || die "Output directory must be new: $out"
+command -v bwrap >/dev/null || die 'bubblewrap is required for the original virtual build paths'
+python3 -c 'import elftools' || die 'pyelftools is required for module verification'
+cross="$repo/vendor/toolchains/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi/bin/arm-linux-gnueabi-"
+[[ -x "${cross}gcc" ]] || die 'install the pinned Linaro 5.3.1 toolchain first'
+patchdir="$repo/vendor/kernels/stock-patches"
+mkdir -p "$(dirname "$out")"
+python3 - "$repo" "$kernel_archive" "$wifi_archive" "$reference" "$wifi_reference" "$out" <<'PY'
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import sys
+import tarfile
+repo, kernel, wifi, reference, wifi_reference, out = map(Path, sys.argv[1:])
+pins = {}
+for line in (repo / 'pins.lock').read_text().splitlines():
+    if line.strip() and not line.lstrip().startswith('#'):
+        fields = line.split()
+        if fields[0] in ('stock-kernel', 'stock-rtl8821cu', 'tina-bsp-kernel'):
+            pins[fields[0]] = {'ref': fields[2], 'sha': fields[3], 'url': fields[4]}
+def digest(path):
+    with path.open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
+for name, path in (('stock-kernel', kernel), ('stock-rtl8821cu', wifi)):
+    if digest(path) != pins[name]['sha']:
+        raise SystemExit(f'{name}: source archive SHA-256 mismatch')
+for path, expected in ((reference, '902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6'),
+                       (wifi_reference, '7c0a036726227752359556f8e109683d5ce836bb65ec64afd46bfb754d6afa69')):
+    if digest(path) != expected:
+        raise SystemExit(f'{path}: original reference SHA-256 mismatch')
+def extract(archive, destination, expected_root):
+    with tarfile.open(archive) as source:
+        members = source.getmembers()
+        if not members or any(m.name != expected_root and not m.name.startswith(expected_root + '/')
+                              for m in members):
+            raise ValueError('source archive root does not match its pinned revision')
+        if any(m.isfile() and Path(m.name).suffix in {'.o', '.a', '.ko', '.bin', '.elf'}
+               for m in members):
+            raise ValueError('prebuilt target member in source archive')
+        source.extractall(destination, filter='data')
+    return destination / expected_root
+out.mkdir()
+src = extract(kernel, out, 'longan-t113-linux-5.4-' + pins['stock-kernel']['ref'])
+src.rename(out / 'source-tree')
+src = out / 'source-tree'
+staging = src / 'drivers/staging'
+driver = extract(wifi, staging, '8821cu-20210118-' + pins['stock-rtl8821cu']['ref'])
+driver.rename(staging / 'rtl8821cu')
+# These original driver revisions are present in the held, pinned BSP source.
+backports = ['drivers/net/can/sunxi_can.c',
+             'drivers/i2c/busses/i2c-sunxi.c', 'drivers/pwm/pwm-sunxi-group.c',
+             'drivers/pwm/pwm-sunxi-group.h']
+backport_hashes = {}
+for name in backports:
+    data = subprocess.check_output(['git', '-C', str(repo / 'vendor/kernels/tina-bsp-kernel'),
+                                    'show', pins['tina-bsp-kernel']['sha'] + ':' + name])
+    (src / name).write_bytes(data)
+    backport_hashes[name] = hashlib.sha256(data).hexdigest()
+(out / 'inputs.json').write_text(json.dumps({
+    'source_pins': pins, 'source_backports': backport_hashes,
+    'kernel_reference_sha256': digest(reference),
+    'wifi_reference_sha256': digest(wifi_reference),
+    'target_objects_imported': False,
+}, indent=2) + '\n')
+PY
+src="$out/source-tree"
+obj="$out/kernel"
+mkdir "$obj" "$out/artifacts"
+patch --batch --forward --fuzz=0 -s -p1 -d "$src/drivers/staging/rtl8821cu" < "$patchdir/rtl8821cu.patch"
+patches=("$patchdir/0001-source-integration.patch" "$patchdir/0002-stock-display.patch"
+         "$patchdir/0003-stock-gmac-spi.patch" "$patchdir/0004-stock-goodix-mmc.patch"
+         "$patchdir/0005-stock-tail.patch" "$patchdir/0006-stock-can.patch")
+for source_patch in "${patches[@]}"; do
+    patch --batch --forward --fuzz=0 -s -p1 -d "$src" < "$source_patch"
+done
+sha256sum "$patchdir/rtl8821cu.patch" "${patches[@]}" > "$out/source-patches.sha256"
+{
+    "${cross}gcc" --version
+    "${cross}ld" --version
+    sha256sum "${cross}gcc" "${cross}ld" "$("${cross}gcc" -print-prog-name=cc1)"
+} > "$out/toolchain.txt"
+: > "$src/.scmversion"
+printf '51\n' > "$obj/.version"
+gzip -dc "$repo/docs/board-notes/stock-kernel-config-5.4.61.txt.gz" > "$obj/.config"
+cp "$obj/.config" "$obj/.config.captured"
+stock_src=/home/linux/work/hard_t113_s3/t113/T113/T113-Linux-Auto-v1.1/kernel/linux-5.4
+wifi_src=/home/linux/work/hard_t113/T113-Linux-Auto-v1.1/kernel/linux-5.4
+wifi_out=/home/linux/work/hard_t113/T113-Linux-Auto-v1.1/out/kernel/build
+# Both historical paths exist only inside this private namespace.
+namespace=(bwrap --ro-bind / / --dev /dev --proc /proc --bind /tmp /tmp
+           --tmpfs /home --ro-bind "$HOME" "$HOME"
+           --dir "$(dirname "$stock_src")" --bind "$src" "$stock_src"
+           --dir "$(dirname "$wifi_src")" --bind "$src" "$wifi_src"
+           --dir "$(dirname "$wifi_out")" --bind "$obj" "$wifi_out"
+           --bind "$out" "$out" --die-with-parent)
+export SOURCE_DATE_EPOCH=1692776013
+export KBUILD_BUILD_TIMESTAMP='Wed Aug 23 15:33:33 CST 2023'
+export KBUILD_BUILD_USER=root KBUILD_BUILD_HOST=linux-virtual-machine KBUILD_BUILD_VERSION=52
+common=(HOSTCXX=/bin/false ARCH=arm "CROSS_COMPILE=$cross")
+"${namespace[@]}" make -C "$stock_src" "O=$obj" "${common[@]}" olddefconfig > "$out/configure.log" 2>&1
+cmp -s "$obj/.config.captured" "$obj/.config" || die "configuration differs from stock; inspect $obj/.config"
+if ! "${namespace[@]}" make -C "$stock_src" "O=$obj" "${common[@]}" -j"${BUILD_JOBS:-8}" Image > "$out/kernel.log" 2>&1; then
+    tail -40 "$out/kernel.log" >&2
+    exit 1
+fi
+# Wi-Fi's original module used this path/tuning and its own recovered build date.
+if ! "${namespace[@]}" make -C "$wifi_src" "O=$wifi_out" "${common[@]}" \
+    KCFLAGS=-mtune=cortex-a9 CONFIG_RTL8821CU=m CONFIG_PLATFORM_I386_PC=n \
+    USER_EXTRA_CFLAGS='-DCONFIG_LITTLE_ENDIAN -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT' \
+    -j"${BUILD_JOBS:-8}" modules > "$out/modules.log" 2>&1; then
+    tail -40 "$out/modules.log" >&2
+    exit 1
+fi
+cp "$obj/arch/arm/boot/Image" "$out/artifacts/Image"
+cp "$obj/vmlinux" "$obj/System.map" "$out/artifacts/"
+cp "$obj/.config" "$out/artifacts/kernel.config"
+cp "$obj/drivers/staging/rtl8821cu/8821cu.ko" "$out/artifacts/8821cu.ko"
+python3 "$repo/tools/build/compare-stock-module.py" "$wifi_reference" "$out/artifacts/8821cu.ko" "$out/wifi-comparison.json"
+python3 "$repo/tools/build/compare-stock-kernel.py" "$reference" "$out/artifacts/Image" "$out/comparison.json"
+python3 - "$out" <<'PYREPORT'
+import json
+from pathlib import Path
+import sys
+out = Path(sys.argv[1])
+kernel = json.loads((out / 'comparison.json').read_text())
+wifi = json.loads((out / 'wifi-comparison.json').read_text())
+print(json.dumps({'kernel_payload_equal': kernel['payload_equal'],
+                  'kernel_full_file_equal': kernel['full_file_equal'],
+                  'wifi_static_equivalent': wifi['runtime_equivalent'],
+                  'wifi_full_file_equal': wifi['full_file_equal'],
+                  'artifacts': str(out / 'artifacts')}))
+PYREPORT

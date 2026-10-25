@@ -1,0 +1,11 @@
+--- a/drivers/input/touchscreen/gt9xxnew/gt9xx.c
++++ b/drivers/input/touchscreen/gt9xxnew/gt9xx.c
+@@ -3264,0 +3265,3 @@
++	printk("goodix_ts_init !\n");
++	printk("goodix init2!\n");
++
+--- a/drivers/mmc/host/sunxi-mmc.c
++++ b/drivers/mmc/host/sunxi-mmc.c
+@@ -2853 +2853 @@
+-	mmc->f_max = 50000000;
++	mmc->f_max = 30000000;
