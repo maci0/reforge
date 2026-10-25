@@ -76,6 +76,73 @@ bootstrap of that historical compiler is not established.
 The current candidate has 873,000 mismatched bytes at common offsets; the first
 is offset 12 (the header checksum). Final vendor image packing is not reproduced.
 
+## Exact U-Boot size difference (2026-10-25 follow-up)
+
+The 195-byte increase is a net artifact-layout difference, not a 195-byte code
+change. Compared with the original primary U-Boot payload:
+
+| Region | Stock bytes | Candidate bytes | Candidate minus stock |
+|---|---:|---:|---:|
+| Header | 1,600 | 1,600 | 0 |
+| Executable text | 522,872 | 524,624 | +1,752 |
+| Read-only data and its end alignment | 197,212 | 198,000 | +788 |
+| ELF hash table | 24 | 24 | 0 |
+| Alignment before data | 4 | 0 | −4 |
+| Data, GOT and linker lists | 114,552 | 131,060 | +16,508 |
+| ARM-relative relocations | 96,248 | 96,952 | +704 |
+| Appended control DTB | 17,784 | 14,591 | −3,193 |
+| Final `0xff` packing fill | 16,360 | 0 | −16,360 |
+| **Total** | **966,656** | **966,851** | **+195** |
+
+The pre-DTB part is 19,748 bytes larger. Stock relocation entries occupy
+`0xcc2a8..0xe3aa0`; candidate entries occupy `0xd0d0c..0xe87c4`. There are
+12,031 versus 12,119 `R_ARM_RELATIVE` entries, explaining the 704-byte increase.
+The stock ELF/map is unavailable; its text/data boundaries were recovered from
+the unique 32-pointer CPSR-name table, matching 24-byte ELF hash, 16-byte timer
+object and consecutive relocation records. Candidate boundaries also match its ELF.
+
+A controlled source rebuild disabling only `CONFIG_LCD_SUPPORT_T050K589`
+removes **16,616 pre-DTB bytes**: a 15,264-byte JD9365 initialization table,
+52-byte panel descriptor, 4-byte panel-list pointer, 720 bytes of text,
+324 bytes of read-only data/alignment, 256 relocation bytes and a −4-byte
+alignment adjustment. Disabling `CONFIG_SUNXI_MEM_INFO` as well removes another
+**1,492 bytes**: 280 bytes of text, 260 bytes of read-only data/alignment, 4 bytes
+of alignment, an 800-byte `g_memory_info` table, a 28-byte command descriptor and
+120 relocation bytes. The stock data layout has no corresponding memory-info table.
+
+The two controlled changes remove 18,108 of the 19,748 extra pre-DTB bytes.
+**1,640 bytes remain**: +752 text, +204 read-only data/alignment, −4 pre-data
+alignment, +360 data and +328 relocations (41 entries). This residual is not
+explained away as relocation noise. The 360 data bytes are exactly six additional
+60-byte SPI-NAND chip descriptors: `DS35X2GBXXX`, `SCN00SA3W1AI8A`,
+`GD5F4GQ6UEY1G`, `FS35SQA001G`, `XT26G02CWSIG`, and `XT26G04CWSIG`.
+One existing descriptor (`XT26G01C`) also changes its `OperationOpt` from `0x7`
+to `0x1`, selecting dual-read instead of the original quad-read/program capability
+flags. The remaining instruction/source attribution is incomplete.
+The generic SDK source/config is not the original FlashForge source snapshot.
+
+The source revisions also differ observably: the stock MMC driver marker is
+`uboot2018:2021-09-07 19:43:00`; the held SDK's
+`drivers/mmc/mmc_def.h` embeds `uboot2018:2021-12-20 13:35:00`. Stock and candidate
+also have different USB, partition-update and SPI debug strings. These are real
+source/config differences, not merely timestamp or pointer-relocation noise.
+
+The DTB difference is completely enumerated: stock has one extra node and
+110 additional properties; its structure is 2,068 bytes larger and its string
+table 1,125 bytes larger. Other changes include phandle renumbering and three
+display-pin mux values. The recovered stock control DTS recompiles to all
+17,784 original DTB bytes exactly (SHA-256
+`488d06dfbab38e7e6d06ec9354e2fdb4d8ceadfa89b082641c1d2073a37c6731`).
+This solves that configuration artifact, not the remaining executable differences.
+
+The offset-wise ledger at `build/stock-uboot-diff/byte-differences.tsv.gz` records
+all 873,000 changed shared-offset bytes and all 195 appended bytes. Applying
+those entries to the stock payload was checked to reconstruct the candidate
+exactly. `layout-comparison.json` contains region boundaries, while
+`dtb-semantic.diff`, `dtb-comparison.json` and `string-diff.json` retain the
+complete configuration/string differences. These are local generated artifacts,
+not target firmware or a source-level patch.
+
 ## Kernel comparison and limits
 
 The closest cached source reconstruction is
