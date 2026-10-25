@@ -9,22 +9,22 @@
 +	fb_free_bootlogo_buffer();
 --- a/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.h
 +++ b/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.h
-@@ -311,0 +312 @@
-+extern s32 fb_free_bootlogo_buffer(void);
+@@ -312,0 +313 @@
++extern int fb_free_bootlogo_buffer(void);
 --- a/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
 +++ b/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
 @@ -1333,0 +1334 @@
-+static bool need_free_boot_fb;
++static unsigned char need_free_boot_fb;
 @@ -1528,0 +1530,109 @@
-+	need_free_boot_fb = true;
++	/*
++	memblock_free((unsigned long)src_phy_addr, src_stride * fb_height);
++	free_reserved_area(__va(src_phy_addr), __va(src_phy_addr + PAGE_ALIGN(src_stride * fb_height)), 0x00, "logo buffer");
++	*/
++	need_free_boot_fb = 1;
 +	return 0;
 +}
 +
-+/*
-+ * The bootloader buffer remains reserved until the replacement
-+ * framebuffer has been enabled.
-+ */
-+s32 fb_free_bootlogo_buffer(void)
++int fb_free_bootlogo_buffer(void)
 +{
 +	enum {
 +		BOOT_FB_ADDR = 0,
@@ -49,10 +49,10 @@
 +	int src_crop_t = 0;
 +	int src_crop_r = 0;
 +	int src_crop_b = 0;
-+
 +	int ret;
++	int i = 0;
 +
-+	if (!need_free_boot_fb) {
++	if (need_free_boot_fb == 0) {
 +		__wrn("not call Fb_copy_boot_fb before, will not free boot_fb\n");
 +		return -1;
 +	}

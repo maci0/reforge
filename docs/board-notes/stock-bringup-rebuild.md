@@ -216,14 +216,17 @@ boot or flashing was performed.
 
 ## Verified kernel source reconstruction
 
-A clean source build in `build/stock-kernel-reproduced/` produced a 12,970,156-byte
+A clean source build in `build/stock-kernel-original-inputs/` produced a 12,970,156-byte
 Image. Its complete executable region and every byte outside validated symbol and
 build-id metadata match the original raw Image, SHA-256
 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`.
-**The complete rebuilt Image is not byte-identical:** 13,029 differing bytes are
-confined to compressed kallsyms metadata and the 20-byte GNU build-id.
+**The complete rebuilt Image is not byte-identical:** 39 differing bytes remain:
+19 bytes in ten Goodix compiler-private numeric names and the 20-byte GNU
+build-id. The earlier reconstruction differed by 13,029 bytes; recovering the
+original framebuffer source also restored the original kallsyms compression.
+No metadata overrides or post-link corrections are used.
 
-Both Images decode to the same 72,471 symbol addresses and types. Seventeen
+Both Images decode to the same 72,471 symbol addresses and types. Ten
 compiler-private numeric UID names differ; all other names agree. The
 [read-only checker](../../tools/build/compare-stock-kernel.py) validates the
 compressed tables, markers, token indexes and zero alignment, checks all decoded
@@ -237,6 +240,31 @@ The foundation is the pinned
 with selected original CAN/I2C/PWM source from the held BSP pin and the
 [stock source patches](../../vendor/kernels/stock-patches). IDA Pro ARM32 analysis,
 original kallsyms and object comparisons established the remaining changes:
+
+The framebuffer implementation and its display header were subsequently recovered
+unchanged from `yangchaohong/AbFixedWings-kernel` at
+`d2f4699308d190ad9abc96a879368be296e8dc63`: `dev_fb.c` SHA-256
+`3ab64e3faf0ba3c599f300735aa7bcb9ab77477801cee4c7c4e3e409f6f77d34`
+and `dev_disp.h` SHA-256
+`67d71e7b9b6feed7227245eb8be6a74d1cb15bd684b76141b0a03de440908b43`.
+The original outer `int i = 0` declaration, shadowed by the parser's inner `i`,
+explains seven private-symbol numbering differences in the earlier reconstruction.
+Compiling these original files restores those names naturally; no symbol-name or
+build-ID overrides are used.
+
+The remaining ten names belong to `gt9xx.o` and differ by a uniform declaration
+UID offset of nine. The checked public Goodix files and their direct headers
+do not explain that offset; changing declarations just to force these values
+would not establish original-input recovery. The original kernel's debug ELF
+was not found in the held archives. The SDK's available `vmlinux` is a different
+June 2025 GCC 6.4.1 build, not the August 2023 GCC 5.3.1 target.
+
+The kernel enables debug information, and GNU build IDs also depend on that
+information before it is stripped from the raw Image. A check with the pinned
+compiler/linker confirmed that changing only a C parameter name can change the
+build ID while leaving every instruction unchanged. Exact source inputs remain
+necessary for natural full-file identity; matching executable behavior does not
+recover discarded source names or source-version hash inputs.
 
 | Area | Recovered original behavior |
 |---|---|
@@ -263,6 +291,18 @@ parameters, license and namespaces. The complete ELF still differs by 688 bytes:
 bytes. The new source-version hash is genuinely calculated from the reconstructed
 source, not replaced with the historical value. Embedded controller firmware is
 upstream C-array data; its original firmware source has not been reconstructed.
+
+The flat module's differing local names have a common UID offset of six across
+54 translation units, with one additional offset in `osdep_service.c`. The
+structured stock module already has the reconstructed UID numbers, while both
+stock variants report the same historical source-version hash. This points to
+different declaration/preprocessor build inputs rather than differing driver
+instructions. The source-version calculation also hashes inactive source tokens
+and `#line` directives; reproducing all code cannot uniquely recover those
+discarded inputs. Checks of the untouched pinned source, the recovered source
+without its diagnostic line directives, and the pinned older NAT import did not
+reproduce the historical checksum. The original module source/build inputs
+remain necessary for natural byte identity.
 
 Source builds use the exact captured kernel configuration and the historical
 Linaro 5.3.1 compiler. A private bubblewrap namespace supplies both original build
