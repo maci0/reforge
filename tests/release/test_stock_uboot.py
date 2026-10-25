@@ -15,6 +15,27 @@ SPEC.loader.exec_module(IMAGE)
 
 
 class StockUbootTest(unittest.TestCase):
+    def test_unpinned_source_is_rejected_before_compiling(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            prefix = str(root / 'arm-test-')
+            for name in ('gcc', 'ld.bfd', 'objcopy'):
+                tool = Path(prefix + name)
+                tool.write_text('#!/bin/sh\nexit 99\n')
+                tool.chmod(0o755)
+            source = root / 'source.zip'
+            source.write_bytes(b'wrong or altered source')
+            reference = root / 'stock.bin'
+            reference.write_bytes(b'original reference')
+            output = root / 'output'
+            result = subprocess.run(
+                ['bash', str(SCRIPT), str(source), prefix, str(reference), str(output)],
+                capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('source archive SHA-256 mismatch', result.stderr)
+            self.assertEqual(reference.read_bytes(), b'original reference')
+            self.assertFalse((output / 'u-boot.bin').exists())
+
     def test_existing_output_cannot_overwrite_reference(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

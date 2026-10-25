@@ -15,8 +15,14 @@ lengths, checksums and hashes are in [stock-boot-artifacts.json](stock-boot-arti
 The validated redundant environments select
 `run setargs_mmc boot_dsp0 boot_uImage`: U-Boot loads `uImage` and `sunxi.dtb`
 from FAT partition p1. The Android `boot.img` on p4 is not the configured path
-in these dumps. A UART trace has not established the primary/fallback U-Boot
-slot selected by the physical machine at runtime.
+in these dumps. The saved [running-unit probe](running-unit-probe.txt) records
+`uboot_message=2018.05-g2a24076-dirty(04/18/2025-11:25:23)`. The SDK appends
+this argument from its compiled version/date/time in
+`board/sunxi/sunxi_bootargs.c`; the captured environment has no override.
+This identifies the 2025 build at that captured boot, consistent with the
+golden backup payload. A UART trace has not independently established slot
+selection. The 2023 primary remains the explicit byte-comparison target below;
+it must not be described as the build observed running in that probe.
 
 There are three distinct DTBs: the appended U-Boot control FDT (17,784 bytes),
 the TOC external FDT (55,093 bytes within a 59,392-byte allocation), and the FAT
@@ -34,7 +40,7 @@ must not be described as an unchanged factory boot chain throughout.
 | Stage | Original identity | Current result / missing input |
 |---|---|---|
 | boot0 / SPL | Two identical 48 KiB eGON copies at `0x2000` and `0x20000`; commit field `5224261`, DRAM driver `V0.32`, DDR3 at 792 MHz. | Held SDK's `spl-pub/nboot/Makefile` links `board/sun8iw20p1/libsun8iw20p1_sdcard.a`, an ELF relocatable without the DRAM implementation source. No source-only replacement or byte-identical rebuild is claimed. |
-| Primary U-Boot | 2018.05, August 25, 2023 17:05:54 +0800; Linaro GCC 7.2.1 20171011, binutils 2.28.2.20170706. Stock source revision is unknown. | Candidate built from the held SDK's U-Boot C/assembly sources with recovered/recompiled stock control DTS and observed stock image packing. Packed size is now 966,656 bytes, equal to stock, but byte comparison still fails. Complete original FlashForge config/source revision remains unproven. |
+| Primary U-Boot | 2018.05, August 25, 2023 17:05:54 +0800; Linaro GCC 7.2.1 20171011, binutils 2.28.2.20170706. Historical source revision is unknown. | **Byte-identical source reconstruction verified:** 966,656 bytes, SHA-256 `31aaa8a085b4985dafdad87d97637fcc1d35a300101295edfaf51c826ff53019`. Uses pinned older source, recovered source changes and source-compiled control DTS. |
 | OP-TEE secure world | Build `553fe17e2-dirty`, Linaro 5.3.1, build #6 dated February 18, 2022. | Held `lichee.zip` contains U-Boot/Linux client shims, not the secure-world OP-TEE OS source tree. No prebuilt payload is imported into source-build outputs. |
 | Kernel | p1 uImage decompresses to raw Image SHA-256 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`, 12,970,156 bytes. | Cached public-source reconstruction has matching banner and embedded config, but a different complete Image. See comparison below. |
 | Rootfs / services | ReForge Buildroot source packages. | Existing ReForge build path; no full image boot validation was performed in this audit. |
@@ -51,15 +57,20 @@ not a claim that the missing original source cannot exist elsewhere.
 Use local source, a new output directory, and an explicitly supplied compiler
 prefix; the script downloads
 nothing, extracts no bundled binary toolchain, imports no prebuilt target code,
-and never flashes. It disables the measured extra T050K589 panel and memory-info
-features, recompiles the recovered stock control DTS, then regenerates the length
+and never flashes. The source ZIP is pinned to
+[`CamelShoko/longan-t113-u-boot-2018` at `fc662c13f3fde9d8bda1a2ad3fc53ff827f92576`](https://github.com/CamelShoko/longan-t113-u-boot-2018/tree/fc662c13f3fde9d8bda1a2ad3fc53ff827f92576),
+SHA-256 `d4233e9c0f3695b5adf2ec8bb385b9f0f8e4b2e87748704a22367511ecd8b0ec`.
+This older source snapshot matches both stock MMC/NAND revision markers; the
+newer held SDK does not. Recovered stock changes are applied as a source patch.
+The builder recompiles the recovered stock control DTS, then regenerates the length
 and additive-checksum fields and aligns with `0xff` fill to the observed 16-KiB
 boundary. It rejects any payload that cannot fit that natural stock span, without
 truncating code. Recover the stock payload as a **reference**, then build:
 
 ```sh
 python3 tools/recovery/extract-stock-boot.py tools/recovery/golden.img.gz build/stock-boot-reference
-tools/build/build-stock-uboot.sh /path/to/lichee.zip \
+curl -fL https://codeload.github.com/CamelShoko/longan-t113-u-boot-2018/zip/fc662c13f3fde9d8bda1a2ad3fc53ff827f92576 -o /tmp/stock-uboot-source.zip
+tools/build/build-stock-uboot.sh /tmp/stock-uboot-source.zip \
     /path/to/linaro-7.2/bin/arm-linux-gnueabi- \
     build/stock-boot-reference/u-boot.bin build/stock-uboot
 ```
@@ -73,6 +84,39 @@ the original timestamp. Those inputs do not establish that the generic
 
 Outputs include source-built ELF/BIN/DTB files, build logs, `inputs.json`, and
 `comparison.json`. **A successful compilation with a byte mismatch exits nonzero.**
+
+## Verified byte-identical primary U-Boot
+
+A clean invocation of the current builder produced
+`build/stock-uboot-identical/u-boot.bin`, **966,656 bytes**, with **zero differing
+bytes** and SHA-256
+`31aaa8a085b4985dafdad87d97637fcc1d35a300101295edfaf51c826ff53019`.
+`cmp` against the extracted 2023 primary passes. An independently built and
+packed development candidate has the same hash.
+
+The source-built core is 932,512 bytes, followed by the 17,784-byte
+source-compiled control DTB and 16,360 bytes of normal `0xff` alignment fill.
+Only the image checksum and two packed-length fields change during packing.
+Every executable byte comes from the source build; none is copied from the
+reference. The challenge initializer and board configuration are recovered
+non-executable source data.
+
+The [source patch](../../tools/build/patches/stock-uboot-2023.patch) reconstructs
+the observed boot logging, disabled USB-burn entry point, UART/I2C header pins,
+HDMI PHY settings, MMC recovery argument and LCD wait before environment loading.
+IDA Pro 9.4 decompilation and ARM disassembly established these changes.
+Keeping the original USB-burn body after its early return preserves GCC's
+`__func__` declaration IDs and the original linker string ordering.
+
+`env_load` uses an explicit GCC loop-optimization setting and register variables
+to reproduce the original instructions. These are reconstruction constraints;
+the original author's source spelling and compiler flags have not been recovered.
+The verified claim is complete artifact equality, not historical source identity.
+The matching Linaro compiler is an existing binary toolchain; its source bootstrap
+has not been established. No device flashing or new hardware boot was performed.
+
+## Earlier generic-SDK comparisons
+
 Two independent clean source extractions/builds of the initial generic SDK
 profile produced candidate SHA-256
 `d6290d48f2c935b34d12ceebf2e28e5b7aed81fd5fcf71a874b4208ba082f3a0`.

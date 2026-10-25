@@ -1,0 +1,133 @@
+--- a/arch/arm/cpu/armv7/spare_head.c
++++ b/arch/arm/cpu/armv7/spare_head.c
+@@ -47 +47 @@
+-        0,			//uart port
++        3,			//uart port
+@@ -49 +49 @@
+-            {0}, {0}
++            {7, 8, 5, 1, -1, -1, {0}}, {7, 9, 5, 1, -1, -1, {0}}
+@@ -51 +51 @@
+-        0,			//twi port
++        2,			//twi port
+@@ -53 +53 @@
+-        	{0}, {0}
++        	{3, 0, 3, 1, -1, -1, {0}}, {3, 1, 3, 1, -1, -1, {0}}
+@@ -60 +60 @@
+-	{ 0 }, 		//sdcard info
++	{ -1, -1, -1, -1, -1, -1, -1, -1 }, 		//sdcard info
+@@ -69,0 +70 @@
++		.debug_mode = 8,
+--- a/arch/arm/lib/bootm.c
++++ b/arch/arm/lib/bootm.c
+@@ -231 +231 @@
+-		debug("using: FDT\n");
++		printf("using:FDT\n");
+@@ -361,0 +362 @@
++		printf("image ft_addr:%x len:%ld\n", (unsigned int)images->ft_addr, images->ft_len);
+@@ -365 +366 @@
+-	debug("## Linux machid: %08lx, FDT addr: %08lx\n", machid, r2);
++	printf("## Linux machid: %08lx, FDT addr: %08lx\n", machid, r2);
+@@ -481,0 +483 @@
++	printf("do bootm1 linux %d, 0x%x\n", argc, (unsigned int)images->ft_addr);
+@@ -495,0 +498 @@
++	printf("do bootm linux %d\n", argc);
+--- a/cmd/bootm.c
++++ b/cmd/bootm.c
+@@ -68,0 +69 @@
++	printf("bootm %s\n", argv[0]);
+@@ -201,0 +203,5 @@
++	int i = 0;
++	printf("do bootm just\n");
++	for (; i < argc; i++)
++		printf("%s", argv[i]);
++	printf("\n");
+@@ -280,0 +287 @@
++		printf("endp:%s,%c\n", argv[0], *endp);
+--- a/cmd/sunxi_burn.c
++++ b/cmd/sunxi_burn.c
+@@ -25,0 +26 @@
++	return 0;
+--- a/common/bootm.c
++++ b/common/bootm.c
+@@ -316,0 +317 @@
++	printf("find image bootm_find_images\n");
+@@ -362,0 +364 @@
++	printf("os type:%d\n", images.os.type);
+@@ -723,0 +726 @@
++	printf("do bootm states\n");
+--- a/common/fdt_support.c
++++ b/common/fdt_support.c
+@@ -384,0 +385 @@
++	printf("fdt_chosen:%s\n", str);
+--- a/drivers/video/sunxi/disp2/hdmi2/hdmi_core/api/aw_phy.c
++++ b/drivers/video/sunxi/disp2/hdmi2/hdmi_core/api/aw_phy.c
+@@ -286,4 +286,4 @@
+-	{297000, PIXEL_REPETITION_OFF, COLOR_DEPTH_8,  0x0, 0x14A50, 0x333FFFF, 0x10151515},
+-	{297000, PIXEL_REPETITION_OFF, COLOR_DEPTH_10, 0x0, 0x14A50, 0x333FFFF, 0x10151515},
+-	{297000, PIXEL_REPETITION_OFF, COLOR_DEPTH_12, 0x0, 0x14A50, 0x333FFFF, 0x10151515},
+-	{297000, PIXEL_REPETITION_OFF, COLOR_DEPTH_16, 0x0, 0x14A50, 0x333FFFF, 0x10151515},
++	{297000, PIXEL_REPETITION_OFF, COLOR_DEPTH_8,  0x0, 0x1084f, 0x444, 0x1f1f1f1f},
++	{297000, PIXEL_REPETITION_OFF, COLOR_DEPTH_10, 0x0, 0x1084f, 0x444, 0x1f1f1f1f},
++	{297000, PIXEL_REPETITION_OFF, COLOR_DEPTH_12, 0x0, 0x1084f, 0x444, 0x1f1f1f1f},
++	{297000, PIXEL_REPETITION_OFF, COLOR_DEPTH_16, 0x0, 0x1084f, 0x444, 0x1f1f1f1f},
+@@ -759,2 +759,2 @@
+-	phy_base->phy_ctl2.dwval |= config->phy_ctl2;
+-	phy_base->phy_ctl3.dwval |= config->phy_ctl3;
++	phy_base->phy_ctl2.dwval = ((phy_base->phy_ctl2.dwval & 0xFF000000) | config->phy_ctl2);
++	phy_base->phy_ctl3.dwval = ((phy_base->phy_ctl3.dwval & 0xFFFF0000) | config->phy_ctl3);
+@@ -762,2 +762,2 @@
+-	phy_base->pll_ctl0.dwval |= config->pll_ctl0;
+-	phy_base->pll_ctl1.dwval |= config->pll_ctl1;
++	//phy_base->pll_ctl0.dwval |= config->pll_ctl0;
++	//phy_base->pll_ctl1.dwval |= config->pll_ctl1;
+--- a/env/env.c
++++ b/env/env.c
+@@ -8,0 +9,2 @@
++#include <private_uboot.h>
++extern s8 lcd_op_finished[];
+@@ -186,0 +189,4 @@
++/* Match the recovered ARM register allocation and loop code generation.
++ * These compiler constraints reconstruct the stock bytes; the original
++ * source spelling and build flags are not known. */
++__attribute__((optimize("no-move-loop-invariants")))
+@@ -189 +195 @@
+-	struct env_driver *drv;
++	register struct env_driver *drv asm("r4");
+@@ -190,0 +197,3 @@
++	int ret;
++	int workmode = uboot_spare_head.boot_data.work_mode;
++	register s8 *finished asm("r7") = lcd_op_finished;
+@@ -193 +201,0 @@
+-		int ret;
+@@ -200,0 +209,3 @@
++		if (workmode == 0)
++			while (!*finished)
++				udelay(1000);
+@@ -203 +214 @@
+-		if (ret)
++		if (ret) {
+@@ -205,5 +216,4 @@
+-		else
+-			printf("OK\n");
+-
+-		if (!ret)
+-			return 0;
++			continue;
++		}
++		printf("OK\n");
++		return 0;
+--- a/drivers/video/sunxi/disp2/disp/dev_disp.c
++++ b/drivers/video/sunxi/disp2/disp/dev_disp.c
+@@ -30 +30 @@
+-static s8   lcd_op_finished[2] = {0};
++s8   lcd_op_finished[2] = {0};
+--- a/drivers/sunxi_flash/mmc/sdmmc.c
++++ b/drivers/sunxi_flash/mmc/sdmmc.c
+@@ -190 +190 @@
+-	return sdmmc_init_for_sprite(0, 2);
++	return sdmmc_init_for_sprite(0, 0);
+--- a/scripts/Makefile
++++ b/scripts/Makefile
+@@ -22 +22 @@
+-#subdir-$(CONFIG_DTC)	+= dtc
++subdir-$(CONFIG_DTC)	+= dtc

@@ -2,15 +2,15 @@
 # Build a stock-comparison candidate from local SDK source; never flash it.
 set -euo pipefail
 if (( $# < 3 || $# > 4 )); then
-    echo "usage: $0 LICHEE_ZIP CROSS_PREFIX STOCK_UBOOT_BIN [OUTPUT_DIR]" >&2
+    echo "usage: $0 STOCK_SOURCE_ZIP CROSS_PREFIX STOCK_UBOOT_BIN [OUTPUT_DIR]" >&2
     exit 2
 fi
 repo=$(cd "$(dirname "$0")/../.." && pwd)
-sdk=$(realpath "$1")
+source_zip=$(realpath "$1")
 cross=$2
 reference=$(realpath "$3")
 out=$(realpath -m "${4:-$repo/build/stock-uboot}")
-[[ -f "$sdk" && -f "$reference" ]] || { echo 'SDK or stock reference missing' >&2; exit 1; }
+[[ -f "$source_zip" && -f "$reference" ]] || { echo 'source archive or stock reference missing' >&2; exit 1; }
 for tool in gcc ld.bfd objcopy; do
     command -v "${cross}${tool}" >/dev/null || { echo "missing compiler tool: ${cross}${tool}" >&2; exit 1; }
 done
@@ -21,7 +21,7 @@ mkdir -p "$(dirname "$out")"
 mkdir "$out" || { echo 'output directory must be new; choose another path' >&2; exit 1; }
 work=$(mktemp -d /tmp/reforge-stock-uboot.XXXXXX)
 trap 'rm -rf "$work"' EXIT
-python3 - "$sdk" "$reference" "$work" "$out" <<'PY'
+python3 - "$source_zip" "$reference" "$work" "$out" "$repo/tools/build/patches/stock-uboot-2023.patch" <<'PY'
 import hashlib
 import calendar
 import json
@@ -31,11 +31,15 @@ import stat
 import struct
 import sys
 from zipfile import ZipFile
-sdk, reference, work, out = map(Path, sys.argv[1:])
-prefix = 'lichee/brandy-2.0/u-boot-2018/'
+archive_path, reference, work, out, source_patch = map(Path, sys.argv[1:])
+prefix = 'longan-t113-u-boot-2018-fc662c13f3fde9d8bda1a2ad3fc53ff827f92576/'
+with archive_path.open('rb') as stream:
+    archive_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+if archive_digest != 'd4233e9c0f3695b5adf2ec8bb385b9f0f8e4b2e87748704a22367511ecd8b0ec':
+    raise SystemExit('stock source archive SHA-256 mismatch; use the pinned source ZIP')
 source = work / 'u-boot-2018'
 source.mkdir()
-with ZipFile(sdk) as archive:
+with ZipFile(archive_path) as archive:
     for entry in archive.infolist():
         if not entry.filename.startswith(prefix) or entry.is_dir():
             continue
@@ -63,8 +67,6 @@ for path in sorted(source.rglob('*')):
         source_digest.update(path.relative_to(source).as_posix().encode() + b'\0')
         source_digest.update(path.readlink().as_posix().encode() if path.is_symlink() else path.read_bytes())
         source_digest.update(b'\0')
-with sdk.open('rb') as stream:
-    sdk_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
 # Suppress the vendor Makefile's unconditional binary toolchain extraction.
 for name in ('gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabi',
              'riscv64-linux-x86_64-20200528'):
@@ -102,12 +104,13 @@ metadata += " '#define U_BOOT_BUILD_DATE 0x" + build_date + "')\nendef\n"
 (out / 'build-metadata.mk').write_text(metadata)
 (work / 'build-metadata.mk').write_text(metadata)
 manifest = {'status': 'candidate-unverified', 'defconfig': 'sun8iw20p1_auto_defconfig',
-            'sdk_sha256': sdk_digest,
+            'source_archive_sha256': archive_digest,
+            'source_commit': 'fc662c13f3fde9d8bda1a2ad3fc53ff827f92576',
+            'source_patch_sha256': hashlib.sha256(source_patch.read_bytes()).hexdigest(),
             'source_tree_sha256_before_generated_inputs': source_digest.hexdigest(),
             'reference_sha256': hashlib.sha256(stock).hexdigest(),
             'challenge_offset': hex(offset), 'challenge_sha256': hashlib.sha256(challenge).hexdigest(),
             'timestamp': f'{date} {time} {zone}',
-            'disabled_configs': ['CONFIG_LCD_SUPPORT_T050K589', 'CONFIG_SUNXI_MEM_INFO'],
             'control_dtb_source': 'stock-control.dts (recovered configuration, recompiled from source)',
             'packing': '16-KiB alignment, 0xff fill, regenerated lengths and additive checksum',
             'limitations': ['Original complete FlashForge defconfig and source revision remain unproven.',
@@ -116,6 +119,7 @@ manifest = {'status': 'candidate-unverified', 'defconfig': 'sun8iw20p1_auto_defc
 (out / 'inputs.json').write_text(json.dumps(manifest, indent=2) + '\n')
 PY
 src="$work/u-boot-2018"
+patch -d "$src" -p1 < "$repo/tools/build/patches/stock-uboot-2023.patch" > "$out/patch.log"
 python3 "$repo/tools/build/stock-uboot-image.py" extract-dtb "$reference" "$out/stock-control.reference.dtb"
 common=(ARCH=arm "PWD=$src" "CROSS_COMPILE=$cross" "LICHEE_CHIP_CONFIG_DIR=$work/install" "LICHEE_PLAT_OUT=$work/install")
 mkdir -p "$work/install/bin"
@@ -127,23 +131,6 @@ mkdir -p "$work/install/bin"
     printf 'build inputs: %s\n' "$out/inputs.json"
 } > "$out/toolchain.txt"
 make -C "$src" "${common[@]}" sun8iw20p1_auto_defconfig > "$out/configure.log" 2>&1
-# These generic SDK features are absent from the measured stock core.
-python3 - "$src/.config" <<'PYCONFIG'
-from pathlib import Path
-import sys
-config = Path(sys.argv[1])
-text = config.read_text()
-for name in ('CONFIG_LCD_SUPPORT_T050K589', 'CONFIG_SUNXI_MEM_INFO'):
-    setting = name + '=y'
-    if text.count(setting) != 1:
-        raise SystemExit(f'expected one enabled SDK setting: {name}')
-    text = text.replace(setting, '# ' + name + ' is not set')
-config.write_text(text)
-PYCONFIG
-make -C "$src" "${common[@]}" olddefconfig >> "$out/configure.log" 2>&1
-for setting in CONFIG_LCD_SUPPORT_T050K589 CONFIG_SUNXI_MEM_INFO; do
-    grep -qx "# $setting is not set" "$src/.config"
-done
 # Avoid modern host version.h collisions and the old dtc's -fno-common failure.
 printf '#define PLAIN_VERSION "2018.05"\n' > "$work/host-version.h"
 hostflags="-O2 -fcommon -include $work/host-version.h"

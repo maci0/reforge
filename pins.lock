@@ -12,7 +12,8 @@ gcc-crosstool    tarball    9.5.0    81669db4e5adc1ff1c35e7d939ebcb6a5793c9b3920
 # Exact toolchain stock FlashForge used to build the AD5M Pro kernel.
 # Not required for the ReForge shipping image (which uses GCC 9.5.0 above).
 gcc-linaro-5.3.1  tarball   5.3.1    77cccd433d680251c8b9bfa01890cb6921548513a39fac35c1f4b9f0a47e5aa4  https://releases.linaro.org/components/toolchain/binaries/5.3-2016.05/arm-linux-gnueabi/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi.tar.xz
-# u-boot added in later plans
+# Original 2023 U-Boot reconstruction base; local builder verifies this source ZIP.
+stock-uboot  zip  fc662c13f3fde9d8bda1a2ad3fc53ff827f92576  d4233e9c0f3695b5adf2ec8bb385b9f0f8e4b2e87748704a22367511ecd8b0ec  https://codeload.github.com/CamelShoko/longan-t113-u-boot-2018/zip/fc662c13f3fde9d8bda1a2ad3fc53ff827f92576
 mainsail   tag     v2.19.0  c4d9d96f89851c6ae0709c2f20725447f3fe8c57cf193869b0083441bd93378a
 # klipper: pinned to upstream v0.11.0 (release tag, 2022-11-29) to match the
 # AD5M / AD5M Pro stock MCU firmware (Klipper v0.11 build, 2023-03-17). Switched
