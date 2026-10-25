@@ -216,7 +216,7 @@ boot or flashing was performed.
 
 ## Verified kernel source reconstruction
 
-A clean source build in `build/stock-kernel-module-inputs/` produced a 12,970,156-byte
+A clean source build in `build/stock-kernel-native-vendor-inputs/` produced a 12,970,156-byte
 Image. Its complete executable region and every byte outside validated symbol and
 build-id metadata match the original raw Image, SHA-256
 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`.
@@ -299,10 +299,20 @@ ELF ABI flags and operational module metadata, including vermagic, aliases,
 parameters, license and namespaces. All raw symbol records, symbol names,
 relocation records and debug sections now match. The complete ELF still differs
 by **42 bytes**: 22 source-version bytes and 20 GNU build-id bytes. Its computed
-source-version is `8BB79DF73E35FCDAA96AE95`, not the historical
+source-version is `1F5B20A6EE4FCC6EBB7290E`, not the historical
 `91923B9ABAF58831D5783DF`; that value is calculated from source, never replaced.
 Embedded controller firmware is upstream C-array data; its original firmware
 source has not been reconstructed.
+
+The driver now uses fourteen older vendor source bodies with native stock
+warning locations, eliminating every Wi-Fi `#line` directive. Ten files are
+unchanged from the pinned kernel's RTL8821CS v5.12 vendor source, two are unchanged
+from Khadas's pinned March 2021 USB release, and two restore older vendor API
+bodies. Exact file hashes and immutable source references are recorded in
+[the input manifest](../../vendor/kernels/stock-patches/rtl8821cu-sources.json).
+This recovers source fidelity without claiming the historical checksum matches.
+Untouched files retain their original bytes, including three CRLF source files;
+normalizing them changes the checksum despite identical compiler output.
 
 The module's earlier missing six compiler IDs are reproduced by a real Kconfig
 profile enabling `CONFIG_TCP_MD5SIG`. Moving the existing namespace import in

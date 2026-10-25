@@ -27,29 +27,25 @@
 +CFLAGS_core/rtw_debug.o += -Wno-builtin-macro-redefined -D__DATE__='"Jul 24 2023"' -D__TIME__='"11:32:28"'
 --- a/core/rtw_br_ext.c
 +++ b/core/rtw_br_ext.c
-@@ -19,0 +20,4 @@
-+	#include <linux/version.h>
-+	#if (LINUX_VERSION_CODE <= KERNEL_VERSION(5, 14, 0))
+@@ -19,0 +20 @@
 +	#include <net/ipx.h>
-+	#endif
-@@ -83 +87 @@
+@@ -83 +84 @@
 -static unsigned char *__nat25_find_pppoe_tag(struct pppoe_hdr *ph, unsigned short type)
 +static __inline__ unsigned char *__nat25_find_pppoe_tag(struct pppoe_hdr *ph, unsigned short type)
-@@ -101 +105 @@
+@@ -101 +102 @@
 -static int __nat25_add_pppoe_tag(struct sk_buff *skb, struct pppoe_tag *tag)
 +static __inline__ int __nat25_add_pppoe_tag(struct sk_buff *skb, struct pppoe_tag *tag)
-@@ -141 +145 @@
+@@ -141 +142 @@
 -static unsigned long __nat25_timeout(_adapter *priv)
 +static __inline__ unsigned long __nat25_timeout(_adapter *priv)
-@@ -151 +155 @@
+@@ -151 +152 @@
 -static int  __nat25_has_expired(_adapter *priv,
 +static __inline__ int  __nat25_has_expired(_adapter *priv,
-@@ -161 +165 @@
+@@ -161 +162 @@
 -static void __nat25_generate_ipv4_network_addr(unsigned char *networkAddr,
 +static __inline__ void __nat25_generate_ipv4_network_addr(unsigned char *networkAddr,
-@@ -171 +175,36 @@
+@@ -171 +172,34 @@
 -static void __nat25_generate_pppoe_network_addr(unsigned char *networkAddr,
-+#if (LINUX_VERSION_CODE <= KERNEL_VERSION(5, 14, 0))
 +static __inline__ void __nat25_generate_ipx_network_addr_with_node(unsigned char *networkAddr,
 +		unsigned int *ipxNetAddr, unsigned char *ipxNodeAddr)
 +{
@@ -81,22 +77,19 @@
 +	memcpy(networkAddr + 1, (unsigned char *)network, 2);
 +	networkAddr[3] = *node;
 +}
-+#endif
 +
 +
 +static __inline__ void __nat25_generate_pppoe_network_addr(unsigned char *networkAddr,
-@@ -291 +330 @@
+@@ -291 +325 @@
 -static int __nat25_network_hash(unsigned char *networkAddr)
 +static __inline__ int __nat25_network_hash(unsigned char *networkAddr)
-@@ -343 +382 @@
+@@ -343 +377 @@
 -static void __network_hash_link(_adapter *priv,
 +static __inline__ void __network_hash_link(_adapter *priv,
-@@ -360 +399 @@
+@@ -360 +394 @@
 -static void __network_hash_unlink(struct nat25_network_db_entry *ent)
 +static __inline__ void __network_hash_unlink(struct nat25_network_db_entry *ent)
-@@ -857,0 +897,223 @@
-+#if (LINUX_VERSION_CODE <= KERNEL_VERSION(5, 14, 0))
-+	/*---------------------------------------------------*/
+@@ -858,0 +893,221 @@
 +	/*         Handle IPX and Apple Talk frame          */
 +	/*---------------------------------------------------*/
 +	else if ((protocol == __constant_htons(ETH_P_IPX)) ||
@@ -316,32 +309,65 @@
 +
 +		return -1;
 +	}
-+#endif
 +
++	/*---------------------------------------------------*/
+--- a/core/rtw_btcoex.c
++++ b/core/rtw_btcoex.c
+@@ -1487 +1486,0 @@
+-	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -1489 +1487,0 @@
+-	#endif
+@@ -1519 +1516,0 @@
+-	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -1522 +1518,0 @@
+-	#endif
+@@ -1529 +1524,0 @@
+-	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -1531 +1525,0 @@
+-	#endif
 --- a/core/rtw_mlme_ext.c
 +++ b/core/rtw_mlme_ext.c
-@@ -12216,0 +12217 @@
-+#line 12213
+@@ -12211,4 +12210,0 @@
+-#ifdef CONFIG_WIFI_MONITOR
+-	else if (MLME_IS_MONITOR(padapter))
+-		self_action = MLME_ACTION_NONE;
+-#endif
 --- a/core/rtw_pwrctrl.c
 +++ b/core/rtw_pwrctrl.c
-@@ -669 +668,0 @@
+@@ -234,3 +233,0 @@
 -#ifdef CONFIG_WIFI_MONITOR
-@@ -671 +669,0 @@
+-				|| MLME_IS_MONITOR(iface)
 -#endif
+@@ -669 +665,0 @@
+-#ifdef CONFIG_WIFI_MONITOR
+@@ -671 +666,0 @@
+-#endif
+--- a/core/rtw_wlan_util.c
++++ b/core/rtw_wlan_util.c
+@@ -5204 +5203,0 @@
+-	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -5206 +5204,0 @@
+-	#endif
+@@ -5243 +5240,0 @@
+-	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -5246 +5242,0 @@
+-	#endif
+@@ -5256 +5251,0 @@
+-	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -5258 +5252,0 @@
+-	#endif
 --- a/core/rtw_xmit.c
 +++ b/core/rtw_xmit.c
 @@ -4859,0 +4860 @@
 +	struct ieee80211_radiotap_header rtap_hdr;
-@@ -4868,55 +4869,30 @@
+@@ -4868,4 +4869,2 @@
 -	int len = skb->len, rtap_len, rtap_remain, alloc_tries, ret;
 -	struct ieee80211_radiotap_header *rtap_hdr; // net/ieee80211_radiotap.h
 -	struct ieee80211_radiotap_iterator iterator; // net/cfg80211.h
 -	u8 rtap_buf[256];
--
--
--	rtw_mstat_update(MSTAT_TYPE_SKB, MSTAT_ALLOC_SUCCESS, skb->truesize);
--
--#ifndef CONFIG_CUSTOMER_ALIBABA_GENERAL
++	u8 dummybuf[32];
++	int len = skb->len, rtap_len;
+@@ -4877,46 +4876,24 @@
 -	if (ndev->type == ARPHRD_IEEE80211_RADIOTAP) {
 -		if (unlikely(skb->len < sizeof(struct ieee80211_radiotap_header)))
 -			goto fail;
@@ -388,12 +414,6 @@
 -		rtw_udelay_os(100);
 -	}
 -
-+	u8 dummybuf[32];
-+	int len = skb->len, rtap_len;
-+
-+	if (skb)
-+		rtw_mstat_update(MSTAT_TYPE_SKB, MSTAT_ALLOC_SUCCESS, skb->truesize);
-+
 +	if (unlikely(skb->len < sizeof(struct ieee80211_radiotap_header)))
 +		goto fail;
 +
@@ -412,13 +432,13 @@
 +	}
 +	_rtw_pktfile_read(&pktfile, dummybuf, rtap_len-sizeof(struct ieee80211_radiotap_header));
 +	len = len - rtap_len;
-+
++#endif
 +	pmgntframe = alloc_mgtxmitframe(pxmitpriv);
 +	if (pmgntframe == NULL) {
 +		rtw_udelay_os(500);
 +		goto fail;
 +	}
-@@ -4932,6 +4908 @@
+@@ -4932,6 +4909 @@
 -
 -	if (unlikely(len < sizeof(struct rtw_ieee80211_hdr_3addr)))
 -		frame_ctl = 0;
@@ -426,11 +446,11 @@
 -		frame_ctl = le16_to_cpu(pwlanhdr->frame_ctl);
 -
 +	frame_ctl = le16_to_cpu(pwlanhdr->frame_ctl);
-@@ -4943 +4914,2 @@
+@@ -4943 +4915,2 @@
 -		pattrib->rate = MGN_1M; // Override a more practical default rate
 +		if (is_broadcast_mac_addr(pwlanhdr->addr3) || is_broadcast_mac_addr(pwlanhdr->addr1))
 +			pattrib->rate = MGN_24M;
-@@ -4958,169 +4929,0 @@
+@@ -4958,169 +4930,0 @@
 -
 -#ifndef CONFIG_CUSTOMER_ALIBABA_GENERAL
 -
@@ -600,57 +620,24 @@
 -
 -#endif // CONFIG_CUSTOMER_ALIBABA_GENERAL
 -
-@@ -5128,2 +4930,0 @@
+@@ -5128,2 +4931,0 @@
 -	pxmitpriv->tx_pkts++;
 -	pxmitpriv->tx_bytes += skb->len;
-@@ -5539,0 +5341 @@
-+#line 5342
---- a/os_dep/osdep_service.c
-+++ b/os_dep/osdep_service.c
-@@ -19,0 +20 @@
-+MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
-@@ -3092,0 +3094 @@
-+#line 3069
-@@ -3481,0 +3484,2 @@
-+
-+/* Stock module metadata: original namespace imports in this translation unit. */
---- a/os_dep/linux/ioctl_cfg80211.c
-+++ b/os_dep/linux/ioctl_cfg80211.c
-@@ -730,0 +731 @@
-+#line 718
---- a/os_dep/linux/os_intfs.c
-+++ b/os_dep/linux/os_intfs.c
-@@ -23,0 +24 @@
-+MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
-@@ -1981,0 +1983 @@
-+#line 1979
-@@ -2283,0 +2286 @@
-+#line 2277
-@@ -4035 +4037,0 @@
--	rtw_netif_carrier_on(pnetdev); /* call this func when rtw_joinbss_event_callback return success */
-@@ -4808,0 +4811 @@
-+#line 4788
-@@ -5766,0 +5770 @@
-+
---- a/os_dep/linux/rtw_proc.c
-+++ b/os_dep/linux/rtw_proc.c
-@@ -134,0 +135 @@
-+#line 133
---- a/os_dep/linux/usb_intf.c
-+++ b/os_dep/linux/usb_intf.c
-@@ -266 +265,0 @@
--	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0xC82C, 0xff, 0xff, 0xff), .driver_info = RTL8821C}, /* 8821CU */
-@@ -269 +267,0 @@
--	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0x2006, 0xff, 0xff, 0xff), .driver_info = RTL8821C}, /* TOTOLINK A650UA v3 */
-@@ -273 +270,0 @@
--	{USB_DEVICE_AND_INTERFACE_INFO(0x2001, 0x331d, 0xff, 0xff, 0xff), .driver_info = RTL8821C}, /* D-Link - DWA-171C */
-@@ -283 +279,0 @@
--	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0xC82C, 0xff, 0xff, 0xff), .driver_info = RTL8822C}, /* Default ID for USB multi-function */
+--- a/hal/phydm/phydm.mk
++++ b/hal/phydm/phydm.mk
+@@ -1 +1 @@
+-EXTRA_CFLAGS += -I$(src)/hal/phydm
++EXTRA_CFLAGS += -I$(srctree)/$(src)/hal/phydm
 --- a/hal/phydm/phydm_debug.h
 +++ b/hal/phydm/phydm_debug.h
 @@ -92 +92 @@
 -	#define pr_debug		_RTW_DBG
 +	#define pr_debug		printk
+--- a/hal/phydm/sd4_phydm_2_kernel.mk
++++ b/hal/phydm/sd4_phydm_2_kernel.mk
+@@ -1 +1 @@
+-EXTRA_CFLAGS += -I$(src)/hal/phydm
++EXTRA_CFLAGS += -I$(srctree)/$(src)/hal/phydm
 --- a/hal/rtl8821c/rtl8821c_ops.c
 +++ b/hal/rtl8821c/rtl8821c_ops.c
 @@ -3219 +3219 @@
@@ -661,13 +648,165 @@
 @@ -317 +317 @@
 -				SET_TX_DESC_RTS_DATA_RTY_LMT_8821C(ptxdesc, 0);
 +				SET_TX_DESC_RTS_DATA_RTY_LMT_8821C(ptxdesc, 12);
---- a/hal/phydm/phydm.mk
-+++ b/hal/phydm/phydm.mk
-@@ -1 +1 @@
--EXTRA_CFLAGS += -I$(src)/hal/phydm
-+EXTRA_CFLAGS += -I$(srctree)/$(src)/hal/phydm
---- a/hal/phydm/sd4_phydm_2_kernel.mk
-+++ b/hal/phydm/sd4_phydm_2_kernel.mk
-@@ -1 +1 @@
--EXTRA_CFLAGS += -I$(src)/hal/phydm
-+EXTRA_CFLAGS += -I$(srctree)/$(src)/hal/phydm
+@@ -902 +902 @@
+-static void rtl8821cu_xmit_tasklet(void *priv)
++static void rtl8821cu_xmit_tasklet(unsigned long priv)
+@@ -933,2 +933 @@
+-	tasklet_init(&pxmitpriv->xmit_tasklet,
+-		     (void(*)(unsigned long))rtl8821cu_xmit_tasklet,
++	tasklet_init(&pxmitpriv->xmit_tasklet, rtl8821cu_xmit_tasklet,
+--- a/os_dep/linux/ioctl_cfg80211.c
++++ b/os_dep/linux/ioctl_cfg80211.c
+@@ -457,12 +456,0 @@
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
+-
+-		/* --- cfg80211_ch_switch_started_notfiy() ---
+-		 *  A new parameter, bool quiet, is added from Linux kernel v5.11,
+-		 *  to see if block-tx was requested by the AP. since currently,
+-		 *  the API is used for station before connected in rtw_chk_start_clnt_join()
+-		 *  the quiet is set to false here first. May need to refine it if
+-		 *  called by others with block-tx.
+-		 */
+-
+-		cfg80211_ch_switch_started_notify(adapter->pnetdev, &chdef, 0, false);
+-#else
+@@ -470 +457,0 @@
+-#endif
+--- a/os_dep/linux/os_intfs.c
++++ b/os_dep/linux/os_intfs.c
+@@ -23,0 +24 @@
++MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
+@@ -1618,3 +1618,0 @@
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0))
+-	eth_hw_addr_set(pnetdev, sa->sa_data);
+-#else
+@@ -1622 +1619,0 @@
+-#endif
+@@ -2157,4 +2154 @@
+-	
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0))
+-	eth_hw_addr_set(ndev, adapter_mac_addr(adapter));
+-#else
++
+@@ -2162 +2155,0 @@
+-#endif
+@@ -3914 +3907 @@
+-		rtw_netif_carrier_on(pnetdev); /* call this func when rtw_joinbss_event_callback return success */
++		/* rtw_netif_carrier_on(pnetdev); */ /* call this func when rtw_joinbss_event_callback return success */
+@@ -4035 +4028 @@
+-	rtw_netif_carrier_on(pnetdev); /* call this func when rtw_joinbss_event_callback return success */
++	/* rtw_netif_carrier_on(pnetdev); */ /* call this func when rtw_joinbss_event_callback return success */
+@@ -4520 +4512,0 @@
+-	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -4522 +4513,0 @@
+-	#endif
+@@ -4561 +4551,0 @@
+-	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -4564 +4553,0 @@
+-	#endif
+@@ -4570 +4558,0 @@
+-	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -4572 +4559,0 @@
+-	#endif
+@@ -4597 +4583,0 @@
+-		#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -4600 +4585,0 @@
+-		#endif
+@@ -4606 +4590,0 @@
+-		#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -4608 +4591,0 @@
+-		#endif
+@@ -4679 +4661,0 @@
+-		#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -4682 +4663,0 @@
+-		#endif
+@@ -4688 +4668,0 @@
+-		#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -4690 +4669,0 @@
+-		#endif
+--- a/os_dep/linux/recv_linux.c
++++ b/os_dep/linux/recv_linux.c
+@@ -408 +407,0 @@
+-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 12, 0))
+@@ -411,4 +409,0 @@
+-#else
+-			rtw_napi_gro_receive(&padapter->napi, pskb);
+-			rx_ok = _TRUE;
+-#endif
+--- a/os_dep/linux/rtw_proc.c
++++ b/os_dep/linux/rtw_proc.c
+@@ -40,2 +39,0 @@
+-#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0))
+-#define PDE_DATA(inode) pde_data(inode)
+--- a/os_dep/linux/usb_intf.c
++++ b/os_dep/linux/usb_intf.c
+@@ -266 +265,0 @@
+-	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0xC82C, 0xff, 0xff, 0xff), .driver_info = RTL8821C}, /* 8821CU */
+@@ -269 +267,0 @@
+-	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0x2006, 0xff, 0xff, 0xff), .driver_info = RTL8821C}, /* TOTOLINK A650UA v3 */
+@@ -273 +270,0 @@
+-	{USB_DEVICE_AND_INTERFACE_INFO(0x2001, 0x331d, 0xff, 0xff, 0xff), .driver_info = RTL8821C}, /* D-Link - DWA-171C */
+--- a/os_dep/osdep_service.c
++++ b/os_dep/osdep_service.c
+@@ -19,0 +20,2 @@
++MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
++
+@@ -1312,3 +1313,0 @@
+-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 17, 0))
+-	kthread_complete_and_exit(comp, 0);
+-#else
+@@ -1316 +1314,0 @@
+-#endif
+@@ -2503 +2500,0 @@
+-	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -2505 +2501,0 @@
+-	#endif
+@@ -2512 +2507,0 @@
+-		#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -2518 +2512,0 @@
+-		#endif
+@@ -2532 +2525,0 @@
+-		#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -2534 +2526,0 @@
+-		#endif
+@@ -2550 +2541,0 @@
+-	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -2552 +2542,0 @@
+-	#endif
+@@ -2560 +2549,0 @@
+-			#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -2567,2 +2555,0 @@
+-			#endif
+-
+@@ -2570,2 +2556,0 @@
+-
+-			#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -2573 +2557,0 @@
+-			#endif
+@@ -2597 +2580,0 @@
+-	#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -2599 +2581,0 @@
+-	#endif
+@@ -2607 +2588,0 @@
+-			#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -2614,2 +2594,0 @@
+-			#endif
+-
+@@ -2617,2 +2595,0 @@
+-
+-			#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+@@ -2620 +2596,0 @@
+-			#endif
+--- a/platform/platform_ops.c
++++ b/platform/platform_ops.c
+@@ -18,2 +18,2 @@
+- *	0:	power on successfully
+- *	others: power on failed
++ *    0:    power on successfully
++ *    others: power on failed
+@@ -23 +23 @@
+-	int ret = 0;
++    int ret = 0;
+@@ -26 +26 @@
+-	return ret;
++    return ret;

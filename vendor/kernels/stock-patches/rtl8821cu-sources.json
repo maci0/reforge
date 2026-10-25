@@ -1,0 +1,107 @@
+{
+  "scope": "Older vendor source bodies replacing diagnostic line directives; historical checksum identity remains unproved.",
+  "files": [
+    {
+      "file": "core/rtw_br_ext.c",
+      "sha256": "01e973e4d11f88d8253dcbdf822100383dfc905dca938785867931f225eb828d",
+      "repo": "guanglun/longan-t113-linux-5.4",
+      "commit": "d51ad00c047eccd5c88e807aedf56a5a25d9a155",
+      "source": "drivers/net/wireless/rtl8821cs/core/rtw_br_ext.c"
+    },
+    {
+      "file": "core/rtw_btcoex.c",
+      "sha256": "58163da8c6eafb479f92b8a6ec9fe0ec73783d1b412ab0022d8e402045e50dd1",
+      "repo": "guanglun/longan-t113-linux-5.4",
+      "commit": "d51ad00c047eccd5c88e807aedf56a5a25d9a155",
+      "source": "drivers/net/wireless/rtl8821cs/core/rtw_btcoex.c"
+    },
+    {
+      "file": "core/rtw_pwrctrl.c",
+      "sha256": "a2482e09b807e48f1a133577408f0c39d1d6c81c76d68459be9dcbca2816e4ae",
+      "repo": "guanglun/longan-t113-linux-5.4",
+      "commit": "d51ad00c047eccd5c88e807aedf56a5a25d9a155",
+      "source": "drivers/net/wireless/rtl8821cs/core/rtw_pwrctrl.c"
+    },
+    {
+      "file": "core/rtw_xmit.c",
+      "sha256": "7e6c1b41edfe626a7f022aded343e903a2425992950a42fbe46ab2c900c7f9a0",
+      "repo": "guanglun/longan-t113-linux-5.4",
+      "commit": "d51ad00c047eccd5c88e807aedf56a5a25d9a155",
+      "source": "drivers/net/wireless/rtl8821cs/core/rtw_xmit.c"
+    },
+    {
+      "file": "core/rtw_wlan_util.c",
+      "sha256": "ae9f3f104bd588f6f201330920275741c53879abe6561886d834d7bcf43664ab",
+      "repo": "guanglun/longan-t113-linux-5.4",
+      "commit": "d51ad00c047eccd5c88e807aedf56a5a25d9a155",
+      "source": "drivers/net/wireless/rtl8821cs/core/rtw_wlan_util.c"
+    },
+    {
+      "file": "core/rtw_mlme_ext.c",
+      "sha256": "91a00bf00118e70e1c3bb3f0c54fca63758ef5df4d010189e1c6d21b953efa29",
+      "repo": "guanglun/longan-t113-linux-5.4",
+      "commit": "d51ad00c047eccd5c88e807aedf56a5a25d9a155",
+      "source": "drivers/net/wireless/rtl8821cs/core/rtw_mlme_ext.c"
+    },
+    {
+      "file": "platform/platform_ops.c",
+      "sha256": "83db800c4df787862e19c9b89a03defc8c0d37d45dd3577a2a92a87bd8cf24bf",
+      "repo": "guanglun/longan-t113-linux-5.4",
+      "commit": "d51ad00c047eccd5c88e807aedf56a5a25d9a155",
+      "source": "drivers/net/wireless/rtl8821cs/platform/platform_ops.c"
+    },
+    {
+      "file": "os_dep/linux/recv_linux.c",
+      "sha256": "9121d620f883bd020147b220882fd10a146453586c3c5f0ac1b637330a1afbd9",
+      "repo": "guanglun/longan-t113-linux-5.4",
+      "commit": "d51ad00c047eccd5c88e807aedf56a5a25d9a155",
+      "source": "drivers/net/wireless/rtl8821cs/os_dep/linux/recv_linux.c"
+    },
+    {
+      "file": "os_dep/linux/rtw_proc.c",
+      "sha256": "979d99042fcd0b55113ab5605d79af62195959fede25bc94f38b89d5d0b8b3c2",
+      "repo": "guanglun/longan-t113-linux-5.4",
+      "commit": "d51ad00c047eccd5c88e807aedf56a5a25d9a155",
+      "source": "drivers/net/wireless/rtl8821cs/os_dep/linux/rtw_proc.c"
+    },
+    {
+      "file": "os_dep/linux/os_intfs.c",
+      "sha256": "28291277780e2e084d17397881b00b1edf42716902525025596aed64f7e83659",
+      "repo": "guanglun/longan-t113-linux-5.4",
+      "commit": "d51ad00c047eccd5c88e807aedf56a5a25d9a155",
+      "source": "drivers/net/wireless/rtl8821cs/os_dep/linux/os_intfs.c"
+    },
+    {
+      "file": "os_dep/linux/usb_intf.c",
+      "sha256": "0942d9db21df8312f0ead4a48aab62f185a5262332bad1b8c873fc1787195a0f",
+      "repo": "khadas/android_vendor_wifi_driver_realtek_8821cu",
+      "commit": "2344524d0e6daaa850c3bc87828f7c69072e3cb4",
+      "source": "rtl8821CU/os_dep/linux/usb_intf.c"
+    },
+    {
+      "file": "hal/rtl8821c/usb/rtl8821cu_xmit.c",
+      "sha256": "f5d09345d3b2767932284f826f12f6e825c89568393643cb38546d08e673ac1b",
+      "repo": "khadas/android_vendor_wifi_driver_realtek_8821cu",
+      "commit": "2344524d0e6daaa850c3bc87828f7c69072e3cb4",
+      "source": "rtl8821CU/hal/rtl8821c/usb/rtl8821cu_xmit.c"
+    },
+    {
+      "file": "os_dep/osdep_service.c",
+      "sha256": "0444e9395c58c945108ea8a74aa770aaaa8af609650562a27fe3b09171c1b2a2",
+      "reconstruction": "older vendor compatibility body reconstruction; see individual code proof",
+      "basis": [
+        "guanglun/longan-t113-linux-5.4@d51ad00c047eccd5c88e807aedf56a5a25d9a155:drivers/net/wireless/rtl8821cs/os_dep/osdep_service.c",
+        "rugameuser/8821cu-20210118@b6ad883ea547cbd5d144e6218cc122bb4de4ffc4:os_dep/osdep_service.c"
+      ]
+    },
+    {
+      "file": "os_dep/linux/ioctl_cfg80211.c",
+      "sha256": "de49cffa42ae582f4ea1c6f658c8106a14ef3c515c798ff6d806d3f1368f0f4d",
+      "reconstruction": "older vendor compatibility body reconstruction; see individual code proof",
+      "basis": [
+        "guanglun/longan-t113-linux-5.4@d51ad00c047eccd5c88e807aedf56a5a25d9a155:drivers/net/wireless/rtl8821cs/os_dep/linux/ioctl_cfg80211.c",
+        "rugameuser/8821cu-20210118@b6ad883ea547cbd5d144e6218cc122bb4de4ffc4:os_dep/linux/ioctl_cfg80211.c"
+      ]
+    }
+  ]
+}
