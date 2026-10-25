@@ -46,6 +46,8 @@
 #     realloc-and-memcpy per stepper queue at the cost of allocating twice
 #     as many initial slots upfront (~5-10 KB across the AD5M's 5 steppers,
 #     trivial). No upstream support.
+#   0007-defer-multiprocessing-imports.patch — load process helpers only
+#     when calibration or accelerometer sample export needs them.
 KLIPPER_VERSION = e02b725602067a2cd098a62be9a4bb10fc74a9bd
 KLIPPER_SITE = https://github.com/Klipper3d/klipper.git
 KLIPPER_SITE_METHOD = git

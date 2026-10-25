@@ -11,3 +11,12 @@ All ReForge tests. Most run on an x86 host with **no printer**.
 
 Smoke/integration use `qemu-arm-static` (no sudo). The qemu-harness boots a real kernel
 (sudo for loop mounts). Nothing here ships in the firmware.
+
+Klipper lazy-import patch regression (pass an unpatched or pre-0007 v0.11.0 source tree):
+
+```sh
+python3 tests/release/test_klipper_lazy_imports.py build/output/build/klipper-e02b725602067a2cd098a62be9a4bb10fc74a9bd
+```
+
+This applies patch 0007 to temporary copies, checks that module loading avoids
+`multiprocessing`, and exercises each deferred process entry point with a stub API.

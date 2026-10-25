@@ -1,0 +1,70 @@
+From: ReForge <reforge@flashforge>
+Subject: [PATCH] klippy: defer multiprocessing imports until calibration
+
+ADXL345 and resonance_tester are configured on the AD5M, but their
+background processes are only needed during calibration or sample export.
+Keep multiprocessing out of the normal startup path, including mathutil
+used by bed tilt helpers. Preserve the existing process and error handling.
+NumPy is already imported on demand by ShaperCalibrate in v0.11.0.
+
+diff --git a/klippy/mathutil.py b/klippy/mathutil.py
+--- a/klippy/mathutil.py
++++ b/klippy/mathutil.py
+@@ -3,7 +3,7 @@
+ # Copyright (C) 2018-2019  Kevin O'Connor <kevin@koconnor.net>
+ #
+ # This file may be distributed under the terms of the GNU GPLv3 license.
+-import math, logging, multiprocessing, traceback
++import math, logging, traceback
+ import queuelogger
+ 
+ 
+@@ -50,6 +50,7 @@
+ # Helper to run the coordinate descent function in a background
+ # process so that it does not block the main thread.
+ def background_coordinate_descent(printer, adj_params, params, error_func):
++    import multiprocessing
+     parent_conn, child_conn = multiprocessing.Pipe()
+     def wrapper():
+         queuelogger.clear_bg_logging()
+diff --git a/klippy/extras/adxl345.py b/klippy/extras/adxl345.py
+--- a/klippy/extras/adxl345.py
++++ b/klippy/extras/adxl345.py
+@@ -3,7 +3,7 @@
+ # Copyright (C) 2020-2021  Kevin O'Connor <kevin@koconnor.net>
+ #
+ # This file may be distributed under the terms of the GNU GPLv3 license.
+-import logging, time, collections, threading, multiprocessing, os
++import logging, time, collections, threading, os
+ from . import bus, motion_report
+ 
+ # ADXL345 registers
+@@ -84,6 +84,7 @@
+         del samples[count:]
+         return self.samples
+     def write_to_file(self, filename):
++        import multiprocessing
+         def write_impl():
+             try:
+                 # Try to re-nice writing process
+diff --git a/klippy/extras/shaper_calibrate.py b/klippy/extras/shaper_calibrate.py
+--- a/klippy/extras/shaper_calibrate.py
++++ b/klippy/extras/shaper_calibrate.py
+@@ -3,7 +3,7 @@
+ # Copyright (C) 2020  Dmitry Butyugin <dmbutyugin@google.com>
+ #
+ # This file may be distributed under the terms of the GNU GPLv3 license.
+-import collections, importlib, logging, math, multiprocessing, traceback
++import collections, importlib, logging, math, traceback
+ shaper_defs = importlib.import_module('.shaper_defs', 'extras')
+ 
+ MIN_FREQ = 5.
+@@ -72,7 +72,7 @@
+     def background_process_exec(self, method, args):
+         if self.printer is None:
+             return method(*args)
+-        import queuelogger
++        import multiprocessing, queuelogger
+         parent_conn, child_conn = multiprocessing.Pipe()
+         def wrapper():
+             queuelogger.clear_bg_logging()
