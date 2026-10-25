@@ -3,7 +3,7 @@
 @@ -1532 +1532 @@
 -	unsigned int flags = ION_FLAG_CACHED;
 +	unsigned int flags = 0;
-@@ -2441,0 +2442,3 @@
+@@ -2440,0 +2441,3 @@
 +	pr_info("wait for new fb take effect\n");
 +	msleep(30);
 +	fb_free_bootlogo_buffer();

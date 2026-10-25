@@ -216,7 +216,7 @@ boot or flashing was performed.
 
 ## Verified kernel source reconstruction
 
-A clean source build in `build/stock-kernel-debug-inputs/` produced a 12,970,156-byte
+A clean source build in `build/stock-kernel-display-inputs/` produced a 12,970,156-byte
 Image. Its complete executable region and every byte outside validated symbol and
 build-id metadata match the original raw Image, SHA-256
 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`.
@@ -241,12 +241,16 @@ with selected original CAN/I2C/PWM source from the held BSP pin and the
 [stock source patches](../../vendor/kernels/stock-patches). IDA Pro ARM32 analysis,
 original kallsyms and object comparisons established the remaining changes:
 
-The framebuffer implementation and its display header were subsequently recovered
+The framebuffer implementation, display manager and display header were recovered
 unchanged from `yangchaohong/AbFixedWings-kernel` at
 `d2f4699308d190ad9abc96a879368be296e8dc63`: `dev_fb.c` SHA-256
 `3ab64e3faf0ba3c599f300735aa7bcb9ab77477801cee4c7c4e3e409f6f77d34`
 and `dev_disp.h` SHA-256
 `67d71e7b9b6feed7227245eb8be6a74d1cb15bd684b76141b0a03de440908b43`.
+The unchanged `dev_disp.c` from that same pin has SHA-256
+`afc5d09ddb4337b27d1cf5cc0817ec09f677ae8d1f31796ab2f0636f6749e600`.
+It also recovers the original placement of a compiled-out logging call,
+which affects debug line mapping without changing code or functional data.
 The original outer `int i = 0` declaration, shadowed by the parser's inner `i`,
 explains seven private-symbol numbering differences in the earlier reconstruction.
 Compiling these original files restores those names naturally; no symbol-name or
