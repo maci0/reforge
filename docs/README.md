@@ -51,4 +51,3 @@ Documentation that lives next to its subject. Worth knowing about:
 | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) | development checks and source/artifact conventions |
 | [`../tools/ota/README.md`](../tools/ota/README.md) | the OTA test harness + mock GitHub release server |
 | [`../lab/README.md`](../lab/README.md) | experiments / scratch — not shipped, kept for reproducibility |
-| [`../contrib/forge-x-shared-python/README.md`](../contrib/forge-x-shared-python/README.md) | upstream contribution: shared Python interpreter for forge-x |

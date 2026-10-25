@@ -38,7 +38,6 @@ tools/        build entry + golden-dump recovery
 docs/         specs, plans, research, board notes, screenshots
 vendor/       buildroot + BSP kernel (submodules) + toolchain (pinned tarball)
 reference/    captured stock and Forge-X printer configs, with provenance
-contrib/      work intended for upstream projects
 lab/          experiments / scratch (not shipped)
 ```
 

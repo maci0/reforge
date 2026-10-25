@@ -9,6 +9,5 @@ Helpers that build or operate ReForge. **Not shipped inside the firmware image.*
 | `release/` | Release archives, live USB images, release metadata, and hardware trial verification. |
 | [ota/](ota/README.md) | FlashForge firmware update checker and its host tests. |
 | `lint/` | ShellCheck runner for tracked project scripts. |
-| `build-chelper-hardfloat.sh` | Build a hard-float Klipper C helper for the Forge-X shared-Python experiment in `contrib/`. |
 
 See `docs/REPO-LAYOUT.md` for how this fits the product / vendor / lab split.

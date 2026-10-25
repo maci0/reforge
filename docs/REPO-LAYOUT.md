@@ -23,7 +23,6 @@ vendor/        third-party we DON'T author — submodules + pinned tarballs (see
   toolchains/            pinned crosstool tarball (gcc 9.5.0 arm-linux-gnueabi)
   fetch.sh               reconstruct everything above at pinned versions
 reference/     captured stock and Forge-X printer configs (reference/README.md)
-contrib/       contributions intended for upstream projects
 build/         transient build output (gitignored): output/ (single full image)
 lab/           tracked experiments and findings; ignored scratch (not packaged in firmware)
 Makefile  pins.lock  .gitmodules  .github/   build glue, pins, submodule registry, CI
@@ -64,13 +63,11 @@ manually only for fallback/porting diffs. See `vendor/README.md`.
 | `lab/` | Investigations and reproducible experiments, indexed in [lab/README.md](../lab/README.md). |
 | `lab/scratch/` | Loose junk. Gitignored. |
 
-## Reference captures and upstream contributions
+## Reference captures
 
 [`reference/`](../reference/README.md) holds original stock firmware configs and
 configs captured on a Forge-X system, with their provenance. ReForge's active
 defaults live in `br-external/board/reforge/rootfs-overlay/etc/reforge/`.
-[`contrib/forge-x-shared-python/`](../contrib/forge-x-shared-python/README.md)
-holds work intended for Forge-X; it is separate from the ReForge runtime.
 
 ## Transient build output (gitignored in place — not committed)
 

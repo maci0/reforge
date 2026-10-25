@@ -91,7 +91,7 @@ consider dropping it if zram alone holds the working set.
 | **DSP / reserved DRAM** | dramsize 128 → MemTotal 110; CMA accounts for ~16 of the ~18 MB gap → only ~2 MB DSP/kernel left. Negligible, and bootargs edits risk brick (no FEL/UART recovery). |
 | **numpy trim** | not resident at idle (Pss 0); nothing to reclaim unless input_shaper is active. |
 | **nginx → httpd** | already busybox `httpd` on this unit. Done. |
-| **shared py3.7/py3.11 interpreter** | live-tested → **+16 MB** (py3.11 is the heavier interpreter). Negative; see `contrib/forge-x-shared-python/`. |
+| **shared py3.7/py3.11 interpreter** | live-tested → **+16 MB** (py3.11 is the heavier interpreter). Negative; the Forge-X contribution has been removed from this repository. |
 | **Qt UI → guppyscreen** | the heavy Qt `firmwareExe` isn't running at idle here; only a win *while* an on-screen UI is active, not an idle lever. |
 | **THP / KSM / compaction** | not built into stock 5.4.61 (`CONFIG_*` unset) — kernel-rebuild items, not runtime (see `2026-06-02-stock-kernel-runtime-tuning.md`). |
 
