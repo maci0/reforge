@@ -1,22 +1,32 @@
 From: ReForge <reforge@localhost>
 Subject: [PATCH] chelper: use the cross-compiled helper on target
 
-Do not attempt an mtime-based native rebuild on the printer.
-
 --- a/klippy/chelper/__init__.py
 +++ b/klippy/chelper/__init__.py
-@@ -278,13 +278,7 @@
-         srcfiles = get_abs_files(srcdir, SOURCE_FILES)
-         ofiles = get_abs_files(srcdir, OTHER_FILES)
-         destlib = get_abs_files(srcdir, [DEST_LIB])[0]
--        if check_build_code(srcfiles+ofiles+[__file__], destlib):
--            if check_gcc_option(SSE_FLAGS):
--                cmd = "%s %s %s" % (GCC_CMD, SSE_FLAGS, COMPILE_ARGS)
--            else:
--                cmd = "%s %s" % (GCC_CMD, COMPILE_ARGS)
--            logging.info("Building C code module %s", DEST_LIB)
--            do_build_code(cmd % (destlib, ' '.join(srcfiles)))
-+        # c_helper.so is cross-compiled by Buildroot; no compiler on target.
-         FFI_main = cffi.FFI()
-         for d in defs_all:
-             FFI_main.cdef(d)
+@@ -280,24 +280,8 @@
+ # Build the main c_helper.so c code library
+ def check_build_c_library():
+     srcdir = os.path.dirname(os.path.realpath(__file__))
+-    srcfiles = get_abs_files(srcdir, SOURCE_FILES)
+-    ofiles = get_abs_files(srcdir, OTHER_FILES)
+-    destlib = get_abs_files(srcdir, [DEST_LIB])[0]
+-    if not check_build_code(srcfiles+ofiles+[__file__], destlib):
+-        # Code already built
+-        return destlib
+-    # Select command line options
+-    if check_gcc_option(SSE_FLAGS):
+-        cmd = "%s %s %s" % (GCC_CMD, SSE_FLAGS, COMPILE_ARGS)
+-    else:
+-        cmd = "%s %s" % (GCC_CMD, COMPILE_ARGS)
+-    # Invoke compiler
+-    logging.info("Building C code module %s", DEST_LIB)
+-    tempdestlib = get_abs_files(srcdir, ["_temp_" + DEST_LIB])[0]
+-    do_build_code(cmd % (tempdestlib, ' '.join(srcfiles)))
+-    # Rename from temporary file to final file name
+-    os.rename(tempdestlib, destlib)
+-    return destlib
++    # Buildroot cross-compiles this library; there is no compiler on target.
++    return get_abs_files(srcdir, [DEST_LIB])[0]
+ 
+ FFI_main = None
+ FFI_lib = None

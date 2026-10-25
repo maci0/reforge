@@ -45,7 +45,8 @@ moonraker  commit  master  b559b9a81161f958a43c2f527b6ad96f73310d5d
 guppyscreen  commit  flashforge_ad5m  fdca5728001f7a6f6ce774dcfa3998f8b96e6878
 
 # Opt-in host; requires matching MCU firmware, does not replace the default above.
-klipper13  tag     v0.13.0  61c0c8d2ef40340781835dd53fb04cc7a454e37a
+# xblax AD5M source port; host + mainboard/eboard firmware are built together.
+klipper13  tag     v0.13.0-285-gfc2aaae69-ffadm5  fc2aaae692b5f703420915390a3dcb8cd514c384  https://github.com/xblax/klipper.git
 helixscreen tag    v1.0.6   11230009fa09b4509d0d05f482feaeef2e94c854
 dinit  tarball  0.22.1  959b35c171452ecfbc09379b516517dadd675350eebc57ca54aebedda05d9adf
 python-importlib-metadata  tarball  9.0.0  a4f57ab599e6a2e3016d7595cfd72eb4661a5106e787a95bcc90c7105b831efc

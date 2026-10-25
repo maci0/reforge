@@ -1,0 +1,142 @@
+{
+  "captured_at": "2026-10-25",
+  "reference": "tools/recovery/golden.img.gz",
+  "reference_sha256": "c09dfbf7aa0e049d2ad179ccd7632b156667b5b0ae92ff2c914517963e21702e",
+  "scope": "Read-only extraction and comparison; hashes identify reference artifacts, not source-built replacements. Primary bootloader and environment corroborated against independent stock dump. Golden backup U-Boot is a different 2025 build.",
+  "artifacts": [
+    {
+      "name": "boot0-primary",
+      "offset": 8192,
+      "length": 49152,
+      "sha256": "f9397c286a0faba8cf19d7583b8f508470ce5e2ea1e6c53621d77d9f9b66093e",
+      "stored_additive_checksum": "0x778af875",
+      "computed_additive_checksum": "0x778af875",
+      "checksum_valid": true
+    },
+    {
+      "name": "boot0-backup",
+      "offset": 131072,
+      "length": 49152,
+      "sha256": "f9397c286a0faba8cf19d7583b8f508470ce5e2ea1e6c53621d77d9f9b66093e",
+      "stored_additive_checksum": "0x778af875",
+      "computed_additive_checksum": "0x778af875",
+      "checksum_valid": true
+    },
+    {
+      "name": "sunxi-package",
+      "offset": 12582912,
+      "length": 1343488,
+      "sha256": "9345c28b17c90b994e7688bf611ca275b5be230ce6e9a0e9e74b8c7983f1bc07",
+      "stored_additive_checksum": "0x61492f60",
+      "computed_additive_checksum": "0x61492f60",
+      "checksum_valid": true
+    },
+    {
+      "name": "u-boot",
+      "offset": 12584960,
+      "toc_relative_offset": 2048,
+      "length": 966656,
+      "run_address": "0x0",
+      "encrypt": 0,
+      "type": 3,
+      "sha256": "31aaa8a085b4985dafdad87d97637fcc1d35a300101295edfaf51c826ff53019"
+    },
+    {
+      "name": "optee",
+      "offset": 13551616,
+      "toc_relative_offset": 968704,
+      "length": 300248,
+      "run_address": "0x0",
+      "encrypt": 0,
+      "type": 3,
+      "sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99"
+    },
+    {
+      "name": "dtb",
+      "offset": 13852672,
+      "toc_relative_offset": 1269760,
+      "length": 59392,
+      "run_address": "0x0",
+      "encrypt": 0,
+      "type": 3,
+      "sha256": "2629b7fca484cad18a8a80094a6d3dcc544720637ea3ff0f28fb7ab385672c29"
+    },
+    {
+      "name": "env",
+      "length": 1048576,
+      "sha256": "6c8985dc584a50782267ff6a01fa8e886901ab5e48c550a0a2055dfd806628d7",
+      "crc32": "0xe1e6741d",
+      "crc_layout_matches": [
+        {
+          "size": 131072,
+          "header_size": 5
+        }
+      ]
+    },
+    {
+      "name": "env-redund",
+      "length": 1048576,
+      "sha256": "6c8985dc584a50782267ff6a01fa8e886901ab5e48c550a0a2055dfd806628d7",
+      "crc32": "0xe1e6741d",
+      "crc_layout_matches": [
+        {
+          "size": 131072,
+          "header_size": 5
+        }
+      ]
+    },
+    {
+      "name": "sunxi-package-backup",
+      "offset": 16793600,
+      "length": 1343488,
+      "sha256": "8f6d733683e8e3bba479584983002be88fca56de01b08b4ddc8f0d84a9664849",
+      "checksum_valid": true
+    },
+    {
+      "name": "u-boot-backup",
+      "offset": 16795648,
+      "length": 966656,
+      "sha256": "b31940650d2072b403cd109b4def5e435abf1326f8fd1292d67c83d0898ecfe3",
+      "differs_from_primary_bytes": 779577
+    },
+    {
+      "name": "optee-backup",
+      "offset": 17762304,
+      "length": 300248,
+      "sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+      "differs_from_primary_bytes": 0
+    },
+    {
+      "name": "dtb-backup",
+      "offset": 18063360,
+      "length": 59392,
+      "sha256": "9cc6dbe97217514628c34741d905224e75e28c0958745cc552cbe438fc7f1e04",
+      "differs_from_primary_bytes": 1
+    },
+    {
+      "name": "p1-uImage.bin",
+      "length": 5195072,
+      "sha256": "13c17296c9ed34cff1c355dc717ab76803410bd872a495bdefaca07cdaf89c79"
+    },
+    {
+      "name": "p1-zImage.bin",
+      "length": 5195008,
+      "sha256": "dd7fbccace45bbea6862597b86db12644480024ff6e276b93b6014123b9c5a34"
+    },
+    {
+      "name": "p1-Image.raw",
+      "length": 12970156,
+      "sha256": "902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6"
+    },
+    {
+      "name": "p1-sunxi.dtb",
+      "length": 55093,
+      "sha256": "27501dc48c5ad4c71e3a12742e3ef2a162d6a2d8285bbbac82488c7fade79e21"
+    },
+    {
+      "name": "u-boot-control-0xe3aa0.dtb",
+      "length": 17784,
+      "sha256": "488d06dfbab38e7e6d06ec9354e2fdb4d8ceadfa89b082641c1d2073a37c6731"
+    }
+  ]
+}

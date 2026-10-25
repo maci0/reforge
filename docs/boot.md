@@ -18,11 +18,20 @@ is its own topic — see [live-mode.md](live-mode.md).
 
 ## 1. The boot chain (verified)
 
+**2026-10-25 raw-image correction:** both redundant environments in the golden dump,
+original Forge-X dump and an independent stock dump select
+`run setargs_mmc boot_dsp0 boot_uImage`. `boot_uImage` loads `uImage` and `sunxi.dtb`
+from FAT partition p1. An Android `boot.img` also exists on p4, but its presence does
+not establish that this environment boots it. See the
+[stock bringup rebuild status](board-notes/stock-bringup-rebuild.md) and
+[artifact hashes](board-notes/stock-boot-artifacts.json).
+
 ```
 BROM (mask ROM in silicon; FEL USB recovery)
   → boot0 / SPL (eGON)            raw eMMC, sectors 0..73727 (~36 MB before p1)
-  → U-Boot 2018.05                env on p2 (+ p3 redundant)
-  → kernel  (boot.img @ p4, "ANDROID!" image format: kernel+dtb+ramdisk)
+  → TOC1: U-Boot 2018.05 + OP-TEE + bootloader DTB
+                                  env on p2 (+ p3 redundant)
+  → kernel  (uImage + sunxi.dtb loaded from FAT boot-resource p1)
        cmdline: root=/dev/mmcblk0p6 init=/init console=ttyS3,115200 cma=16M
                 androidboot.hardware=sun8iw20p1 androidboot.dramsize=128 ...
   → /init  →  symlink to /bin/busybox     (busybox init)

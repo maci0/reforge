@@ -35,6 +35,19 @@ Check both Klipper package selections with `tests/release/klipper-packages-test.
 The v0.13 lazy-import check uses the same runner with its patch as the second argument:
 
 ```sh
-python3 tests/release/test_klipper_lazy_imports.py path/to/klipper-v0.13.0 \
+python3 tests/release/test_klipper_lazy_imports.py path/to/klipper-v0.13-ad5m \
     br-external/package/klipper13/0002-defer-multiprocessing-imports.patch
 ```
+
+`python3 tests/release/test_mcu_firmware.py` checks MCU packaging rejection paths
+without hardware; it is also part of `make unit`. Actual `klipper13` builds run
+the same checker against both compiled images before installing them.
+
+`python3 tests/release/test_stock_boot_extract.py` checks bootloader reference
+extraction with synthetic plain/gzip images and rejects malformed checksums,
+ranges, overlaps and existing output directories. It runs in `make unit`.
+The [stock bringup notes](../docs/board-notes/stock-bringup-rebuild.md) describe
+the actual U-Boot source-build comparison and its deliberately failing identity check.
+
+`python3 tests/release/test_stock_uboot.py` ensures a build cannot overwrite its
+original reference through an existing output directory; it runs in `make unit`.

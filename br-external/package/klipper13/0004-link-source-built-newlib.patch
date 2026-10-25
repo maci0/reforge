@@ -1,0 +1,18 @@
+From: ReForge <reforge@localhost>
+Subject: [PATCH] stm32: link the source-built newlib C library
+
+Buildroot builds standard newlib from source instead of downloading Arm
+GNU toolchain binaries containing libc_nano. Dead code is garbage-collected
+by the existing --gc-sections link flag. Firmware size is checked per board.
+
+--- a/src/stm32/Makefile
++++ b/src/stm32/Makefile
+@@ -32,7 +32,7 @@
+ CFLAGS-$(CONFIG_MACH_STM32L4) += -mcpu=cortex-m4 -Ilib/stm32l4/include
+ CFLAGS += $(CFLAGS-y) -D$(MCU_UPPER) -mthumb -Ilib/cmsis-core -Ilib/fast-hash
+ 
+-CFLAGS_klipper.elf += -nostdlib -lgcc -lc_nano
++CFLAGS_klipper.elf += -nostdlib -lgcc -lc
+ CFLAGS_klipper.elf += -T $(OUT)src/generic/armcm_link.ld
+ $(OUT)klipper.elf: $(OUT)src/generic/armcm_link.ld
+ 

@@ -1,5 +1,6 @@
 config BR2_PACKAGE_KLIPPER13
-	bool "klipper13 (v0.13.0; requires matching MCU firmware)"
+	bool "klipper13 (v0.13 AD5M fork; requires matching MCU firmware)"
+	select BR2_TOOLCHAIN_BARE_METAL_BUILDROOT
 	select BR2_PACKAGE_PYTHON3
 	select BR2_PACKAGE_PYTHON_CFFI
 	select BR2_PACKAGE_PYTHON_SERIAL
@@ -8,6 +9,8 @@ config BR2_PACKAGE_KLIPPER13
 	select BR2_PACKAGE_PYTHON_JINJA2
 	select BR2_PACKAGE_PYTHON_MARKUPSAFE
 	help
-	  Klipper v0.13.0 host as an alternative to the stock-compatible v0.11.0.
-	  Installs to /opt/klipper for the existing services. Requires matching
+	  Klipper v0.13 AD5M host and both MCU firmware images as an
+	  alternative to the stock-compatible v0.11.0.
+	  Builds the MCU compiler and newlib from source. Installs the host to
+	  /opt/klipper and MCU images to /opt/klipper/firmware. Requires matching
 	  MCU firmware and a reviewed printer configuration; does not flash MCUs.

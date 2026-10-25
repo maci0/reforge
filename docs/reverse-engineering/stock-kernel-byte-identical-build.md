@@ -1,10 +1,13 @@
 # Byte-identical reproduction of the stock AD5M Pro kernel
 
-**Status:** reverse-engineering reference (host-only rebuild from public
-source; verified against the on-device `Image` extracted from the golden
-eMMC dump). The reproduction reaches **+128 bytes (+0.00099 %)** of the
-stock image; the residual is a deterministic 256-byte linker alignment
-artifact, not a functional defect.
+**Status (rechecked 2026-10-25):** historical source-rebuild experiment; the
+complete raw Image is **not byte-identical**. The closest cached build is 128
+bytes longer, with 5,915,891 differing bytes at shared offsets and the first
+difference at `0xf968c` (1,021,580 matching leading bytes). Banner and embedded
+IKCONFIG match. The earlier alignment explanation below is diagnostic history,
+not proof of whole-image or functional equivalence. The historical runner also
+requires an isolated source tree before reuse; its cleanup resets tracked source
+files. See the [current bringup audit](../board-notes/stock-bringup-rebuild.md).
 
 **See also:**
 [`stock-kernel-modules-packaging.md`](stock-kernel-modules-packaging.md)
@@ -26,8 +29,8 @@ for `CONFIG_KEXEC=y`).
 - **+128 B** Image-size delta vs stock. All `vermagic`, Linux-version
   banner (including toolchain version strings), build user / host /
   `#52` / timestamp are **byte-identical**. Embedded **IKCONFIG.gz is
-  byte-identical** (the gzipped `.config` ELF blob). **First 1 MB** of
-  the Image is byte-identical to stock. `cmp -l` mismatched-byte count
+  byte-identical** (the gzipped `.config` ELF blob). **First 1,021,580 bytes** of
+  the cached Image are byte-identical to stock. `cmp -l` mismatched-byte count
   is dominated by post-kallsyms address-cascade noise, not real diffs.
 - The +128 B is a **256-byte alignment crossing in `.data`**: ours
   size mod 128 = stock mod 128 = 44 (same cache-line offset), but

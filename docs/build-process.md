@@ -19,7 +19,7 @@ flowchart TB
 
     subgraph src["source we author"]
         EXT["br-external/<br/>configs · packages · rootfs-overlay · board"]
-        PATCH["package patches<br/>(klipper ×7, klipper13 ×2, moonraker ×3, guppyscreen ×3)"]
+        PATCH["package patches<br/>(klipper ×7, klipper13 ×4, moonraker ×3, guppyscreen ×3)"]
     end
 
     BR --> MK["make rootfs<br/>(tools/build/build.sh)"]
@@ -83,10 +83,14 @@ old`).
 ## Optional Klipper v0.13 host
 
 The default remains Klipper v0.11.0 for the stock AD5M MCU firmware. The separate
-`klipper13` package installs v0.13.0 at the same `/opt/klipper` path, with the same
-services and AD5M extensions. Kconfig allows only one host package at a time.
+`klipper13` package builds the pinned xblax v0.13 AD5M fork, its mainboard firmware,
+and its toolhead firmware from the same source commit. The host uses the existing
+`/opt/klipper` path and services. Kconfig allows only one host package at a time.
 Use v0.13 only with matching MCU firmware and a reviewed printer configuration;
 this package does not flash either MCU or carry the v0.11 stock-firmware tuning patches.
+The MCU compiler, binutils and newlib are built from source too. See the
+[MCU build notes](../br-external/package/klipper13/README.md) for mod comparisons,
+board settings, source provenance and validation.
 
 Build it in a separate output directory to avoid retaining files from another host version:
 
@@ -99,5 +103,8 @@ vendor/buildroot/utils/config --file "$out/.config" \
 make -C vendor/buildroot BR2_EXTERNAL="$repo/br-external" O="$out" olddefconfig
 make -C vendor/buildroot BR2_EXTERNAL="$repo/br-external" O="$out" -j"$(nproc)"
 ```
+
+MCU artifacts appear under `$out/images/klipper13/` and `/opt/klipper/firmware/`
+in the target rootfs, with source identity, expanded configs and checksums.
 
 `make rootfs` reapplies the shipping defconfig and selects v0.11.0.

@@ -51,3 +51,6 @@ Documentation that lives next to its subject. Worth knowing about:
 | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) | development checks and source/artifact conventions |
 | [`../tools/ota/README.md`](../tools/ota/README.md) | the OTA test harness + mock GitHub release server |
 | [`../lab/README.md`](../lab/README.md) | experiments / scratch — not shipped, kept for reproducibility |
+
+The [stock bringup rebuild audit](board-notes/stock-bringup-rebuild.md) records
+source-build results, strict byte comparisons and missing original boot-chain inputs.
