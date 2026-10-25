@@ -42,7 +42,7 @@ must not be described as an unchanged factory boot chain throughout.
 | boot0 / SPL | Two identical 48 KiB eGON copies at `0x2000` and `0x20000`; commit field `5224261`, DRAM driver `V0.32`, DDR3 at 792 MHz. | Held SDK's `spl-pub/nboot/Makefile` links `board/sun8iw20p1/libsun8iw20p1_sdcard.a`, an ELF relocatable without the DRAM implementation source. No source-only replacement or byte-identical rebuild is claimed. |
 | Primary U-Boot | 2018.05, August 25, 2023 17:05:54 +0800; Linaro GCC 7.2.1 20171011, binutils 2.28.2.20170706. Historical source revision is unknown. | **Byte-identical source reconstruction verified:** 966,656 bytes, SHA-256 `31aaa8a085b4985dafdad87d97637fcc1d35a300101295edfaf51c826ff53019`. Uses pinned older source, recovered source changes and source-compiled control DTS. |
 | OP-TEE secure world | Build `553fe17e2-dirty`, Linaro 5.3.1, build #6 dated February 18, 2022. | Held `lichee.zip` contains U-Boot/Linux client shims, not the secure-world OP-TEE OS source tree. No prebuilt payload is imported into source-build outputs. |
-| Kernel | p1 uImage decompresses to raw Image SHA-256 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`, 12,970,156 bytes. | Source reconstruction verified: all executable and functional data bytes match; full Image differs only in compiler-private symbol names and GNU build-id. The complete file is not byte-identical. |
+| Kernel | p1 uImage decompresses to raw Image SHA-256 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`, 12,970,156 bytes. | Source reconstruction verified: all executable and functional data bytes match; full Image differs only in GNU build-id. The complete file is not byte-identical. |
 | Rootfs / services | ReForge Buildroot source packages. | Existing ReForge build path; no full image boot validation was performed in this audit. |
 | Mainboard / toolhead | Matching Klipper 13 host and MCU source pin. | Integrated [source-build package](../../br-external/package/klipper13/README.md), with per-board checks and image/checksum output. No flashing. |
 
@@ -216,18 +216,18 @@ boot or flashing was performed.
 
 ## Verified kernel source reconstruction
 
-A clean source build in `build/stock-kernel-original-inputs/` produced a 12,970,156-byte
+A clean source build in `build/stock-kernel-debug-inputs/` produced a 12,970,156-byte
 Image. Its complete executable region and every byte outside validated symbol and
 build-id metadata match the original raw Image, SHA-256
 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`.
-**The complete rebuilt Image is not byte-identical:** 39 differing bytes remain:
-19 bytes in ten Goodix compiler-private numeric names and the 20-byte GNU
-build-id. The earlier reconstruction differed by 13,029 bytes; recovering the
-original framebuffer source also restored the original kallsyms compression.
-No metadata overrides or post-link corrections are used.
+**The complete rebuilt Image is not byte-identical:** only the 20-byte GNU
+build-id differs. All other 12,970,136 bytes match, including the entire
+compressed kallsyms table. Earlier reconstructions differed by 13,029 bytes,
+then 39 bytes; original framebuffer inputs and the recovered Goodix preprocessing
+condition removed those differences without metadata overrides or post-link
+corrections.
 
-Both Images decode to the same 72,471 symbol addresses and types. Ten
-compiler-private numeric UID names differ; all other names agree. The
+Both Images decode to identical 72,471 symbol names, addresses and types. The
 [read-only checker](../../tools/build/compare-stock-kernel.py) validates the
 compressed tables, markers, token indexes and zero alignment, checks all decoded
 records, and compares every byte outside those validated metadata regions.
@@ -252,12 +252,18 @@ explains seven private-symbol numbering differences in the earlier reconstructio
 Compiling these original files restores those names naturally; no symbol-name or
 build-ID overrides are used.
 
-The remaining ten names belong to `gt9xx.o` and differ by a uniform declaration
-UID offset of nine. The checked public Goodix files and their direct headers
-do not explain that offset; changing declarations just to force these values
-would not establish original-input recovery. The original kernel's debug ELF
-was not found in the held archives. The SDK's available `vmlinux` is a different
-June 2025 GCC 6.4.1 build, not the August 2023 GCC 5.3.1 target.
+The Goodix names identify a real missing preprocessing condition: `DEBUG` is
+enabled for `gt9xx.o`. Without it, `include/linux/printk.h` declares an unused
+`print_hex_dump_debug` inline function with seven parameters and a result entity;
+with it, the header uses its existing macro branch. Those nine compiler entities
+explain the uniform UID offset. A scoped `CFLAGS_gt9xx.o += -DDEBUG` restores all
+ten stock names. All 15 allocated sections and all 4,960 relocation records
+remain identical; no declarations or symbol strings are edited. The original
+spelling/location of this setting is inferred, not recovered source text.
+
+The original kernel's debug ELF was not found in the held archives. The SDK's
+available `vmlinux` is a different June 2025 GCC 6.4.1 build, not the August 2023
+GCC 5.3.1 target.
 
 The kernel enables debug information, and GNU build IDs also depend on that
 information before it is stripped from the raw Image. A check with the pinned
@@ -307,6 +313,13 @@ remain necessary for natural byte identity.
 Source builds use the exact captured kernel configuration and the historical
 Linaro 5.3.1 compiler. A private bubblewrap namespace supplies both original build
 paths without changing host `/home/linux` or resetting the BSP checkout.
+The kernel output is also bound inside that namespace at the SDK-layout
+`hard_t113_s3/t113/T113/T113-Linux-Auto-v1.1/out/kernel/build` path. This removes
+the caller-selected output directory from DWARF. Two clean builds in distinct
+output directories produced byte-identical full `vmlinux`, raw Image and Wi-Fi
+module; the original kernel output-path spelling remains an SDK-layout inference.
+The module's corresponding earlier-checkout output path is directly recorded in
+its stock DWARF.
 The builder rejects existing outputs, verifies all source/reference hashes,
 rejects prebuilt object/archive/module members and records source/toolchain pins.
 Source archives and reference artifacts are separate; target code is compiled

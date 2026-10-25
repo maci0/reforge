@@ -9,3 +9,9 @@
 @@ -2853 +2853 @@
 -	mmc->f_max = 50000000;
 +	mmc->f_max = 30000000;
+--- a/drivers/input/touchscreen/gt9xxnew/Makefile
++++ b/drivers/input/touchscreen/gt9xxnew/Makefile
+@@ -12,0 +13,3 @@
++
++# Preserve the stock printk.h declaration set for this driver.
++CFLAGS_gt9xx.o += -DDEBUG
