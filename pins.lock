@@ -1,6 +1,6 @@
 # ReForge component pins — authoritative source of truth for reproducible builds.
 # Format: <component> <kind> <ref> <sha>
-buildroot   tag    2026.02.2            71d1dddae12e7cbf322d96864d7757f459801f47
+buildroot   tag    2026.08.1            7fdeadb3b9f12f78e5fccca914d7fef47090ab9a
 # Stock-kernel BSP (Allwinner T113 sun8iw20, 5.4.61) — git submodule at vendor/kernels/tina-bsp-kernel.
 # This is the layout-exact source for the zram modules + the qemu virt test kernel.
 tina-bsp-kernel  submodule  5.4.61   349a0b9fe63a03ea21198d104e5e9e01e7c068a6  https://github.com/iLotusK9/linux_kernel_aw_t113.git
@@ -13,7 +13,7 @@ gcc-crosstool    tarball    9.5.0    81669db4e5adc1ff1c35e7d939ebcb6a5793c9b3920
 # Not required for the ReForge shipping image (which uses GCC 9.5.0 above).
 gcc-linaro-5.3.1  tarball   5.3.1    77cccd433d680251c8b9bfa01890cb6921548513a39fac35c1f4b9f0a47e5aa4  https://releases.linaro.org/components/toolchain/binaries/5.3-2016.05/arm-linux-gnueabi/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi.tar.xz
 # u-boot added in later plans
-mainsail   tag     v2.17.0  d010f4df25557d520ccdbb8e42fc381df2288e6a5c72d3838a5a2433c7a31d4e
+mainsail   tag     v2.19.0  c4d9d96f89851c6ae0709c2f20725447f3fe8c57cf193869b0083441bd93378a
 # klipper: pinned to upstream v0.11.0 (release tag, 2022-11-29) to match the
 # AD5M / AD5M Pro stock MCU firmware (Klipper v0.11 build, 2023-03-17). Switched
 # from master 2026-06-04. The FlashForge fork at FlashForge/AD5M_Series_Klipper
@@ -36,9 +36,22 @@ mainsail   tag     v2.17.0  d010f4df25557d520ccdbb8e42fc381df2288e6a5c72d3838a5a
 #     fork: QUEUE_START_SIZE 1024 -> 2048; saves one realloc-and-memcpy
 #     per stepper queue at startup; ~5-10 KB extra RAM upfront; no
 #     upstream support).
+#   0007-defer-multiprocessing-imports.patch (on-demand process helpers).
 klipper    tag     v0.11.0  e02b725602067a2cd098a62be9a4bb10fc74a9bd
-moonraker  commit  master  9008485843740c93e0154ccbdac1fc2b02b03aaa
+moonraker  commit  master  b559b9a81161f958a43c2f527b6ad96f73310d5d
 # consp/guppyscreen fork (FF5M-specific): flashforge_ad5m branch HEAD 2025-07
 # NOTE: task spec says ballaswag/guppyscreen; using consp fork because xblax's
 # proven patches target this fork's flashforge_ad5m branch directly.
 guppyscreen  commit  flashforge_ad5m  fdca5728001f7a6f6ce774dcfa3998f8b96e6878
+
+# Opt-in host; requires matching MCU firmware, does not replace the default above.
+klipper13  tag     v0.13.0  61c0c8d2ef40340781835dd53fb04cc7a454e37a
+helixscreen tag    v1.0.6   11230009fa09b4509d0d05f482feaeef2e94c854
+dinit  tarball  0.22.1  959b35c171452ecfbc09379b516517dadd675350eebc57ca54aebedda05d9adf
+python-importlib-metadata  tarball  9.0.0  a4f57ab599e6a2e3016d7595cfd72eb4661a5106e787a95bcc90c7105b831efc
+python-inotify-simple  tarball  2.0.1  f010bbbd8283bd71a9f4eb2de94765804ede24bd47320b0e6ef4136e541cdc2c
+python-libnacl  tarball  2.1.0  f3418da7df29e6d9b11fd7d990289d16397dc1020e4e35192e11aee826922860
+python-preprocess-cancellation  tarball  0.2.1  e2f1224e1ba1603bdfdbf6937caaf91082dc849e5122e80a5328aa999433ce79
+python-smart-open  tarball  8.0.4  8cff8321f0b0ae4bd9cb0cd0c507c135ad6aa980171248fca520b645fd6ff717
+python-streaming-form-data  tarball  2.1.0  2c5c81fc9c451ea133083bc6da959f87e9b91fba3effe99411f1f90461ea7c5b
+python-zipp  tarball  4.1.2  cf474b90b07ea932637e17c6b9479de2b2882900b0d311bdaf4f5c000a15a97f

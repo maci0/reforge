@@ -4,11 +4,11 @@
 #
 ################################################################################
 #
-# DEPENDENCY CLASSIFICATION (pinned commit: 9008485843740c93e0154ccbdac1fc2b02b03aaa)
+# DEPENDENCY CLASSIFICATION (pinned commit: b559b9a81161f958a43c2f527b6ad96f73310d5d)
 # ──────────────────────────────────────────────────────────────────────────────
 # Source: scripts/moonraker-requirements.txt
 #
-# BUCKET A — available in upstream Buildroot (2026.02.2)
+# BUCKET A — available in upstream Buildroot (2026.08.1)
 #   tornado>=6.2.0     BR2_PACKAGE_PYTHON_TORNADO    (CORE: application.py server)
 #   pyserial==3.4      BR2_PACKAGE_PYTHON_SERIAL     (klippy_connection; already in klipper)
 #   pillow>=9.5.0      BR2_PACKAGE_PYTHON_PILLOW     (CORE: metadata.py thumbnail extraction)
@@ -18,6 +18,7 @@
 #   paho-mqtt==2.1.0   BR2_PACKAGE_PYTHON_PAHO_MQTT  (optional: mqtt component)
 #   jinja2==3.1.6      BR2_PACKAGE_PYTHON_JINJA2     (already in klipper; template.py)
 #   python-periphery   BR2_PACKAGE_PYTHON_PERIPHERY  (optional: gpio component)
+#   aiofiles          BR2_PACKAGE_PYTHON_AIOFILES    (transitive: multipart uploads)
 #   wrapt              BR2_PACKAGE_PYTHON_WRAPT       (transitive: smart-open dep)
 #   libsodium          BR2_PACKAGE_LIBSODIUM          (transitive: libnacl ctypes dep)
 #
@@ -26,10 +27,10 @@
 #     → pure Python (ctypes), CORE (file_manager/file_manager.py hard import)
 #   libnacl==2.1.0              python-libnacl
 #     → pure Python (ctypes/libsodium), CORE (authorization.py hard import)
-#   streaming-form-data<=1.19.1 python-streaming-form-data
+#   streaming-form-data<=2.1.0 python-streaming-form-data
 #     → C extension (Cython, pre-generated .c), CORE (application.py hard import)
 #     → dep: smart-open>=7.0.5  python-smart-open (pure Python)
-#   importlib-metadata<=8.7.1   python-importlib-metadata
+#   importlib-metadata<=9.0.0   python-importlib-metadata
 #     → pure Python, CORE (utils/source_info.py hard import)
 #     → dep: zipp>=3.20          python-zipp (pure Python)
 #   preprocess-cancellation=0.2.1 python-preprocess-cancellation
@@ -48,8 +49,11 @@
 #                       CORE_COMPONENTS. Default conf has no [ldap]. Dropped.
 # ──────────────────────────────────────────────────────────────────────────────
 
+# 0003-lazy-import-update-backends.patch keeps unused Git/Python/system
+# update backends out of ZIP/web-only startup. They remain available on demand.
+
 # Pinned master SHA — recorded in pins.lock.
-MOONRAKER_VERSION = 9008485843740c93e0154ccbdac1fc2b02b03aaa
+MOONRAKER_VERSION = b559b9a81161f958a43c2f527b6ad96f73310d5d
 MOONRAKER_SITE = https://github.com/Arksine/moonraker.git
 MOONRAKER_SITE_METHOD = git
 
@@ -71,6 +75,7 @@ MOONRAKER_DEPENDENCIES = \
 	python-inotify-simple \
 	python-libnacl \
 	python-streaming-form-data \
+	python-aiofiles \
 	python-importlib-metadata \
 	python-preprocess-cancellation \
 	iproute2

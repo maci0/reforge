@@ -1,2 +1,2 @@
-# Locally computed sha256
-sha256  d3672003b1dbc85e2013e4983b88eb9a5ccfd389b0d4e5015f39a9ee5620ec18  smart_open-7.0.5.tar.gz
+# From PyPI source distribution metadata (verified locally)
+sha256  8cff8321f0b0ae4bd9cb0cd0c507c135ad6aa980171248fca520b645fd6ff717  smart_open-8.0.4.tar.gz

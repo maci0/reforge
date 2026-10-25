@@ -20,3 +20,21 @@ python3 tests/release/test_klipper_lazy_imports.py build/output/build/klipper-e0
 
 This applies patch 0007 to temporary copies, checks that module loading avoids
 `multiprocessing`, and exercises each deferred process entry point with a stub API.
+
+Moonraker lazy update-backend regression (pass a pinned source tree before patch 0003):
+
+```sh
+python3 tests/release/test_moonraker_lazy_imports.py build/output/build/moonraker-b559b9a81161f958a43c2f527b6ad96f73310d5d
+```
+
+This applies patch 0003 to a temporary copy and checks ZIP/web startup, on-demand
+Git/Python/system backend selection, and rejection of ZIP updaters by Git recovery.
+Printer services and deployment side effects are stubbed.
+
+Check both Klipper package selections with `tests/release/klipper-packages-test.sh`.
+The v0.13 lazy-import check uses the same runner with its patch as the second argument:
+
+```sh
+python3 tests/release/test_klipper_lazy_imports.py path/to/klipper-v0.13.0 \
+    br-external/package/klipper13/0002-defer-multiprocessing-imports.patch
+```

@@ -18,7 +18,7 @@ tools/         dev/ops tooling (not shipped in firmware)
   build/         build.sh + env.sh — top-level build entry
   recovery/      golden-dump tooling + RUNBOOK
 vendor/        third-party we DON'T author — submodules + pinned tarballs (see vendor/README.md)
-  buildroot/             git submodule (Buildroot 2026.02.2)
+  buildroot/             git submodule (Buildroot 2026.08.1)
   kernels/tina-bsp-kernel/   git submodule (Allwinner T113 BSP, 5.4.61)
   toolchains/            pinned crosstool tarball (gcc 9.5.0 arm-linux-gnueabi)
   fetch.sh               reconstruct everything above at pinned versions
@@ -49,7 +49,7 @@ Makefile  pins.lock  .gitmodules  .github/   build glue, pins, submodule registr
 
 | path | upstream | mechanism |
 |---|---|---|
-| `vendor/buildroot/` | Buildroot `2026.02.2` | git submodule |
+| `vendor/buildroot/` | Buildroot `2026.08.1` | git submodule |
 | `vendor/kernels/tina-bsp-kernel/` | `iLotusK9/linux_kernel_aw_t113@5.4.61` | git submodule |
 | `vendor/toolchains/gcc-9.5.0-nolibc/` | kernel.org crosstool GCC 9.5.0 | pinned tarball (sha256) |
 

@@ -11,7 +11,7 @@ from unittest.mock import Mock, patch
 REPO = Path(__file__).resolve().parents[2]
 
 
-def check(source):
+def check(source, patch_file):
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         for name in ('mathutil.py', 'extras/adxl345.py',
@@ -20,14 +20,13 @@ def check(source):
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source / 'klippy' / name, dest)
         subprocess.run(
-            ['patch', '-p1', '--batch', '--fuzz=0', '-i', str(REPO /
-             'br-external/package/klipper/0007-defer-multiprocessing-imports.patch')],
+            ['patch', '-p1', '--batch', '--fuzz=0', '-i', str(patch_file)],
             cwd=root, check=True)
         # Stub printer dependencies; execute the complete patched modules.
         extras = types.ModuleType('extras')
         extras.__path__ = []
         modules = {'extras': extras, 'queuelogger': types.ModuleType('queuelogger')}
-        for name in ('bus', 'motion_report', 'shaper_defs'):
+        for name in ('bus', 'motion_report', 'bulk_sensor', 'shaper_defs'):
             modules['extras.' + name] = types.ModuleType('extras.' + name)
         with patch.dict(sys.modules, modules):
             loaded = {}
@@ -78,4 +77,6 @@ def check(source):
 
 
 if __name__ == '__main__':
-    check(Path(sys.argv[1]).resolve())
+    patch_file = (Path(sys.argv[2]).resolve() if len(sys.argv) > 2 else REPO /
+                  'br-external/package/klipper/0007-defer-multiprocessing-imports.patch')
+    check(Path(sys.argv[1]).resolve(), patch_file)

@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-MAINSAIL_VERSION = v2.17.0
+MAINSAIL_VERSION = v2.19.0
 MAINSAIL_SITE = https://github.com/mainsail-crew/mainsail/releases/download/$(MAINSAIL_VERSION)
 MAINSAIL_SOURCE = mainsail.zip
 

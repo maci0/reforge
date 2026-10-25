@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-DINIT_VERSION = 0.22.0
+DINIT_VERSION = 0.22.1
 DINIT_SOURCE = dinit-$(DINIT_VERSION).tar.xz
 DINIT_SITE = https://github.com/davmac314/dinit/releases/download/v$(DINIT_VERSION)
 DINIT_LICENSE = Apache-2.0

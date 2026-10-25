@@ -1,0 +1,13 @@
+config BR2_PACKAGE_KLIPPER13
+	bool "klipper13 (v0.13.0; requires matching MCU firmware)"
+	select BR2_PACKAGE_PYTHON3
+	select BR2_PACKAGE_PYTHON_CFFI
+	select BR2_PACKAGE_PYTHON_SERIAL
+	select BR2_PACKAGE_PYTHON_GREENLET
+	select BR2_PACKAGE_PYTHON_NUMPY
+	select BR2_PACKAGE_PYTHON_JINJA2
+	select BR2_PACKAGE_PYTHON_MARKUPSAFE
+	help
+	  Klipper v0.13.0 host as an alternative to the stock-compatible v0.11.0.
+	  Installs to /opt/klipper for the existing services. Requires matching
+	  MCU firmware and a reviewed printer configuration; does not flash MCUs.

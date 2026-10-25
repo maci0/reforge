@@ -12,7 +12,7 @@ excerpts are committed as files with their provenance. Fetch the source trees an
 
 | path | upstream | pinned by | mechanism |
 |---|---|---|---|
-| `buildroot/` | gitlab.com/buildroot.org/buildroot @ `2026.02.2` | `.gitmodules` + `pins.lock` | git submodule |
+| `buildroot/` | gitlab.com/buildroot.org/buildroot @ `2026.08.1` | `.gitmodules` + `pins.lock` | git submodule |
 | `kernels/tina-bsp-kernel/` | github.com/iLotusK9/linux_kernel_aw_t113 branch `5.4.61` (`349a0b9`) | `.gitmodules` + `pins.lock` | git submodule |
 | `toolchains/gcc-9.5.0-nolibc/` | kernel.org crosstool GCC 9.5.0 `arm-linux-gnueabi` (nolibc) | `pins.lock` sha256 | tarball, fetched + verified |
 | `kernels/patches/` | local patches for the pinned BSP | [patch documentation](kernels/patches/README.md) | tracked patch files |

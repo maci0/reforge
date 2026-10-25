@@ -6,9 +6,8 @@
 
 # ReForge: lab/eval package (default n; enabled only for the lab/helixscreen-eval qemu
 # render+RAM eval, NOT the shipped image). HelixScreen is GuppyScreen-class (LVGL/fbdev).
-# Pinned to a commit SHA on prestonbrown/helixscreen main.
-# Bump this to a release tag once HelixScreen cuts one.
-HELIXSCREEN_VERSION = 846a6e35dd7d0ae53baab6605bd23a77956f17f3
+# Pinned to the commit behind upstream release v1.0.6.
+HELIXSCREEN_VERSION = 11230009fa09b4509d0d05f482feaeef2e94c854
 HELIXSCREEN_SITE = https://github.com/prestonbrown/helixscreen.git
 HELIXSCREEN_SITE_METHOD = git
 HELIXSCREEN_GIT_SUBMODULES = yes

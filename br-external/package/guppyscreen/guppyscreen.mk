@@ -5,7 +5,7 @@
 #
 ################################################################################
 
-# Pinned to consp/guppyscreen flashforge_ad5m branch HEAD (2025-07 snapshot).
+# Pinned to consp/guppyscreen flashforge_ad5m branch HEAD (unchanged when checked 2026-10-25).
 # Using the consp fork rather than upstream ballaswag because this branch
 # already carries the FF5M-specific lv_drivers and screen-size defines that
 # the three patches below depend on.

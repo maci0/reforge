@@ -11,7 +11,7 @@ flowchart TB
     PINS["pins.lock<br/>(authoritative versions)"] --> FETCH
 
     subgraph vendor["vendor/ (third-party, pinned)"]
-        BR["buildroot<br/>(submodule, 2026.02.2)"]
+        BR["buildroot<br/>(submodule, 2026.08.1)"]
         BSP["kernels/tina-bsp-kernel<br/>(submodule, T113 5.4.61)"]
         TC["toolchains/gcc-9.5.0<br/>(tarball, sha256 — kernel-module crosstool ONLY)"]
     end
@@ -19,7 +19,7 @@ flowchart TB
 
     subgraph src["source we author"]
         EXT["br-external/<br/>configs · packages · rootfs-overlay · board"]
-        PATCH["package patches<br/>(klipper ×6, moonraker ×2, guppyscreen ×3)"]
+        PATCH["package patches<br/>(klipper ×7, klipper13 ×2, moonraker ×3, guppyscreen ×3)"]
     end
 
     BR --> MK["make rootfs<br/>(tools/build/build.sh)"]
@@ -79,3 +79,25 @@ flowchart LR
 `make repro` does a twin-build diff. Kernel headers are pinned to the stock 5.4.61 ABI so the
 glibc userland's "min kernel" note matches the device (else the loader aborts `FATAL: kernel too
 old`).
+
+## Optional Klipper v0.13 host
+
+The default remains Klipper v0.11.0 for the stock AD5M MCU firmware. The separate
+`klipper13` package installs v0.13.0 at the same `/opt/klipper` path, with the same
+services and AD5M extensions. Kconfig allows only one host package at a time.
+Use v0.13 only with matching MCU firmware and a reviewed printer configuration;
+this package does not flash either MCU or carry the v0.11 stock-firmware tuning patches.
+
+Build it in a separate output directory to avoid retaining files from another host version:
+
+```sh
+repo="$PWD"
+out="$repo/build/klipper13"
+make -C vendor/buildroot BR2_EXTERNAL="$repo/br-external" O="$out" reforge_defconfig
+vendor/buildroot/utils/config --file "$out/.config" \
+    --disable BR2_PACKAGE_KLIPPER --enable BR2_PACKAGE_KLIPPER13
+make -C vendor/buildroot BR2_EXTERNAL="$repo/br-external" O="$out" olddefconfig
+make -C vendor/buildroot BR2_EXTERNAL="$repo/br-external" O="$out" -j"$(nproc)"
+```
+
+`make rootfs` reapplies the shipping defconfig and selects v0.11.0.
