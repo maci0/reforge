@@ -607,12 +607,13 @@
 +#line 5342
 --- a/os_dep/osdep_service.c
 +++ b/os_dep/osdep_service.c
-@@ -3092,0 +3093 @@
+@@ -19,0 +20 @@
++MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
+@@ -3092,0 +3094 @@
 +#line 3069
-@@ -3481,0 +3483,3 @@
+@@ -3481,0 +3484,2 @@
 +
 +/* Stock module metadata: original namespace imports in this translation unit. */
-+MODULE_IMPORT_NS(VFS_internal_I_am_really_a_filesystem_and_am_NOT_a_driver);
 --- a/os_dep/linux/ioctl_cfg80211.c
 +++ b/os_dep/linux/ioctl_cfg80211.c
 @@ -730,0 +731 @@

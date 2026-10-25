@@ -76,6 +76,7 @@ for name in backports:
     'kernel_reference_sha256': digest(reference),
     'wifi_reference_sha256': digest(wifi_reference),
     'target_objects_imported': False,
+    'inferred_module_preprocessing': {'CONFIG_TCP_MD5SIG': 'y'},
 }, indent=2) + '\n')
 PY
 src="$out/source-tree"
@@ -120,6 +121,15 @@ if ! "${namespace[@]}" make -C "$stock_src" "O=$stock_out" "${common[@]}" -j"${B
     tail -40 "$out/kernel.log" >&2
     exit 1
 fi
+cp "$obj/arch/arm/boot/Image" "$out/artifacts/Image"
+cp "$obj/vmlinux" "$obj/System.map" "$out/artifacts/"
+cp "$obj/.config" "$out/artifacts/kernel.config"
+# The earlier Wi-Fi build has a distinct, inferred header-declaration profile.
+cp "$obj/.config.captured" "$obj/.config.module-expected"
+"$src/scripts/config" --file "$obj/.config.module-expected" --enable TCP_MD5SIG
+cp "$obj/.config.module-expected" "$obj/.config"
+"${namespace[@]}" make -C "$wifi_src" "O=$wifi_out" "${common[@]}" olddefconfig > "$out/module-configure.log" 2>&1
+cmp -s "$obj/.config.module-expected" "$obj/.config" || die 'unexpected module configuration changes'
 # Wi-Fi's original module used this path/tuning and its own recovered build date.
 if ! "${namespace[@]}" make -C "$wifi_src" "O=$wifi_out" "${common[@]}" \
     KCFLAGS=-mtune=cortex-a9 CONFIG_RTL8821CU=m CONFIG_PLATFORM_I386_PC=n \
@@ -128,9 +138,7 @@ if ! "${namespace[@]}" make -C "$wifi_src" "O=$wifi_out" "${common[@]}" \
     tail -40 "$out/modules.log" >&2
     exit 1
 fi
-cp "$obj/arch/arm/boot/Image" "$out/artifacts/Image"
-cp "$obj/vmlinux" "$obj/System.map" "$out/artifacts/"
-cp "$obj/.config" "$out/artifacts/kernel.config"
+cp "$obj/.config" "$out/artifacts/module.config"
 cp "$obj/drivers/staging/rtl8821cu/8821cu.ko" "$out/artifacts/8821cu.ko"
 python3 "$repo/tools/build/compare-stock-module.py" "$wifi_reference" "$out/artifacts/8821cu.ko" "$out/wifi-comparison.json"
 python3 "$repo/tools/build/compare-stock-kernel.py" "$reference" "$out/artifacts/Image" "$out/comparison.json"

@@ -216,7 +216,7 @@ boot or flashing was performed.
 
 ## Verified kernel source reconstruction
 
-A clean source build in `build/stock-kernel-display-inputs/` produced a 12,970,156-byte
+A clean source build in `build/stock-kernel-module-inputs/` produced a 12,970,156-byte
 Image. Its complete executable region and every byte outside validated symbol and
 build-id metadata match the original raw Image, SHA-256
 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`.
@@ -296,25 +296,36 @@ original flat `/lib/modules/8821cu.ko`, SHA-256
 `7c0a036726227752359556f8e109683d5ce836bb65ec64afd46bfb754d6afa69`.
 The [module checker](../../tools/build/compare-stock-module.py) additionally checks
 ELF ABI flags and operational module metadata, including vermagic, aliases,
-parameters, license and namespaces. The complete ELF still differs by 688 bytes:
-21 source-version bytes, 20 build-id bytes and 647 compiler-local symbol-string
-bytes. The new source-version hash is genuinely calculated from the reconstructed
-source, not replaced with the historical value. Embedded controller firmware is
-upstream C-array data; its original firmware source has not been reconstructed.
+parameters, license and namespaces. All raw symbol records, symbol names,
+relocation records and debug sections now match. The complete ELF still differs
+by **42 bytes**: 22 source-version bytes and 20 GNU build-id bytes. Its computed
+source-version is `8BB79DF73E35FCDAA96AE95`, not the historical
+`91923B9ABAF58831D5783DF`; that value is calculated from source, never replaced.
+Embedded controller firmware is upstream C-array data; its original firmware
+source has not been reconstructed.
 
-The flat module's differing local names have a common UID offset of six across
-54 translation units, with one additional offset in `osdep_service.c`. The
-structured stock module already has the reconstructed UID numbers, while both
-stock variants report the same historical source-version hash. This points to
-different declaration/preprocessor build inputs rather than differing driver
-instructions. The source-version calculation also hashes inactive source tokens
-and `#line` directives; reproducing all code cannot uniquely recover those
-discarded inputs. Checks of the untouched pinned source, the recovered source
-without its diagnostic line directives, and the pinned older NAT import did not
-reproduce the historical checksum. The original module source/build inputs
-remain necessary for natural byte identity.
+The module's earlier missing six compiler IDs are reproduced by a real Kconfig
+profile enabling `CONFIG_TCP_MD5SIG`. Moving the existing namespace import in
+`osdep_service.c` immediately after its includes restores its last lock-key ID.
+These changes reproduce all symbol strings naturally, without renaming them.
+The profile is inferred from output constraints, not a recovered original
+configuration file. Several diagnostic preprocessor states gave the same count;
+this chosen profile survives actual Kconfig resolution and preserves every code,
+data, ABI, operational-metadata and DWARF byte. The module configuration differs
+from the captured kernel configuration in this one setting only. The builder
+stages `kernel.config` before configuring the module, checks the module's resolved
+configuration against that expected delta, and records `module.config` separately.
 
-Source builds use the exact captured kernel configuration and the historical
+A read-only model of GNU ld 2.25 recomputes both the original and rebuilt module's
+stored build IDs exactly. Its hash includes the source-version field; once that
+field is naturally recovered, the otherwise identical hashed ELF inputs also
+resolve the module's build ID. The unresolved input is the original normalized
+source content, not an independent linker identity setting. Kernel source-version
+calculation also hashes inactive tokens, diagnostic `#line` directives and some
+physical line-ending differences. Matching emitted code does not uniquely recover
+those discarded inputs.
+
+Kernel source builds use the exact captured configuration and the historical
 Linaro 5.3.1 compiler. A private bubblewrap namespace supplies both original build
 paths without changing host `/home/linux` or resetting the BSP checkout.
 The kernel output is also bound inside that namespace at the SDK-layout
