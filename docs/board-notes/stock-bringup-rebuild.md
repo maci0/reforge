@@ -34,7 +34,7 @@ must not be described as an unchanged factory boot chain throughout.
 | Stage | Original identity | Current result / missing input |
 |---|---|---|
 | boot0 / SPL | Two identical 48 KiB eGON copies at `0x2000` and `0x20000`; commit field `5224261`, DRAM driver `V0.32`, DDR3 at 792 MHz. | Held SDK's `spl-pub/nboot/Makefile` links `board/sun8iw20p1/libsun8iw20p1_sdcard.a`, an ELF relocatable without the DRAM implementation source. No source-only replacement or byte-identical rebuild is claimed. |
-| Primary U-Boot | 2018.05, August 25, 2023 17:05:54 +0800; Linaro GCC 7.2.1 20171011, binutils 2.28.2.20170706. Stock source revision is unknown. | Candidate built entirely from the held SDK's U-Boot C/assembly/DTS sources. It is 966,851 bytes versus stock 966,656; comparison fails. Original FlashForge config, board DTS, exact source revision and final vendor packing remain unproven. |
+| Primary U-Boot | 2018.05, August 25, 2023 17:05:54 +0800; Linaro GCC 7.2.1 20171011, binutils 2.28.2.20170706. Stock source revision is unknown. | Candidate built from the held SDK's U-Boot C/assembly sources with recovered/recompiled stock control DTS and observed stock image packing. Packed size is now 966,656 bytes, equal to stock, but byte comparison still fails. Complete original FlashForge config/source revision remains unproven. |
 | OP-TEE secure world | Build `553fe17e2-dirty`, Linaro 5.3.1, build #6 dated February 18, 2022. | Held `lichee.zip` contains U-Boot/Linux client shims, not the secure-world OP-TEE OS source tree. No prebuilt payload is imported into source-build outputs. |
 | Kernel | p1 uImage decompresses to raw Image SHA-256 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`, 12,970,156 bytes. | Cached public-source reconstruction has matching banner and embedded config, but a different complete Image. See comparison below. |
 | Rootfs / services | ReForge Buildroot source packages. | Existing ReForge build path; no full image boot validation was performed in this audit. |
@@ -51,7 +51,11 @@ not a claim that the missing original source cannot exist elsewhere.
 Use local source, a new output directory, and an explicitly supplied compiler
 prefix; the script downloads
 nothing, extracts no bundled binary toolchain, imports no prebuilt target code,
-and never flashes. Recover the stock payload as a **reference**, then build:
+and never flashes. It disables the measured extra T050K589 panel and memory-info
+features, recompiles the recovered stock control DTS, then regenerates the length
+and additive-checksum fields and aligns with `0xff` fill to the observed 16-KiB
+boundary. It rejects any payload that cannot fit that natural stock span, without
+truncating code. Recover the stock payload as a **reference**, then build:
 
 ```sh
 python3 tools/recovery/extract-stock-boot.py tools/recovery/golden.img.gz build/stock-boot-reference
@@ -69,14 +73,16 @@ the original timestamp. Those inputs do not establish that the generic
 
 Outputs include source-built ELF/BIN/DTB files, build logs, `inputs.json`, and
 `comparison.json`. **A successful compilation with a byte mismatch exits nonzero.**
-Two independent clean source extractions/builds produced candidate SHA-256
+Two independent clean source extractions/builds of the initial generic SDK
+profile produced candidate SHA-256
 `d6290d48f2c935b34d12ceebf2e28e5b7aed81fd5fcf71a874b4208ba082f3a0`.
 The original SDK Linaro host-tool archive was used for this comparison; a source
 bootstrap of that historical compiler is not established.
-The current candidate has 873,000 mismatched bytes at common offsets; the first
-is offset 12 (the header checksum). Final vendor image packing is not reproduced.
+The initial generic SDK candidate had 873,000 mismatched bytes at common offsets;
+the first was offset 12 (the header checksum). Its final image packing had not
+yet been reproduced. The corrected size-zero result is recorded below.
 
-## Exact U-Boot size difference (2026-10-25 follow-up)
+## Initial generic-SDK size difference (2026-10-25 investigation)
 
 The 195-byte increase is a net artifact-layout difference, not a 195-byte code
 change. Compared with the original primary U-Boot payload:
@@ -142,6 +148,27 @@ exactly. `layout-comparison.json` contains region boundaries, while
 `dtb-semantic.diff`, `dtb-comparison.json` and `string-diff.json` retain the
 complete configuration/string differences. These are local generated artifacts,
 not target firmware or a source-level patch.
+
+## Size-zero source build
+
+The corrected builder now emits **966,656 bytes**, exactly the stock packed
+length, with `size_delta: 0` and `size_matches: true` in `comparison.json`.
+The source-built core is 934,152 bytes, the recovered/source-compiled stock
+control DTB is 17,784 bytes, and normal 16-KiB packing adds 14,720 bytes of
+`0xff` fill. No executable bytes are truncated or copied from the reference.
+The checksum and both image-length header fields are regenerated.
+
+The clean build at `build/stock-uboot-size-zero/` produced SHA-256
+`92ccc0b70ae4dde5fc6b987e0e06c5147431f94acca2e7620418cee0d18ab6e2`.
+This matches an independently packed controlled source build. Tests cover exact
+repacking, preserving a larger core, corrupted references/DTBs, and refusing
+payloads that would require truncation or forced size matching.
+
+**Size equality is not byte identity:** the unpadded core remains 1,640 bytes
+larger than stock, reducing packing fill by the same amount. There are 786,077
+different bytes at shared offsets in the packed images. The script therefore
+continues to exit nonzero for the strict byte-comparison failure. No hardware
+boot or flashing was performed.
 
 ## Kernel comparison and limits
 

@@ -50,4 +50,5 @@ The [stock bringup notes](../docs/board-notes/stock-bringup-rebuild.md) describe
 the actual U-Boot source-build comparison and its deliberately failing identity check.
 
 `python3 tests/release/test_stock_uboot.py` ensures a build cannot overwrite its
-original reference through an existing output directory; it runs in `make unit`.
+original reference through an existing output directory and checks 16-KiB
+packing, checksums, DTB identity and overflow rejection; it runs in `make unit`.

@@ -107,12 +107,16 @@ manifest = {'status': 'candidate-unverified', 'defconfig': 'sun8iw20p1_auto_defc
             'reference_sha256': hashlib.sha256(stock).hexdigest(),
             'challenge_offset': hex(offset), 'challenge_sha256': hashlib.sha256(challenge).hexdigest(),
             'timestamp': f'{date} {time} {zone}',
-            'limitations': ['Original FlashForge defconfig/board DTS and source revision are unproven.',
-                            'Vendor final image packing is not reproduced.',
+            'disabled_configs': ['CONFIG_LCD_SUPPORT_T050K589', 'CONFIG_SUNXI_MEM_INFO'],
+            'control_dtb_source': 'stock-control.dts (recovered configuration, recompiled from source)',
+            'packing': '16-KiB alignment, 0xff fill, regenerated lengths and additive checksum',
+            'limitations': ['Original complete FlashForge defconfig and source revision remain unproven.',
+                            'Matching packed size does not establish byte identity.',
                             'Boot0, OP-TEE and target blobs are not built or imported.']}
 (out / 'inputs.json').write_text(json.dumps(manifest, indent=2) + '\n')
 PY
 src="$work/u-boot-2018"
+python3 "$repo/tools/build/stock-uboot-image.py" extract-dtb "$reference" "$out/stock-control.reference.dtb"
 common=(ARCH=arm "PWD=$src" "CROSS_COMPILE=$cross" "LICHEE_CHIP_CONFIG_DIR=$work/install" "LICHEE_PLAT_OUT=$work/install")
 mkdir -p "$work/install/bin"
 {
@@ -123,6 +127,23 @@ mkdir -p "$work/install/bin"
     printf 'build inputs: %s\n' "$out/inputs.json"
 } > "$out/toolchain.txt"
 make -C "$src" "${common[@]}" sun8iw20p1_auto_defconfig > "$out/configure.log" 2>&1
+# These generic SDK features are absent from the measured stock core.
+python3 - "$src/.config" <<'PYCONFIG'
+from pathlib import Path
+import sys
+config = Path(sys.argv[1])
+text = config.read_text()
+for name in ('CONFIG_LCD_SUPPORT_T050K589', 'CONFIG_SUNXI_MEM_INFO'):
+    setting = name + '=y'
+    if text.count(setting) != 1:
+        raise SystemExit(f'expected one enabled SDK setting: {name}')
+    text = text.replace(setting, '# ' + name + ' is not set')
+config.write_text(text)
+PYCONFIG
+make -C "$src" "${common[@]}" olddefconfig >> "$out/configure.log" 2>&1
+for setting in CONFIG_LCD_SUPPORT_T050K589 CONFIG_SUNXI_MEM_INFO; do
+    grep -qx "# $setting is not set" "$src/.config"
+done
 # Avoid modern host version.h collisions and the old dtc's -fno-common failure.
 printf '#define PLAIN_VERSION "2018.05"\n' > "$work/host-version.h"
 hostflags="-O2 -fcommon -include $work/host-version.h"
@@ -132,9 +153,16 @@ if ! make -C "$src" -f Makefile -f "$work/build-metadata.mk" "${common[@]}" \
     exit 1
 fi
 cp "$src/.config" "$out/uboot.config"
-for artifact in u-boot u-boot.bin u-boot-nodtb.bin u-boot.dtb u-boot.map; do
+for artifact in u-boot u-boot-nodtb.bin u-boot.map; do
     cp "$src/$artifact" "$out/$artifact"
 done
+# Compile the original board configuration as source, then apply image packing.
+"$src/scripts/dtc/dtc" -I dtb -O dts -o "$out/stock-control.dts" \
+    "$out/stock-control.reference.dtb" 2> "$out/dtc.log"
+"$src/scripts/dtc/dtc" -I dts -O dtb -o "$out/u-boot.dtb" \
+    "$out/stock-control.dts" 2>> "$out/dtc.log"
+python3 "$repo/tools/build/stock-uboot-image.py" pack "$out/u-boot-nodtb.bin" \
+    "$out/u-boot.dtb" "$reference" "$out/u-boot.bin"
 python3 - "$out" "$reference" <<'PY'
 import hashlib
 import json
@@ -144,6 +172,8 @@ out, reference = map(Path, sys.argv[1:])
 a, b = reference.read_bytes(), (out / 'u-boot.bin').read_bytes()
 report = {'status': 'identical' if a == b else 'different',
           'reference_bytes': len(a), 'candidate_bytes': len(b),
+          'size_delta': len(b) - len(a), 'size_matches': len(a) == len(b),
+          'packing_fill_bytes': len(b) - (out / 'u-boot-nodtb.bin').stat().st_size - (out / 'u-boot.dtb').stat().st_size,
           'reference_sha256': hashlib.sha256(a).hexdigest(),
           'candidate_sha256': hashlib.sha256(b).hexdigest(),
           'overlapping_mismatched_bytes': sum(x != y for x, y in zip(a, b)),
