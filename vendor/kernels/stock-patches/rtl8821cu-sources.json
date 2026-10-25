@@ -1,5 +1,5 @@
 {
-  "scope": "Older vendor source bodies replacing diagnostic line directives; historical checksum identity remains unproved.",
+  "scope": "Vendor source bodies preserving original raw line endings; independently verified source build equals every original stock module byte.",
   "files": [
     {
       "file": "core/rtw_br_ext.c",
@@ -77,13 +77,6 @@
       "repo": "khadas/android_vendor_wifi_driver_realtek_8821cu",
       "commit": "2344524d0e6daaa850c3bc87828f7c69072e3cb4",
       "source": "rtl8821CU/os_dep/linux/usb_intf.c"
-    },
-    {
-      "file": "hal/rtl8821c/usb/rtl8821cu_xmit.c",
-      "sha256": "f5d09345d3b2767932284f826f12f6e825c89568393643cb38546d08e673ac1b",
-      "repo": "khadas/android_vendor_wifi_driver_realtek_8821cu",
-      "commit": "2344524d0e6daaa850c3bc87828f7c69072e3cb4",
-      "source": "rtl8821CU/hal/rtl8821c/usb/rtl8821cu_xmit.c"
     },
     {
       "file": "os_dep/osdep_service.c",

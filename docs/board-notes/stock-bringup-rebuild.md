@@ -43,6 +43,7 @@ must not be described as an unchanged factory boot chain throughout.
 | Primary U-Boot | 2018.05, August 25, 2023 17:05:54 +0800; Linaro GCC 7.2.1 20171011, binutils 2.28.2.20170706. Historical source revision is unknown. | **Byte-identical source reconstruction verified:** 966,656 bytes, SHA-256 `31aaa8a085b4985dafdad87d97637fcc1d35a300101295edfaf51c826ff53019`. Uses pinned older source, recovered source changes and source-compiled control DTS. |
 | OP-TEE secure world | Build `553fe17e2-dirty`, Linaro 5.3.1, build #6 dated February 18, 2022. | Held `lichee.zip` contains U-Boot/Linux client shims, not the secure-world OP-TEE OS source tree. No prebuilt payload is imported into source-build outputs. |
 | Kernel | p1 uImage decompresses to raw Image SHA-256 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`, 12,970,156 bytes. | Source reconstruction verified: all executable and functional data bytes match; full Image differs only in GNU build-id. The complete file is not byte-identical. |
+| Wi-Fi module | Deployed flat RTL8821CU module, 2,441,368 bytes. | **Byte-identical source build verified**, SHA-256 `7c0a036726227752359556f8e109683d5ce836bb65ec64afd46bfb754d6afa69`; natural source-version and build-id, no metadata overrides. |
 | Rootfs / services | ReForge Buildroot source packages. | Existing ReForge build path; no full image boot validation was performed in this audit. |
 | Mainboard / toolhead | Matching Klipper 13 host and MCU source pin. | Integrated [source-build package](../../br-external/package/klipper13/README.md), with per-board checks and image/checksum output. No flashing. |
 
@@ -216,7 +217,7 @@ boot or flashing was performed.
 
 ## Verified kernel source reconstruction
 
-A clean source build in `build/stock-kernel-native-vendor-inputs/` produced a 12,970,156-byte
+A clean source build in `build/stock-kernel-exact-wifi/` produced a 12,970,156-byte
 Image. Its complete executable region and every byte outside validated symbol and
 build-id metadata match the original raw Image, SHA-256
 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`.
@@ -290,29 +291,30 @@ separate MCU Linux module was found. `boot_code` is an IR global, not a bootlogo
 function. The earlier missing-symbol-only classification was insufficient;
 whole-file comparison also exposed shared-function and initialized-data changes.
 
-The reconstructed RTL8821CU module is 2,441,368 bytes. All 4,448 functions,
-allocated code/data/firmware sections and canonical relocation targets match the
-original flat `/lib/modules/8821cu.ko`, SHA-256
+The source-built RTL8821CU module is now **byte-identical** to the original flat
+`/lib/modules/8821cu.ko`: 2,441,368 bytes, SHA-256
 `7c0a036726227752359556f8e109683d5ce836bb65ec64afd46bfb754d6afa69`.
-The [module checker](../../tools/build/compare-stock-module.py) additionally checks
-ELF ABI flags and operational module metadata, including vermagic, aliases,
-parameters, license and namespaces. All raw symbol records, symbol names,
-relocation records and debug sections now match. The complete ELF still differs
-by **42 bytes**: 22 source-version bytes and 20 GNU build-id bytes. Its computed
-source-version is `1F5B20A6EE4FCC6EBB7290E`, not the historical
-`91923B9ABAF58831D5783DF`; that value is calculated from source, never replaced.
-Embedded controller firmware is upstream C-array data; its original firmware
-source has not been reconstructed.
+Independent fresh driver compilation and a clean full reconstruction both pass
+whole-file comparison, including all 4,448 functions, every symbol, relocation,
+debug section, operational metadata, source-version and GNU build-id. The
+[module checker](../../tools/build/compare-stock-module.py) reports both
+`full_file_equal=true` and static equivalence.
 
-The driver now uses fourteen older vendor source bodies with native stock
-warning locations, eliminating every Wi-Fi `#line` directive. Ten files are
-unchanged from the pinned kernel's RTL8821CS v5.12 vendor source, two are unchanged
-from Khadas's pinned March 2021 USB release, and two restore older vendor API
-bodies. Exact file hashes and immutable source references are recorded in
+The original source-version `91923B9ABAF58831D5783DF` is computed naturally from
+source; the original GNU build-id follows naturally during linking. No hash,
+symbol or metadata values are substituted. Embedded controller firmware remains
+upstream C-array data; its original firmware source has not been reconstructed.
+
+Thirteen older vendor source bodies restore native stock warning locations,
+eliminating every Wi-Fi `#line` directive. Ten files are unchanged from the pinned
+kernel's RTL8821CS v5.12 source, one is unchanged from Khadas's pinned March 2021
+USB release, and two restore older vendor API bodies. The baseline USB transmit
+source is retained. Exact file hashes and immutable references are recorded in
 [the input manifest](../../vendor/kernels/stock-patches/rtl8821cu-sources.json).
-This recovers source fidelity without claiming the historical checksum matches.
-Untouched files retain their original bytes, including three CRLF source files;
-normalizing them changes the checksum despite identical compiler output.
+Untouched files retain their original bytes, including three mixed-format CRLF
+source files. Normalizing those files changes the source-version despite
+identical compiler output. Preserving them and selecting the genuine vendor
+bodies recovered the historical checksum and complete ELF identity.
 
 The module's earlier missing six compiler IDs are reproduced by a real Kconfig
 profile enabling `CONFIG_TCP_MD5SIG`. Moving the existing namespace import in
@@ -326,14 +328,11 @@ from the captured kernel configuration in this one setting only. The builder
 stages `kernel.config` before configuring the module, checks the module's resolved
 configuration against that expected delta, and records `module.config` separately.
 
-A read-only model of GNU ld 2.25 recomputes both the original and rebuilt module's
-stored build IDs exactly. Its hash includes the source-version field; once that
-field is naturally recovered, the otherwise identical hashed ELF inputs also
-resolve the module's build ID. The unresolved input is the original normalized
-source content, not an independent linker identity setting. Kernel source-version
-calculation also hashes inactive tokens, diagnostic `#line` directives and some
-physical line-ending differences. Matching emitted code does not uniquely recover
-those discarded inputs.
+A read-only GNU ld 2.25 model independently recomputes the original and rebuilt
+module's build IDs. This verified that source-version recovery, rather than an
+explicit build-ID override, resolves the linked identity. Historical source text
+is not uniquely identified by binary equality; the pinned reconstruction is
+proven to reproduce the complete deployed module.
 
 Kernel source builds use the exact captured configuration and the historical
 Linaro 5.3.1 compiler. A private bubblewrap namespace supplies both original build
