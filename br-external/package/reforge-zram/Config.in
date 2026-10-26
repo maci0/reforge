@@ -1,9 +1,11 @@
 config BR2_PACKAGE_REFORGE_ZRAM
 	bool "reforge-zram"
+	depends on BR2_LINUX_KERNEL
+	depends on BR2_arm
 	help
-	  Ships the prebuilt zsmalloc.ko and zram.ko kernel modules built from
+	  Builds zsmalloc.ko and zram.ko kernel modules from
 	  the Allwinner T113 vendor BSP, vermagic 5.4.61 SMP preempt mod_unload
-	  ARMv7 p2v8.  Also installs swapon_prio, a static armv7 helper that
+	  ARMv7 p2v8.  Also builds swapon_prio, a static armv7 helper that
 	  calls swapon(2) with SWAP_FLAG_PREFER|priority (busybox swapon lacks
 	  -p).
 

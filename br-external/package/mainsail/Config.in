@@ -1,6 +1,10 @@
 config BR2_PACKAGE_MAINSAIL
 	bool "mainsail"
 	depends on BR2_HOST_GCC_AT_LEAST_8
+	# Match the Python features selected by Buildroot's host-nodejs-src option.
+	select BR2_PACKAGE_HOST_PYTHON3
+	select BR2_PACKAGE_HOST_PYTHON3_BZIP2
+	select BR2_PACKAGE_HOST_PYTHON3_SSL
 	help
 	  Mainsail is the popular web interface for managing and
 	  controlling 3D printers with Klipper firmware. It is a
