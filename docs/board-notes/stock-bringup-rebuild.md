@@ -424,6 +424,55 @@ distinct JasonYANG170/LubanCat source was rejected because it requires a
 `get_gamma_tbl` device member absent from the original ABI and removes the
 original reload helper; that candidate was not adapted to force a match.
 
+### Tested path and source/debug candidates
+
+On 2026-10-26, a bounded matrix tested **64 unique combinations**: two output
+directories, four compiler installation directories, and eight CAN source/debug
+envelopes. Exact paths, profiles, per-case Image hashes and build IDs are recorded
+in [stock-kernel-input-trials.json](stock-kernel-input-trials.json).
+
+The output directories were the current `_s3` SDK's `out/kernel/build` and the
+earlier checkout's same directory, observed directly in stock module DWARF.
+Compiler locations covered the SDK's `out/gcc-linaro-...`, `out/toolchain/gcc-linaro-...`,
+`out/external-toolchain/gcc-arm`, and the earlier checkout's `out/gcc-linaro-...`.
+These are evidence-backed candidates, not confirmed factory kernel paths.
+Board-specific `longan` output paths were rejected before building: actual SDK
+scripts use them for platform packaging, not kernel objects. Their explicit
+kernel output formula supports `out/kernel/build`.
+
+CAN variants covered normal C debug, caller/helper debug omissions, variable
+spellings recovered from published vendor assembly, and two source-generated
+assembly pipelines. One pipeline replayed the vendor's actual expanded compiler
+arguments. Its naturally generated producer prefix matches all **5,347 bytes /
+85 lines** of the published assembly prefix exactly. Its reconstructed helper
+algorithm retains the original 4,292 executable bytes and 104 unwind bytes;
+this does not establish the missing original helper C source text.
+The generic assembly was generated once per output directory using the control
+compiler path; the vendor replay used its separately recorded vendor path.
+The four compiler locations vary the kernel compilation environment, not every
+possible combination of earlier assembly-generation environments.
+
+**Result: zero whole-file stock matches.** Every Image is exactly 12,970,156
+bytes (**0-byte size delta**), with every byte outside the 20-byte GNU descriptor
+matching stock. Each directory's control reproduces its independent clean
+`vmlinux` and Image exactly. A separate read-only verification checked all 64
+saved Images and recomputed every pre-sort ELF's stored build ID using the
+validated linker model. No stock objects, manual line padding, debug-section
+rewrites or build-ID overrides were used.
+
+The captured kernel configuration was restored and its generated headers
+regenerated before compiling. Thin archives were regenerated with actual Kbuild
+commands after object sizes changed. Intermediate failed setup attempts were
+excluded; only the 64 validated cases are counted. Scratch recipes, commands,
+objects, pre-sort/final ELFs and Images remain under
+`/tmp/reforge-compiler-path-axis/`.
+
+These results reject these particular combined reconstructions, not every
+possible historical path, source spelling or debug configuration. A chance
+19-byte rather than 20-byte descriptor difference is not evidence of being
+closer to the correct SHA-1 input. Production source defaults were not changed
+to any negative candidate.
+
 | Area | Recovered original behavior |
 |---|---|
 | Framebuffer | Defer freeing the boot framebuffer until display startup plus 30 ms; use the original uncached ION allocation and panel layout. |
