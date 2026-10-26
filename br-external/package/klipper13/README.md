@@ -59,6 +59,24 @@ image. Both passed the checks above and contained no ARM-state code. The ARM
 host also imported and loaded its rebuilt helper under QEMU. No hardware
 calibration or MCU UART session was exercised.
 
+Repeat-build validation on 2026-10-26 found that GCC's random LTO seed and source
+paths affected ELF debug/symbol metadata, while BIN, HEX, protocol dictionary and
+configuration already matched. The package now uses relative per-output compiler
+seeds and compiler-input path maps; it does not rewrite output files. Newlib's
+own compilation maps its source/build paths, and its archiver/indexer use normal
+deterministic creation flags instead of retaining object timestamps and owners.
+
+Two clean newlib-and-firmware builds in different-length source/build paths and
+timezones produced identical eight newlib archives and identical BIN, HEX, ELF,
+dict and config files for both boards. A separate relocated-compiler test also
+passed. The source-built GCC/binutils compiler binaries were reused, not
+bootstrapped twice. No research-directory paths or predefined date/time macro
+tokens remain in the final firmware debug sections. The mainboard/toolhead BIN
+hashes remain `f2a7e808e635344d1c4f09f53a844af8b2695b1c952ecfaa413991c7c8a28061`
+and `9efa694e117cdbeaf92f9e401f727122598a099c3edb208acb8fa05b335a6385`.
+This checks reproducibility of the pinned v13 firmware, not equality with the
+different factory MCU version.
+
 These are build artifacts. The package does not invoke a flasher or change either
 MCU on a connected printer. Review the v13 printer configuration and the recovery
 path before flashing; a successful build does not validate motors, heaters,

@@ -1,0 +1,36 @@
+From: ReForge <reforge@localhost>
+Subject: [PATCH] Make MCU debug information reproducible across build directories
+
+Keep target compiler flags intact while accepting caller-supplied path maps.
+Use the relative output name as the per-unit LTO seed so generated file symbols
+and debug-string ordering do not depend on GCC's random seed.
+
+--- a/Makefile
++++ b/Makefile
+@@ -62,7 +62,7 @@
+ 
+ $(OUT)%.o: %.c $(OUT)autoconf.h
+ 	@echo "  Compiling $@"
+-	$(Q)$(CC) $(CFLAGS) -c $< -o $@
++	$(Q)$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -frandom-seed=$@ -c $< -o $@
+ 
+ $(OUT)%.ld: %.lds.S $(OUT)autoconf.h
+ 	@echo "  Preprocessing $@"
+@@ -70,7 +70,7 @@
+ 
+ $(OUT)klipper.elf: $(OBJS_klipper.elf)
+ 	@echo "  Linking $@"
+-	$(Q)$(CC) $(OBJS_klipper.elf) $(CFLAGS_klipper.elf) -o $@
++	$(Q)$(CC) $(OBJS_klipper.elf) $(CFLAGS_klipper.elf) $(EXTRA_CFLAGS) -frandom-seed=$@ -o $@
+ 	$(Q)scripts/check-gcc.sh $@ $(OUT)compile_time_request.o
+ 
+ ################ Compile time requests
+@@ -82,7 +82,7 @@
+ 	@echo "  Building $@"
+ 	$(Q)cat $(patsubst %.c, $(OUT)src/%.o.ctr,$(src-y)) | tr -s '\0' '\n' > $(OUT)compile_time_request.txt
+ 	$(Q)$(PYTHON) ./scripts/buildcommands.py -d $(OUT)klipper.dict -t "$(CC);$(AS);$(LD);$(OBJCOPY);$(OBJDUMP);$(STRIP)" $(OUT)compile_time_request.txt $(OUT)compile_time_request.c
+-	$(Q)$(CC) $(CFLAGS) -c $(OUT)compile_time_request.c -o $@
++	$(Q)$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -frandom-seed=$@ -c $(OUT)compile_time_request.c -o $@
+ 
+ ################ Auto generation of "board/" include file link
+ 

@@ -22,8 +22,14 @@ compiler_opts=$(br printvars VARS=HOST_GCC_BARE_METAL_CONF_OPTS)
 [[ "$compiler_opts" == *--with-cpu=cortex-m4* ]]
 [[ "$compiler_opts" == *--with-mode=thumb* ]]
 [[ "$compiler_opts" == *--with-float=soft* ]]
+newlib_opts=$(br printvars VARS='NEWLIB_BARE_METAL_CONF_OPTS NEWLIB_BARE_METAL_MAKE_OPTS')
+[[ "$newlib_opts" == *-ffile-prefix-map=*=/reforge/build* ]]
+[[ "$newlib_opts" == *arm-none-eabi-ar\ -D* ]]
+[[ "$newlib_opts" == *arm-none-eabi-ranlib\ -D* ]]
 # Reapplying the shipping defconfig must restore the stock-compatible host.
 br reforge_defconfig
 grep -qx 'BR2_PACKAGE_KLIPPER=y' "$scratch/.config"
 grep -qx '# BR2_PACKAGE_KLIPPER13 is not set' "$scratch/.config"
+newlib_opts=$(br printvars VARS='NEWLIB_BARE_METAL_CONF_OPTS NEWLIB_BARE_METAL_MAKE_OPTS')
+[[ "$newlib_opts" != *-ffile-prefix-map=*=/reforge/build* ]]
 echo 'Klipper package selection: default and alternative passed'

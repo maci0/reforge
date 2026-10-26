@@ -1,0 +1,6 @@
+/include/ "kernel.dts"
+
+/* The primary TOC uses PWM6; the kernel FAT DTB uses PWM7. */
+&{/soc@3000000/lcd0@5461000} {
+	lcd_pwm_ch = <0x06>;
+};

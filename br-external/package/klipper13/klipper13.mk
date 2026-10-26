@@ -30,6 +30,12 @@ $(error klipper13 requires bare metal multilib disabled for its Cortex-M4 librar
 endif
 # Both N32G455 boards require Thumb-only M-profile runtime libraries.
 HOST_GCC_BARE_METAL_CONF_OPTS += --with-cpu=cortex-m4 --with-mode=thumb --with-float=soft
+# Debug paths in linked libc must be normalized when libc itself is compiled.
+NEWLIB_BARE_METAL_CONF_OPTS += \
+	CFLAGS_FOR_TARGET='-g -O2 -ffile-prefix-map=$(BASE_DIR)=/reforge/build -ffile-prefix-map=$(HOST_DIR)=/reforge/host'
+NEWLIB_BARE_METAL_MAKE_OPTS += \
+	AR_FOR_TARGET='$(HOST_DIR)/bin/arm-none-eabi-ar -D' \
+	RANLIB_FOR_TARGET='$(HOST_DIR)/bin/arm-none-eabi-ranlib -D'
 endif
 
 define KLIPPER13_BUILD_CMDS
@@ -47,7 +53,8 @@ define KLIPPER13_BUILD_CMDS
 		$(HOST_MAKE_ENV) $(MAKE) -C $(@D) \
 			CROSS_PREFIX=$(HOST_DIR)/bin/arm-none-eabi- PYTHON=$(HOST_DIR)/bin/python3 olddefconfig && \
 		$(HOST_MAKE_ENV) $(MAKE) -C $(@D) \
-			CROSS_PREFIX=$(HOST_DIR)/bin/arm-none-eabi- PYTHON=$(HOST_DIR)/bin/python3 && \
+			CROSS_PREFIX=$(HOST_DIR)/bin/arm-none-eabi- PYTHON=$(HOST_DIR)/bin/python3 \
+			EXTRA_CFLAGS='-ffile-prefix-map=$(@D)=. -ffile-prefix-map=$(HOST_DIR)=/reforge/host' && \
 		$(HOST_DIR)/bin/python3 $(KLIPPER13_PKGDIR)/check-mcu.py \
 			$(@D)/out $(@D)/.config $$board "$(KLIPPER13_BUILD_VERSION)" || exit 1; \
 		for ext in bin hex elf dict; do \

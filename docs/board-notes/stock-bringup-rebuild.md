@@ -1,8 +1,33 @@
 # Stock AD5M Pro bringup: source builds and byte-identity status
 
-Rechecked 2026-10-25. **The complete original boot chain has not been rebuilt
+Rechecked 2026-10-26. **The complete original boot chain has not been rebuilt
 byte-identically.** No bootloader, environment, MCU or flash device was written.
 Reference bytes and source-build outputs are kept separately.
+
+## Accepted kernel result and remaining bring-up target
+
+On 2026-10-26 the user accepted the raw kernel's metadata-only difference.
+Both Images are exactly 12,970,156 bytes; every instruction, embedded data byte,
+kallsyms byte and padding byte in the delivered raw Image matches, except the
+20-byte GNU build ID at `0xacc154..0xacc167`. The size delta is zero. Further
+recovery of stripped kernel debug metadata is not a prerequisite for this
+accepted bring-up result. This acceptance does not claim complete ELF identity.
+
+The user subsequently authorized an explicit 20-byte build-ID patch. The
+source-built `Image.source` and `vmlinux` are retained unchanged; the delivery
+`Image` receives only that metadata patch. Its full SHA-256 then matches stock.
+Building the actual kernel zImage from that delivery Image and generating the
+legacy uImage metadata also reproduces both original wrappers byte-identically.
+This is an explicitly patched delivery artifact, not a claim that the original
+ELF/debug inputs have been recovered.
+
+Independent boot stages and board configuration remain strict whole-file
+byte-identity targets built from source. No target executable code is imported
+from reference binaries.
+
+The intentionally updated userspace packages and optional Klipper 13 firmware
+retain their selected version pins. Their source-build repeatability is checked
+separately from reproduction of immutable stock hardware bring-up artifacts.
 
 ## Reference identity and configured boot path
 
@@ -39,19 +64,64 @@ must not be described as an unchanged factory boot chain throughout.
 
 | Stage | Original identity | Current result / missing input |
 |---|---|---|
-| boot0 / SPL | Two identical 48 KiB eGON copies at `0x2000` and `0x20000`; commit field `5224261`, DRAM driver `V0.32`, DDR3 at 792 MHz. | Held SDK's `spl-pub/nboot/Makefile` links `board/sun8iw20p1/libsun8iw20p1_sdcard.a`, an ELF relocatable without the DRAM implementation source. No source-only replacement or byte-identical rebuild is claimed. |
+| boot0 / SPL | Two identical 48 KiB eGON copies at `0x2000` and `0x20000`; commit field `5224261`, DRAM driver `V0.32`, DDR3 at 792 MHz. | Genuine open-source SPL now builds without the held private library, but does not yet match. DRAM/MMC/PMIC source reconstruction is in progress; no byte-identical boot0 is claimed. |
 | Primary U-Boot | 2018.05, August 25, 2023 17:05:54 +0800; Linaro GCC 7.2.1 20171011, binutils 2.28.2.20170706. Historical source revision is unknown. | **Byte-identical source reconstruction verified:** 966,656 bytes, SHA-256 `31aaa8a085b4985dafdad87d97637fcc1d35a300101295edfaf51c826ff53019`. Uses pinned older source, recovered source changes and source-compiled control DTS. |
-| OP-TEE secure world | Build `553fe17e2-dirty`, Linaro 5.3.1, build #6 dated February 18, 2022. | Held `lichee.zip` contains U-Boot/Linux client shims, not the secure-world OP-TEE OS source tree. No prebuilt payload is imported into source-build outputs. |
-| Kernel | p1 uImage decompresses to raw Image SHA-256 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`, 12,970,156 bytes. | Source reconstruction verified: all executable and functional data bytes match; full Image differs only in GNU build-id. The complete file is not byte-identical. |
+| OP-TEE secure world | Build `553fe17e2-dirty`, Linaro 5.3.1, build #6 dated February 18, 2022. | Upstream 3.7 and published SM3/SM4 sources now build and recover common code. T113 platform/vendor-service reconstruction remains incomplete. No prebuilt payload is imported into source-build outputs. |
+| Kernel delivery | p1 uImage decompresses to raw Image SHA-256 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`, 12,970,156 bytes. | **Whole-file identical after the user-authorized 20-byte metadata patch.** Untouched source output is preserved separately. Full ELF/debug identity is not claimed. |
+| zImage / uImage | zImage SHA-256 `dd7fbccace45bbea6862597b86db12644480024ff6e276b93b6014123b9c5a34`; uImage `13c17296c9ed34cff1c355dc717ab76803410bd872a495bdefaca07cdaf89c79`. | **Whole-file identical**, actual source-built decompressor and gzip stream, after patching the raw Image before compression. Legacy header and both CRCs regenerated from source-defined metadata. |
+| Board DTBs / environments | Kernel, primary TOC and U-Boot control DTBs; both 1-MiB environment partitions. | **Byte-identical configuration source builds verified.** Recovered DTS/text inputs and strict builder are committed; no firmware image is needed to build them. |
+| DSP0 | Active boot command loads the Xtensa ELF from p5; 261,240-byte ELF SHA-256 `61ed4f199ca3b15f96c245a709282e1a4798b14d0f23a5e2930577487ebd20d1`, matching the held SDK firmware exactly. | Source build not yet reproduced. Original source version `sun8iw20_fpga_v0.5.0-37-gfb1fe0d`; matching Cadence RI-2020.4/compiler 14.04 acquired, but a real compile fails without an `XTENSA_XCC_TIE` entitlement. Original source revision/config still unresolved. |
 | Wi-Fi module | Deployed flat RTL8821CU module, 2,441,368 bytes. | **Byte-identical source build verified**, SHA-256 `7c0a036726227752359556f8e109683d5ce836bb65ec64afd46bfb754d6afa69`; natural source-version and build-id, no metadata overrides. |
 | Rootfs / services | ReForge Buildroot source packages. | Existing ReForge build path; no full image boot validation was performed in this audit. |
-| Mainboard / toolhead | Matching Klipper 13 host and MCU source pin. | Integrated [source-build package](../../br-external/package/klipper13/README.md), with per-board checks and image/checksum output. No flashing. |
+| Factory MCU applications / retained IAP | Mainboard and Eboard identify strings report `?-20230317_182329-ubuntu20-virtual-machine`, GCC 9.2.1, 144 MHz and STM32F103 identification with N32-like memory. | Original source/build identity unresolved. Public v0.11 STM32 selections do not explain those clock/RAM settings. The retained 64-KiB Eboard IAP is not present in the application HEX. Optional v13 repeatability does not establish factory equality. |
+| Optional Klipper 13 mainboard / toolhead | Matching host and MCU source pin. | **Source repeatability verified:** two independently rebuilt newlib/MCU closures produce identical libraries and all 12 packaged firmware files, including ELF. This is the selected v13 upgrade, not factory MCU equality. No flashing. |
 
 The held SDK is `/home/maci/Desktop/Projects/flashforge/lichee.zip`, containing
 `lichee/brandy-2.0` and `lichee/linux-5.4`; archive SHA-256
 `6ed0f793436067c694bcec3538b24861b48f8d914c603f48aa5939c26f158197`.
 This is a bounded source inventory,
 not a claim that the missing original source cannot exist elsewhere.
+
+## Reproducible board configuration
+
+The [recovered source configuration](../../br-external/board/reforge/stock/README.md)
+compiles the kernel DTB, primary-TOC DTB, U-Boot control DTB and both redundant
+environment partitions without reading a reference firmware image:
+
+```sh
+python3 tools/build/build-stock-board-data.py build/stock-board-data
+```
+
+The primary TOC tree differs from the kernel tree only in LCD PWM6 versus PWM7.
+The TOC allocation is regenerated with zero padding. Environment encoding
+preserves variable order and whitespace, computes CRC32 over the 128-KiB slot,
+sets the active flag to 1, and zero-pads the remaining 1-MiB partition. The
+builder checks all six generated artifacts against fixed original SHA-256 pins.
+
+## Authorized kernel metadata patch and exact delivery wrappers
+
+```sh
+python3 tools/build/patch-stock-kernel-build-id.py Image.source Image.stock
+```
+
+The patcher requires the exact 12,970,156-byte profile and GNU note header. It
+changes only `0xacc154..0xacc167`, refuses to overwrite an existing output, and
+rejects the input unless the resulting whole-file SHA-256 is exactly the stock
+`902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`.
+This prevents a code/data difference from being concealed by the metadata patch.
+The original input is left untouched and the emitted JSON records both IDs and
+hashes. No naturally generated build-ID equality is claimed.
+
+The full kernel recipe now requires `STOCK_UIMAGE=/path/to/original/uImage`
+alongside its existing positional references. A clean run in
+`build/stock-kernel-delivery-verified/` preserved `artifacts/Image.source` and
+`vmlinux`, recorded `kernel-build-id-patch.json`, and built delivery `Image`,
+`zImage`, `uImage` and `8821cu.ko` whose full bytes all match their originals.
+An independent preceding wrapper build has the same result. `comparison.json`
+checks the delivery Image, `kernel-source-comparison.json` retains the honest
+20-byte source-output difference, and `wrapper-comparison.json` verifies the
+complete uImage, payload, CRCs and metadata. The uImage timestamp is 1692776025;
+the source kernel timestamp remains 1692776013.
 
 ## Original U-Boot comparison build
 
@@ -701,7 +771,8 @@ from C/assembly, including the newly recovered CAN C implementation.
 ```sh
 curl -fL https://codeload.github.com/guanglun/longan-t113-linux-5.4/tar.gz/d51ad00c047eccd5c88e807aedf56a5a25d9a155 -o /tmp/stock-kernel-source.tar.gz
 curl -fL https://codeload.github.com/rugameuser/8821cu-20210118/tar.gz/b6ad883ea547cbd5d144e6218cc122bb4de4ffc4 -o /tmp/stock-wifi-source.tar.gz
-tools/build/build-bsp-kernel-stock.sh /tmp/stock-kernel-source.tar.gz \
+STOCK_UIMAGE=/path/to/original/uImage \
+  tools/build/build-bsp-kernel-stock.sh /tmp/stock-kernel-source.tar.gz \
     /tmp/stock-wifi-source.tar.gz /path/to/original-Image.raw \
     /path/to/original-flat-8821cu.ko build/stock-kernel-reproduced
 ```

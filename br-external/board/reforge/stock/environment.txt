@@ -1,0 +1,26 @@
+earlycon=uart8250,mmio32,0x05000000
+initcall_debug=0
+console=ttyS3,115200
+nand_root=ubi0_5
+mmc_root=/dev/mmcblk0p6
+mtd_name=sys
+rootfstype=ubifs,rw
+init=/init
+loglevel=4
+cma=16M
+mac=
+wifi_mac=
+bt_mac=
+specialstr=
+keybox_list=widevine,ec_key,ec_cert1,ec_cert2,ec_cert3,rsa_key,rsa_cert1,rsa_cert2,rsa_cert3
+dsp0_partition=dsp0
+setargs_nand=setenv bootargs ubi.mtd=${mtd_name} earlycon=${earlycon} clk_ignore_unused initcall_debug=${initcall_debug} console=${console} loglevel=${loglevel} root=${nand_root} rootfstype=${rootfstype} init=${init} partitions=${partitions} cma=${cma} snum=${snum} mac_addr=${mac} wifi_mac=${wifi_mac} bt_mac=${bt_mac} specialstr=${specialstr} gpt=1
+setargs_nand_ubi=setenv bootargs ubi.mtd=${mtd_name} earlycon=${earlycon} clk_ignore_unused initcall_debug=${initcall_debug} console=${console} loglevel=${loglevel} root=${nand_root} rootfstype=${rootfstype} init=${init} partitions=${partitions} cma=${cma} snum=${snum} mac_addr=${mac} wifi_mac=${wifi_mac} bt_mac=${bt_mac} specialstr=${specialstr} gpt=1
+setargs_mmc=setenv  bootargs earlycon=${earlycon} clk_ignore_unused initcall_debug=${initcall_debug} console=${console} loglevel=${loglevel} root=${mmc_root}  init=${init} partitions=${partitions} cma=${cma} snum=${snum} mac_addr=${mac} wifi_mac=${wifi_mac} bt_mac=${bt_mac} specialstr=${specialstr} gpt=1
+boot_dsp0=sunxi_flash read 43000000 ${dsp0_partition};bootr 43000000 0 0
+boot_normal=sunxi_flash read 43000000 boot;bootm 43000000
+boot_recovery=sunxi_flash read 43000000 recovery;bootm 43000000
+boot_fastboot=fastboot
+boot_uImage=part list mmc 0;fatload mmc 0:1 0x43000000 uImage;fatload mmc 0:1 0x44864e70 sunxi.dtb;fdt resize;bootm 0x43000000 - 0x44864e70
+bootdelay=3
+bootcmd=run setargs_mmc boot_dsp0 boot_uImage

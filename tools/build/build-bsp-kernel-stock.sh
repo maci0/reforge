@@ -2,7 +2,7 @@
 # Reconstruct the original kernel and modules from pinned source; never flash.
 set -euo pipefail
 if (( $# < 4 || $# > 5 )); then
-    echo "usage: $0 KERNEL_SOURCE_TAR WIFI_SOURCE_TAR STOCK_IMAGE STOCK_WIFI_MODULE [OUTPUT_DIR]" >&2
+    echo "usage: STOCK_UIMAGE=/original/uImage $0 KERNEL_SOURCE_TAR WIFI_SOURCE_TAR STOCK_IMAGE STOCK_WIFI_MODULE [OUTPUT_DIR]" >&2
     exit 2
 fi
 repo=$(cd "$(dirname "$0")/../.." && pwd)
@@ -13,6 +13,15 @@ wifi_reference=$(realpath "$4")
 out=$(realpath -m "${5:-${OUT:-$repo/build/bsp-kernel-rebuild-stock}}")
 die() { echo "build-bsp-kernel-stock: $*" >&2; exit 1; }
 [[ ! -e "$out" ]] || die "Output directory must be new: $out"
+[[ -n "${STOCK_UIMAGE:-}" ]] || die 'STOCK_UIMAGE must name the original uImage reference'
+stock_uimage=$(realpath "$STOCK_UIMAGE")
+python3 - "$stock_uimage" <<'PYUREF'
+import hashlib
+from pathlib import Path
+import sys
+if hashlib.sha256(Path(sys.argv[1]).read_bytes()).hexdigest() != '13c17296c9ed34cff1c355dc717ab76803410bd872a495bdefaca07cdaf89c79':
+    raise SystemExit('STOCK_UIMAGE SHA-256 does not match the original board reference')
+PYUREF
 command -v bwrap >/dev/null || die 'bubblewrap is required for the original virtual build paths'
 python3 -c 'import elftools' || die 'pyelftools is required for module verification'
 cross="$repo/vendor/toolchains/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi/bin/arm-linux-gnueabi-"
@@ -126,9 +135,27 @@ if ! "${namespace[@]}" make -C "$stock_src" "O=$stock_out" "${common[@]}" -j"${B
     tail -40 "$out/kernel.log" >&2
     exit 1
 fi
-cp "$obj/arch/arm/boot/Image" "$out/artifacts/Image"
+cp "$obj/arch/arm/boot/Image" "$out/artifacts/Image.source"
 cp "$obj/vmlinux" "$obj/System.map" "$out/artifacts/"
 cp "$obj/.config" "$out/artifacts/kernel.config"
+python3 "$repo/tools/build/compare-stock-kernel.py" "$reference" "$out/artifacts/Image.source" "$out/kernel-source-comparison.json"
+# Preserve the natural compiler output; the user authorized only this metadata patch.
+python3 "$repo/tools/build/patch-stock-kernel-build-id.py" "$out/artifacts/Image.source" "$out/artifacts/Image" > "$out/kernel-build-id-patch.json"
+cp "$out/artifacts/Image" "$obj/arch/arm/boot/Image"
+if ! "${namespace[@]}" make -C "$stock_src" "O=$stock_out" "${common[@]}" -j"${BUILD_JOBS:-8}" zImage > "$out/wrappers.log" 2>&1; then
+    tail -40 "$out/wrappers.log" >&2
+    exit 1
+fi
+cmp -s "$out/artifacts/Image" "$obj/arch/arm/boot/Image" || die 'zImage build regenerated the patched delivery Image'
+cp "$obj/arch/arm/boot/zImage" "$out/artifacts/zImage"
+cp "$obj/arch/arm/boot/compressed/vmlinux" "$out/artifacts/decompressor-vmlinux"
+# The legacy header is non-executable metadata; its original timestamp is fixed here.
+{
+    gzip --version
+    sha256sum "$repo/tools/build/stock-kernel-wrappers.py" "$repo/tools/build/patch-stock-kernel-build-id.py"
+} > "$out/wrapper-tools.txt"
+python3 "$repo/tools/build/stock-kernel-wrappers.py" pack "$out/artifacts/zImage" "$out/artifacts/uImage"
+python3 "$repo/tools/build/stock-kernel-wrappers.py" compare "$stock_uimage" "$out/artifacts/uImage" "$out/wrapper-comparison.json"
 # The earlier Wi-Fi build has a distinct, inferred header-declaration profile.
 cp "$obj/.config.captured" "$obj/.config.module-expected"
 "$src/scripts/config" --file "$obj/.config.module-expected" --enable TCP_MD5SIG
@@ -154,8 +181,14 @@ import sys
 out = Path(sys.argv[1])
 kernel = json.loads((out / 'comparison.json').read_text())
 wifi = json.loads((out / 'wifi-comparison.json').read_text())
+source = json.loads((out / 'kernel-source-comparison.json').read_text())
+patch = json.loads((out / 'kernel-build-id-patch.json').read_text())
+wrappers = json.loads((out / 'wrapper-comparison.json').read_text())
 print(json.dumps({'kernel_payload_equal': kernel['payload_equal'],
                   'kernel_full_file_equal': kernel['full_file_equal'],
+                  'natural_kernel_full_file_equal': source['full_file_equal'],
+                  'metadata_patch': patch,
+                  'wrappers_full_file_equal': wrappers['full_file_equal'],
                   'wifi_static_equivalent': wifi['runtime_equivalent'],
                   'wifi_full_file_equal': wifi['full_file_equal'],
                   'artifacts': str(out / 'artifacts')}))
