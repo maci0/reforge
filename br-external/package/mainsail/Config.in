@@ -1,10 +1,11 @@
 config BR2_PACKAGE_MAINSAIL
 	bool "mainsail"
+	depends on BR2_HOST_GCC_AT_LEAST_8
 	help
 	  Mainsail is the popular web interface for managing and
 	  controlling 3D printers with Klipper firmware. It is a
-	  prebuilt static web bundle installed to /var/www/mainsail
-	  and served by busybox httpd. The browser connects directly
+	  static web bundle built from source and installed to
+	  /var/www/mainsail and served by busybox httpd. The browser connects directly
 	  to the Moonraker API/WebSocket on port 7125 (no reverse
 	  proxy; Moonraker cors_domains must permit the origin).
 

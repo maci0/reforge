@@ -5,18 +5,22 @@
 ################################################################################
 
 MAINSAIL_VERSION = v2.19.0
-MAINSAIL_SITE = https://github.com/mainsail-crew/mainsail/releases/download/$(MAINSAIL_VERSION)
-MAINSAIL_SOURCE = mainsail.zip
+MAINSAIL_SITE = $(call github,mainsail-crew,mainsail,$(MAINSAIL_VERSION))
+MAINSAIL_DEPENDENCIES = host-nodejs-src host-zip
 
-# Buildroot does not auto-extract .zip archives the same way it handles
-# tarballs — provide explicit extraction via host unzip.
-define MAINSAIL_EXTRACT_CMDS
-	$(UNZIP) $(MAINSAIL_DL_DIR)/$(MAINSAIL_SOURCE) -d $(@D)/
+# Use upstream's locked source dependencies and production build. Cypress is
+# only a host test tool; its browser binary is not needed to compile the SPA.
+define MAINSAIL_BUILD_CMDS
+	cd $(@D) && $(HOST_MAKE_ENV) CYPRESS_INSTALL_BINARY=0 \
+		$(HOST_DIR)/bin/npm ci --no-audit --no-fund
+	cd $(@D) && $(HOST_MAKE_ENV) $(HOST_DIR)/bin/npm run build
 endef
 
 define MAINSAIL_INSTALL_TARGET_CMDS
+	rm -rf $(TARGET_DIR)/var/www/mainsail
 	mkdir -p $(TARGET_DIR)/var/www/mainsail
-	cp -a $(@D)/* $(TARGET_DIR)/var/www/mainsail/
+	cp -a $(@D)/dist/. $(TARGET_DIR)/var/www/mainsail/
+	rm -f $(TARGET_DIR)/var/www/mainsail/mainsail.zip
 	# Mainsail's upstream config.json ships "port": null, which makes the SPA
 	# connect to Moonraker on the *page's own* port. ReForge serves Mainsail via
 	# busybox httpd on :80 while Moonraker listens on :7125 with NO reverse proxy
