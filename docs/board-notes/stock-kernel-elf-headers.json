@@ -1236,6 +1236,737 @@
   "field_confidence": {
     "e_entry": "Current value matches original stext plus the known ENTRY(stext) linker directive; original ELF entry bytes are not directly available.",
     "ELF_class_endianness_machine": "Strong architecture/toolchain inference, not retained original header bytes.",
-    "counts_flags_segment_layout": "Unverified for original; invariant across the tested candidate inputs does not prove stock equality."
+    "counts_flags_segment_layout": "Unverified for original; invariant across the tested candidate inputs does not prove stock equality.",
+    "e_flags": "Derived from original-module EABI5, captured soft-float settings and pinned linker executable-generation rules; not directly recovered original kernel header bytes."
+  },
+  "expanded_stock_constraints": {
+    "scope": "Conditional on the known generated linker-script section associations; not recovered original ELF header bytes.",
+    "generated_linkscript_sha256": "0ba8a6911d59b8699355ebf2c206949d81b17c557ba1775f56505299dc54c12d",
+    "summary": {
+      "individual_header_fields": 43,
+      "composite_section_end_constraints": 2,
+      "load_address_constraints": 2,
+      "constraint_mismatches": 0,
+      "original_linkscript_markers_checked": 143,
+      "marker_mismatches": 0
+    },
+    "fields": [
+      {
+        "section": ".text",
+        "field": "sh_addr",
+        "expected": "0xc0100000",
+        "actual": "0xc0100000",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "_stext": "0xc0100000"
+        },
+        "linkscript_rule": "_stext is first assignment inside .text; __proc_info_end is final assignment inside .text, with no following payload"
+      },
+      {
+        "section": ".text",
+        "field": "sh_size",
+        "expected": "0x69be10",
+        "actual": "0x69be10",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "_stext": "0xc0100000",
+          "__proc_info_end": "0xc079be10"
+        },
+        "linkscript_rule": "_stext is first assignment inside .text; __proc_info_end is final assignment inside .text, with no following payload"
+      },
+      {
+        "section": "__ksymtab",
+        "field": "sh_addr",
+        "expected": "0xc0a54efc",
+        "actual": "0xc0a54efc",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start___ksymtab": "0xc0a54efc"
+        },
+        "linkscript_rule": "markers enclose all SORT(___ksymtab+*) inputs"
+      },
+      {
+        "section": "__ksymtab",
+        "field": "sh_size",
+        "expected": "0xd2e4",
+        "actual": "0xd2e4",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start___ksymtab": "0xc0a54efc",
+          "__stop___ksymtab": "0xc0a621e0"
+        },
+        "linkscript_rule": "markers enclose all SORT(___ksymtab+*) inputs"
+      },
+      {
+        "section": "__ksymtab_gpl",
+        "field": "sh_addr",
+        "expected": "0xc0a621e0",
+        "actual": "0xc0a621e0",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start___ksymtab_gpl": "0xc0a621e0"
+        },
+        "linkscript_rule": "markers enclose all SORT(___ksymtab_gpl+*) inputs"
+      },
+      {
+        "section": "__ksymtab_gpl",
+        "field": "sh_size",
+        "expected": "0xd578",
+        "actual": "0xd578",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start___ksymtab_gpl": "0xc0a621e0",
+          "__stop___ksymtab_gpl": "0xc0a6f758"
+        },
+        "linkscript_rule": "markers enclose all SORT(___ksymtab_gpl+*) inputs"
+      },
+      {
+        "section": "__param",
+        "field": "sh_addr",
+        "expected": "0xc0a9ad60",
+        "actual": "0xc0a9ad60",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start___param": "0xc0a9ad60"
+        },
+        "linkscript_rule": "markers enclose KEEP(*(__param))"
+      },
+      {
+        "section": "__param",
+        "field": "sh_size",
+        "expected": "0x11e4",
+        "actual": "0x11e4",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start___param": "0xc0a9ad60",
+          "__stop___param": "0xc0a9bf44"
+        },
+        "linkscript_rule": "markers enclose KEEP(*(__param))"
+      },
+      {
+        "section": "__modver",
+        "field": "sh_addr",
+        "expected": "0xc0a9bf44",
+        "actual": "0xc0a9bf44",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start___modver": "0xc0a9bf44"
+        },
+        "linkscript_rule": "markers enclose KEEP(*(__modver))"
+      },
+      {
+        "section": "__modver",
+        "field": "sh_size",
+        "expected": "0x68",
+        "actual": "0x68",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start___modver": "0xc0a9bf44",
+          "__stop___modver": "0xc0a9bfac"
+        },
+        "linkscript_rule": "markers enclose KEEP(*(__modver))"
+      },
+      {
+        "section": "__ex_table",
+        "field": "sh_addr",
+        "expected": "0xc0a9c000",
+        "actual": "0xc0a9c000",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start___ex_table": "0xc0a9c000"
+        },
+        "linkscript_rule": "markers enclose *(__ex_table)"
+      },
+      {
+        "section": "__ex_table",
+        "field": "sh_size",
+        "expected": "0x630",
+        "actual": "0x630",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start___ex_table": "0xc0a9c000",
+          "__stop___ex_table": "0xc0a9c630"
+        },
+        "linkscript_rule": "markers enclose *(__ex_table)"
+      },
+      {
+        "section": ".ARM.unwind_idx",
+        "field": "sh_addr",
+        "expected": "0xc0a9c630",
+        "actual": "0xc0a9c630",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start_unwind_idx": "0xc0a9c630"
+        },
+        "linkscript_rule": "markers enclose *(.ARM.exidx*)"
+      },
+      {
+        "section": ".ARM.unwind_idx",
+        "field": "sh_size",
+        "expected": "0x36ea8",
+        "actual": "0x36ea8",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start_unwind_idx": "0xc0a9c630",
+          "__stop_unwind_idx": "0xc0ad34d8"
+        },
+        "linkscript_rule": "markers enclose *(.ARM.exidx*)"
+      },
+      {
+        "section": ".ARM.unwind_tab",
+        "field": "sh_addr",
+        "expected": "0xc0ad34d8",
+        "actual": "0xc0ad34d8",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start_unwind_tab": "0xc0ad34d8"
+        },
+        "linkscript_rule": "markers enclose *(.ARM.extab*)"
+      },
+      {
+        "section": ".ARM.unwind_tab",
+        "field": "sh_size",
+        "expected": "0xc6c",
+        "actual": "0xc6c",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start_unwind_tab": "0xc0ad34d8",
+          "__stop_unwind_tab": "0xc0ad4144"
+        },
+        "linkscript_rule": "markers enclose *(.ARM.extab*)"
+      },
+      {
+        "section": ".notes",
+        "field": "sh_addr",
+        "expected": "0xc0ad4144",
+        "actual": "0xc0ad4144",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start_notes": "0xc0ad4144"
+        },
+        "linkscript_rule": "markers enclose KEEP(*(.note.*))"
+      },
+      {
+        "section": ".notes",
+        "field": "sh_size",
+        "expected": "0x3c",
+        "actual": "0x3c",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start_notes": "0xc0ad4144",
+          "__stop_notes": "0xc0ad4180"
+        },
+        "linkscript_rule": "markers enclose KEEP(*(.note.*))"
+      },
+      {
+        "section": ".init.text",
+        "field": "sh_addr",
+        "expected": "0xc0b002e0",
+        "actual": "0xc0b002e0",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "_sinittext": "0xc0b002e0"
+        },
+        "linkscript_rule": "markers enclose .init.text/.text.startup/.meminit.text inputs"
+      },
+      {
+        "section": ".init.text",
+        "field": "sh_size",
+        "expected": "0x2767c",
+        "actual": "0x2767c",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "_sinittext": "0xc0b002e0",
+          "_einittext": "0xc0b2795c"
+        },
+        "linkscript_rule": "markers enclose .init.text/.text.startup/.meminit.text inputs"
+      },
+      {
+        "section": ".init.arch.info",
+        "field": "sh_addr",
+        "expected": "0xc0b29c40",
+        "actual": "0xc0b29c40",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__arch_info_begin": "0xc0b29c40"
+        },
+        "linkscript_rule": "markers enclose *(.arch.info.init)"
+      },
+      {
+        "section": ".init.arch.info",
+        "field": "sh_size",
+        "expected": "0x340",
+        "actual": "0x340",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__arch_info_begin": "0xc0b29c40",
+          "__arch_info_end": "0xc0b29f80"
+        },
+        "linkscript_rule": "markers enclose *(.arch.info.init)"
+      },
+      {
+        "section": ".init.smpalt",
+        "field": "sh_addr",
+        "expected": "0xc0b29f80",
+        "actual": "0xc0b29f80",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__smpalt_begin": "0xc0b29f80"
+        },
+        "linkscript_rule": "markers enclose *(.alt.smp.init)"
+      },
+      {
+        "section": ".init.smpalt",
+        "field": "sh_size",
+        "expected": "0x1300",
+        "actual": "0x1300",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__smpalt_begin": "0xc0b29f80",
+          "__smpalt_end": "0xc0b2b280"
+        },
+        "linkscript_rule": "markers enclose *(.alt.smp.init)"
+      },
+      {
+        "section": ".init.pv_table",
+        "field": "sh_addr",
+        "expected": "0xc0b2b280",
+        "actual": "0xc0b2b280",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__pv_table_begin": "0xc0b2b280"
+        },
+        "linkscript_rule": "markers enclose *(.pv_table)"
+      },
+      {
+        "section": ".init.pv_table",
+        "field": "sh_size",
+        "expected": "0x2d0",
+        "actual": "0x2d0",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__pv_table_begin": "0xc0b2b280",
+          "__pv_table_end": "0xc0b2b550"
+        },
+        "linkscript_rule": "markers enclose *(.pv_table)"
+      },
+      {
+        "section": ".data..percpu",
+        "field": "sh_addr",
+        "expected": "0xc0b3e000",
+        "actual": "0xc0b3e000",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__per_cpu_start": "0xc0b3e000"
+        },
+        "linkscript_rule": "__per_cpu_start is first assignment inside .data..percpu; __per_cpu_end final"
+      },
+      {
+        "section": ".data..percpu",
+        "field": "sh_size",
+        "expected": "0x78c0",
+        "actual": "0x78c0",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__per_cpu_start": "0xc0b3e000",
+          "__per_cpu_end": "0xc0b458c0"
+        },
+        "linkscript_rule": "__per_cpu_start is first assignment inside .data..percpu; __per_cpu_end final"
+      },
+      {
+        "section": "__bug_table",
+        "field": "sh_addr",
+        "expected": "0xc0c60060",
+        "actual": "0xc0c60060",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start___bug_table": "0xc0c60060"
+        },
+        "linkscript_rule": "markers enclose KEEP(*(__bug_table))"
+      },
+      {
+        "section": "__bug_table",
+        "field": "sh_size",
+        "expected": "0x684c",
+        "actual": "0x684c",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start___bug_table": "0xc0c60060",
+          "__stop___bug_table": "0xc0c668ac"
+        },
+        "linkscript_rule": "markers enclose KEEP(*(__bug_table))"
+      },
+      {
+        "section": ".head.text",
+        "field": "sh_addr",
+        "expected": "0xc0008000",
+        "actual": "0xc0008000",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "_text": "0xc0008000"
+        },
+        "linkscript_rule": "_text is first assignment inside .head.text"
+      },
+      {
+        "section": ".rodata",
+        "field": "sh_addr",
+        "expected": "0xc0800000",
+        "actual": "0xc0800000",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start_rodata": "0xc0800000"
+        },
+        "linkscript_rule": "__start_rodata is first assignment inside .rodata; not __end_rodata outside section"
+      },
+      {
+        "section": ".data",
+        "field": "sh_addr",
+        "expected": "0xc0c00000",
+        "actual": "0xc0c00000",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__start_init_task": "0xc0c00000",
+          "_sdata": "0xc0c00000"
+        },
+        "linkscript_rule": "first .data content assignment __start_init_task equals preceding _sdata; no preceding payload; known unchanged section association"
+      },
+      {
+        "section": ".data",
+        "field": "sh_size",
+        "expected": "0x60060",
+        "actual": "0x60060",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "_sdata": "0xc0c00000",
+          "__start_init_task": "0xc0c00000",
+          "__stop___verbose": "0xc0c60060",
+          "__start___bug_table": "0xc0c60060"
+        },
+        "linkscript_rule": "sandwich proof: .data final explicit __stop___verbose equals next section first __start___bug_table; intervening CONSTRUCTORS and ALIGN(8) cannot add bytes because both original bounds identical"
+      },
+      {
+        "section": ".vectors",
+        "field": "sh_addr",
+        "expected": "0xffff0000",
+        "actual": "0xffff0000",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__vectors_start": "0xc0b00000",
+          "__vectors_end": "0xc0b00020"
+        },
+        "linkscript_rule": "linkscript explicit .vectors VMA 0xffff0000; original vector_rst/irq/fiq symbols corroborate high-vector mapping"
+      },
+      {
+        "section": ".vectors",
+        "field": "sh_size",
+        "expected": "0x20",
+        "actual": "0x20",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__vectors_start": "0xc0b00000",
+          "__vectors_end": "0xc0b00020"
+        },
+        "linkscript_rule": "__vectors_end = __vectors_start + SIZEOF(.vectors)"
+      },
+      {
+        "section": ".vectors",
+        "field": "load_address",
+        "expected": "0xc0b00000",
+        "actual": "0xc0b00000",
+        "matches": true,
+        "kind": "load_address_not_section_header",
+        "original_symbols": {
+          "__vectors_start": "0xc0b00000"
+        },
+        "linkscript_rule": ".vectors : AT(__vectors_start)"
+      },
+      {
+        "section": ".stubs",
+        "field": "sh_addr",
+        "expected": "0xffff1000",
+        "actual": "0xffff1000",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__stubs_start": "0xc0b00020",
+          "__stubs_end": "0xc0b002e0"
+        },
+        "linkscript_rule": "linkscript explicit .stubs VMA 0xffff1000; original vector_rst/irq/fiq symbols corroborate high-vector mapping"
+      },
+      {
+        "section": ".stubs",
+        "field": "sh_size",
+        "expected": "0x2c0",
+        "actual": "0x2c0",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "__stubs_start": "0xc0b00020",
+          "__stubs_end": "0xc0b002e0"
+        },
+        "linkscript_rule": "__stubs_end = __stubs_start + SIZEOF(.stubs)"
+      },
+      {
+        "section": ".stubs",
+        "field": "load_address",
+        "expected": "0xc0b00020",
+        "actual": "0xc0b00020",
+        "matches": true,
+        "kind": "load_address_not_section_header",
+        "original_symbols": {
+          "__stubs_start": "0xc0b00020"
+        },
+        "linkscript_rule": ".stubs : AT(__stubs_start)"
+      },
+      {
+        "section": ".init.data",
+        "field": "sh_addr+sh_size",
+        "expected": "0xc0b3d834",
+        "actual": "0xc0b3d834",
+        "matches": true,
+        "kind": "section_end_composite",
+        "original_symbols": {
+          "__con_initcall_end": "0xc0b3d834"
+        },
+        "linkscript_rule": "__con_initcall_end is final assignment after last input inside .init.data"
+      },
+      {
+        "section": ".bss",
+        "field": "sh_addr+sh_size",
+        "expected": "0xc0c943d0",
+        "actual": "0xc0c943d0",
+        "matches": true,
+        "kind": "section_end_composite",
+        "original_symbols": {
+          "__bss_stop": "0xc0c943d0",
+          "_end": "0xc0c943d0"
+        },
+        "linkscript_rule": "__bss_stop assigned immediately after .bss with ALIGN(0); no trailing payload or padding"
+      },
+      {
+        "section": ".modinfo",
+        "field": "sh_addr",
+        "expected": "0xc0a45280",
+        "actual": "0xc0a45280",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {},
+        "linkscript_rule": "same output-section association, known GNUld input concatenation and align1; max original string NUL +1 gives end; no current function/object size used",
+        "source_semantics": "include/linux/moduleparam.h __MODULE_INFO or include/linux/export.h ___export_symbol_common/___EXPORT_SYMBOL_NS: const char[] input section with aligned(1)"
+      },
+      {
+        "section": ".modinfo",
+        "field": "sh_size",
+        "expected": "0xfc7b",
+        "actual": "0xfc7b",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {},
+        "linkscript_rule": "same output-section association, known GNUld input concatenation and align1; max original string NUL +1 gives end; no current function/object size used",
+        "source_semantics": "include/linux/moduleparam.h __MODULE_INFO or include/linux/export.h ___export_symbol_common/___EXPORT_SYMBOL_NS: const char[] input section with aligned(1)"
+      },
+      {
+        "section": "__ksymtab_strings",
+        "field": "sh_addr",
+        "expected": "0xc0a6f758",
+        "actual": "0xc0a6f758",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {},
+        "linkscript_rule": "same output-section association, known GNUld input concatenation and align1; max original string NUL +1 gives end; no current function/object size used",
+        "source_semantics": "include/linux/moduleparam.h __MODULE_INFO or include/linux/export.h ___export_symbol_common/___EXPORT_SYMBOL_NS: const char[] input section with aligned(1)"
+      },
+      {
+        "section": "__ksymtab_strings",
+        "field": "sh_size",
+        "expected": "0x2b605",
+        "actual": "0x2b605",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {},
+        "linkscript_rule": "same output-section association, known GNUld input concatenation and align1; max original string NUL +1 gives end; no current function/object size used",
+        "source_semantics": "include/linux/moduleparam.h __MODULE_INFO or include/linux/export.h ___export_symbol_common/___EXPORT_SYMBOL_NS: const char[] input section with aligned(1)"
+      },
+      {
+        "section": ".exit.text",
+        "field": "sh_addr",
+        "expected": "0xc0b2795c",
+        "actual": "0xc0b2795c",
+        "matches": true,
+        "kind": "section_header_field",
+        "original_symbols": {
+          "_einittext": "0xc0b2795c",
+          "ikconfig_cleanup": "0xc0b2795c"
+        },
+        "linkscript_rule": ".exit.text immediately follows .init.text final _einittext; no intervening sections. Start cannot precede previous end or exceed original first exit function at same address.",
+        "source_semantics": "kernel/configs.c static void __exit ikconfig_cleanup(void); no function size assumed"
+      }
+    ],
+    "excluded_false_bounds": [
+      {
+        "section": ".head.text",
+        "reason": "_stext follows a 1MiB ALIGN; not head section end"
+      },
+      {
+        "section": ".rodata",
+        "reason": "__end_rodata follows multiple intervening output sections and PAGE alignment; not .rodata end"
+      },
+      {
+        "section": ".bss",
+        "reason": "__bss_start precedes actual section alignment20B; cannot independently derive sh_addr or sh_size"
+      },
+      {
+        "section": ".exit.text",
+        "reason": "exact start now constrained by original function/previous-end sandwich; size still unproven because following output alignment may contribute padding"
+      },
+      {
+        "section": ".init.data",
+        "reason": "previous pv_table end does not account for actual input-driven4096alignment; only exact end constrained"
+      }
+    ],
+    "original_raw_string_coverage": {
+      ".modinfo": {
+        "records": 1526,
+        "start": 3231994496,
+        "end": 3232059131,
+        "size": 64635,
+        "uncovered_bytes": 0,
+        "first_original_symbol": "__UNIQUE_ID_debug_force_rr_cputype66",
+        "last_original_symbol": "__UNIQUE_ID_description40",
+        "last_NUL_image_offset": 10800890
+      },
+      "__ksymtab_strings": {
+        "records": 9093,
+        "start": 3232167768,
+        "end": 3232345437,
+        "size": 177669,
+        "uncovered_bytes": 0,
+        "first_original_symbol": "__kstrtab_loops_per_jiffy",
+        "last_original_symbol": "__kstrtab_xas_load",
+        "last_NUL_image_offset": 11087196
+      }
+    }
+  },
+  "original_module_ABI_corroboration": {
+    "module_count": 25,
+    "all_16_ident_bytes_match_count": 25,
+    "EM_ARM_ELFCLASS32_LSB_SYSV_ABIVERSION0_all_match": true,
+    "original_e_flags_histogram": {
+      "0x5000000": 25
+    },
+    "kernel_e_flags": "0x5000202",
+    "expected_ET_EXEC_additions": {
+      "EF_ARM_HASENTRY": "0x2",
+      "EF_ARM_ABI_FLOAT_SOFT": "0x200"
+    },
+    "attributes_raw_body_equal_count": 0,
+    "original_attribute_size_histogram": {
+      "49": 6,
+      "47": 19
+    },
+    "kernel_attribute_size": 51,
+    "common_attribute_value_matches_histogram": {
+      "13": 6,
+      "12": 19
+    },
+    "common_attribute_value_mismatches": 0,
+    "all_7_attribute_header_shape_fields_match_count": 25,
+    "all_7_comment_header_shape_fields_match_count": 25,
+    "comment_unique_compiler_identity_matches": 25,
+    "comment_raw_body_equal_count": 0,
+    "kernel_comment_size": 45,
+    "original_comment_size_histogram": {
+      "8142": 2,
+      "92": 17,
+      "184": 1,
+      "414": 1,
+      "230": 1,
+      "2346": 2,
+      "2576": 1
+    },
+    "claim_scope": "OriginalmoduleABI/attributes constrain expectedlinkedkernelABI; they doNOTdirectlyproveoriginalkernelELFheader/mergedattribute/commentbytes.",
+    "total_common_attribute_values_exact": 306,
+    "original_only_attribute_histogram": {
+      "TAG_ABI_ALIGN_PRESERVED": {
+        "1": 25
+      },
+      "TAG_ABI_OPTIMIZATION_GOALS": {
+        "1": 2,
+        "4": 23
+      }
+    },
+    "actual_Linaro_linker_manifest_pin": {
+      "branch": "linaro_binutils-2_25-branch",
+      "commit": "79ec80f7e6a8b9a1b66aa5f79f5c1bb3fb3807cf",
+      "manifest": "vendor/toolchains/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi/gcc-linaro-5.3.1-2016.05-linux-manifest.txt",
+      "exact_source_retrieval": "GNUmirrorcommit404; originalLinaroCgit timeout; exactsource notclaimedavailable",
+      "source_baseline": "officialGNUreleasebinutils-2_25, fetchedprimarysource withSHA256",
+      "actual_binary_behavior": "hostobjdump read-only post_process_headers attr28 =>0x200softelse0x400hard forEABI5EXEC/DYN; final_link_relocate startaddrnonzero=>0x2HASENTRY",
+      "actual_binary_sha256": "aea26a4804c52ffbaa646b68254fc3136e355396eb755bf9389808caf198abc5"
+    },
+    "genuine_fix_opportunity": "No evidenced ABI/headerflag mismatch: preserve current ARM32LE SYSV EABI5softfloatET_EXEC behavior. Remainingunknown originalmergedattributes/comment cannotbedirectlydeducedfromET_RELmodules; source/producer/debuginput recoveryremainsnecessary. Do notcopymodulee_flagsorattributesintokernel.",
+    "common_attribute_values_matching": 306
+  },
+  "ABI_flag_derivation": {
+    "ET_REL_original_modules": "0x05000000",
+    "ET_EXEC_current_kernel": "0x05000202",
+    "nonzero_entry_addition": "EF_ARM_HASENTRY 0x2",
+    "EABI5_executable_without_VFP_argument_tag_addition": "EF_ARM_ABI_FLOAT_SOFT 0x200",
+    "actual_pinned_linker_sha256": "aea26a4804c52ffbaa646b68254fc3136e355396eb755bf9389808caf198abc5",
+    "actual_binary_evidence": {
+      "HASENTRY_or_instruction": "0x44eb4c",
+      "SOFT_FLOAT_or_instruction": "0x4457d8"
+    },
+    "source_provenance": [
+      {
+        "file": "elf32-arm.c",
+        "url": "https://gnu.googlesource.com/binutils-gdb/+/refs/tags/binutils-2_25/bfd/elf32-arm.c?format=TEXT",
+        "sha256": "8799ef07d5e1343ae3d45911a2600089fa0fd6a58b7ac6ffe4c1bd5a13e0a269",
+        "source_scope": "officialGNU binutils2.25 release baseline; exactLinaropatchbranch unresolved"
+      },
+      {
+        "file": "arm.h",
+        "url": "https://gnu.googlesource.com/binutils-gdb/+/refs/tags/binutils-2_25/include/elf/arm.h?format=TEXT",
+        "sha256": "30707030e6ea2857aea21f0f099d3ed599f935c3c95008204805f6bde7cf5870",
+        "source_scope": "officialGNU binutils2.25 release baseline; exactLinaropatchbranch unresolved"
+      }
+    ],
+    "scope": "Corroborated original-module ABI and actual linker behavior; original kernel header bytes are still unavailable."
   }
 }

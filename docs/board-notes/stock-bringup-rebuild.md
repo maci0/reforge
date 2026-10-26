@@ -518,6 +518,51 @@ prefix without editing comments or line numbers. Neither candidate's original
 factory line mapping is known. Header values or sizes were not forced to invent
 a stock match.
 
+The expanded stock-constraint pass derives **43 individual address/size fields
+across all 25 allocated sections**, two composite section-end expressions, and two
+vector/stub load addresses from original kallsyms and the known generated linker
+script. All match the current ELF. All **143 linker location-marker addresses**
+also match. The JSON audit records each expected value, actual value, original
+symbol evidence and linker-script rule. These are conditional section-layout
+constraints, not recovered original ELF tables.
+
+Examples include `.text` at `0xc0100000`, size `0x69be10`; `.notes` at
+`0xc0ad4144`, size `0x3c`; and `.data` at `0xc0c00000`, size `0x60060`.
+The `.data` end is constrained by original `__stop___verbose` and
+`__start___bug_table` both being `0xc0c60060`, leaving no intervening constructor
+or alignment bytes. The audit deliberately does not equate `__end_rodata` with
+the `.rodata` section end, or `__bss_start` with the `.bss` section start: the
+current latter difference is a 20-byte alignment gap, not an image-size delta.
+
+Four of these field constraints come from original named strings, without copying
+current object sizes: 1,526 module-metadata records cover every byte from
+`0xc0a45280` through `0xc0a54efa`, and 9,093 exported-name/namespace records cover
+`0xc0a6f758` through `0xc0a9ad5c`. Original raw NUL terminators establish sizes
+`0xfc7b` and `0x2b605`; the actual input declarations are character arrays with
+alignment one. These results remain conditional on the same section association
+and absence of extra trailing output padding. Exit-code start is independently
+bounded by original `_einittext` and the first `__exit` function
+`ikconfig_cleanup` both at `0xc0b2795c`; no function size is assumed.
+
+ABI evidence independently supports the current defaults. All 25 original module
+ELFs match the kernel's full 16-byte ELF identity and ARM/EABI5 target. Their
+306 common ARM attribute values have no conflicts with the kernel. Seven
+nonlayout header fields each for `.comment` and `.ARM.attributes` match all
+25 modules; their whole section sizes differ because a full executable and
+relocatable modules have different merge inputs and rules.
+
+The modules' `e_flags=0x05000000` must not be copied into the kernel. GNU ld 2.25
+adds `EF_ARM_HASENTRY=0x2` for a nonzero entry, and `EF_ARM_ABI_FLOAT_SOFT=0x200`
+for an EABI5 executable without the VFP argument tag. The relevant operations
+were verified in the actual pinned Linaro linker binary as well as the GNU 2.25
+source. They explain the kernel's `0x05000202`; no evidenced ABI fix was found.
+The source hashes and binary instruction addresses are included in the JSON.
+
+Thus the expanded checks found no inconsistent header value to correct through
+build inputs. Original kernel segment grouping, permissions, exact header counts
+and stripped metadata remain unverified. No header field was changed merely to
+increase a claimed match count.
+
 | Area | Recovered original behavior |
 |---|---|
 | Framebuffer | Defer freeing the boot framebuffer until display startup plus 30 ms; use the original uncached ION allocation and panel layout. |
