@@ -1,0 +1,2641 @@
+diff --git a/arch/arm/cpu/armv7/jmp.c b/arch/arm/cpu/armv7/jmp.c
+index 24893ae..82bee20 100644
+--- a/arch/arm/cpu/armv7/jmp.c
++++ b/arch/arm/cpu/armv7/jmp.c
+@@ -43,7 +43,7 @@ __LOOP:
+ #endif
+ }
+ 
+-void boot0_jmp_opensbi(phys_addr_t opensbi_base, phys_addr_t dtb, phys_addr_t uboot_base)
++void boot0_jmp_opensbi(phys_addr_t opensbi_base, phys_addr_t uboot_base)
+ {
+ __LOOP:
+ 	asm volatile("WFI");
+diff --git a/board/sun8iw20p1/board.c b/board/sun8iw20p1/board.c
+index d310860..5197600 100644
+--- a/board/sun8iw20p1/board.c
++++ b/board/sun8iw20p1/board.c
+@@ -25,6 +25,9 @@
+ int sunxi_board_init(void)
+ {
+ 	sunxi_board_pll_init();
++	axp_init(0);
++	set_pll_voltage(900);
++	set_sys_voltage(900);
+ 	printf("board init ok\n");
+ 	return 0;
+ }
+diff --git a/board/sun8iw20p1/clock.c b/board/sun8iw20p1/clock.c
+index c885fa0..4ff3641 100644
+--- a/board/sun8iw20p1/clock.c
++++ b/board/sun8iw20p1/clock.c
+@@ -13,11 +13,27 @@
+ #include <arch/efuse.h>
+ 
+ 
++void set_aldo_analog(void)
++{
++ if ((readl(0x0300621c) & 0x19) != 0x19) {
++  sid_program_key(28, 25);
++  sid_read_key(28);
++ }
++}
++
++void set_ldoa_analog(void)
++{
++	u32 trim = readl(0x03006218) & 0xff;
++	u32 reg = readl(0x03000150);
++	if (trim)
++		writel((~0xff & reg) | trim, 0x03000150);
++}
++
+ static void set_pll_cpux_axi(void)
+ {
+ 	u32 reg_val;
+-	void __iomem *cpux_base = sunxi_get_iobase(CCMU_CPUX_AXI_CFG_REG);
+-	void __iomem *pll_base = sunxi_get_iobase(CCMU_PLL_CPUX_CTRL_REG);
++	void __iomem *cpux_base = (void __iomem *)CCMU_CPUX_AXI_CFG_REG;
++	void __iomem *pll_base = (void __iomem *)CCMU_PLL_CPUX_CTRL_REG;
+ 
+ 	/* select CPUX  clock src: OSC24M,AXI divide ratio is 3, system apb clk ratio is 4 */
+ 	writel((0 << 24) | (3 << 8) | (1 << 0), cpux_base);
+@@ -28,11 +44,6 @@ static void set_pll_cpux_axi(void)
+ 	reg_val &= ~(1 << 27);
+ 	writel(reg_val, pll_base);
+ 
+-	reg_val = readl(pll_base);
+-	reg_val |= (0x1 << 30);
+-	writel(reg_val, pll_base);
+-	udelay(5);
+-
+ 	/* set default val: clk is 1008M  ,PLL_OUTPUT= 24M*N/( M*P)*/
+ 	reg_val = readl(pll_base);
+ 	reg_val &= ~((0x3 << 16) | (0xff << 8) | (0x3 << 0));
+@@ -46,8 +57,9 @@ static void set_pll_cpux_axi(void)
+ 
+ 	/* enable pll */
+ 	reg_val = readl(pll_base);
+-	reg_val |= (1 << 31);
++	reg_val |= (1 << 30);
+ 	writel(reg_val, pll_base);
++	udelay(5);
+ 
+ /*wait PLL_CPUX stable*/
+ #ifndef FPGA_PLATFORM
+@@ -65,14 +77,10 @@ static void set_pll_cpux_axi(void)
+ 	reg_val &= ~(1 << 29);
+ 	writel(reg_val, pll_base);
+ 
+-	udelay(1);
+ 	/*set and change cpu clk src to PLL_CPUX,  PLL_CPUX:AXI0 = 1008M:504M*/
+ 	reg_val = readl(cpux_base);
+-//	reg_val &= ~(0x07 << 24 | 0x3 << 8 | 0xf << 0);
+-//	reg_val |= (0x05 << 24 | 0x1 << 8);
+-        reg_val &= ~(0x07 << 24 | 0x3 << 16 | 0x3 << 8 | 0xf << 0);
+-        reg_val |= (0x03 << 24 | 0x0 << 16 | 0x0 << 8 | 0x1 << 0);
+-
++	reg_val &= ~(0x03 << 24 | 0x3 << 16 | 0x3 << 8 | 0x3 << 0);
++	reg_val |= (0x03 << 24 | 0x3 << 8 | 0x1 << 0);
+ 	writel(reg_val, cpux_base);
+ 	udelay(1);
+ }
+@@ -80,26 +88,29 @@ static void set_pll_cpux_axi(void)
+ static void set_pll_periph0(void)
+ {
+ 	u32 reg_val;
+-	void __iomem *pll_base = sunxi_get_iobase(CCMU_PLL_PERI0_CTRL_REG);
++	void __iomem *pll_base = (void __iomem *)CCMU_PLL_PERI0_CTRL_REG;
+ 
+ 	if ((1U << 31) & readl(pll_base)) {
+ 		/*fel has enable pll_periph0*/
+ 		printf("periph0 has been enabled\n");
+ 		return;
+ 	}
+-	/* change  psi/ahb src to OSC24M before set pll6 */
+-	reg_val = readl(CCMU_PSI_AHB1_AHB2_CFG_REG);
+-	reg_val &= (~(0x3<<24));
+-	writel(reg_val,CCMU_PSI_AHB1_AHB2_CFG_REG);
+-
+-	/* set default val*/
+-	writel(0x63 << 8, pll_base);
++	reg_val = readl(pll_base);
++	reg_val &= ~(1 << 27);
++	writel(reg_val, pll_base);
++	reg_val = readl(pll_base);
++	reg_val &= 0xff8800fd;
++	reg_val |= 0x216300;
++	writel(reg_val, pll_base);
+ 
+ 	/* lock enable */
+ 	reg_val = readl(pll_base);
+ 	reg_val |= (1 << 29);
+ 	writel(reg_val, pll_base);
+ 
++	reg_val = readl(pll_base);
++	reg_val |= (1 << 30);
++	writel(reg_val, pll_base);
+ 	/* enabe PLL: 600M(1X)  1200M(2x)*/
+ 	reg_val = readl(pll_base);
+ 	reg_val |= (1 << 31);
+@@ -110,6 +121,9 @@ static void set_pll_periph0(void)
+ 		;
+ 	udelay(20);
+ #endif
++	reg_val = readl(pll_base);
++	reg_val |= 1 << 27;
++	writel(reg_val, pll_base);
+ 	/* lock disable */
+ 	reg_val = readl(pll_base);
+ 	reg_val &= (~(1 << 29));
+@@ -118,7 +132,7 @@ static void set_pll_periph0(void)
+ 
+ static void set_ahb(void)
+ {
+-	void __iomem *bus_base = sunxi_get_iobase(CCMU_PSI_AHB1_AHB2_CFG_REG);
++	void __iomem *bus_base = (void __iomem *)CCMU_PSI_AHB1_AHB2_CFG_REG;
+ 
+ 	/* PLL6:AHB1:AHB2 = 600M:200M:200M */
+ 	writel((2 << 0) | (0 << 8), bus_base);
+@@ -128,7 +142,7 @@ static void set_ahb(void)
+ 
+ static void set_apb(void)
+ {
+-	void __iomem *bus_base = sunxi_get_iobase(CCMU_APB1_CFG_GREG);
++	void __iomem *bus_base = (void __iomem *)CCMU_APB1_CFG_GREG;
+ 	/*PLL6:APB1 = 600M:100M */
+ 	writel((2 << 0) | (1 << 8), bus_base);
+ 	writel((0x03 << 24) | readl(bus_base), bus_base);
+@@ -137,7 +151,7 @@ static void set_apb(void)
+ 
+ static void set_pll_dma(void)
+ {
+-	void __iomem *dma_base = sunxi_get_iobase(CCMU_DMA_BGR_REG);
++	void __iomem *dma_base = (void __iomem *)CCMU_DMA_BGR_REG;
+ 
+ 	/*dma reset*/
+ 	writel(readl(dma_base) | (1 << 16), dma_base);
+@@ -149,7 +163,7 @@ static void set_pll_dma(void)
+ static void set_pll_mbus(void)
+ {
+ 	u32 reg_val;
+-	void __iomem *mbus_base = sunxi_get_iobase(CCMU_MBUS_CFG_REG);
++	void __iomem *mbus_base = (void __iomem *)CCMU_MBUS_CFG_REG;
+ 
+ 	/*reset mbus domain*/
+ 	reg_val = readl(mbus_base);
+@@ -157,8 +171,7 @@ static void set_pll_mbus(void)
+ 	writel(reg_val, mbus_base);
+ 	udelay(1);
+ 
+-        /* Enable mbus master clock gating */
+-        writel(0x00000d87, CCMU_MBUS_MST_CLK_GATING_REG);
++
+ }
+ 
+ static void set_ldo_analog(void)
+@@ -179,7 +192,9 @@ static void set_ldo_analog(void)
+ 		setbits_le32(SUNXI_AUDIO_CODEC + 0x31C, 1 << 1);
+ 
+ 		setbits_le32(SUNXI_AUDIO_CODEC + 0x348, 1 << 30);
+-
++	} else {
++		clrbits_le32(SUNXI_AUDIO_CODEC + 0x31C, 3);
++		clrbits_le32(SUNXI_AUDIO_CODEC + 0x348, 1 << 30);
+ 	}
+ 	if (!audio_codec_bg_trim) {
+ 		clrsetbits_le32(SUNXI_AUDIO_CODEC + 0x348, 0xff, 0x19 << 0);
+@@ -200,9 +215,28 @@ static void set_circuits_analog(void)
+ 
+ static void set_platform_config(void)
+ {
++	set_ldoa_analog();
+ 	set_ldo_analog();
+-
+-	set_circuits_analog();
++	set_aldo_analog();
++	{
++	 u32 reg_val;
++	 void *base = sunxi_get_iobase(0x070901f4);
++	 reg_val = readl(base);
++	 if (reg_val & 1) {
++	  reg_val &= ~0x70;
++	  reg_val |= 0x40;
++	  writel(reg_val, base);
++	  reg_val |= 0x80;
++	  writel(reg_val, base);
++	  reg_val &= ~1;
++	  writel(reg_val, base);
++	  printf("fix vccio detect value:0x%x\n", readl(base));
++	 }
++	 reg_val = readl(0x07010244) | 0xa7000001;
++	 writel(reg_val, 0x07010244);
++	 writel(reg_val, 0x07010244);
++	 mdelay(4);
++	}
+ }
+ 
+ static void set_modules_clock(void)
+@@ -252,6 +286,20 @@ void sunxi_board_pll_init(void)
+ 	set_apb();
+ 	set_pll_dma();
+ 	set_pll_mbus();
++	u32 standby = readl(0x070005d4);
++	if (standby & (1 << 16)) {
++	 u32 reg_val;
++	 printf("#rtc standby flag reg is 0x%x, super standby flag is 0x%x\n", standby, 1);
++	 reg_val = readl(0x07090000) | 0x00a70010;
++	 writel(reg_val, 0x07090000);
++	 writel(reg_val, 0x07090000);
++	 udelay(10);
++	 reg_val = readl(0x07090000) | 0x16aa0001;
++	 writel(reg_val, 0x07090000);
++	 writel(reg_val, 0x07090000);
++	 udelay(10);
++	 setbits_le32(0x07090060, 1);
++	}
+ 	set_modules_clock();
+ 	printf("set pll end\n");
+ 	return;
+@@ -260,9 +308,9 @@ void sunxi_board_pll_init(void)
+ void sunxi_board_clock_reset(void)
+ {
+ 	u32 reg_val;
+-	void __iomem *ahb_base = sunxi_get_iobase(CCMU_PSI_AHB1_AHB2_CFG_REG);
+-	void __iomem *apb_base = sunxi_get_iobase(CCMU_APB1_CFG_GREG);
+-	void __iomem *cpu_base = sunxi_get_iobase(CCMU_CPUX_AXI_CFG_REG);
++	void __iomem *ahb_base = (void __iomem *)CCMU_PSI_AHB1_AHB2_CFG_REG;
++	void __iomem *apb_base = (void __iomem *)CCMU_APB1_CFG_GREG;
++	void __iomem *cpu_base = (void __iomem *)CCMU_CPUX_AXI_CFG_REG;
+ 
+ 	/*set ahb,apb to default, use OSC24M*/
+ 	reg_val = readl(ahb_base);
+@@ -281,7 +329,7 @@ void sunxi_board_clock_reset(void)
+ int sunxi_clock_init_key(void)
+ {
+ 	uint reg_val = 0;
+-	void __iomem *gpadc_bgr_base = sunxi_get_iobase(CCMU_GPADC_BGR_REG);
++	void __iomem *gpadc_bgr_base = (void __iomem *)CCMU_GPADC_BGR_REG;
+ 
+ 	/* reset */
+ 	reg_val = readl(gpadc_bgr_base);
+@@ -304,7 +352,7 @@ int sunxi_clock_init_key(void)
+ int sunxi_clock_exit_key(void)
+ {
+ 	uint reg_val = 0;
+-	void __iomem *gpadc_bgr_base = sunxi_get_iobase(CCMU_GPADC_BGR_REG);
++	void __iomem *gpadc_bgr_base = (void __iomem *)CCMU_GPADC_BGR_REG;
+ 
+ 	/* disable KEYADC gating */
+ 	reg_val = readl(gpadc_bgr_base);
+diff --git a/board/sun8iw20p1/common.mk b/board/sun8iw20p1/common.mk
+index 4cff810..77a56bb 100644
+--- a/board/sun8iw20p1/common.mk
++++ b/board/sun8iw20p1/common.mk
+@@ -6,12 +6,20 @@ ARCH=arm
+ CPU=armv7
+ PLATFORM = sun8iw20p1
+ CFG_SUNXI_GPIO_V2=y
+-CFG_USE_DCACHE=y
++CFG_USE_DCACHE=n
+ CFG_USE_MAEE=y
+ 
+ CFG_BOOT0_RUN_ADDR=0x20000
+ CFG_SYS_INIT_RAM_SIZE=0x10000
+ CFG_FES1_RUN_ADDR=0x28000
+ CFG_SBOOT_RUN_ADDR=0x20480
+-CFG_SUNXI_MEMOP=y
+ CFG_ARCH_ARM=y
++
++# Source-built stock power and I2C profile.
++CFG_SUNXI_TWI=y
++CFG_SUNXI_AUTO_TWI=y
++CFG_SUNXI_PMIC=y
++CFG_SUNXI_POWER=y
++CFG_AXP1530_POWER=y
++CFG_SUNXI_WATCHDOG=y
++CFG_SUNXI_STANDBY=y
+diff --git a/common/printf.c b/common/printf.c
+index 7f441f8..ddaf157 100644
+--- a/common/printf.c
++++ b/common/printf.c
+@@ -353,14 +353,17 @@ int vprintf(const char *fmt, va_list va)
+ }
+ 
+ static u8 debug_mode = 3;
++static u8 debug_mode_flag;
+ 
+-int sunxi_set_printf_debug_mode(u8 debug_level)
++int sunxi_set_printf_debug_mode(u8 debug_level, u8 flag)
+ {
+-	if (debug_level > 8) {
++	if (debug_level > 8)
+ 		return -1;
+-	} else {
+-		debug_mode = debug_level;
+-	}
++	debug_mode = debug_level;
++	if (flag)
++		debug_mode_flag = 1;
++	else
++		debug_mode_flag = 0;
+ 	return 0;
+ }
+ 
+@@ -369,6 +372,13 @@ u8 sunxi_get_printf_debug_mode(void)
+ 	return debug_mode;
+ }
+ 
++u8 sunxi_get_debug_mode_for_uboot(void)
++{
++	if (debug_mode_flag)
++		return debug_mode | 0x80;
++	return debug_mode;
++}
++
+ int sprintf(char *buf, const char *fmt, ...);
+ int printf(const char *fmt, ...)
+ {
+diff --git a/drivers/Makefile b/drivers/Makefile
+index c339bd1..2bd0adf 100644
+--- a/drivers/Makefile
++++ b/drivers/Makefile
+@@ -28,6 +28,7 @@ LIB	=  libdrivers.o
+ COBJS-y	+= serial.o
+ COBJS-y	+= pinmux.o
+ COBJS-y	+= rtc.o
++COBJS-y += sid.o
+ COBJS-$(CFG_SUNXI_SPI) += spi.o
+ COBJS-$(CFG_SUNXI_RSB) += rsb.o
+ COBJS-$(CFG_SUNXI_TWI) += i2c.o
+@@ -76,8 +77,11 @@ LIBS := $(addprefix $(TOPDIR)/,$(sort $(LIBS-y)))
+ 
+ 
+ SRCS	:= $(COBJS-y:.o=.c)
+-OBJS	:= $(addprefix $(obj),$(COBJS-y))
+-OBJS	+= $(LIBS)
++# Match the vendor's peripheral, DRAM, MMC, PMIC, SID and package-loader order.
++OBJS := $(addprefix $(obj),$(filter-out sid.o,$(COBJS-y)))
++OBJS += $(filter-out %/nboot/load_image_mmc/libloadmmc.o,$(LIBS))
++OBJS += $(obj)sid.o
++OBJS += $(filter %/nboot/load_image_mmc/libloadmmc.o,$(LIBS))
+ all:	$(obj).depend $(LIB)
+ 
+ $(LIB):	$(OBJS)
+diff --git a/drivers/dram/sun8iw20p1/lib-dram/Makefile b/drivers/dram/sun8iw20p1/lib-dram/Makefile
+index c8e1c7e..13fbb98 100644
+--- a/drivers/dram/sun8iw20p1/lib-dram/Makefile
++++ b/drivers/dram/sun8iw20p1/lib-dram/Makefile
+@@ -10,7 +10,7 @@ include $(TOPDIR)/mk/config.mk
+ 
+ LIB	:= $(obj)libdram.o
+ 
+-COBJS += mctl_hal.o
++COBJS += mctl_hal.o chip_id_sd.o
+ # COBJS += mctl_hal.o chip_id_sd.o
+ 
+ 
+@@ -37,6 +37,14 @@ all:	$(LIB)
+ #	$(asmgcc) -S -o $@ $<
+ #	$(info "############################################################################")
+ #	$(info "1111111111111111111111111111111111111111111111111111111111111111111111111111")
++# The legacy chip-identification unit was built with Linaro GCC 4.6.3.
++# Keep its ordinary .text together, as in the vendor aggregate.
++ifndef CHIP_ID_CC
++$(error CHIP_ID_CC must name the original Linaro GCC 4.6.3 compiler)
++endif
++chip_id_sd.o: chip_id_sd.c
++	$(CHIP_ID_CC) -Os -mthumb -march=armv7-a -mtune=cortex-a9 -fno-builtin -ffreestanding -fno-stack-protector -fno-common -msoft-float -c $< -o $@
++
+ $(LIB):	$(obj).depend $(OBJS)
+ 	$(call cmd_link_o_target, $(OBJS))
+ 	#$(strip) -s libdram.o
+diff --git a/drivers/dram/sun8iw20p1/lib-dram/mctl_hal.c b/drivers/dram/sun8iw20p1/lib-dram/mctl_hal.c
+index 72246c9..9a808a6 100644
+--- a/drivers/dram/sun8iw20p1/lib-dram/mctl_hal.c
++++ b/drivers/dram/sun8iw20p1/lib-dram/mctl_hal.c
+@@ -4,6 +4,8 @@
+ #include <inttypes.h>
+ #include <arch/dram_v2.h>
+ 
++extern void __usdelay(unsigned long us);
++
+ #define CONFIG_DEBUG_DDR_DRIVER
+ 
+ #ifdef CONFIG_DEBUG_DDR_DRIVER
+@@ -25,12 +27,23 @@ static inline void write32(unsigned int addr, uint32_t value)
+         *((volatile uint32_t *)(addr)) = value;
+ }
+ 
++/* Fallback callbacks remain weak so the board PMIC implementation can replace them. */
++__attribute__((weak)) int set_ddr_voltage(int millivolts)
++{
++	return millivolts;
++}
++
++__attribute__((weak)) int get_pmu_exist(void)
++{
++	return -1;
++}
++
+ char *memcpy_self(char *dst, char *src, int len)
+ {
+-	int i;
+-	for (i = 0; i != len; i++) {
+-		dst[i] = src[i];
+-	}
++	uintptr_t out = (uintptr_t)dst - 1;
++	char *end = src + len;
++	while (end - src > 0)
++		*(char *)++out = *src++;
+ 	return dst;
+ }
+ 
+@@ -71,10 +84,11 @@ void dram_vol_set(dram_para_t *para)
+ 		default:
+ 			vol = 0;
+ 	}
+-	vol = 25; // XXX
+ 
+ 	reg = read32(0x3000150);
+-	reg = (reg & 0xffdf00ff) | vol << 8;
++	reg &= ~0xff00;
++	reg |= vol << 8;
++	reg &= ~0x200000;
+ 	/*
+ 		reg = read32(0x3000150);
+ 		reg &= ~(0xff00);
+@@ -83,9 +97,10 @@ void dram_vol_set(dram_para_t *para)
+ 	*/
+ 	write32(0x3000150, reg);
+ 
+-	sdelay(1);
++	__usdelay(1);
+ 
+ 	sid_read_ldoB_cal(para);
++	(void)read32(0x3000150);
+ }
+ 
+ void dram_enable_all_master(void)
+@@ -93,7 +108,7 @@ void dram_enable_all_master(void)
+ 	write32(0x3102020, -1);
+ 	write32(0x3102024, 0xff);
+ 	write32(0x3102028, 0xffff);
+-	sdelay(10);
++	__usdelay(10);
+ }
+ 
+ void dram_disable_all_master(void)
+@@ -101,93 +116,64 @@ void dram_disable_all_master(void)
+ 	write32(0x3102020, 1);
+ 	write32(0x3102024, 0);
+ 	write32(0x3102028, 0);
+-	sdelay(10);
++	__usdelay(10);
+ }
+ 
+ void eye_delay_compensation(dram_para_t *para) // s1
+ {
+ 	unsigned int val, ptr;
++	unsigned int tpr11 = para->dram_tpr11;
++	unsigned int tpr12 = para->dram_tpr12;
++	unsigned int tpr10;
+ 
+ 	// DATn0IOCR, n =  0...7
+ 	for (ptr = 0x3103310; ptr != 0x3103334; ptr += 4) {
+-		val = read32(ptr);
+-		val |= (para->dram_tpr11 << 9) & 0x1e00;
+-		val |= (para->dram_tpr12 << 1) & 0x001e;
+-		write32(ptr, val);
++		(*(volatile unsigned int *)(ptr)) |= ((tpr11 << 9) & 0x1e00) | ((tpr12 << 1) & 0x001e);
+ 	}
+ 
+ 	// DATn1IOCR, n =  0...7
+ 	for (ptr = 0x3103390; ptr != 0x31033b4; ptr += 4) {
+-		val = read32(ptr);
+-		val |= ((para->dram_tpr11 >> 4) << 9) & 0x1e00;
+-		val |= ((para->dram_tpr12 >> 4) << 1) & 0x001e;
+-		write32(ptr, val);
++		(*(volatile unsigned int *)(ptr)) |= (((tpr11 >> 4) << 9) & 0x1e00) | (((tpr12 >> 4) << 1) & 0x001e);
+ 	}
+ 
+ 	// PGCR0: assert AC loopback FIFO reset
+-	val = read32(0x3103100);
+-	val &= 0xfbffffff;
+-	write32(0x3103100, val);
++	(*(volatile unsigned int *)(0x3103100)) &= 0xfbffffff;
+ 
+ 	// ??
+-	val = read32(0x3103334);
+-	val |= ((para->dram_tpr11 >> 16) << 9) & 0x1e00;
+-	val |= ((para->dram_tpr12 >> 16) << 1) & 0x001e;
+-	write32(0x3103334, val);
+-
+-	val = read32(0x3103338);
+-	val |= ((para->dram_tpr11 >> 16) << 9) & 0x1e00;
+-	val |= ((para->dram_tpr12 >> 16) << 1) & 0x001e;
+-	write32(0x3103338, val);
+-
+-	val = read32(0x31033b4);
+-	val |= ((para->dram_tpr11 >> 20) << 9) & 0x1e00;
+-	val |= ((para->dram_tpr12 >> 20) << 1) & 0x001e;
+-	write32(0x31033b4, val);
+-
+-	val = read32(0x31033b8);
+-	val |= ((para->dram_tpr11 >> 20) << 9) & 0x1e00;
+-	val |= ((para->dram_tpr12 >> 20) << 1) & 0x001e;
+-	write32(0x31033b8, val);
+-
+-	val = read32(0x310333c);
+-	val |= ((para->dram_tpr11 >> 16) << 25) & 0x1e000000;
+-	write32(0x310333c, val);
+-
+-	val = read32(0x31033bc);
+-	val |= ((para->dram_tpr11 >> 20) << 25) & 0x1e000000;
+-	write32(0x31033bc, val);
++	(*(volatile unsigned int *)(0x3103334)) |= (((tpr11 >> 16) << 9) & 0x1e00) | (((tpr12 >> 16) << 1) & 0x001e);
++
++	(*(volatile unsigned int *)(0x3103338)) |= (((tpr11 >> 16) << 9) & 0x1e00) | (((tpr12 >> 16) << 1) & 0x001e);
++
++	(*(volatile unsigned int *)(0x31033b4)) |= (((tpr11 >> 20) << 9) & 0x1e00) | (((tpr12 >> 20) << 1) & 0x001e);
++
++	ptr = read32(0x31033b8);
++	ptr |= ((tpr11 >> 20) << 9) & 0x1e00;
++	ptr |= ((tpr12 >> 20) << 1) & 0x001e;
++	write32(0x31033b8, ptr);
++
++	(*(volatile unsigned int *)(0x310333c)) |= ((tpr11 >> 16) << 25) & 0x1e000000;
++
++	(*(volatile unsigned int *)(0x31033bc)) |= ((tpr11 >> 20) << 25) & 0x1e000000;
+ 
+ 	// PGCR0: release AC loopback FIFO reset
+-	val = read32(0x3103100);
+-	val |= 0x04000000;
+-	write32(0x3103100, val);
++	(*(volatile unsigned int *)(0x3103100)) |= 0x04000000;
+ 
+-	sdelay(1);
++	__usdelay(1);
++	tpr10 = para->dram_tpr10;
+ 
+ 	for (ptr = 0x3103240; ptr != 0x310327c; ptr += 4) {
+-		val = read32(ptr);
+-		val |= ((para->dram_tpr10 >> 4) << 8) & 0x0f00;
+-		write32(ptr, val);
++		(*(volatile unsigned int *)(ptr)) |= ((tpr10 >> 4) << 8) & 0x0f00;
+ 	}
+ 
+ 	for (ptr = 0x3103228; ptr != 0x3103240; ptr += 4) {
+-		val = read32(ptr);
+-		val |= ((para->dram_tpr10 >> 4) << 8) & 0x0f00;
+-		write32(ptr, val);
++		(*(volatile unsigned int *)(ptr)) |= ((tpr10 >> 4) << 8) & 0x0f00;
+ 	}
+ 
+-	val = read32(0x3103218);
+-	val |= (para->dram_tpr10 << 8) & 0x0f00;
+-	write32(0x3103218, val);
++	(*(volatile unsigned int *)(0x3103218)) |= (tpr10 << 8) & 0x0f00;
+ 
+-	val = read32(0x310321c);
+-	val |= (para->dram_tpr10 << 8) & 0x0f00;
+-	write32(0x310321c, val);
++	(*(volatile unsigned int *)(0x310321c)) |= tpr10 & 0x0f00;
+ 
+-	val = read32(0x3103280);
+-	val |= ((para->dram_tpr10 >> 12) << 8) & 0x0f00;
+-	write32(0x3103280, val);
++	(*(volatile unsigned int *)(0x3103280)) |= ((tpr10 >> 12) << 8) & 0x0f00;
+ }
+ 
+ int auto_cal_timing(unsigned int time, unsigned int freq)
+@@ -206,29 +192,31 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 	unsigned int   type; // s8
+ 	unsigned int   tpr13; // 80(sp)
+ 	unsigned int   reg_val;
++	unsigned int frq2;
++
++	unsigned int  tccd; // 88(sp)
++	unsigned int  trrd; // s7
++	unsigned int  trcd; // s3
++	unsigned int  trc; // s9
++	unsigned int  tfaw; // s10
++	unsigned int  tras; // s11
++	unsigned int  trp; // 0(sp)
++	unsigned int  twtr; // s1
++	unsigned int  twr; // s6
++	unsigned int  trtp; // 64(sp)
++	unsigned int  txp; // a6
++	unsigned int trefi; // s2
++	unsigned int trfc; // a5 / 8(sp)
+ 
+-	unsigned char  tccd; // 88(sp)
+-	unsigned char  trrd; // s7
+-	unsigned char  trcd; // s3
+-	unsigned char  trc; // s9
+-	unsigned char  tfaw; // s10
+-	unsigned char  tras; // s11
+-	unsigned char  trp; // 0(sp)
+-	unsigned char  twtr; // s1
+-	unsigned char  twr; // s6
+-	unsigned char  trtp; // 64(sp)
+-	unsigned char  txp; // a6
+-	unsigned short trefi; // s2
+-	unsigned short trfc; // a5 / 8(sp)
+-
++	tpr13 = para->dram_tpr13;
+ 	freq  = para->dram_clk;
+ 	type  = para->dram_type;
+-	tpr13 = para->dram_tpr13;
++	frq2 = freq >> 1;
+ 
+-	// ddr_printf("type  = %d\r\n", type);
+-	// ddr_printf("tpr13 = %p\r\n", tpr13);
++	// ddr_printf("type  = %d\n", type);
++	// ddr_printf("tpr13 = %p\n", tpr13);
+ 
+-	if (para->dram_tpr13 & 0x2) {
++	if (tpr13 & 0x2) {
+ 		// dram_tpr0
+ 		tccd = ((para->dram_tpr0 >> 21) & 0x7); // [23:21]
+ 		tfaw = ((para->dram_tpr0 >> 15) & 0x3f); // [20:15]
+@@ -246,16 +234,15 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 		trfc  = ((para->dram_tpr2 >> 12) & 0x1ff); // [20:12]
+ 		trefi = ((para->dram_tpr2 >> 0) & 0xfff); // [11:0 ]
+ 	} else {
+-		unsigned int frq2 = freq >> 1; // s0
+ 
+ 		if (type == 3) {
+ 			// DDR3
+-			trfc  = auto_cal_timing(350, frq2);
+-			trefi = auto_cal_timing(7800, frq2) / 32 + 1; // XXX
+-			twr	  = auto_cal_timing(8, frq2);
+-			trcd  = auto_cal_timing(15, frq2);
+-			twtr  = twr + 2; // + 2 ? XXX
+-			if (twr < 2)
++			twtr = auto_cal_timing(8, frq2);
++			trcd = auto_cal_timing(15, frq2);
++			trefi = auto_cal_timing(7800, frq2);
++			trefi = (trefi >> 5) + ((trefi & 31) != 0);
++			trfc = auto_cal_timing(350, frq2);
++			if (twtr < 2)
+ 				twtr = 2;
+ 			twr = trcd;
+ 			if (trcd < 2)
+@@ -267,17 +254,17 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 					trrd = 2;
+ 				trc	 = auto_cal_timing(53, frq2);
+ 				tras = auto_cal_timing(38, frq2);
+-				txp	 = trrd; // 10
++				txp	 = twtr; // minimum power-down delay
+ 				trp	 = trcd; // 15
+ 			} else {
+ 				tfaw = auto_cal_timing(35, frq2);
+-				trrd = auto_cal_timing(10, frq2);
++				trrd = auto_cal_timing(6, frq2);
+ 				if (trrd < 2)
+ 					trrd = 2;
+ 				trcd = auto_cal_timing(14, frq2);
+ 				trc	 = auto_cal_timing(48, frq2);
+ 				tras = auto_cal_timing(34, frq2);
+-				txp	 = trrd; // 10
++				txp	 = trrd; // minimum power-down delay
+ 				trp	 = trcd; // 14
+ 			}
+ 		} 
+@@ -290,7 +277,8 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 			twtr  = auto_cal_timing(8, frq2);
+ 			trp	  = auto_cal_timing(15, frq2);
+ 			tras  = auto_cal_timing(45, frq2);
+-			trefi = auto_cal_timing(7800, frq2) / 32;
++			trefi = auto_cal_timing(7800, frq2);
++			trefi = (trefi >> 5) + ((trefi & 31) != 0);
+ 			trfc  = auto_cal_timing(328, frq2);
+ 			txp	  = 2;
+ 			twr	  = trp; // 15
+@@ -313,7 +301,6 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 			} else {
+ 				twtr = txp;
+ 				if (txp < 2) {
+-					txp	 = 2;
+ 					twtr = 2;
+ 				}
+ 			}
+@@ -322,7 +309,8 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 				twr = 2;
+ 			trp	  = auto_cal_timing(17, frq2);
+ 			tras  = auto_cal_timing(42, frq2);
+-			trefi = auto_cal_timing(3900, frq2) / 32;
++			trefi = auto_cal_timing(3900, frq2);
++			trefi = (trefi >> 5) + ((trefi & 31) != 0);
+ 			trfc  = auto_cal_timing(210, frq2);
+ 		} else if (type == 7) {
+ 			// LPDDR3
+@@ -344,7 +332,8 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 				twr = 2;
+ 			trp	  = auto_cal_timing(17, frq2);
+ 			tras  = auto_cal_timing(42, frq2);
+-			trefi = auto_cal_timing(3900, frq2) / 32;
++			trefi = auto_cal_timing(3900, frq2);
++			trefi = (trefi >> 5) + ((trefi & 31) != 0);
+ 			trfc  = auto_cal_timing(210, frq2);
+ 			txp	  = twtr;
+ 		} else {
+@@ -363,19 +352,21 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 		}
+ 		// assign the value back to the DRAM structure
+ 		tccd			= 2;
+-		trtp			= 4; // not in .S ?
++		trtp			= twtr;
+ 		para->dram_tpr0 = (trc << 0) | (trcd << 6) | (trrd << 11) | (tfaw << 15) | (tccd << 21);
+ 		para->dram_tpr1 = (tras << 0) | (trp << 6) | (twr << 11) | (trtp << 15) | (twtr << 20) | (txp << 23);
+-		para->dram_tpr2 = (trefi << 0) | (trfc << 12);
+ 
+ 		uint32_t tref	= (para->dram_tpr4 << 0x10) >> 0x1c;
+ 		if (tref == 1) {
+-			ddr_printf("trefi:3.9ms\r\n");
++			trefi >>= 1;
++			ddr_printf("trefi:3.9ms\n");
+ 		} else if (tref == 2) {
+-			ddr_printf("trefi:1.95ms\r\n");
++			trefi >>= 2;
++			ddr_printf("trefi:1.95ms\n");
+ 		} else {
+-			ddr_printf("trefi:7.8ms\r\n");
++			ddr_printf("trefi:7.8ms\n");
+ 		}
++		para->dram_tpr2 = trefi | (trfc << 12);
+ 	}
+ 
+ 	unsigned int tcksrx; // t1
+@@ -404,6 +395,7 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 	unsigned int tdinit1; // 24(sp)
+ 	unsigned int tdinit0; // 16(sp)
+ 
++	unsigned int clk = para->dram_clk;
+ 	dmr1 = para->dram_mr1;
+ 	dmr3 = para->dram_mr3;
+ 
+@@ -411,7 +403,7 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 		case 2: // DDR2
+ 		{
+ 			trasmax = freq / 30;
+-			if (freq < 409) {
++			if (frq2 <= 204) {
+ 				tcl		   = 3;
+ 				t_rdata_en = 1;
+ 				mr0		   = 0x06a3;
+@@ -430,10 +422,10 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 			wr_latency = 1;
+ 			mr3		   = 0;
+ 			mr2		   = 0;
+-			tdinit0	   = 200 * freq + 1;
+-			tdinit1	   = 100 * freq / 1000 + 1;
+-			tdinit2	   = 200 * freq + 1;
+-			tdinit3	   = 1 * freq + 1;
++			tdinit0	   = 400 * clk + 1;
++			tdinit1	   = 500 * clk / 1000 + 1;
++			tdinit2	   = 200 * clk + 1;
++			tdinit3	   = 1 * clk + 1;
+ 			tmrw	   = 0;
+ 			twr2rd	   = twtr + 5;
+ 			tcwl	   = 0;
+@@ -443,7 +435,7 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 		case 3: // DDR3
+ 		{
+ 			trasmax = freq / 30;
+-			if (freq <= 800) {
++			if (clk <= 800) {
+ 				mr0		   = 0x1c70;
+ 				tcl		   = 6;
+ 				wr_latency = 2;
+@@ -457,16 +449,16 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 				mr2		   = 32;
+ 			}
+ 
+-			twtp	= tcwl + 2 + twtr; // WL+BL/2+tWTR
++			twtp	= tcwl + 2 + twr; // WL+BL/2+tWTR
+ 			trd2wr	= tcwl + 2 + twr; // WL+BL/2+tWR
+-			twr2rd	= tcwl + twtr; // WL+tWTR
++			twr2rd	= tcwl + twtr + 2; // WL+tWTR
+ 
+-			tdinit0 = 500 * freq + 1; // 500 us
+-			tdinit1 = 360 * freq / 1000 + 1; // 360 ns
+-			tdinit2 = 200 * freq + 1; // 200 us
+-			tdinit3 = 1 * freq + 1; //   1 us
++			tdinit0 = 500 * clk + 1; // 500 us
++			tdinit1 = 360 * clk / 1000 + 1; // 360 ns
++			tdinit2 = 200 * clk + 1; // 200 us
++			tdinit3 = 1 * clk + 1; //   1 us
+ 
+-			if (((tpr13 >> 2) & 0x03) == 0x01 || freq < 912) {
++			if (((tpr13 >> 2) & 0x03) == 0x01 || clk <= 912) {
+ 				mr1		   = dmr1;
+ 				t_rdata_en = tcwl; // a5 <- a4
+ 				tcksrx	   = 5;
+@@ -479,7 +471,7 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 				tckesr	   = 4;
+ 				trd2wr	   = 6;
+ 			}
+-			tcke = 3; // not in .S ?
++			tcke = 4;
+ 			tmod = 12;
+ 			tmrd = 4;
+ 			tmrw = 0;
+@@ -502,11 +494,11 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 			tmrw	   = 3;
+ 			tcl		   = 4;
+ 			wr_latency = 1;
+-			t_rdata_en = 1;
+-			tdinit0	   = 200 * freq + 1;
+-			tdinit1	   = 100 * freq / 1000 + 1;
+-			tdinit2	   = 11 * freq + 1;
+-			tdinit3	   = 1 * freq + 1;
++			t_rdata_en = 3;
++			tdinit0	   = 200 * clk + 1;
++			tdinit1	   = 100 * clk / 1000 + 1;
++			tdinit2	   = 11 * clk + 1;
++			tdinit3	   = 1 * clk + 1;
+ 			twr2rd	   = twtr + 5;
+ 			tcwl	   = 2;
+ 			mr1		   = 195;
+@@ -517,7 +509,7 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 		case 7: // LPDDR3
+ 		{
+ 			trasmax = freq / 60;
+-			if (freq < 800) {
++			if (clk > 800) {
+ 				tcwl	   = 4;
+ 				wr_latency = 3;
+ 				t_rdata_en = 6;
+@@ -529,18 +521,18 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 				t_rdata_en = 5;
+ 				mr2		   = 10;
+ 			}
+-			twtp	= tcwl + 5;
+-			tcl		= 7;
++			twtp	= tcwl + twr + 5;
++			tcl		= (clk <= 800) ? 6 : 7;
+ 			mr3		= dmr3;
+ 			tcksrx	= 5;
+ 			tckesr	= 5;
+ 			trd2wr	= 13;
+ 			tcke	= 3;
+ 			tmod	= 12;
+-			tdinit0 = 400 * freq + 1;
+-			tdinit1 = 500 * freq / 1000 + 1;
+-			tdinit2 = 11 * freq + 1;
+-			tdinit3 = 1 * freq + 1;
++			tdinit0 = 200 * clk + 1;
++			tdinit1 = 100 * clk / 1000 + 1;
++			tdinit2 = 11 * clk + 1;
++			tdinit3 = 1 * clk + 1;
+ 			tmrd	= 5;
+ 			tmrw	= 5;
+ 			twr2rd	= tcwl + twtr + 5;
+@@ -573,10 +565,9 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 			tdinit0	   = 0; // 16(sp)
+ 			break;
+ 	}
+-	if (trtp < tcl - trp + 2) {
++	if (trtp + trp < tcl + 2) {
+ 		trtp = tcl - trp + 2;
+ 	}
+-	trtp = 4;
+ 
+ 	// Update mode block when permitted
+ 	if ((para->dram_mr0 & 0xffff0000) == 0)
+@@ -589,10 +580,10 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 		para->dram_mr3 = mr3;
+ 
+ 	// Set mode registers
+-	write32(0x3103030, para->dram_mr0);
+-	write32(0x3103034, para->dram_mr1);
+-	write32(0x3103038, para->dram_mr2);
+-	write32(0x310303c, para->dram_mr3);
++	write32(0x3103030, para->dram_mr0 & 0xffff);
++	write32(0x3103034, para->dram_mr1 & 0xffff);
++	write32(0x3103038, para->dram_mr2 & 0xffff);
++	write32(0x310303c, para->dram_mr3 & 0xffff);
+ 	write32(0x310302c, (para->dram_odt_en >> 4) & 0x3); // ??
+ 
+ 	// Set dram timing DRAMTMG0 - DRAMTMG5
+@@ -612,7 +603,7 @@ void auto_set_timing_para(dram_para_t *para) // s5
+ 	// Set two rank timing
+ 	reg_val = read32(0x3103078);
+ 	reg_val &= 0x0fff0000;
+-	reg_val |= (para->dram_clk < 800) ? 0xf0006600 : 0xf0007600;
++	reg_val |= (para->dram_clk <= 800) ? 0xf0006600 : 0xf0007600;
+ 	reg_val |= 0x10;
+ 	write32(0x3103078, reg_val);
+ 
+@@ -636,7 +627,7 @@ int ccm_set_pll_ddr_clk(int index, dram_para_t *para)
+ {
+ 	unsigned int val, clk, n;
+ 
+-	clk = (para->dram_tpr13 & (1 << 6)) ? para->dram_tpr9 : para->dram_clk;
++	clk = (((para->dram_tpr13 >> 6) & 1) == index) ? para->dram_clk : para->dram_tpr9;
+ 
+ 	// set VCO clock divider
+ 	n	= (clk * 2) / 24;
+@@ -645,20 +636,21 @@ int ccm_set_pll_ddr_clk(int index, dram_para_t *para)
+ 	val &= 0xfff800fc; // clear dividers
+ 	val |= (n - 1) << 8; // set PLL division
+ 	val |= 0xc0000000; // enable PLL and LDO
+-	val &= 0xdfffffff;
+-	write32(0x2001010, val | 0x20000000);
++	write32(0x2001010, val);
++	write32(0x2001010, read32(0x2001010) & 0xdfffffff);
++	write32(0x2001010, read32(0x2001010) | 0x20000000);
+ 
+ 	// wait for PLL to lock
+ 	while ((read32(0x2001010) & 0x10000000) == 0) {
+ 		;
+ 	}
+ 
+-	sdelay(20);
++	__usdelay(20);
+ 
+ 	// enable PLL output
+-	val = read32(0x2001000);
++	val = read32(0x2001010);
+ 	val |= 0x08000000;
+-	write32(0x2001000, val);
++	write32(0x2001010, val);
+ 
+ 	// turn clock gate on
+ 	val = read32(0x2001800);
+@@ -672,7 +664,7 @@ int ccm_set_pll_ddr_clk(int index, dram_para_t *para)
+ // Main purpose of sys_init seems to be to initalise the clocks for
+ // the sdram controller.
+ //
+-void mctl_sys_init(dram_para_t *para)
++int mctl_sys_init(dram_para_t *para)
+ {
+ 	unsigned int val;
+ 
+@@ -682,14 +674,17 @@ void mctl_sys_init(dram_para_t *para)
+ 	write32(0x2001540, read32(0x2001540) & 0xbfffffff);
+ 
+ 	// turn off sdram clock gate, assert sdram reset
+-	write32(0x200180c, read32(0x200180c) & 0xfffefffe);
+-	write32(0x2001800, (read32(0x2001800) & 0x3fffffff) | 0x8000000);
+-	sdelay(10);
++	write32(0x200180c, read32(0x200180c) & 0xfffffffe);
++	write32(0x200180c, read32(0x200180c) & 0xfffeffff);
++	write32(0x2001800, read32(0x2001800) & 0xbfffffff);
++	write32(0x2001800, read32(0x2001800) & 0x7fffffff);
++	write32(0x2001800, read32(0x2001800) | 0x8000000);
++	__usdelay(10);
+ 
+ 	// set ddr pll clock
+ 	val			   = ccm_set_pll_ddr_clk(0, para);
+ 	para->dram_clk = val >> 1;
+-	sdelay(100);
++	__usdelay(100);
+ 	dram_disable_all_master();
+ 
+ 	// release sdram reset
+@@ -699,18 +694,20 @@ void mctl_sys_init(dram_para_t *para)
+ 	write32(0x2001540, read32(0x2001540) | 0x40000000);
+ 	write32(0x2001800, read32(0x2001800) | 0x40000000);
+ 
+-	sdelay(5);
++	__usdelay(5);
+ 
+ 	// turn on sdram clock gate
+ 	write32(0x200180c, read32(0x200180c) | 0x1);
+ 
+ 	// turn dram clock gate on, trigger sdr clock update
+-	write32(0x2001800, read32(0x2001800) | 0x88000000);
+-	sdelay(5);
++	write32(0x2001800, read32(0x2001800) | 0x80000000);
++	write32(0x2001800, read32(0x2001800) | 0x8000000);
++	__usdelay(5);
+ 
+ 	// mCTL clock enable
+ 	write32(0x310300c, 0x8000);
+-	sdelay(10);
++	__usdelay(10);
++	return 0;
+ }
+ 
+ // The main purpose of this routine seems to be to copy an address configuration
+@@ -719,137 +716,111 @@ void mctl_sys_init(dram_para_t *para)
+ //
+ void mctl_com_init(dram_para_t *para)
+ {
+-	unsigned int val, end, ptr;
+-	int			 i;
+-
+-	// purpose ??
+-	val = read32(0x3102008) & 0xffffc0ff;
+-	val |= 0x2000;
+-	write32(0x3102008, val);
+-
+-	// Set sdram type and word width
+-	val = read32(0x3102000) & 0xff000fff;
+-	val |= (para->dram_type & 0x7) << 16; // DRAM type
+-	val |= (~para->dram_para2 & 0x1) << 12; // DQ width
+-	if ((para->dram_type) != 6 && (para->dram_type) != 7) {
+-		val |= ((para->dram_tpr13 >> 5) & 0x1) << 19; // 2T or 1T
+-		val |= 0x400000;
+-	} else {
+-		val |= 0x480000; // type 6 and 7 must use 1T
+-	}
+-	write32(0x3102000, val);
+-
+-	// init rank / bank / row for single/dual or two different ranks
+-	val = para->dram_para2;
+-	end = ((val & 0x100) && (((val >> 12) & 0xf) != 1)) ? 32 : 16;
+-	ptr = 0x3102000;
+-
+-	for (i = 0; i != end; i += 16) {
+-		val = read32(ptr) & 0xfffff000;
+-
+-		val |= (para->dram_para2 >> 12) & 0x3; // rank
+-		val |= ((para->dram_para1 >> (i + 12)) << 2) & 0x4; // bank - 2
+-		val |= (((para->dram_para1 >> (i + 4)) - 1) << 4) & 0xff; // row - 1
+-
+-		// convert from page size to column addr width - 3
+-		switch ((para->dram_para1 >> i) & 0xf) {
+-			case 8:
+-				val |= 0xa00;
+-				break;
+-			case 4:
+-				val |= 0x900;
+-				break;
+-			case 2:
+-				val |= 0x800;
+-				break;
+-			case 1:
+-				val |= 0x700;
+-				break;
+-			default:
+-				val |= 0x600;
+-				break;
+-		}
+-		write32(ptr, val);
+-		ptr += 4;
+-	}
+-
+-	// set ODTMAP based on number of ranks in use
+-	val = (read32(0x3102000) & 0x1) ? 0x303 : 0x201;
+-	write32(0x3103120, val);
+-
+-	// set mctl reg 3c4 to zero when using half DQ
+-	if (para->dram_para2 & (1 << 0)) {
+-		write32(0x31033c4, 0);
+-	}
+-
+-	// purpose ??
+-	if (para->dram_tpr4) {
+-		val = read32(0x3102000);
+-		val |= (para->dram_tpr4 << 25) & 0x06000000;
+-		write32(0x3102000, val);
+-
+-		val = read32(0x3102004);
+-		val |= ((para->dram_tpr4 >> 2) << 12) & 0x001ff000;
+-		write32(0x3102004, val);
+-	}
++ volatile unsigned int *work_mode0 = (volatile unsigned int *)0x3102000;
++ register unsigned int type asm("r5") = para->dram_type;
++ unsigned int para2 = para->dram_para2;
++ unsigned int half_dq = para2 & 1;
++ unsigned int val, width, count, para1, rank, i;
++ unsigned int ptr;
++ write32(0x3102008, (read32(0x3102008) & 0xffffc0ff) | 0x2000);
++ val = *work_mode0;
++ val &= 0xff000fff;
++ val |= 0x400000;
++ val |= (type << 16) & 0x70000;
++ width = (~para2 & 1) << 12;
++ val = width | val;
++ if (type - 6 <= 1) val |= 0x80000;
++ else val |= (para->dram_tpr13 << 14) & 0x80000;
++ *work_mode0 = val;
++ count = ((para2 & 0x100) && (((para2 >> 12) & 0xf) == 1)) ? 2 : 1;
++ para1 = para->dram_para1;
++ rank = (para2 >> 12) & 3;
++ ptr = 0x3102000;
++ for (i = 4; i != 16 * count + 4; i += 16) {
++  val = rank;
++  val |= read32(ptr) & 0xfffff000;
++  val |= ((para1 >> (i + 8)) << 2) & 4;
++  val |= (((para1 >> i) - 1) << 4) & 0xff;
++  switch ((para1 >> (i - 4)) & 0xf) {
++   case 8: val |= 0xa00; break;
++   case 4: val |= 0x900; break;
++   case 2: val |= 0x800; break;
++   case 1: val |= 0x700; break;
++   default: val |= 0x600; break;
++  }
++  write32(ptr, val);
++  ptr += 4;
++ }
++ val = (*work_mode0 & 1) ? 0x303 : 0x201;
++ write32(0x3103120, val);
++ if (half_dq) write32(0x31033c4, 0);
++ val = para->dram_tpr4;
++ if (val) {
++  write32(0x3102000, *work_mode0 | ((val << 25) & 0x6000000));
++  write32(0x3102004, read32(0x3102004) | ((val << 10) & 0x1ff000));
++ }
+ }
+ 
+ // This routine seems to have several remapping tables for 22 lines.
+ // It is unclear which lines are being remapped. It seems to pick
+ // table cfg7 for the Nezha board.
+ //
+-char cfg0[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+-static char cfg1[] = {1, 9, 3, 7, 8, 18, 4, 13, 5, 6, 10, 2, 14, 12, 0, 0, 21, 17, 20, 19, 11, 22};
+-static char cfg2[] = {4, 9, 3, 7, 8, 18, 1, 13, 2, 6, 10, 5, 14, 12, 0, 0, 21, 17, 20, 19, 11, 22};
+-static char cfg3[] = {1, 7, 8, 12, 10, 18, 4, 13, 5, 6, 3, 2, 9, 0, 0, 0, 21, 17, 20, 19, 11, 22};
+-static char cfg4[] = {4, 12, 10, 7, 8, 18, 1, 13, 2, 6, 3, 5, 9, 0, 0, 0, 21, 17, 20, 19, 11, 22};
+-static char cfg5[] = {13, 2, 7, 9, 12, 19, 5, 1, 6, 3, 4, 8, 10, 0, 0, 0, 21, 22, 18, 17, 11, 20};
+-static char cfg6[] = {3, 10, 7, 13, 9, 11, 1, 2, 4, 6, 8, 5, 12, 0, 0, 0, 20, 1, 0, 21, 22, 17};
+-static char cfg7[] = {3, 2, 4, 7, 9, 1, 17, 12, 18, 14, 13, 8, 15, 6, 10, 5, 19, 22, 16, 21, 20, 11};
+-
+ void mctl_phy_ac_remapping(dram_para_t *para)
+ {
+-	unsigned int fuse, val;
+-
+-	fuse = (read32(0x3006228) << 0x14) >> 0x1c;
+-	ddr_printf("ddr_efuse_type: 0x%x\r\n", fuse);
+-
+-	val = (unsigned int)(read32(0x03006200) << 0x10) >> 0x18;
+-	ddr_printf("mark_id: 0x%x\r\n", val);
+-
+-	if ((para->dram_tpr13 >> 18) & 0x3) {
+-		memcpy_self(cfg0, cfg7, 22);
++	unsigned int mark = (read32(0x3006200) >> 8) & 0xff;
++	unsigned int fuse = (read32(0x3006228) >> 8) & 0xf;
++	unsigned int val;
++	unsigned char cfg0[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
++	unsigned char cfg1[] = {1, 9, 3, 7, 8, 18, 4, 13, 5, 6, 10, 2, 14, 12, 0, 0, 21, 17, 20, 19, 11, 22};
++	unsigned char cfg2[] = {4, 9, 3, 7, 8, 18, 1, 13, 2, 6, 10, 5, 14, 12, 0, 0, 21, 17, 20, 19, 11, 22};
++	unsigned char cfg3[] = {1, 7, 8, 12, 10, 18, 4, 13, 5, 6, 3, 2, 9, 0, 0, 0, 21, 17, 20, 19, 11, 22};
++	unsigned char cfg4[] = {4, 12, 10, 7, 8, 18, 1, 13, 2, 6, 3, 5, 9, 0, 0, 0, 21, 17, 20, 19, 11, 22};
++	unsigned char cfg5[] = {13, 2, 7, 9, 12, 19, 5, 1, 6, 3, 4, 8, 10, 0, 0, 0, 21, 22, 18, 17, 11, 20};
++	unsigned char cfg6[] = {3, 10, 7, 13, 9, 11, 1, 2, 4, 6, 8, 5, 12, 0, 0, 0, 20, 1, 0, 21, 22, 17};
++	unsigned char cfg7[] = {3, 2, 4, 7, 9, 1, 17, 12, 18, 14, 13, 8, 15, 6, 10, 5, 19, 22, 16, 21, 20, 11};
++
++	unsigned char cfg8[] = {2,19,8,6,14,5,20,10,3,18,13,11,7,15,9,1,22,21,17,12,4,16};
++	ddr_printf("ddr_efuse_type: 0x%x\n", fuse);
++	ddr_printf("mark_id: 0x%x\n", mark);
++	if ((para->dram_tpr13 & 0xc0000) || mark == 0x50 || mark == 0x7c) {
++		if ((para->dram_tpr13 & 0x40000) || mark == 0x50)
++			memcpy_self((char *)cfg0, (char *)cfg7, 22);
++		if ((para->dram_tpr13 & 0x80000) || mark == 0x7c)
++			memcpy_self((char *)cfg0, (char *)cfg8, 22);
+ 	} else {
+ 		switch (fuse) {
+-			case 8:
+-				memcpy_self(cfg0, cfg2, 22);
+-				break;
+-			case 9:
+-				memcpy_self(cfg0, cfg3, 22);
+-				break;
+-			case 10:
+-				memcpy_self(cfg0, cfg5, 22);
+-				break;
+-			case 11:
+-				memcpy_self(cfg0, cfg4, 22);
+-				break;
+-			default:
+-			case 12:
+-				memcpy_self(cfg0, cfg1, 22);
+-				break;
+-			case 13:
+-			case 14:
+-				break;
++		case 8: memcpy_self((char *)cfg0, (char *)cfg2, 22); break;
++		case 9: memcpy_self((char *)cfg0, (char *)cfg3, 22); break;
++		case 10: memcpy_self((char *)cfg0, (char *)cfg5, 22); break;
++		case 12: memcpy_self((char *)cfg0, (char *)cfg1, 22); break;
++		case 13: case 14: break;
++		default: memcpy_self((char *)cfg0, (char *)cfg4, 22); break;
+ 		}
+ 	}
+-
+ 	if (para->dram_type == 2) {
+-		if (fuse == 15)
++		if (mark == 0x50 || mark == 0x7c) {
++		val = (cfg0[4] << 25) | (cfg0[3] << 20) | (cfg0[2] << 15) | (cfg0[1] << 10) | (cfg0[0] << 5);
++		write32(0x3102500, val);
++
++		val = (cfg0[10] << 25) | (cfg0[9] << 20) | (cfg0[8] << 15) | (cfg0[7] << 10) | (cfg0[6] << 5) | cfg0[5];
++		write32(0x3102504, val);
++
++		val = (cfg0[15] << 20) | (cfg0[14] << 15) | (cfg0[13] << 10) | (cfg0[12] << 5) | cfg0[11];
++		write32(0x3102508, val);
++
++		val = (cfg0[21] << 25) | (cfg0[20] << 20) | (cfg0[19] << 15) | (cfg0[18] << 10) | (cfg0[17] << 5) | cfg0[16];
++		write32(0x310250c, val);
++
++		val = (cfg0[4] << 25) | (cfg0[3] << 20) | (cfg0[2] << 15) | (cfg0[1] << 10) | (cfg0[0] << 5) | 1;
++		write32(0x3102500, val);
++		}
++		if (fuse == 13 || fuse == 14)
++			memcpy_self((char *)cfg0, (char *)cfg6, 22);
++		else
+ 			return;
+-		memcpy_self(cfg0, cfg6, 22);
++	} else if (para->dram_type != 3) {
++		return;
+ 	}
+-
+-	if (para->dram_type == 2 || para->dram_type == 3) {
+ 		val = (cfg0[4] << 25) | (cfg0[3] << 20) | (cfg0[2] << 15) | (cfg0[1] << 10) | (cfg0[0] << 5);
+ 		write32(0x3102500, val);
+ 
+@@ -864,12 +835,8 @@ void mctl_phy_ac_remapping(dram_para_t *para)
+ 
+ 		val = (cfg0[4] << 25) | (cfg0[3] << 20) | (cfg0[2] << 15) | (cfg0[1] << 10) | (cfg0[0] << 5) | 1;
+ 		write32(0x3102500, val);
+-	}
+ }
+ 
+-// Init the controller channel. The key part is placing commands in the main
+-// command register (PIR, 0x3103000) and checking command status (PGSR0, 0x3103010).
+-//
+ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
+ {
+ 	unsigned int val, dqs_gating_mode;
+@@ -938,7 +905,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
+ 		val &= ~(0x40);
+ 		write32(0x3103108, val);
+ 
+-		sdelay(10);
++		__usdelay(10);
+ 
+ 		val = read32(0x3103108);
+ 		val |= 0xc0;
+@@ -967,7 +934,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
+ 		val &= 0xfffffffd;
+ 		write32(0x7010250, val);
+ 
+-		sdelay(10);
++		__usdelay(10);
+ 	}
+ 
+ 	// Set ZQ config
+@@ -983,7 +950,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
+ 
+ 		while ((read32(0x3103010) & 0x1) == 0) {
+ 		} // wait for IDONE
+-		sdelay(10);
++		__usdelay(10);
+ 
+ 		// 0x520 = prep DQS gating + DRAM init + d-cal
+ 		//		val = (para->dram_type == 3) ? 0x5a0	// + DRAM reset
+@@ -1019,7 +986,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
+ 
+ 	write32(0x3103000, read32(0x3103000) | 1); // GO
+ 
+-	sdelay(10);
++	__usdelay(10);
+ 	while ((read32(0x3103010) & 0x1) == 0) {
+ 	} // wait for IDONE
+ 
+@@ -1029,7 +996,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
+ 		val |= 0x04000000;
+ 		write32(0x310310c, val);
+ 
+-		sdelay(10);
++		__usdelay(10);
+ 
+ 		val = read32(0x3103004);
+ 		val |= 0x1;
+@@ -1042,7 +1009,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
+ 		val &= 0xfffffffe;
+ 		write32(0x7010250, val);
+ 
+-		sdelay(10);
++		__usdelay(10);
+ 
+ 		val = read32(0x3103004);
+ 		val &= 0xfffffffe;
+@@ -1051,7 +1018,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
+ 		while ((read32(0x3103018) & 0x7) != 0x1) {
+ 		}
+ 
+-		sdelay(15);
++		__usdelay(15);
+ 
+ 		if (dqs_gating_mode == 1) {
+ 			val = read32(0x3103108);
+@@ -1063,7 +1030,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
+ 			val |= 0x02000000;
+ 			write32(0x310310c, val);
+ 
+-			sdelay(1);
++			__usdelay(1);
+ 			write32(0x3103000, 0x401);
+ 
+ 			while ((read32(0x3103010) & 0x1) == 0) {
+@@ -1074,7 +1041,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
+ 	// Check for training error
+ 	/*	val = read32(0x3103010);
+ 		if (((val >> 20) & 0xff) && (val & 0x100000)) {
+-			ddr_printf("ZQ calibration error, check external 240 ohm resistor.\r\n");
++			ddr_printf("ZQ calibration error,check external 240 ohm resistor.\n");
+ 			return 0;
+ 		}
+ 	*/
+@@ -1085,7 +1052,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
+ 		val = (read32(0x3103010) & 0x100000);
+ 
+ 		if (val != 0) {
+-			printf("ZQ calibration error, check external 240 ohm resistor.\r\n");
++			printf("ZQ calibration error,check external 240 ohm resistor.\n");
+ 			return 0;
+ 		}
+ 	}
+@@ -1098,19 +1065,19 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
+ 	val |= 0x80000000;
+ 	write32(0x310308c, val);
+ 
+-	sdelay(10);
++	__usdelay(10);
+ 
+ 	val = read32(0x310308c);
+ 	val &= 0x7fffffff;
+ 	write32(0x310308c, val);
+ 
+-	sdelay(10);
++	__usdelay(10);
+ 
+ 	val = read32(0x3102014);
+ 	val |= 0x80000000;
+ 	write32(0x3102014, val);
+ 
+-	sdelay(10);
++	__usdelay(10);
+ 
+ 	val = read32(0x310310c);
+ 	val &= 0xf9ffffff;
+@@ -1132,35 +1099,19 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
+ //
+ int DRAMC_get_dram_size(void)
+ {
+-	unsigned int rval, temp, size0, size1;
+-
+-	rval = read32(0x3102000); // MC_WORK_MODE0
+-
+-	temp = (rval >> 8) & 0xf; // page size - 3
+-	temp += (rval >> 4) & 0xf; // row width - 1
+-	temp += (rval >> 2) & 0x3; // bank count - 2
+-	temp -= 14; // 1MB = 20 bits, minus above 6 = 14
+-	size0 = 1 << temp;
+-
+-	temp  = rval & 0x3; // rank count = 0? -> done
+-	if (temp == 0) {
+-		return size0;
+-	}
+-
+-	rval = read32(0x3102004); // MC_WORK_MODE1
+-
+-	temp = rval & 0x3;
+-	if (temp == 0) { // two identical ranks
+-		return 2 * size0;
++	unsigned int val = read32(0x3102000);
++	unsigned int size1 = val & 3;
++	unsigned int size0 = 1 << (((val >> 8) & 15) + ((val >> 4) & 15)
++				  - 14 + ((val >> 2) & 3));
++	if (size1) {
++		val = read32(0x3102004);
++		if (val & 3)
++			size1 = 1 << (((val >> 8) & 15) + ((val >> 4) & 15)
++				     - 14 + ((val >> 2) & 3));
++		else
++			size1 = size0;
+ 	}
+-
+-	temp = (rval >> 8) & 0xf; // page size - 3
+-	temp += (rval >> 4) & 0xf; // row width - 1
+-	temp += (rval >> 2) & 0x3; // bank number - 2
+-	temp -= 14; // 1MB = 20 bits, minus above 6 = 14
+-	size1 = 1 << temp;
+-
+-	return size0 + size1; // add size of each rank
++	return size0 + size1;
+ }
+ 
+ // The below routine reads the command status register to extract
+@@ -1183,10 +1134,10 @@ int dqs_gate_detect(dram_para_t *para)
+ 
+ 			if (u2 == 2) {
+ 				para->dram_para2 = u1;
+-				ddr_printf("[AUTO DEBUG] single rank and full DQ!\r\n");
++				ddr_printf("[AUTO DEBUG] single rank and full DQ!\n");
+ 			} else {
+ 				para->dram_para2 = u1 | 1;
+-				ddr_printf("[AUTO DEBUG] single rank and half DQ!\r\n");
++				ddr_printf("[AUTO DEBUG] single rank and half DQ!\n");
+ 			}
+ 
+ 		} else {
+@@ -1195,18 +1146,18 @@ int dqs_gate_detect(dram_para_t *para)
+ 					return 0;
+ 				}
+ 
+-				ddr_printf("DX0 state: %d\r\n", u1);
+-				ddr_printf("DX1 state: %d\r\n", u2);
++				ddr_printf("DX0 state:%d\n", u1);
++				ddr_printf("DX1 state:%d\n", u2);
+ 				return 0;
+ 			}
+ 
+ 			para->dram_para2 = (para->dram_para2 & 0xfffffff0) | 0x1001;
+-			ddr_printf("[AUTO DEBUG] dual rank and half DQ!\r\n");
++			ddr_printf("[AUTO DEBUG] dual rank and half DQ!\n");
+ 		}
+ 
+ 	} else {
+ 		para->dram_para2 = (para->dram_para2 & 0xfffffff0) | 0x1000;
+-		ddr_printf("[AUTO DEBUG] two rank and full DQ!\r\n");
++		ddr_printf("[AUTO DEBUG] two rank and full DQ!\n");
+ 	}
+ 
+ 	return 1;
+@@ -1229,23 +1180,23 @@ int dramc_simple_wr_test(uint mem_mb, int len)
+ 	}
+ 
+ 	addr = SDRAM_BASE;
+-	for (i = 0; i != len; i++) {
++	for (i = 0; i < len; i++) {
+ 		v1 = read32(addr + i);
+ 		v2 = patt1 + i;
+ 		if (v1 != v2) {
+-			printf("DRAM simple test FAIL.\r\n");
+-			ddr_printf("%x != %x at address %x\r\n", v1, v2, addr + i);
++			printf("DRAM simple test FAIL.\n");
++			ddr_printf("%x != %x at address %x\n", v1, v2, addr + i);
+ 			return 1;
+ 		}
+ 		v1 = read32(addr + offs + i);
+ 		v2 = patt2 + i;
+ 		if (v1 != v2) {
+-			printf("DRAM simple test FAIL.\r\n");
+-			ddr_printf("%x != %x at address %x\r\n", v1, v2, addr + offs + i);
++			printf("DRAM simple test FAIL.\n");
++			ddr_printf("%x != %x at address %x\n", v1, v2, addr + offs + i);
+ 			return 1;
+ 		}
+ 	}
+-	printf("DRAM simple test OK.\r\n");
++	printf("DRAM simple test OK.\n");
+ 	return 0;
+ }
+ 
+@@ -1254,13 +1205,14 @@ int dramc_simple_wr_test(uint mem_mb, int len)
+ void mctl_vrefzq_init(dram_para_t *para)
+ {
+ 	unsigned int val;
++	unsigned int tpr13 = para->dram_tpr13;
+ 
+-	if ((para->dram_tpr13 & (1 << 17)) == 0) {
++	if ((tpr13 & (1 << 17)) == 0) {
+ 		val = read32(0x3103110) & 0x80808080; // IOCVR0
+ 		val |= para->dram_tpr5;
+ 		write32(0x3103110, val);
+ 
+-		if ((para->dram_tpr13 & (1 << 16)) == 0) {
++		if ((tpr13 & (1 << 16)) == 0) {
+ 			val = read32(0x3103114) & 0xffffff80; // IOCVR1
+ 			val |= para->dram_tpr6 & 0x7f;
+ 			write32(0x3103114, val);
+@@ -1301,38 +1253,40 @@ int auto_scan_dram_size(dram_para_t *para) // s7
+ {
+ 	unsigned int rval, i, j, rank, maxrank, offs, mc_work_mode;
+ 	unsigned int chk, ptr, shft;
++	unsigned int pattern_base = RAM_BASE, test_base = RAM_BASE;
+ #ifdef CONFIG_DEBUG_DDR_DRIVER
+ 	unsigned int banks;
+ #endif
+ 
+ 	if (mctl_core_init(para) == 0) {
+-		printf("[ERROR DEBUG] DRAM initialisation error : 0!\r\n");
++		printf("[ERROR DEBUG] DRAM initial error : 0!\n");
+ 		return 0;
+ 	}
+ 
+-	maxrank		 = (para->dram_para2 & 0xf000) ? 2 : 1;
++	maxrank		 = ((para->dram_para2 >> 12) & 0xf) == 1 ? 2 : 1;
+ 	mc_work_mode = 0x3102000;
+ 	offs		 = 0;
+ 
++
++	for (rank = 0; rank < maxrank;) {
+ 	// write test pattern
+-	for (i = 0, ptr = RAM_BASE; i < 64; i++, ptr += 4) {
++	for (i = 0, ptr = test_base; i < 64; i++, ptr += 4) {
+ 		write32(ptr, (i & 1) ? ptr : ~ptr);
+ 	}
+ 
+-	for (rank = 0; rank < maxrank;) {
+ 		// Set row mode
+ 		rval = read32(mc_work_mode);
+-		rval &= 0xfffff0f3;
++		rval &= 0xfffff003;
+ 		rval |= 0x000006f0;
+ 		write32(mc_work_mode, rval);
+ 		while (read32(mc_work_mode) != rval) {
+-			printf("read\r\n");
++			;
+ 		}
+ 
+ 		// Scan per address line, until address wraps (i.e. see shadow)
+ 		for (i = 11; i < 17; i++) {
+-			chk = RAM_BASE + (1 << (i + 11));
+-			ptr = RAM_BASE;
++			chk = test_base + (1 << (i + 11));
++			ptr = pattern_base;
+ 			for (j = 0; j < 64; j++) {
+ 				if (read32(chk) != ((j & 1) ? ptr : ~ptr))
+ 					goto out1;
+@@ -1344,7 +1298,7 @@ int auto_scan_dram_size(dram_para_t *para) // s7
+ 		}
+ 		if (i > 16)
+ 			i = 16;
+-		ddr_printf("[AUTO DEBUG] rank %d row = %d\r\n", rank, i);
++		ddr_printf("[AUTO DEBUG] rank %d row = %d \n", rank, i);
+ 
+ 		// Store rows in para 1
+ 		shft = 4 + offs;
+@@ -1355,6 +1309,7 @@ int auto_scan_dram_size(dram_para_t *para) // s7
+ 
+ 		if (rank == 1) {
+ 			// Set bank mode for rank0
++			test_base = 0x40800000;
+ 			rval = read32(0x3102000);
+ 			rval &= 0xfffff003;
+ 			rval |= 0x000006a4;
+@@ -1370,8 +1325,8 @@ int auto_scan_dram_size(dram_para_t *para) // s7
+ 			;
+ 
+ 		// Test if bit A23 is BA2 or mirror XXX A22?
+-		chk = RAM_BASE + (1 << 22);
+-		ptr = RAM_BASE;
++		chk = test_base + 2048;
++		ptr = pattern_base;
+ 		for (i = 0, j = 0; i < 64; i++) {
+ 			if (read32(chk) != ((i & 1) ? ptr : ~ptr)) {
+ 				j = 1;
+@@ -1384,7 +1339,7 @@ int auto_scan_dram_size(dram_para_t *para) // s7
+ #ifdef CONFIG_DEBUG_DDR_DRIVER
+ 		banks = (j + 1) << 2; // 4 or 8
+ #endif
+-		ddr_printf("[AUTO DEBUG] rank %d bank = %d\r\n", rank, banks);
++		ddr_printf("[AUTO DEBUG] rank %d bank = %d \n", rank, banks);
+ 
+ 		// Store banks in para 1
+ 		shft = 12 + offs;
+@@ -1395,6 +1350,7 @@ int auto_scan_dram_size(dram_para_t *para) // s7
+ 
+ 		if (rank == 1) {
+ 			// Set page mode for rank0
++			test_base = 0x44000000;
+ 			rval = read32(0x3102000);
+ 			rval &= 0xfffff003;
+ 			rval |= 0x00000aa0;
+@@ -1411,8 +1367,8 @@ int auto_scan_dram_size(dram_para_t *para) // s7
+ 
+ 		// Scan per address line, until address wraps (i.e. see shadow)
+ 		for (i = 9; i < 14; i++) {
+-			chk = RAM_BASE + (1 << i);
+-			ptr = RAM_BASE;
++			chk = test_base + (1 << i);
++			ptr = pattern_base;
+ 			for (j = 0; j < 64; j++) {
+ 				if (read32(chk) != ((j & 1) ? ptr : ~ptr))
+ 					goto out2;
+@@ -1425,7 +1381,7 @@ int auto_scan_dram_size(dram_para_t *para) // s7
+ 		if (i > 13)
+ 			i = 13;
+ 		int pgsize = (i == 9) ? 0 : (1 << (i - 10));
+-		ddr_printf("[AUTO DEBUG] rank %d page size = %d KB\r\n", rank, pgsize);
++		ddr_printf("[AUTO DEBUG] rank %d page size = %d KB \n", rank, pgsize);
+ 
+ 		// Store page size
+ 		shft = offs;
+@@ -1438,15 +1394,16 @@ int auto_scan_dram_size(dram_para_t *para) // s7
+ 		rank++;
+ 		if (rank != maxrank) {
+ 			if (rank == 1) {
+-				rval = read32(0x3202000); // MC_WORK_MODE
++				pattern_base = test_base = 0x48000000;
++				rval = read32(0x3102000); // MC_WORK_MODE
+ 				rval &= 0xfffff003;
+ 				rval |= 0x000006f0;
+-				write32(0x3202000, rval);
++				write32(0x3102000, rval);
+ 
+-				rval = read32(0x3202004); // MC_WORK_MODE2
++				rval = read32(0x3102004); // MC_WORK_MODE2
+ 				rval &= 0xfffff003;
+-				rval |= 0x000006f0;
+-				write32(0x3202004, rval);
++				rval |= 0x000006f1;
++				write32(0x3102004, rval);
+ 			}
+ 			offs += 16; // store rank1 config in upper half of para1
+ 			mc_work_mode += 4; // move to MC_WORK_MODE2
+@@ -1456,10 +1413,10 @@ int auto_scan_dram_size(dram_para_t *para) // s7
+ 		para->dram_para2 &= 0xfffff0ff;
+ 		// note: rval is equal to para->dram_para1 here
+ 		if ((rval & 0xffff) == ((rval >> 16) & 0xffff)) {
+-			ddr_printf("rank1 config same as rank0\r\n");
++			ddr_printf("rank1 config same as rank0\n");
+ 		} else {
+ 			para->dram_para2 |= 0x00000100;
+-			ddr_printf("rank1 config different from rank0\r\n");
++			ddr_printf("rank1 config different from rank0\n");
+ 		}
+ 	}
+ 	return 1;
+@@ -1472,15 +1429,18 @@ int auto_scan_dram_size(dram_para_t *para) // s7
+ //
+ int auto_scan_dram_rank_width(dram_para_t *para)
+ {
+-	unsigned int s1 = para->dram_tpr13;
+ 	unsigned int s2 = para->dram_para1;
++	unsigned int s1;
+ 	unsigned int v;
+ 
+ 	para->dram_para1 = 0x00b000b0;
+-	v = (para->dram_para2 & 0xfffffff0) | 0x1000;
++	s1 = para->dram_tpr13;
++	v = para->dram_para2 & 0xfffffff0;
++	v |= 0x1000;
+ 	para->dram_para2 = v;
+ 
+-	v = (s1 & 0xfffffff7) | 0x5; // set DQS probe mode
++	v = s1 & 0xfffffff7;
++	v |= 0x5; // set DQS probe mode
+ 	para->dram_tpr13 = v;
+ 
+ 	mctl_core_init(para);
+@@ -1506,11 +1466,11 @@ int auto_scan_dram_rank_width(dram_para_t *para)
+ int auto_scan_dram_config(dram_para_t *para)
+ {
+ 	if (((para->dram_tpr13 & (1 << 14)) == 0) && (auto_scan_dram_rank_width(para) == 0)) {
+-		printf("[ERROR DEBUG] auto scan dram rank & width failed !\r\n");
++		printf("[ERROR DEBUG] auto scan dram rank&width fail !\n");
+ 		return 0;
+ 	}
+ 	if (((para->dram_tpr13 & (1 << 0)) == 0) && (auto_scan_dram_size(para) == 0)) {
+-		printf("[ERROR DEBUG] auto scan dram size failed !\r\n");
++		printf("[ERROR DEBUG] auto scan dram size fail !\n");
+ 		return 0;
+ 	}
+ 	if ((para->dram_tpr13 & (1 << 15)) == 0) {
+@@ -1519,113 +1479,102 @@ int auto_scan_dram_config(dram_para_t *para)
+ 	return 1;
+ }
+ 
+-signed int init_DRAM(int type, dram_para_t *para) // s0
++signed int init_DRAM(int type, dram_para_t *para)
+ {
+ 	int rc, mem_size;
+-
+-	// Test ZQ status
+-	if (para->dram_tpr13 & 0x10000) {
+-		ddr_printf("DRAM only have internal ZQ!!\r\n");
++	if (!(para->dram_tpr13 & 0x10000)) {
++		write32(0x7010254, 0);
++		write32(0x3000160, read32(0x3000160) & 0xfffffffc);
++		__usdelay(10);
++		write32(0x3000160, read32(0x3000160) & 0xfffffef7);
++		write32(0x3000160, read32(0x3000160) | 2);
++		__usdelay(10);
++		write32(0x3000160, read32(0x3000160) | 1);
++		__usdelay(20);
++		ddr_printf("ZQ value = 0x%x\n", read32(0x300016c));	} else {
++		ddr_printf("DRAM only have internal ZQ!!\n");
+ 		write32(0x3000160, read32(0x3000160) | 0x100);
+ 		write32(0x3000168, 0);
+-		sdelay(10);
+-	} else {
+-		write32(0x3000160, read32(0x3000160) & 0xfffffffc);
+-		write32(0x7010254, para->dram_tpr13 & 0x10000);
+-		sdelay(10);
+-		write32(0x3000160, (read32(0x3000160) & 0xfffffef7) | 2);
+-		sdelay(10);
+-		write32(0x3000160, read32(0x3000160) | 0x001);
+-		sdelay(20);
+-		ddr_printf("ZQ value = 0x%x\r\n", read32(0x300016c));
+-	}
+-
+-	// Set voltage
+-	dram_vol_set(para);
+-
+-	// Set SDRAM controller auto config
+-	if ((para->dram_tpr13 & 0x1) == 0) {
+-		if (auto_scan_dram_config(para) == 0) {
+-			printf("auto_scan_dram_config() FAILED\r\n");
+-			return 0;
+-		}
+-	}
+-
+-	// Print header message (too late)
+-	ddr_printf("DRAM BOOT DRIVE INFO: %s\r\n", "V0.24");
+-	ddr_printf("DRAM CLK = %d MHz\r\n", para->dram_clk);
+-	ddr_printf("DRAM Type = %d (2:DDR2,3:DDR3)\r\n", para->dram_type);
+-	if ((para->dram_odt_en & 0x1) == 0) {
+-		ddr_printf("DRAMC read ODT  off.\r\n");
+-	} else {
+-		ddr_printf("DRAMC ZQ value: 0x%x\r\n", para->dram_zq);
++		__usdelay(10);
+ 	}
+ 
+-	// report ODT
+-	rc = para->dram_mr1;
+-	if ((rc & 0x44) == 0) {
+-		ddr_printf("DRAM ODT off.\r\n");
++	rc = get_pmu_exist();
++	ddr_printf("get_pmu_exist() = %d\n", rc);
++	if (rc < 0) {
++		dram_vol_set(para);
+ 	} else {
+-		ddr_printf("DRAM ODT value: 0x%x.\r\n", rc);
++		if (para->dram_type == 2)
++			set_ddr_voltage(1800);
++		else if (para->dram_type == 3)
++			set_ddr_voltage(1500);
+ 	}
+ 
+-	// Init core, final run
+-	if (mctl_core_init(para) == 0) {
+-		ddr_printf("DRAM initialisation error : 1 !\r\n");
++	if (!(para->dram_tpr13 & 1) && !auto_scan_dram_config(para))
+ 		return 0;
+-	}
+-
+-	// Get sdram size
++	ddr_printf("DRAM BOOT DRIVE INFO: %s\n", "V0.32");
++	ddr_printf("DRAM CLK = %d MHz\n", para->dram_clk);
++	ddr_printf("DRAM Type = %d (2:DDR2,3:DDR3)\n", para->dram_type);
++	if (para->dram_odt_en & 1)
++		ddr_printf("DRAMC ZQ value: 0x%x\n", para->dram_zq);
++	else
++		ddr_printf("DRAMC read ODT  off.\n");
++	rc = para->dram_mr1;
++	if (rc & 0x44)
++		ddr_printf("DRAM ODT value: 0x%x.\n", rc);
++	else
++		ddr_printf("DRAM ODT off.\n");
++	mem_size = mctl_core_init(para);
++	if (!mem_size)
++		goto failed;
+ 	rc = para->dram_para2;
+ 	if (rc < 0) {
+-		rc = (rc & 0x7fff0000U) >> 16;
++		mem_size = ((unsigned int)rc >> 16) & 0x7fff;
+ 	} else {
+-		rc = DRAMC_get_dram_size();
+-		printf("DRAM SIZE = %dM\r\n", rc);
+-		para->dram_para2 = (para->dram_para2 & 0xffffu) | rc << 16;
++		mem_size = DRAMC_get_dram_size();
++		ddr_printf("DRAM SIZE =%d M\n", mem_size);
++		para->dram_para2 = (para->dram_para2 & 0xffff) | (mem_size << 16);
+ 	}
+-	mem_size = rc;
+-
+-	write32(0x31030a0, read32(0x31030a0) & 0xffff0000);
+-	write32(0x3103004, read32(0x3103004) & (~0x1));
+ 
+-	// Pupose ??
+-	rc = read32(0x3103100) & ~(0xf000);
+-	if ((para->dram_tpr13 & 0x200) == 0) {
+-		if (para->dram_type != 6) {
+-			write32(0x3103100, rc);
+-		}
+-	} else {
+-		write32(0x3103100, rc | 0x5000);
+-	}
+-
+-	write32(0x3103140, read32(0x3103140) | (1 << 31));
+-	if (para->dram_tpr13 & (1 << 8)) {
+-		write32(0x31030b8, read32(0x3103140) | 0x300);
+-	}
+-
+-	rc = read32(0x3103108);
+-	if (para->dram_tpr13 & (1 << 16)) {
+-		rc &= 0xffffdfff;
++	if (para->dram_tpr13 & 0x40000000) {
++		unsigned int auto_sr = para->dram_tpr8;
++		if (!auto_sr)
++			auto_sr = 0x10000200;
++		write32(0x31030a0, auto_sr);
++		write32(0x310309c, 0x40a);
++		write32(0x3103004, read32(0x3103004) | 1);
++		ddr_printf("Enable Auto SR\n");
+ 	} else {
+-		rc |= 0x00002000;
+-	}
+-	write32(0x3103108, rc);
+-
+-	// Purpose ??
+-	if (para->dram_type == 7) {
+-		rc = read32(0x310307c) & 0xfff0ffff;
+-		rc |= 0x0001000;
+-		write32(0x310307c, rc);
++		write32(0x31030a0, read32(0x31030a0) & 0xffff0000);
++		write32(0x3103004, read32(0x3103004) & ~1);
+ 	}
+-
++	unsigned int tpr13 = para->dram_tpr13;
++	unsigned int dram_type = para->dram_type;
++	unsigned int val = read32(0x3103100) & ~0xf000;
++	if ((tpr13 & 0x200) || dram_type == 6)
++		val |= 0x5000;
++	write32(0x3103100, val);
++	write32(0x3103140, read32(0x3103140) | 0x80000000);
++	if (tpr13 & 0x100)
++		write32(0x31030b8, read32(0x31030b8) | 0x300);
++	val = read32(0x3103108);
++	if (tpr13 & 0x4000000)
++		val &= ~0x2000;
++	else
++		val |= 0x2000;
++	write32(0x3103108, val);
++	if (dram_type == 7)
++		write32(0x310307c, (read32(0x310307c) & 0xfff0ffff) | 0x10000);
++	ddr_printf("PLL_DDR_CTRL_REG:0x%x\n", read32(0x2001010));
++	ddr_printf("DRAM_CLK_REG:0x%x\n", read32(0x2001800));
++	ddr_printf("[TIMING DEBUG] MR2= 0x%x\n", para->dram_mr2 & 0xffff);
+ 	dram_enable_all_master();
+-	if (para->dram_tpr13 & (1 << 28)) {
+-		rc = read32(0x70005d4);
+-		if ((rc & (1 << 16)) || dramc_simple_wr_test(mem_size, 4096)) {
++	if ((para->dram_tpr13 & 0x10000000) && !(read32(0x70005d4) & 0x10000)) {
++		if (dramc_simple_wr_test(mem_size, 4096))
+ 			return 0;
+-		}
+ 	}
+-
++	handler_super_standby();
++	return mem_size;
++failed:
++	ddr_printf("DRAM initial error : 1 !\n");
+ 	return mem_size;
+ }
+diff --git a/drivers/mmc/sun8iw20p1/mmc.c b/drivers/mmc/sun8iw20p1/mmc.c
+index 11e15e5..fa7982d 100644
+--- a/drivers/mmc/sun8iw20p1/mmc.c
++++ b/drivers/mmc/sun8iw20p1/mmc.c
+@@ -715,7 +715,8 @@ int mmc_read_info(struct mmc *mmc, void *buffer, unsigned short length)
+ retry:
+ 	ret = mmc_read_blocks(mmc, buffer, SUNXI_SDMMC_PARAMETER_REGION_LBA_START, length);
+ 	if (ret < 0) {
+-		printf("%s %d:read region parameter fail, %s \n", __func__, __LINE__,
++		/* Original vendor runtime diagnostic ID; independent of this source line. */
++		printf("%s %d:read region parameter fail, %s \n", __func__, 717,
+ 					(retry_read < 3) ? "retry more time" : "go err");
+ 		dumphex32("info", buffer, 16);
+ 		if (retry_read < 3) {
+@@ -737,7 +738,7 @@ retry:
+ 
+ 		if (sum != add_sum) {
+ 			printf("%s %d:region add sum(%x) is not right(%x), %s \n",
+-					__func__, __LINE__, sum, add_sum,
++					__func__, 739, sum, add_sum,
+ 					(retry_read < 3) ? "retry more time" : "go err");
+ 			if (retry_read < 3) {
+ 				retry_read++;
+@@ -746,7 +747,7 @@ retry:
+ 				goto err;
+ 		}
+ 	} else {
+-		printf("%s %d:region magic is not right, %s %x\n", __func__, __LINE__,
++		printf("%s %d:region magic is not right, %s %x\n", __func__, 748,
+ 				(retry_read < 3) ? "retry more time" : "go err", pregion->header.magic);
+ 		if (retry_read < 3) {
+ 			retry_read++;
+diff --git a/drivers/mmc/sun8iw20p1/mmc_bsp.c b/drivers/mmc/sun8iw20p1/mmc_bsp.c
+index 5da17fe..acc0697 100644
+--- a/drivers/mmc/sun8iw20p1/mmc_bsp.c
++++ b/drivers/mmc/sun8iw20p1/mmc_bsp.c
+@@ -126,7 +126,7 @@ static void _dumphex32(char *name, char *base, int len)
+ void set_mmc_para(int smc_no, void *addr, phys_addr_t uboot_base)
+ {
+ 	struct spare_boot_head_t *uboot_buf =
+-		(struct spare_boot_head_t *)sunxi_get_iobase(uboot_base);
++		(struct spare_boot_head_t *)uboot_base;
+ 
+ 	/*
+ 	 *memcpy((void *)(uboot_buf->boot_data.sdcard_spare_data),
+@@ -162,18 +162,18 @@ int get_card_type(void)
+ {
+ 	struct boot_sdmmc_private_info_t *priv_info =
+ 		(struct boot_sdmmc_private_info_t
+-			 *)sunxi_get_iobase(mmc_config_addr + SDMMC_PRIV_INFO_ADDR_OFFSET);
++			 *)(mmc_config_addr + SDMMC_PRIV_INFO_ADDR_OFFSET);
+ 
+ 	return priv_info->card_type;
+ }
+ 
+-static int mmc_resource_init(u32 sdc_no)
++static int mmc_resource_init(int sdc_no)
+ {
+ 	struct sunxi_mmc_host *mmchost = &mmc_host[sdc_no];
+ 
+ 	mmcdbg("init mmc %d resource\n", sdc_no);
+-	mmchost->reg = (struct sunxi_mmc *)IOMEM_ADDR(MMC_REG_BASE + sdc_no * 0x1000U);
+-	mmchost->database = PT_TO_U32(mmchost->reg) + MMC_REG_FIFO_OS;
++	mmchost->reg = (struct sunxi_mmc *)IOMEM_ADDR(MMC_REG_BASE + sdc_no * 0x1000);
++	mmchost->database = MMC_REG_BASE + sdc_no * 0x1000 + MMC_REG_FIFO_OS;
+ 
+ 	mmchost->hclkbase = CCMU_HCLKGATE0_BASE;
+ 	mmchost->hclkrst  = CCMU_HCLKRST0_BASE;
+@@ -612,12 +612,13 @@ static unsigned mmc_config_delay(struct sunxi_mmc_host *mmchost, u32 spd_md_id,
+ 		sdly = 0xff;
+ 		if (mmc_get_timing_cfg(mmchost->mmc_no, spd_md, freq, &odly,
+ 				       &sdly)) {
+-			mmcinfo("get timing para error %d\n", __LINE__);
++		/* Original vendor runtime diagnostic ID; independent of this source line. */
++			mmcinfo("get timing para error %d\n", 610);
+ 			ret = -1;
+ 			goto OUT;
+ 		}
+ 		if ((odly == 0xff) || (sdly == 0xff)) {
+-			mmcinfo("timing para error %d\n", __LINE__);
++			mmcinfo("timing para error %d\n", 615);
+ 			ret = -1;
+ 			goto OUT;
+ 		}
+@@ -638,12 +639,12 @@ static unsigned mmc_config_delay(struct sunxi_mmc_host *mmchost, u32 spd_md_id,
+ 			dsdly = 0xff;
+ 			if (mmc_get_timing_cfg(mmchost->mmc_no, spd_md, freq,
+ 					       &odly, &dsdly)) {
+-				mmcinfo("get timing para error %d\n", __LINE__);
++				mmcinfo("get timing para error %d\n", 636);
+ 				ret = -1;
+ 				goto OUT;
+ 			}
+ 			if ((odly == 0xff) || (dsdly == 0xff)) {
+-				mmcinfo("timing para error %d\n", __LINE__);
++				mmcinfo("timing para error %d\n", 641);
+ 				ret = -1;
+ 				goto OUT;
+ 			}
+@@ -1082,7 +1083,7 @@ static int mmc_trans_data_by_cpu(struct mmc *mmc, struct mmc_data *data)
+ 			}
+ 			if (readl(&mmchost->reg->status) & (1 << 2))
+ 				goto out;
+-			buff[i] = readl(sunxi_get_iobase(mmchost->database));
++			buff[i] = readl((void __iomem *)mmchost->database);
+ 			timeout = timer_get_us() + 0xffffff;
+ 		}
+ 	} else {
+@@ -1093,7 +1094,7 @@ static int mmc_trans_data_by_cpu(struct mmc *mmc, struct mmc_data *data)
+ 			}
+ 			if (readl(&mmchost->reg->status) & (1 << 3))
+ 				goto out;
+-			writel(buff[i], sunxi_get_iobase(mmchost->database));
++			writel(buff[i], (void __iomem *)mmchost->database);
+ 			timeout = timer_get_us() +  0xffffff;
+ 		}
+ 	}
+@@ -1165,8 +1166,7 @@ static int mmc_trans_data_by_dma(struct mmc *mmc, struct mmc_data *data)
+ 		       (u32)((u32 *)&pdes[des_idx])[3]);
+ 	}
+ 	OSAL_CacheRangeFlush(pdes, sizeof(struct sunxi_mmc_des) * (des_idx+1), 0);
+-//	WR_MB();
+-	DMB;
++	asm volatile ("DSB\n ISB");
+ 	/*
+ 	 * GCTRLREG
+ 	 * GCTRL[2]     : DMA reset
+@@ -1490,11 +1490,12 @@ void mmc_update_host_caps_r(int sdc_no)
+ 	if (ext_f_max && ((mmc->f_max / 1000000) > ext_f_max))
+ 		mmc->f_max = ext_f_max * 1000000;
+ 	/*set bias according to uboot burnin info */
+-	if (priv_info->ext_para1 & EXT_PARA1_1V8_GPIO_BIAS) {
+-	    mmcdbg("set 1v8\n");
+-		writel(readl(IOMEM_ADDR(SUNXI_PIO_BASE + GPIO_POW_MODE_REG)) | (1 << 2),
+-		       IOMEM_ADDR(SUNXI_PIO_BASE + GPIO_POW_MODE_REG));
+-	}
++	u32 mode = readl(IOMEM_ADDR(SUNXI_PIO_BASE + 0x348));
++	if (mode & (1 << 2))
++		mode = readl(IOMEM_ADDR(SUNXI_PIO_BASE + GPIO_POW_MODE_REG)) | (1 << 2);
++	else
++		mode = readl(IOMEM_ADDR(SUNXI_PIO_BASE + GPIO_POW_MODE_REG)) & ~(1 << 2);
++	writel(mode, IOMEM_ADDR(SUNXI_PIO_BASE + GPIO_POW_MODE_REG));
+ 
+ 	if (((priv_info->ext_para0 & 0xFF000000) != EXT_PARA0_ID)
+ 		|| !(priv_info->ext_para0 & EXT_PARA0_TUNING_SUCCESS_FLAG)) {
+diff --git a/drivers/mmc/sun8iw20p1/mmc_def.h b/drivers/mmc/sun8iw20p1/mmc_def.h
+index f4ec2fc..a0374a2 100644
+--- a/drivers/mmc/sun8iw20p1/mmc_def.h
++++ b/drivers/mmc/sun8iw20p1/mmc_def.h
+@@ -45,8 +45,8 @@
+ #define PT_TO_U(p)   ((phys_addr_t)(p))
+ #define WR_MB() 	wmb()
+ 
+-#define  OSAL_CacheRangeFlush(__s, __l, __a)  flush_dcache_range(PT_TO_U(__s), PT_TO_U(__s)+__l - 1)
+-#define  OSAL_CacheRangeInvaild(__s, __l, __a)  invalidate_dcache_range(PT_TO_U(__s), PT_TO_U(__s)+__l - 1)
++#define  OSAL_CacheRangeFlush(__s, __l, __a)
++#define  OSAL_CacheRangeInvaild(__s, __l, __a)
+ 
+ #ifndef NULL
+ #define NULL (void *)0
+@@ -73,6 +73,6 @@
+ #define DMAC_DES_BASE_IN_SDRAM		(0x42000000)
+ #define DRAM_START_ADDR				(0x40000000)
+ 
+-#define DRIVER_VER  "2021-04-2 16:45"
++#define DRIVER_VER  "2021-05-21 14:47"
+ 
+ #endif				/* _MMC_H_ */
+diff --git a/include/arch/rtc.h b/include/arch/rtc.h
+index 7743a0a..baed190 100644
+--- a/include/arch/rtc.h
++++ b/include/arch/rtc.h
+@@ -16,4 +16,11 @@ void rtc_clear_fel_flag(void);
+ void rtc_set_hash_entry(phys_addr_t entry);
+ 
+ 
++#define RTC_STANDBY_FLAG_REG (0x070005d4U)
++#define RTC_STANDBY_SOFT_ENTRY_REG (0x070005d8U)
++#define CRC_EN 0
++#define CRC_VALUE_BEFORE 3
++#define CRC_START 6
++#define CRC_LEN 7
++
+ #endif /* _SUNXI_RTC_H */
+diff --git a/include/common.h b/include/common.h
+index a7e1633..8e6d282 100644
+--- a/include/common.h
++++ b/include/common.h
+@@ -38,7 +38,8 @@ u32 timer_get_us(void);
+ u32 get_sys_ticks(void);
+ 
+ void print_sys_tick(void);
+-int sunxi_set_printf_debug_mode(u8 debug_level);
++int sunxi_set_printf_debug_mode(u8 debug_level, u8 flag);
++u8 sunxi_get_debug_mode_for_uboot(void);
+ u8 sunxi_get_printf_debug_mode(void);
+ void puts(const char *s);
+ int printf(const char *fmt, ...);
+@@ -67,7 +68,7 @@ int sunxi_board_exit(void);
+ void boot0_jmp_monitor(phys_addr_t addr);
+ void boot0_jmp_optee(phys_addr_t optee, phys_addr_t uboot);
+ void boot0_jmp(phys_addr_t addr);
+-void boot0_jmp_opensbi(phys_addr_t opensbi, phys_addr_t dtb, phys_addr_t uboot);
++void boot0_jmp_opensbi(phys_addr_t opensbi, phys_addr_t uboot);
+ 
+ int axp_init(u8 power_mode);
+ int axp_reg_write(u8 addr, u8 val);
+@@ -120,7 +121,7 @@ void  free(void *p);
+ int load_package(void);
+ int load_image(phys_addr_t *uboot_base, phys_addr_t *optee_base, \
+ 				phys_addr_t *monitor_base, phys_addr_t *rtos_base, \
+-				phys_addr_t *opensbi_base, phys_addr_t *dtb_base);
++				phys_addr_t *opensbi_base);
+ void update_flash_para(phys_addr_t uboot_base);
+ int verify_addsum(void *mem_base, u32 size);
+ u32 g_mod( u32 dividend, u32 divisor, u32 *quot_p);
+diff --git a/include/configs/sun8iw20p1.h b/include/configs/sun8iw20p1.h
+index ff091fd..de2ec31 100644
+--- a/include/configs/sun8iw20p1.h
++++ b/include/configs/sun8iw20p1.h
+@@ -8,7 +8,7 @@
+ #ifndef _SUN20IW1_H
+ #define _SUN20IW1_H
+ 
+-#define BOOT_PUB_HEAD_VERSION  "3000"
++#define BOOT_PUB_HEAD_VERSION  {0}
+ #define CONFIG_ARCH_SUN8IW20
+ #define CONFIG_ARCH_SUN8IW20P1
+ #define CONFIG_SUNXI_NCAT_V2
+@@ -32,7 +32,7 @@
+ #define CONFIG_HEAP_BASE                  SDRAM_OFFSET(0x00800000) /*secure */ /*same as base.h*/
+ #define CONFIG_HEAP_SIZE                  (16 * 1024 * 1024)  /*same as base.h*/
+ 
+-#define CONFIG_BOOTPKG_BASE               SDRAM_OFFSET(0x01000000) /*same as base.h*/
++#define CONFIG_BOOTPKG_BASE               SDRAM_OFFSET(0x02e00000) /*same as base.h*/
+ 
+ #define SUNXI_DRAM_PARA_MAX               32
+ 
+diff --git a/mk/config.mk b/mk/config.mk
+index 9abbe2f..ccfbdab 100644
+--- a/mk/config.mk
++++ b/mk/config.mk
+@@ -67,7 +67,7 @@ SPLINCLUDE    := \
+ 	-D__KERNEL__  \
+ 	-DCONFIG_ARM -D__ARM__ \
+ 	-D__NEON_SIMD__  \
+-        -march=armv7-a -mtune=cortex-a7 \
++         \
+ 	-mabi=aapcs-linux \
+ 	-mthumb-interwork \
+ 	-fno-stack-protector \
+diff --git a/nboot/Makefile b/nboot/Makefile
+index bf4e4c6..4e48e2a 100644
+--- a/nboot/Makefile
++++ b/nboot/Makefile
+@@ -45,7 +45,6 @@ LIBS-y += arch/$(ARCH)/cpu/$(CPU)/libarch.o
+ LIBS-y += nboot/main/libmain.o
+ LIBS-y += drivers/libdrivers.o
+ LIBS-y += common/libcommon.o
+-LIBS-y += libfdt/libfdt.o
+ LIBS-y += board/$(PLATFORM)/libboard.o
+ LIBS-$(CFG_SUNXI_SET_SECURE_MODE) += drivers/secure/libsecure.o
+ 
+diff --git a/nboot/main/boot0_head.c b/nboot/main/boot0_head.c
+index 03dc196..8ffd0e9 100644
+--- a/nboot/main/boot0_head.c
++++ b/nboot/main/boot0_head.c
+@@ -61,7 +61,7 @@ const boot0_file_head_t  BT0_head = {
+ 			0x007b7bfb,
+ 			0x00000000,
+ 			0x000010d2,
+-			0x00000000,
++			0x00800000,
+ 			0x00001c70,
+ 			0x00000042,
+ 			0x00000018,
+@@ -79,23 +79,25 @@ const boot0_file_head_t  BT0_head = {
+ 			0x00000000,
+ 			0x00340000,
+ 			0x00000046,
+-			0x34000100,
++			0xb4006103,
+ 		},
+ 		/*__s32	uart_port;*/
+-		0,
++		3,
+ 		/*normal_gpio_cfg   uart_ctrl[2];*/
+ 		{
+-			{5, 2, 6, 1, 0xff, 0xff, {0} }, /*PE2: 6--RX*/
+-			{5, 3, 6, 1, 0xff, 0xff, {0} }, /*PE3: 6--TX*/
++			{7, 8, 5, 1, 0xff, 0xff, {0} }, /*PE2: 6--RX*/
++			{7, 9, 5, 1, 0xff, 0xff, {0} }, /*PE3: 6--TX*/
+ 		},
+ 		/*__s32 enable_jtag;*/
+-		0,
++		1,
+ 		/*normal_gpio_cfg	 jtag_gpio[5];*/
+ 		{
+-			{6, 0, 4, 0xff, 0xff, 0xff, {0} },
+-			{6, 5, 4, 0xff, 0xff, 0xff, {0} },
+-			{6, 3, 4, 0xff, 0xff, 0xff, {0} },
+-			{6, 1, 4, 0xff, 0xff, 0xff, {0} },
++			{8, 9, 3, 0xff, 0xff, 0xff, {0} },
++			{8, 10, 3, 0xff, 0xff, 0xff, {0} },
++			{8, 11, 3, 0xff, 0xff, 0xff, {0} },
++			{8, 12, 3, 0xff, 0xff, 0xff, {0} },
++			/* Vendor platform handoff in the fifth legacy JTAG slot. */
++			{0, 0x52, 0x41, 0x57, 0x89, 0xe9, {0}},
+ 		},
+ 		/*normal_gpio_cfg   storage_gpio[32];*/
+ 		{
+@@ -105,6 +107,12 @@ const boot0_file_head_t  BT0_head = {
+ 			{6, 0, 2, 1, 2, 0xff, {0} },
+ 			{6, 5, 2, 1, 2, 0xff, {0} },
+ 			{6, 4, 2, 1, 2, 0xff, {0} },
++			[16] = {3, 2, 3, 1, 3, 0xff, {0}},
++			{3, 3, 3, 1, 3, 0xff, {0}},
++			{3, 6, 3, 1, 3, 0xff, {0}},
++			{3, 5, 3, 1, 3, 0xff, {0}},
++			{3, 4, 3, 1, 3, 0xff, {0}},
++			{3, 7, 3, 1, 3, 0xff, {0}},
+ 		},
+ 		/*char  storage_data[512 - sizeof(normal_gpio_cfg) * 32];*/
+ #ifdef CFG_SUNXI_SDMMC
+@@ -115,7 +123,8 @@ const boot0_file_head_t  BT0_head = {
+ 			0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 			0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+ 			0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+-			0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++			0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++			[128] = 2,
+ 		}
+ #endif
+ #ifdef CFG_SUNXI_SPINAND
+diff --git a/nboot/main/boot0_main.c b/nboot/main/boot0_main.c
+index 2fb411a..39c710c 100644
+--- a/nboot/main/boot0_main.c
++++ b/nboot/main/boot0_main.c
+@@ -1,11 +1,9 @@
+ /*
+  * (C) Copyright 2018
+-* SPDX-License-Identifier:	GPL-2.0+
+  * wangwei <wangwei@allwinnertech.com>
+  */
+ 
+ #include <common.h>
+-#include <libfdt.h>
+ #include <private_boot0.h>
+ #include <private_uboot.h>
+ #include <private_toc.h>
+@@ -14,65 +12,75 @@
+ #include <arch/dram.h>
+ #include <arch/rtc.h>
+ #include <arch/gpio.h>
+-#ifdef CFG_DDR_SOFT_TRAIN
+-#include <arch/efuse.h>
+-#endif
+ 
++static void update_uboot_info(phys_addr_t uboot_base, phys_addr_t optee_base,
++		phys_addr_t monitor_base, phys_addr_t rtos_base, u32 dram_size,
++		u16 pmu_type, u16 uart_input, u16 key_input);
+ static int boot0_clear_env(void);
+ 
++static void print_commit_log(void)
++{
++	printf("HELLO! BOOT0 is starting!\n");
++	printf("BOOT0 commit : %s\n", BT0_head.hash);
++	sunxi_set_printf_debug_mode(BT0_head.prvt_head.debug_mode, 0);
++}
++
+ void main(void)
+ {
+ 	int dram_size;
+ 	int status;
+ 	phys_addr_t  uboot_base = 0, optee_base = 0, monitor_base = 0, \
+-				rtos_base = 0, opensbi_base = 0, dtb_base = 0;
++				rtos_base = 0, opensbi_base = 0;
++	u16 pmu_type = 0, key_input = 0; /* TODO: set real value */
+ 
+ 	sunxi_serial_init(BT0_head.prvt_head.uart_port, (void *)BT0_head.prvt_head.uart_ctrl, 6);
+-	printf("HELLO! BOOT0 is starting!\n");
+-	printf("BOOT0 commit : %s\n", BT0_head.hash);
+-	sunxi_set_printf_debug_mode(BT0_head.prvt_head.debug_mode);
++	print_commit_log();
+ 
+ 	status = sunxi_board_init();
+-	if(status)
++	if (status)
+ 		goto _BOOT_ERROR;
+ 
+ 	if (rtc_probe_fel_flag()) {
+ 		rtc_clear_fel_flag();
+ 		goto _BOOT_ERROR;
+ #ifdef CFG_SUNXI_PHY_KEY
++#ifdef CFG_LRADC_KEY
+ 	} else if (check_update_key(&key_input)) {
+ 		goto _BOOT_ERROR;
+ #endif
+-	} else if (BT0_head.prvt_head.enable_jtag) {
++#endif
++	}
++
++	if (BT0_head.prvt_head.enable_jtag) {
+ 		printf("enable_jtag\n");
+ 		boot_set_gpio((normal_gpio_cfg *)BT0_head.prvt_head.jtag_gpio, 5, 1);
+ 	}
+ 
++	char uart_input_value = get_uart_input();
++	if (uart_input_value == '2') {
++		sunxi_set_printf_debug_mode(3, 0);
++		printf("detected user input 2\n");
++		goto _BOOT_ERROR;
++	} else if (uart_input_value == 'd') {
++		sunxi_set_printf_debug_mode(8, 1);
++		printf("detected user input d\n");
++	} else if (uart_input_value == 'q') {
++		printf("detected user input q\n");
++		sunxi_set_printf_debug_mode(0, 1);
++	}
++
+ #ifdef FPGA_PLATFORM
+ 	dram_size = mctl_init((void *)BT0_head.prvt_head.dram_para);
+ #else
+-#ifdef CFG_DDR_SOFT_TRAIN
+-	if (BT0_head.prvt_head.dram_para[30] & (1 << 11))
+-		neon_enable();
+-#endif
+ 	dram_size = init_DRAM(0, (void *)BT0_head.prvt_head.dram_para);
+ #endif
+-	if(!dram_size)
++	if (!dram_size) {
++		printf("init dram fail\n");
+ 		goto _BOOT_ERROR;
+-	else {
++	} else {
+ 		printf("dram size =%d\n", dram_size);
+ 	}
+ 
+-	char uart_input_value = get_uart_input();
+-
+-	if (uart_input_value == '2') {
+-		sunxi_set_printf_debug_mode(3);
+-		printf("detected user input 2\n");
+-		goto _BOOT_ERROR;
+-	} else if (uart_input_value == 'd') {
+-		sunxi_set_printf_debug_mode(8);
+-		printf("detected user input d\n");
+-	}
+ 
+ 	mmu_enable(dram_size);
+ 	malloc_init(CONFIG_HEAP_BASE, CONFIG_HEAP_SIZE);
+@@ -81,46 +89,18 @@ void main(void)
+ 		goto _BOOT_ERROR;
+ 
+ 	status = load_package();
+-	if(status == 0 )
+-		load_image(&uboot_base, &optee_base, &monitor_base, &rtos_base, &opensbi_base, &dtb_base);
++	if (status == 0)
++		load_image(&uboot_base, &optee_base, &monitor_base, &rtos_base, &opensbi_base);
+ 	else
+ 		goto _BOOT_ERROR;
+ 
+-	if (dtb_base) {
+-		void *fdt = (void *)dtb_base;
+-		unsigned int i = 0;
+-		uint32_t reg[4];
+-		int offs;
+-
+-		printf("Adding DRAM info to DTB.\n");
+-		status = fdt_open_into(fdt, fdt, SZ_1M);
+-		if (status)
+-			goto _BOOT_ERROR;
+-
+-		offs = fdt_subnode_offset(fdt, 0, "memory");
+-		if (offs < 0)
+-			offs = fdt_add_subnode(fdt, 0, "memory");
+-		if (offs < 0)
+-			goto _BOOT_ERROR;
+-		if (fdt_address_cells(fdt, 0) > 1)
+-			reg[i++] = 0;
+-		reg[i++] = cpu_to_fdt32(SDRAM_OFFSET(0));
+-		if (fdt_size_cells(fdt, 0) > 1)
+-			reg[i++] = 0;
+-		reg[i++] = cpu_to_fdt32(dram_size * SZ_1M);
+-		if (fdt_setprop_string(fdt, offs, "device_type", "memory") < 0)
+-			goto _BOOT_ERROR;
+-		if (fdt_setprop(fdt, offs, "reg", reg, i * sizeof(*reg)) < 0)
+-			goto _BOOT_ERROR;
+-		if (fdt_pack(fdt) < 0)
+-			goto _BOOT_ERROR;
+-	}
+-
++	update_uboot_info(uboot_base, optee_base, monitor_base, rtos_base, dram_size,
++			pmu_type, uart_input_value, key_input);
+ 	mmu_disable( );
+ 
+ 	printf("Jump to second Boot.\n");
+ 	if (opensbi_base) {
+-			boot0_jmp_opensbi(opensbi_base, dtb_base, uboot_base);
++			boot0_jmp_opensbi(opensbi_base, uboot_base);
+ 	} else if (monitor_base) {
+ 		struct spare_monitor_head *monitor_head =
+ 			(struct spare_monitor_head *)((phys_addr_t)monitor_base);
+@@ -143,6 +123,35 @@ _BOOT_ERROR:
+ 
+ }
+ 
++static void update_uboot_info(phys_addr_t uboot_base, phys_addr_t optee_base,
++		phys_addr_t monitor_base, phys_addr_t rtos_base, u32 dram_size,
++		u16 pmu_type, u16 uart_input, u16 key_input)
++{
++	if (rtos_base)
++		return;
++
++	uboot_head_t  *header = (uboot_head_t *) uboot_base;
++	struct sbrom_toc1_head_info *toc1_head = (struct sbrom_toc1_head_info *)CONFIG_BOOTPKG_BASE;
++
++	header->boot_data.boot_package_size = toc1_head->valid_len;
++	header->boot_data.dram_scan_size = dram_size;
++	memcpy((void *)header->boot_data.dram_para, &BT0_head.prvt_head.dram_para, 32 * sizeof(int));
++
++	if (monitor_base)
++		header->boot_data.monitor_exist = 1;
++	if (optee_base)
++		header->boot_data.secureos_exist = 1;
++#ifndef CONFIG_RISCV
++	header->boot_data.func_mask |= get_uboot_func_mask(UBOOT_FUNC_MASK_ALL);
++#endif
++	update_flash_para(uboot_base);
++
++	header->boot_data.pmu_type = pmu_type;
++	header->boot_data.uart_input = uart_input;
++	header->boot_data.key_input = key_input;
++	header->boot_data.debug_mode = sunxi_get_debug_mode_for_uboot();
++}
++
+ static int boot0_clear_env(void)
+ {
+ 	sunxi_board_exit();
+diff --git a/nboot/main/load_image.c b/nboot/main/load_image.c
+index 759a36f..804e80c 100644
+--- a/nboot/main/load_image.c
++++ b/nboot/main/load_image.c
+@@ -28,73 +28,73 @@ int toc1_flash_read(u32 start_sector, u32 blkcnt, void *buff)
+ 	return blkcnt;
+ }
+ 
+-int load_image(phys_addr_t *uboot_base, phys_addr_t *optee_base, \
+-		phys_addr_t *monitor_base, phys_addr_t *rtos_base, phys_addr_t *opensbi_base, phys_addr_t *dtb_base)
++phys_addr_t toc1_get_image_addr(u32 start_sector)
+ {
+-	int i;
+-	//int len;
+-	__maybe_unused void *dram_para_addr = (void *)BT0_head.prvt_head.dram_para;
+-	phys_addr_t image_base;
+-	void __iomem *bootpkg_base = sunxi_get_iobase(CONFIG_BOOTPKG_BASE);
+-
+-	struct sbrom_toc1_head_info  *toc1_head = NULL;
+-	struct sbrom_toc1_item_info  *item_head = NULL;
+-
+-	struct sbrom_toc1_item_info  *toc1_item = NULL;
+-
+-	toc1_head = (struct sbrom_toc1_head_info *)bootpkg_base;
+-	item_head = (struct sbrom_toc1_item_info *)(bootpkg_base + sizeof(struct sbrom_toc1_head_info));
+-
+-#ifdef BOOT_DEBUG
+-	printf("*******************TOC1 Head Message*************************\n");
+-	printf("Toc_name          = %s\n",   toc1_head->name);
+-	printf("Toc_magic         = 0x%x\n", toc1_head->magic);
+-	printf("Toc_add_sum       = 0x%x\n", toc1_head->add_sum);
+-
+-	printf("Toc_serial_num    = 0x%x\n", toc1_head->serial_num);
+-	printf("Toc_status        = 0x%x\n", toc1_head->status);
+-
+-	printf("Toc_items_nr      = 0x%x\n", toc1_head->items_nr);
+-	printf("Toc_valid_len     = 0x%x\n", toc1_head->valid_len);
+-	printf("TOC_MAIN_END      = 0x%x\n", toc1_head->end);
+-	printf("*************************************************************\n");
+-#endif
+-	//init
+-	toc1_item = item_head;
+-	for(i=0;i<toc1_head->items_nr;i++,toc1_item++)
+-	{
+-#ifdef BOOT_DEBUG
+-		printf("*******************TOC1 Item Message*************************\n");
+-		printf("Entry_name        = %s\n",   toc1_item->name);
+-		printf("Entry_data_offset = 0x%x\n", toc1_item->data_offset);
+-		printf("Entry_data_len    = 0x%x\n", toc1_item->data_len);
+-
+-		printf("encrypt           = 0x%x\n", toc1_item->encrypt);
+-		printf("Entry_type        = 0x%x\n", toc1_item->type);
+-		printf("run_addr          = 0x%x\n", toc1_item->run_addr);
+-		printf("index             = 0x%x\n", toc1_item->index);
+-		printf("Entry_end         = 0x%x\n", toc1_item->end);
+-		printf("*************************************************************\n");
+-#else
+-		printf("Entry_name        = %s\n",   toc1_item->name);
+-#endif
++	uboot_head_t *header = sunxi_get_iobase(CONFIG_BOOTPKG_BASE + 512 * start_sector);
++	return header->boot_head.reserved[0];
++}
+ 
+-		image_base = toc1_item->run_addr;
+-		if (strncmp(toc1_item->name, ITEM_UBOOT_NAME, sizeof(ITEM_UBOOT_NAME)) == 0) {
++int load_image(phys_addr_t *uboot_base, phys_addr_t *optee_base,
++	phys_addr_t *monitor_base, phys_addr_t *rtos_base, phys_addr_t *opensbi_base)
++{
++	unsigned int i;
++	void *dram_para_addr = (void *)BT0_head.prvt_head.dram_para;
++	const void *platform_info = (const char *)&BT0_head + 0xf0;
++	phys_addr_t image_base;
++	void *bootpkg_base = sunxi_get_iobase(CONFIG_BOOTPKG_BASE);
++	struct sbrom_toc1_head_info *toc1_head = bootpkg_base;
++	struct sbrom_toc1_item_info *item_head = bootpkg_base + sizeof(*toc1_head);
++	struct sbrom_toc1_item_info *item;
++	for (i = 0; i < toc1_head->items_nr; i++) {
++		item = item_head + i;
++		printf("Entry_name        = %s\n", item->name);
++		image_base = toc1_get_image_addr(item->data_offset / 512);
++		if (strncmp(item->name, ITEM_UBOOT_NAME, sizeof(ITEM_UBOOT_NAME)) == 0) {
+ 			*uboot_base = image_base;
+-		} else if (strncmp(toc1_item->name, ITEM_OPTEE_NAME, sizeof(ITEM_OPTEE_NAME)) == 0) {
++			toc1_flash_read(item->data_offset / 512, (item->data_len + 511) / 512, (void *)image_base);
++		} else if (strncmp(item->name, ITEM_OPTEE_NAME, sizeof(ITEM_OPTEE_NAME)) == 0) {
+ 			*optee_base = image_base;
+-		} else if (strncmp(toc1_item->name, ITEM_MONITOR_NAME, sizeof(ITEM_MONITOR_NAME)) == 0) {
++			toc1_flash_read(item->data_offset / 512, (item->data_len + 511) / 512, (void *)image_base);
++			memcpy((void *)(image_base + 44), dram_para_addr, 128);
++			memcpy((void *)(image_base + 236), platform_info, 8);
++			continue;
++		} else if (strncmp(item->name, ITEM_MONITOR_NAME, sizeof(ITEM_MONITOR_NAME)) == 0) {
+ 			*monitor_base = image_base;
+-		} else if (strncmp(toc1_item->name, ITEM_OPENSBI_NAME, sizeof(ITEM_OPENSBI_NAME)) == 0) {
++			toc1_flash_read(item->data_offset / 512, (item->data_len + 511) / 512, (void *)image_base);
++			memcpy((void *)(image_base + 48), dram_para_addr, 128);
++			memcpy((void *)(image_base + 36), platform_info, 8);
++			continue;
++		} else if (strncmp(item->name, ITEM_SCP_NAME, sizeof(ITEM_SCP_NAME)) == 0) {
++			continue;
++		} else if (strncmp(item->name, ITEM_DTB_NAME, sizeof(ITEM_DTB_NAME)) == 0) {
++			image_base = *uboot_base + 0x200000;
++			struct private_atf_head *monitor = sunxi_get_iobase(*monitor_base);
++			monitor->dtb_base = image_base;
++			toc1_flash_read(item->data_offset / 512, (item->data_len + 511) / 512, (void *)image_base);
++		} else if (strncmp(item->name, ITEM_DTBO_NAME, sizeof(ITEM_DTBO_NAME)) == 0) {
++			image_base = *uboot_base + 0x100000;
++			toc1_flash_read(item->data_offset / 512, (item->data_len + 511) / 512, (void *)image_base);
++		} else if (strncmp(item->name, ITEM_LOGO_NAME, sizeof(ITEM_LOGO_NAME)) == 0) {
++			u32 *logo = (u32 *)(*uboot_base + 0x300000);
++			logo[0] = item->data_len;
++			toc1_flash_read(item->data_offset / 512, (item->data_len + 511) / 512, logo + 4);
++			set_uboot_func_mask(1);
++			continue;
++		} else if (strncmp(item->name, ITEM_OPENSBI_NAME, sizeof(ITEM_OPENSBI_NAME)) == 0) {
+ 			*opensbi_base = image_base;
+-		} else if (strncmp(toc1_item->name, ITEM_RTOS_NAME, sizeof(ITEM_RTOS_NAME)) == 0) {
++			toc1_flash_read(item->data_offset / 512, (item->data_len + 511) / 512, (void *)image_base);
++		} else if (strncmp(item->name, ITEM_RTOS_NAME, sizeof(ITEM_RTOS_NAME)) == 0 ||
++			strncmp(item->name, ITEM_MELIS_NAME, sizeof(ITEM_MELIS_NAME)) == 0) {
+ 			*rtos_base = image_base;
+-		} else if (strncmp(toc1_item->name, ITEM_DTB_NAME, sizeof(ITEM_DTB_NAME)) == 0) {
+-			*dtb_base = image_base;
++			toc1_flash_read(item->data_offset / 512, (item->data_len + 511) / 512, (void *)image_base);
++		} else if (strncmp(item->name, ITEM_MELIS_CONFIG_NAME, sizeof(ITEM_MELIS_CONFIG_NAME)) == 0) {
++			printf("image_base:%x\n", 0x43000000);
++			memcpy((void *)0x43000000, &item_head[i].data_len, 4);
++			image_base = 0x43000200;
++			toc1_flash_read(item->data_offset / 512, (item->data_len + 511) / 512, (void *)image_base);
++		} else {
++			continue;
+ 		}
+-		toc1_flash_read(toc1_item->data_offset/512, (toc1_item->data_len+511)/512, (void *)image_base);
+ 	}
+-
+ 	return 0;
+ }
+--- /dev/null
++++ b/drivers/sid.c
+@@ -0,0 +1,44 @@
++/* Reconstructed stock SID transaction protocol from original boot0. */
++#include <common.h>
++#include <asm/io.h>
++#include <arch/efuse.h>
++
++void sid_read_work_status(void)
++{
++	while (readl(0x03006040) & (1 << 3))
++		;
++}
++
++u32 sid_read_key(u32 key_index)
++{
++	u32 reg;
++	sid_read_work_status();
++	reg = readl(0x03006040);
++	reg &= 0xfe00fffc;
++	reg |= key_index << 16;
++	writel(reg, 0x03006040);
++	writel((reg & 0xffff00fc) | 0xac02, 0x03006040);
++	while (readl(0x03006040) & 2)
++		;
++	reg &= 0xfe0000fc;
++	writel(reg, 0x03006040);
++	return readl(0x03006060);
++}
++
++void sid_program_key(u32 key_index, u32 key_value)
++{
++	u32 reg;
++	setbits_le32(0x07090204, 1);
++	sid_read_work_status();
++	writel(key_value, 0x03006050);
++	reg = readl(0x03006040);
++	reg &= 0xfe00fffc;
++	reg |= key_index << 16;
++	writel(reg, 0x03006040);
++	writel((reg & 0xffff00fc) | 0xac01, 0x03006040);
++	while (readl(0x03006040) & 1)
++		;
++	reg &= 0xfe0000fc;
++	writel(reg, 0x03006040);
++	clrbits_le32(0x07090204, 1);
++}
+--- /dev/null
++++ b/drivers/dram/sun8iw20p1/lib-dram/chip_id_sd.c
+@@ -0,0 +1,32 @@
++/* Source reconstruction of the boot0 SD chip-identification helpers. */
++typedef unsigned char u8;
++typedef unsigned short u16;
++typedef unsigned int u32;
++
++u16 crc_16(u16 value, u8 datum)
++{
++	u16 bit;
++	value ^= datum << 8;
++	for (bit = 8; bit > 0; bit--) {
++		u16 high = value & 0x8000;
++		value = (u16)(value << 1);
++		if (high)
++			value = (u16)(value ^ (short)0x8005);
++	}
++	return value;
++}
++
++u32 disturb_coding(u16 value, u8 datum)
++{
++	u32 sum = value + datum;
++	return sum | ((u32)crc_16(value, datum) << 16);
++}
++
++u32 id_judge_fun(u16 value)
++{
++	volatile u32 status = 0;
++	status = *(volatile u32 *)0x01c15004 & 7;
++	if (!status)
++		return disturb_coding(value, 1);
++	return 0;
++}

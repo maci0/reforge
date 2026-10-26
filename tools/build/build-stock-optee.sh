@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+# Build the incomplete T113 OP-TEE reconstruction from source. Never flash.
+set -euo pipefail
+if (( $# < 2 || $# > 3 )); then
+    echo "usage: $0 SOURCE_TAR OUTPUT_DIR [STOCK_OPTEE_COMPARISON_REFERENCE]" >&2
+    exit 2
+fi
+repo=$(cd "$(dirname "$0")/../.." && pwd)
+archive=$(realpath "$1")
+out=$(realpath -m "$2")
+reference=${3:-}
+[[ -z "$reference" ]] || reference=$(realpath "$reference")
+[[ ! -e "$out" ]] || { echo "Output directory must be new: $out" >&2; exit 1; }
+python3 - "$archive" "$reference" <<'PYPREFLIGHT'
+from pathlib import Path
+import hashlib
+import sys
+for filename, expected, label in (
+    (sys.argv[1], '1662d74cd682ebfe1d52b3ced8a61c2d490a12a011b9c4255a73bd6b460e1b58', 'OP-TEE source archive'),
+    (sys.argv[2], '7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99', 'Original OP-TEE comparison reference'),
+):
+    if filename and hashlib.sha256(Path(filename).read_bytes()).hexdigest() != expected:
+        raise SystemExit(label + ' SHA-256 mismatch')
+PYPREFLIGHT
+cross="$repo/vendor/toolchains/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi/bin/arm-linux-gnueabi-"
+[[ -x "${cross}gcc" ]] || { echo 'Install the pinned Linaro 5.3.1 toolchain first.' >&2; exit 1; }
+python3 -c 'from Crypto.PublicKey import RSA' || exit 1
+python3 - "$archive" "$out" <<'PY'
+from pathlib import Path
+import hashlib
+import json
+import sys
+import tarfile
+archive, out = map(Path, sys.argv[1:])
+expected = '1662d74cd682ebfe1d52b3ced8a61c2d490a12a011b9c4255a73bd6b460e1b58'
+revision = 'a2fa5018cb595a9cd9ab62e82c7485ca57a62084'
+root = 'optee_os-' + revision
+with archive.open('rb') as stream:
+    actual = hashlib.file_digest(stream, 'sha256').hexdigest()
+if actual != expected:
+    raise SystemExit('OP-TEE source archive SHA-256 mismatch')
+with tarfile.open(archive) as source:
+    members = source.getmembers()
+    if not members or any(m.name != root and not m.name.startswith(root + '/')
+                          for m in members):
+        raise SystemExit('Unexpected OP-TEE source archive root')
+    if any(m.isfile() and Path(m.name).suffix in {'.o', '.a', '.ko', '.bin', '.elf'}
+           for m in members):
+        raise SystemExit('Prebuilt target member in source archive')
+    out.mkdir(parents=True)
+    source.extractall(out, filter='data')
+(out / root).rename(out / 'source-tree')
+(out / 'inputs.json').write_text(json.dumps({
+    'source_url': 'https://codeload.github.com/OP-TEE/optee_os/tar.gz/' + revision,
+    'source_revision': revision,
+    'source_archive_sha256': actual,
+    'source_date_epoch': 1571399438,
+    'implementation_version': '3.7.0-reforge-reconstruction',
+    'profile': 'sun8iw20p1',
+    'status': 'incomplete research reconstruction; not stock-equivalent',
+    'stock_reference_used_as_source': False,
+    'target_objects_imported': False,
+}, indent=2) + '\n')
+PY
+patchdir="$repo/vendor/optee/stock-patches"
+patches=("$patchdir/0001-upstream-sm4.patch" "$patchdir/0002-upstream-sm3.patch"
+         "$patchdir/0003-t113-reconstruction.patch")
+for source_patch in "${patches[@]}"; do
+    patch --batch --forward --fuzz=0 -s -p1 -d "$out/source-tree" < "$source_patch"
+done
+sha256sum "${patches[@]}" > "$out/source-patches.sha256"
+{
+    "${cross}gcc" --version
+    "${cross}ld" --version
+    sha256sum "${cross}gcc" "${cross}ld" "$("${cross}gcc" -print-prog-name=cc1)"
+} > "$out/toolchain.txt"
+export SOURCE_DATE_EPOCH=1571399438 LC_ALL=C TZ=UTC
+if ! make -C "$out/source-tree" PLATFORM=sun8iw20p1 "O=$out/build" \
+    "CROSS_COMPILE=$cross" TEE_IMPL_VERSION=3.7.0-reforge-reconstruction \
+    -j"${BUILD_JOBS:-8}" > "$out/build.log" 2>&1; then
+    tail -35 "$out/build.log" >&2
+    exit 1
+fi
+mkdir "$out/artifacts"
+cp "$out/build/core/tee.bin" "$out/build/core/tee.elf" "$out/build/core/tee.map" "$out/artifacts/"
+cp "$out/build/conf.mk" "$out/artifacts/profile.mk"
+# Reference bytes are never inputs to source compilation.
+python3 - "$out" "$reference" <<'PY'
+from pathlib import Path
+import hashlib
+import json
+import sys
+out = Path(sys.argv[1])
+candidate = out / 'artifacts/tee.bin'
+data = candidate.read_bytes()
+report = {
+    'artifact': str(candidate), 'size': len(data),
+    'sha256': hashlib.sha256(data).hexdigest(),
+    'source_build_complete': True,
+    'stock_equivalence_established': False,
+    'status': 'research-only; vendor header/services and exact code shape remain incomplete',
+    'comparison': None,
+}
+if sys.argv[2]:
+    reference = Path(sys.argv[2])
+    original = reference.read_bytes()
+    original_sha = hashlib.sha256(original).hexdigest()
+    if original_sha != '7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99':
+        raise SystemExit('Unexpected original OP-TEE comparison reference SHA-256')
+    differences = [i for i, (a, b) in enumerate(zip(original, data)) if a != b]
+    equal = original == data
+    report['comparison'] = {
+        'reference': str(reference), 'reference_sha256': original_sha,
+        'reference_size': len(original), 'full_file_equal': equal,
+        'byte_differences_in_shared_extent': len(differences),
+        'first_differing_offset': differences[0] if differences else
+            min(len(original), len(data)) if len(original) != len(data) else None,
+        'candidate_length_difference': len(data) - len(original),
+        'permitted_exceptions': [],
+    }
+    report['stock_equivalence_established'] = equal
+(out / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
+print(json.dumps(report))
+if report['comparison'] is not None and not report['stock_equivalence_established']:
+    raise SystemExit(1)
+PY

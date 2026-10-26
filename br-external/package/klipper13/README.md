@@ -77,6 +77,12 @@ and `9efa694e117cdbeaf92f9e401f727122598a099c3edb208acb8fa05b335a6385`.
 This checks reproducibility of the pinned v13 firmware, not equality with the
 different factory MCU version.
 
+A fresh isolated host-package build on 2026-10-26 also applied all five patches
+without fuzz, compiled the ARM EABI5 hard-float helper and staged the matching
+firmware closure. All 180 staged Python files passed syntax compilation and all
+74 declared CFFI function symbols were available. This build/install check did
+not execute the target on printer hardware.
+
 These are build artifacts. The package does not invoke a flasher or change either
 MCU on a connected printer. Review the v13 printer configuration and the recovery
 path before flashing; a successful build does not validate motors, heaters,

@@ -1,0 +1,784 @@
+diff --git a/core/crypto.mk b/core/crypto.mk
+index 4a87c19d..e9ae3b9a 100644
+--- a/core/crypto.mk
++++ b/core/crypto.mk
+@@ -31,6 +31,7 @@ CFG_CRYPTO_SHA256 ?= y
+ CFG_CRYPTO_SHA384 ?= y
+ CFG_CRYPTO_SHA512 ?= y
+ CFG_CRYPTO_SHA512_256 ?= y
++CFG_CRYPTO_SM3 ?= y
+ 
+ # Asymmetric ciphers
+ CFG_CRYPTO_DSA ?= y
+diff --git a/core/crypto/crypto.c b/core/crypto/crypto.c
+index 1272b1bb..e4cbd6b3 100644
+--- a/core/crypto/crypto.c
++++ b/core/crypto/crypto.c
+@@ -43,6 +43,9 @@ TEE_Result crypto_hash_alloc_ctx(void **ctx, uint32_t algo)
+ 		case TEE_ALG_SHA512:
+ 			res = crypto_sha512_alloc_ctx(&c);
+ 			break;
++		case TEE_ALG_SM3:
++			res = crypto_sm3_alloc_ctx(&c);
++			break;
+ 		default:
+ 			break;
+ 		}
+@@ -233,6 +236,9 @@ TEE_Result crypto_mac_alloc_ctx(void **ctx, uint32_t algo)
+ 	case TEE_ALG_HMAC_SHA512:
+ 		res = crypto_hmac_sha512_alloc_ctx(&c);
+ 		break;
++	case TEE_ALG_HMAC_SM3:
++		res = crypto_hmac_sm3_alloc_ctx(&c);
++		break;
+ 	case TEE_ALG_AES_CBC_MAC_NOPAD:
+ 		res = crypto_aes_cbc_mac_nopad_alloc_ctx(&c);
+ 		break;
+diff --git a/core/crypto/sm3-hash.c b/core/crypto/sm3-hash.c
+new file mode 100644
+index 00000000..189b08a4
+--- /dev/null
++++ b/core/crypto/sm3-hash.c
+@@ -0,0 +1,113 @@
++// SPDX-License-Identifier: BSD-2-Clause
++/*
++ * Copyright (C) 2018, ARM Limited
++ * Copyright (C) 2019, Linaro Limited
++ * Copyright (C) 2019 Huawei Technologies Co., Ltd
++ */
++
++#include <assert.h>
++#include <compiler.h>
++#include <crypto/crypto.h>
++#include <crypto/crypto_impl.h>
++#include <stdlib.h>
++#include <string_ext.h>
++#include <string.h>
++#include <tee_api_types.h>
++#include <utee_defines.h>
++#include <util.h>
++
++#include "sm3.h"
++
++struct sm3_hash_ctx {
++	struct crypto_hash_ctx hash_ctx;
++	struct sm3_context sm3_ctx;
++};
++
++static const struct crypto_hash_ops sm3_hash_ops;
++
++static struct sm3_hash_ctx *to_hash_ctx(struct crypto_hash_ctx *ctx)
++{
++	assert(ctx && ctx->ops == &sm3_hash_ops);
++
++	return container_of(ctx, struct sm3_hash_ctx, hash_ctx);
++}
++
++static TEE_Result op_sm3_hash_init(struct crypto_hash_ctx *ctx)
++{
++	sm3_init(&to_hash_ctx(ctx)->sm3_ctx);
++
++	return TEE_SUCCESS;
++}
++
++static TEE_Result op_sm3_hash_update(struct crypto_hash_ctx *ctx,
++				     const uint8_t *data, size_t len)
++{
++	sm3_update(&to_hash_ctx(ctx)->sm3_ctx, data, len);
++
++	return TEE_SUCCESS;
++}
++
++static TEE_Result op_sm3_hash_final(struct crypto_hash_ctx *ctx,
++				    uint8_t *digest,
++				    size_t len)
++{
++	struct sm3_hash_ctx *hc = to_hash_ctx(ctx);
++	size_t hash_size = TEE_SM3_HASH_SIZE;
++	uint8_t block_digest[TEE_SM3_HASH_SIZE] = { 0 };
++	uint8_t *tmp_digest = NULL;
++
++	if (len == 0)
++		return TEE_ERROR_BAD_PARAMETERS;
++
++	if (hash_size > len)
++		tmp_digest = block_digest; /* use a tempory buffer */
++	else
++		tmp_digest = digest;
++
++	sm3_final(&hc->sm3_ctx, tmp_digest);
++
++	if (hash_size > len)
++		memcpy(digest, tmp_digest, len);
++
++	return TEE_SUCCESS;
++}
++
++static void op_sm3_hash_free_ctx(struct crypto_hash_ctx *ctx)
++{
++	struct sm3_hash_ctx *hc = to_hash_ctx(ctx);
++
++	memzero_explicit(&hc->sm3_ctx, sizeof(hc->sm3_ctx));
++	free(hc);
++}
++
++static void op_sm3_hash_copy_state(struct crypto_hash_ctx *dst_ctx,
++				   struct crypto_hash_ctx *src_ctx)
++{
++	struct sm3_hash_ctx *src = to_hash_ctx(src_ctx);
++	struct sm3_hash_ctx *dst = to_hash_ctx(dst_ctx);
++
++	dst->sm3_ctx = src->sm3_ctx;
++}
++
++static const struct crypto_hash_ops sm3_hash_ops = {
++	.init = op_sm3_hash_init,
++	.update = op_sm3_hash_update,
++	.final = op_sm3_hash_final,
++	.free_ctx = op_sm3_hash_free_ctx,
++	.copy_state = op_sm3_hash_copy_state,
++};
++
++TEE_Result crypto_sm3_alloc_ctx(struct crypto_hash_ctx **ctx)
++{
++	struct sm3_hash_ctx *hc = NULL;
++
++	hc = calloc(1, sizeof(*hc));
++	if (!hc)
++		return TEE_ERROR_OUT_OF_MEMORY;
++
++	hc->hash_ctx.ops = &sm3_hash_ops;
++
++	*ctx = &hc->hash_ctx;
++
++	return TEE_SUCCESS;
++}
+diff --git a/core/crypto/sm3-hmac.c b/core/crypto/sm3-hmac.c
+new file mode 100644
+index 00000000..75bf6b6a
+--- /dev/null
++++ b/core/crypto/sm3-hmac.c
+@@ -0,0 +1,114 @@
++// SPDX-License-Identifier: BSD-2-Clause
++/*
++ * Copyright (C) 2018, ARM Limited
++ * Copyright (C) 2019, Linaro Limited
++ */
++
++#include <assert.h>
++#include <compiler.h>
++#include <crypto/crypto.h>
++#include <crypto/crypto_impl.h>
++#include <kernel/panic.h>
++#include <mbedtls/md.h>
++#include <stdlib.h>
++#include <string.h>
++#include <string_ext.h>
++#include <tee_api_types.h>
++#include <utee_defines.h>
++#include <util.h>
++
++#include "sm3.h"
++
++struct sm3_hmac_ctx {
++	struct crypto_mac_ctx mac_ctx;
++	struct sm3_context sm3_ctx;
++};
++
++static const struct crypto_mac_ops sm3_hmac_ops;
++
++static struct sm3_hmac_ctx *to_hmac_ctx(struct crypto_mac_ctx *ctx)
++{
++	assert(ctx && ctx->ops == &sm3_hmac_ops);
++
++	return container_of(ctx, struct sm3_hmac_ctx, mac_ctx);
++}
++
++static TEE_Result op_sm3_hmac_init(struct crypto_mac_ctx *ctx,
++				 const uint8_t *key, size_t len)
++{
++	sm3_hmac_init(&to_hmac_ctx(ctx)->sm3_ctx, key, len);
++
++	return TEE_SUCCESS;
++}
++
++static TEE_Result op_sm3_hmac_update(struct crypto_mac_ctx *ctx,
++				   const uint8_t *data, size_t len)
++{
++	sm3_hmac_update(&to_hmac_ctx(ctx)->sm3_ctx, data, len);
++
++	return TEE_SUCCESS;
++}
++
++static TEE_Result op_sm3_hmac_final(struct crypto_mac_ctx *ctx, uint8_t *digest,
++				  size_t len)
++{
++	struct sm3_hmac_ctx *c = to_hmac_ctx(ctx);
++	size_t hmac_size = TEE_SM3_HASH_SIZE;
++	uint8_t block_digest[TEE_SM3_HASH_SIZE] = { 0 };
++	uint8_t *tmp_digest = NULL;
++
++	if (len == 0)
++		return TEE_ERROR_BAD_PARAMETERS;
++
++	if (hmac_size > len)
++		tmp_digest = block_digest; /* use a tempory buffer */
++	else
++		tmp_digest = digest;
++
++	sm3_hmac_final(&c->sm3_ctx, tmp_digest);
++
++	if (hmac_size > len)
++		memcpy(digest, tmp_digest, len);
++
++	return TEE_SUCCESS;
++}
++
++static void op_sm3_hmac_free_ctx(struct crypto_mac_ctx *ctx)
++{
++	struct sm3_hmac_ctx *c = to_hmac_ctx(ctx);
++
++	memzero_explicit(&c->sm3_ctx, sizeof(c->sm3_ctx));
++	free(c);
++}
++
++static void op_sm3_hmac_copy_state(struct crypto_mac_ctx *dst_ctx,
++				 struct crypto_mac_ctx *src_ctx)
++{
++	struct sm3_hmac_ctx *src = to_hmac_ctx(src_ctx);
++	struct sm3_hmac_ctx *dst = to_hmac_ctx(dst_ctx);
++
++	dst->sm3_ctx = src->sm3_ctx;
++}
++
++static const struct crypto_mac_ops sm3_hmac_ops = {
++	.init = op_sm3_hmac_init,
++	.update = op_sm3_hmac_update,
++	.final = op_sm3_hmac_final,
++	.free_ctx = op_sm3_hmac_free_ctx,
++	.copy_state = op_sm3_hmac_copy_state,
++};
++
++TEE_Result crypto_hmac_sm3_alloc_ctx(struct crypto_mac_ctx **ctx)
++{
++	struct sm3_hmac_ctx *c = NULL;
++
++	c = calloc(1, sizeof(*c));
++	if (!c)
++		return TEE_ERROR_OUT_OF_MEMORY;
++
++	c->mac_ctx.ops = &sm3_hmac_ops;
++
++	*ctx = &c->mac_ctx;
++
++	return TEE_SUCCESS;
++}
+diff --git a/core/crypto/sm3.c b/core/crypto/sm3.c
+new file mode 100644
+index 00000000..79152396
+--- /dev/null
++++ b/core/crypto/sm3.c
+@@ -0,0 +1,290 @@
++// SPDX-License-Identifier: BSD-2-Clause
++/*
++ * Copyright (c) 2019 Huawei Technologies Co., Ltd
++ */
++/*
++ * SM3 Hash algorithm
++ * thanks to Xyssl
++ * author:goldboar
++ * email:goldboar@163.com
++ * 2011-10-26
++ */
++
++#include <string.h>
++#include <string_ext.h>
++
++#include "sm3.h"
++
++#define GET_UINT32_BE(n, b, i)				\
++	do {						\
++		(n) = ((uint32_t)(b)[(i)] << 24)     |	\
++		      ((uint32_t)(b)[(i) + 1] << 16) |	\
++		      ((uint32_t)(b)[(i) + 2] <<  8) |	\
++		      ((uint32_t)(b)[(i) + 3]);		\
++	} while (0)
++
++#define PUT_UINT32_BE(n, b, i)				\
++	do {						\
++		(b)[(i)] = (uint8_t)((n) >> 24);	\
++		(b)[(i) + 1] = (uint8_t)((n) >> 16);	\
++		(b)[(i) + 2] = (uint8_t)((n) >>  8);	\
++		(b)[(i) + 3] = (uint8_t)((n));		\
++	} while (0)
++
++void sm3_init(struct sm3_context *ctx)
++{
++	ctx->total[0] = 0;
++	ctx->total[1] = 0;
++
++	ctx->state[0] = 0x7380166F;
++	ctx->state[1] = 0x4914B2B9;
++	ctx->state[2] = 0x172442D7;
++	ctx->state[3] = 0xDA8A0600;
++	ctx->state[4] = 0xA96F30BC;
++	ctx->state[5] = 0x163138AA;
++	ctx->state[6] = 0xE38DEE4D;
++	ctx->state[7] = 0xB0FB0E4E;
++}
++
++static void sm3_process(struct sm3_context *ctx, const uint8_t data[64])
++{
++	uint32_t SS1, SS2, TT1, TT2, W[68], W1[64];
++	uint32_t A, B, C, D, E, F, G, H;
++	uint32_t T[64];
++	uint32_t Temp1, Temp2, Temp3, Temp4, Temp5;
++	int j;
++
++	for (j = 0; j < 16; j++)
++		T[j] = 0x79CC4519;
++	for (j = 16; j < 64; j++)
++		T[j] = 0x7A879D8A;
++
++	GET_UINT32_BE(W[0], data,  0);
++	GET_UINT32_BE(W[1], data,  4);
++	GET_UINT32_BE(W[2], data,  8);
++	GET_UINT32_BE(W[3], data, 12);
++	GET_UINT32_BE(W[4], data, 16);
++	GET_UINT32_BE(W[5], data, 20);
++	GET_UINT32_BE(W[6], data, 24);
++	GET_UINT32_BE(W[7], data, 28);
++	GET_UINT32_BE(W[8], data, 32);
++	GET_UINT32_BE(W[9], data, 36);
++	GET_UINT32_BE(W[10], data, 40);
++	GET_UINT32_BE(W[11], data, 44);
++	GET_UINT32_BE(W[12], data, 48);
++	GET_UINT32_BE(W[13], data, 52);
++	GET_UINT32_BE(W[14], data, 56);
++	GET_UINT32_BE(W[15], data, 60);
++
++#define FF0(x, y, z)	((x) ^ (y) ^ (z))
++#define FF1(x, y, z)	(((x) & (y)) | ((x) & (z)) | ((y) & (z)))
++
++#define GG0(x, y, z)	((x) ^ (y) ^ (z))
++#define GG1(x, y, z)	(((x) & (y)) | ((~(x)) & (z)))
++
++#define SHL(x, n)	((x) << (n))
++#define ROTL(x, n)	(SHL((x), (n)) | ((x) >> (32 - (n))))
++
++#define P0(x)	((x) ^ ROTL((x), 9) ^ ROTL((x), 17))
++#define P1(x)	((x) ^ ROTL((x), 15) ^ ROTL((x), 23))
++
++	for (j = 16; j < 68; j++) {
++		/*
++		 * W[j] = P1( W[j-16] ^ W[j-9] ^ ROTL(W[j-3],15)) ^
++		 *        ROTL(W[j - 13],7 ) ^ W[j-6];
++		 */
++
++		Temp1 = W[j - 16] ^ W[j - 9];
++		Temp2 = ROTL(W[j - 3], 15);
++		Temp3 = Temp1 ^ Temp2;
++		Temp4 = P1(Temp3);
++		Temp5 =  ROTL(W[j - 13], 7) ^ W[j - 6];
++		W[j] = Temp4 ^ Temp5;
++	}
++
++	for (j =  0; j < 64; j++)
++		W1[j] = W[j] ^ W[j + 4];
++
++	A = ctx->state[0];
++	B = ctx->state[1];
++	C = ctx->state[2];
++	D = ctx->state[3];
++	E = ctx->state[4];
++	F = ctx->state[5];
++	G = ctx->state[6];
++	H = ctx->state[7];
++
++	for (j = 0; j < 16; j++) {
++		SS1 = ROTL(ROTL(A, 12) + E + ROTL(T[j], j), 7);
++		SS2 = SS1 ^ ROTL(A, 12);
++		TT1 = FF0(A, B, C) + D + SS2 + W1[j];
++		TT2 = GG0(E, F, G) + H + SS1 + W[j];
++		D = C;
++		C = ROTL(B, 9);
++		B = A;
++		A = TT1;
++		H = G;
++		G = ROTL(F, 19);
++		F = E;
++		E = P0(TT2);
++	}
++
++	for (j = 16; j < 64; j++) {
++		SS1 = ROTL(ROTL(A, 12) + E + ROTL(T[j], j), 7);
++		SS2 = SS1 ^ ROTL(A, 12);
++		TT1 = FF1(A, B, C) + D + SS2 + W1[j];
++		TT2 = GG1(E, F, G) + H + SS1 + W[j];
++		D = C;
++		C = ROTL(B, 9);
++		B = A;
++		A = TT1;
++		H = G;
++		G = ROTL(F, 19);
++		F = E;
++		E = P0(TT2);
++	}
++
++	ctx->state[0] ^= A;
++	ctx->state[1] ^= B;
++	ctx->state[2] ^= C;
++	ctx->state[3] ^= D;
++	ctx->state[4] ^= E;
++	ctx->state[5] ^= F;
++	ctx->state[6] ^= G;
++	ctx->state[7] ^= H;
++}
++
++void sm3_update(struct sm3_context *ctx, const uint8_t *input, size_t ilen)
++{
++	size_t fill;
++	size_t left;
++
++	if (!ilen)
++		return;
++
++	left = ctx->total[0] & 0x3F;
++	fill = 64 - left;
++
++	ctx->total[0] += ilen;
++
++	if (ctx->total[0] < ilen)
++		ctx->total[1]++;
++
++	if (left && ilen >= fill) {
++		memcpy(ctx->buffer + left, input, fill);
++		sm3_process(ctx, ctx->buffer);
++		input += fill;
++		ilen -= fill;
++		left = 0;
++	}
++
++	while (ilen >= 64) {
++		sm3_process(ctx, input);
++		input += 64;
++		ilen -= 64;
++	}
++
++	if (ilen > 0)
++		memcpy(ctx->buffer + left, input, ilen);
++}
++
++static const uint8_t sm3_padding[64] = {
++	0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
++	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
++	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
++	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
++};
++
++void sm3_final(struct sm3_context *ctx, uint8_t output[32])
++{
++	uint32_t last, padn;
++	uint32_t high, low;
++	uint8_t msglen[8];
++
++	high = (ctx->total[0] >> 29) | (ctx->total[1] <<  3);
++	low  = ctx->total[0] << 3;
++
++	PUT_UINT32_BE(high, msglen, 0);
++	PUT_UINT32_BE(low,  msglen, 4);
++
++	last = ctx->total[0] & 0x3F;
++	padn = (last < 56) ? (56 - last) : (120 - last);
++
++	sm3_update(ctx, sm3_padding, padn);
++	sm3_update(ctx, msglen, 8);
++
++	PUT_UINT32_BE(ctx->state[0], output,  0);
++	PUT_UINT32_BE(ctx->state[1], output,  4);
++	PUT_UINT32_BE(ctx->state[2], output,  8);
++	PUT_UINT32_BE(ctx->state[3], output, 12);
++	PUT_UINT32_BE(ctx->state[4], output, 16);
++	PUT_UINT32_BE(ctx->state[5], output, 20);
++	PUT_UINT32_BE(ctx->state[6], output, 24);
++	PUT_UINT32_BE(ctx->state[7], output, 28);
++}
++
++void sm3(const uint8_t *input, size_t ilen, uint8_t output[32])
++{
++	struct sm3_context ctx = { };
++
++	sm3_init(&ctx);
++	sm3_update(&ctx, input, ilen);
++	sm3_final(&ctx, output);
++
++	memzero_explicit(&ctx, sizeof(ctx));
++}
++
++void sm3_hmac_init(struct sm3_context *ctx, const uint8_t *key, size_t keylen)
++{
++	size_t i;
++	uint8_t sum[32];
++
++	if (keylen > 64) {
++		sm3(key, keylen, sum);
++		keylen = 32;
++		key = sum;
++	}
++
++	memset(ctx->ipad, 0x36, 64);
++	memset(ctx->opad, 0x5C, 64);
++
++	for (i = 0; i < keylen; i++) {
++		ctx->ipad[i] ^= key[i];
++		ctx->opad[i] ^= key[i];
++	}
++
++	sm3_init(ctx);
++	sm3_update(ctx, ctx->ipad, 64);
++
++	memzero_explicit(sum, sizeof(sum));
++}
++
++void sm3_hmac_update(struct sm3_context *ctx, const uint8_t *input, size_t ilen)
++{
++	sm3_update(ctx, input, ilen);
++}
++
++void sm3_hmac_final(struct sm3_context *ctx, uint8_t output[32])
++{
++	uint8_t tmpbuf[32];
++
++	sm3_final(ctx, tmpbuf);
++	sm3_init(ctx);
++	sm3_update(ctx, ctx->opad, 64);
++	sm3_update(ctx, tmpbuf, 32);
++	sm3_final(ctx, output);
++
++	memzero_explicit(tmpbuf, sizeof(tmpbuf));
++}
++
++void sm3_hmac(const uint8_t *key, size_t keylen, const uint8_t *input,
++	      size_t ilen, uint8_t output[32])
++{
++	struct sm3_context ctx;
++
++	sm3_hmac_init(&ctx, key, keylen);
++	sm3_hmac_update(&ctx, input, ilen);
++	sm3_hmac_final(&ctx, output);
++
++	memzero_explicit(&ctx, sizeof(ctx));
++}
+diff --git a/core/crypto/sm3.h b/core/crypto/sm3.h
+new file mode 100644
+index 00000000..7bf9afdc
+--- /dev/null
++++ b/core/crypto/sm3.h
+@@ -0,0 +1,38 @@
++/* SPDX-License-Identifier: BSD-2-Clause */
++/*
++ * Copyright (c) 2019 Huawei Technologies Co., Ltd
++ */
++/**
++ * \file sm3.h
++ * thanks to Xyssl
++ * author:goldboar
++ * email:goldboar@163.com
++ * 2011-10-26
++ */
++#ifndef CORE_CRYPTO_SM3_H
++#define CORE_CRYPTO_SM3_H
++
++#include <stddef.h>
++#include <stdint.h>
++
++struct sm3_context {
++	uint32_t total[2];   /* number of bytes processed */
++	uint32_t state[8];   /* intermediate digest state */
++	uint8_t buffer[64];  /* data block being processed */
++	uint8_t ipad[64];    /* HMAC: inner padding */
++	uint8_t opad[64];    /* HMAC: outer padding */
++};
++
++void sm3_init(struct sm3_context *ctx);
++void sm3_update(struct sm3_context *ctx, const uint8_t *input, size_t ilen);
++void sm3_final(struct sm3_context *ctx, uint8_t output[32]);
++void sm3(const uint8_t *input, size_t ilen, uint8_t output[32]);
++
++void sm3_hmac_init(struct sm3_context *ctx, const uint8_t *key, size_t keylen);
++void sm3_hmac_update(struct sm3_context *ctx, const uint8_t *input,
++		     size_t ilen);
++void sm3_hmac_final(struct sm3_context *ctx, uint8_t output[32]);
++void sm3_hmac(const uint8_t *key, size_t keylen, const uint8_t *input,
++	      size_t ilen, uint8_t output[32]);
++
++#endif /* CORE_CRYPTO_SM3_H */
+diff --git a/core/crypto/sub.mk b/core/crypto/sub.mk
+index 21b8b6f6..36d54bca 100644
+--- a/core/crypto/sub.mk
++++ b/core/crypto/sub.mk
+@@ -20,6 +20,11 @@ endif
+ ifneq ($(CFG_CRYPTO_CTS_FROM_CRYPTOLIB),y)
+ srcs-$(CFG_CRYPTO_CTS) += aes-cts.c
+ endif
++ifeq ($(CFG_CRYPTO_SM3),y)
++srcs-y += sm3.c
++srcs-y += sm3-hash.c
++srcs-$(CFG_CRYPTO_HMAC) += sm3-hmac.c
++endif
+ ifeq ($(CFG_CRYPTO_SM4),y)
+ srcs-y += sm4.c
+ srcs-$(CFG_CRYPTO_ECB) += sm4-ecb.c
+diff --git a/core/include/crypto/crypto_impl.h b/core/include/crypto/crypto_impl.h
+index 4836efbc..bcac23a8 100644
+--- a/core/include/crypto/crypto_impl.h
++++ b/core/include/crypto/crypto_impl.h
+@@ -68,6 +68,12 @@ TEE_Result crypto_sha512_alloc_ctx(struct crypto_hash_ctx **ctx);
+ CRYPTO_ALLOC_CTX_NOT_IMPLEMENTED(sha512, hash)
+ #endif
+ 
++#if defined(CFG_CRYPTO_SM3)
++TEE_Result crypto_sm3_alloc_ctx(struct crypto_hash_ctx **ctx);
++#else
++CRYPTO_ALLOC_CTX_NOT_IMPLEMENTED(sm3, hash)
++#endif
++
+ /*
+  * The crypto context used by the crypto_mac_*() functions is defined by
+  * struct crypto_mac_ctx.
+@@ -104,6 +110,12 @@ CRYPTO_ALLOC_CTX_NOT_IMPLEMENTED(hmac_sha384, mac)
+ CRYPTO_ALLOC_CTX_NOT_IMPLEMENTED(hmac_sha512, mac)
+ #endif
+ 
++#if defined(CFG_CRYPTO_SM3) && defined(CFG_CRYPTO_HMAC)
++TEE_Result crypto_hmac_sm3_alloc_ctx(struct crypto_mac_ctx **ctx);
++#else
++CRYPTO_ALLOC_CTX_NOT_IMPLEMENTED(hmac_sm3, mac)
++#endif
++
+ #if defined(CFG_CRYPTO_CBC_MAC)
+ TEE_Result crypto_aes_cbc_mac_nopad_alloc_ctx(struct crypto_mac_ctx **ctx);
+ TEE_Result crypto_aes_cbc_mac_pkcs5_alloc_ctx(struct crypto_mac_ctx **ctx);
+diff --git a/core/tee/tee_cryp_utl.c b/core/tee/tee_cryp_utl.c
+index 7a6a3f84..00a87bf7 100644
+--- a/core/tee/tee_cryp_utl.c
++++ b/core/tee/tee_cryp_utl.c
+@@ -45,6 +45,10 @@ TEE_Result tee_hash_get_digest_size(uint32_t algo, size_t *size)
+ 	case TEE_ALG_HMAC_SHA512:
+ 		*size = TEE_SHA512_HASH_SIZE;
+ 		break;
++	case TEE_ALG_SM3:
++	case TEE_ALG_HMAC_SM3:
++		*size = TEE_SM3_HASH_SIZE;
++		break;
+ 	default:
+ 		return TEE_ERROR_NOT_SUPPORTED;
+ 	}
+@@ -89,6 +93,7 @@ TEE_Result tee_mac_get_digest_size(uint32_t algo, size_t *size)
+ 	case TEE_ALG_HMAC_SHA256:
+ 	case TEE_ALG_HMAC_SHA384:
+ 	case TEE_ALG_HMAC_SHA512:
++	case TEE_ALG_HMAC_SM3:
+ 		return tee_hash_get_digest_size(algo, size);
+ 	case TEE_ALG_AES_CBC_MAC_NOPAD:
+ 	case TEE_ALG_AES_CBC_MAC_PKCS5:
+diff --git a/core/tee/tee_svc_cryp.c b/core/tee/tee_svc_cryp.c
+index e9e7b6ef..80892f29 100644
+--- a/core/tee/tee_svc_cryp.c
++++ b/core/tee/tee_svc_cryp.c
+@@ -430,6 +430,9 @@ static const struct tee_cryp_obj_type_props tee_cryp_obj_props[] = {
+ 	PROP(TEE_TYPE_HMAC_SHA512, 8, 256, 1024,
+ 		1024 / 8 + sizeof(struct tee_cryp_obj_secret),
+ 		tee_cryp_obj_secret_value_attrs),
++	PROP(TEE_TYPE_HMAC_SM3, 8, 80, 1024,
++		512 / 8 + sizeof(struct tee_cryp_obj_secret),
++		tee_cryp_obj_secret_value_attrs),
+ 	PROP(TEE_TYPE_GENERIC_SECRET, 8, 0, 4096,
+ 		4096 / 8 + sizeof(struct tee_cryp_obj_secret),
+ 		tee_cryp_obj_secret_value_attrs),
+@@ -1825,6 +1828,7 @@ TEE_Result syscall_obj_generate_key(unsigned long obj, unsigned long key_size,
+ 	case TEE_TYPE_HMAC_SHA256:
+ 	case TEE_TYPE_HMAC_SHA384:
+ 	case TEE_TYPE_HMAC_SHA512:
++	case TEE_TYPE_HMAC_SM3:
+ 	case TEE_TYPE_GENERIC_SECRET:
+ 		byte_size = key_size / 8;
+ 
+@@ -1970,6 +1974,9 @@ static TEE_Result tee_svc_cryp_check_key_type(const struct tee_obj *o,
+ 	case TEE_MAIN_ALGO_SHA512:
+ 		req_key_type = TEE_TYPE_HMAC_SHA512;
+ 		break;
++	case TEE_MAIN_ALGO_SM3:
++		req_key_type = TEE_TYPE_HMAC_SM3;
++		break;
+ 	case TEE_MAIN_ALGO_AES:
+ 		req_key_type = TEE_TYPE_AES;
+ 		break;
+diff --git a/lib/libutee/include/tee_api_defines.h b/lib/libutee/include/tee_api_defines.h
+index e504a7df..0da76de2 100644
+--- a/lib/libutee/include/tee_api_defines.h
++++ b/lib/libutee/include/tee_api_defines.h
+@@ -174,6 +174,7 @@
+ #define TEE_ALG_HMAC_SHA256                     0x30000004
+ #define TEE_ALG_HMAC_SHA384                     0x30000005
+ #define TEE_ALG_HMAC_SHA512                     0x30000006
++#define TEE_ALG_HMAC_SM3                        0x30000007
+ /*
+  * Fix GP Internal Core API v1.1
+  *     "Table 6-12:  Structure of Algorithm Identifier"
+@@ -194,6 +195,7 @@
+ #define TEE_ALG_ECDH_P256                       0x80003042
+ #define TEE_ALG_ECDH_P384                       0x80004042
+ #define TEE_ALG_ECDH_P521                       0x80005042
++#define TEE_ALG_SM3                             0x50000007
+ 
+ /* Object Types */
+ 
+@@ -207,6 +209,7 @@
+ #define TEE_TYPE_HMAC_SHA256                0xA0000004
+ #define TEE_TYPE_HMAC_SHA384                0xA0000005
+ #define TEE_TYPE_HMAC_SHA512                0xA0000006
++#define TEE_TYPE_HMAC_SM3                   0xA0000007 /* Not in spec */
+ #define TEE_TYPE_RSA_PUBLIC_KEY             0xA0000030
+ #define TEE_TYPE_RSA_KEYPAIR                0xA1000030
+ #define TEE_TYPE_DSA_PUBLIC_KEY             0xA0000031
+diff --git a/lib/libutee/include/utee_defines.h b/lib/libutee/include/utee_defines.h
+index b2a48ce5..74a0e925 100644
+--- a/lib/libutee/include/utee_defines.h
++++ b/lib/libutee/include/utee_defines.h
+@@ -18,6 +18,7 @@
+ #define TEE_MAIN_ALGO_SHA256     0x04
+ #define TEE_MAIN_ALGO_SHA384     0x05
+ #define TEE_MAIN_ALGO_SHA512     0x06
++#define TEE_MAIN_ALGO_SM3        0x07
+ #define TEE_MAIN_ALGO_AES        0x10
+ #define TEE_MAIN_ALGO_DES        0x11
+ #define TEE_MAIN_ALGO_DES2       0x12
+@@ -92,6 +93,7 @@ typedef enum {
+ 	TEE_SHA1_HASH_SIZE = 20,
+ 	TEE_SHA224_HASH_SIZE = 28,
+ 	TEE_SHA256_HASH_SIZE = 32,
++	TEE_SM3_HASH_SIZE = 32,
+ 	TEE_SHA384_HASH_SIZE = 48,
+ 	TEE_SHA512_HASH_SIZE = 64,
+ 	TEE_MD5SHA1_HASH_SIZE = (TEE_MD5_HASH_SIZE + TEE_SHA1_HASH_SIZE),
+diff --git a/lib/libutee/tee_api_operations.c b/lib/libutee/tee_api_operations.c
+index e0f530dd..64a5e3d3 100644
+--- a/lib/libutee/tee_api_operations.c
++++ b/lib/libutee/tee_api_operations.c
+@@ -226,6 +226,7 @@ TEE_Result TEE_AllocateOperation(TEE_OperationHandle *operation,
+ 	case TEE_ALG_SHA256:
+ 	case TEE_ALG_SHA384:
+ 	case TEE_ALG_SHA512:
++	case TEE_ALG_SM3:
+ 		if (mode != TEE_MODE_DIGEST)
+ 			return TEE_ERROR_NOT_SUPPORTED;
+ 		/* v1.1: flags always set for digest operations */
+@@ -246,6 +247,7 @@ TEE_Result TEE_AllocateOperation(TEE_OperationHandle *operation,
+ 	case TEE_ALG_HMAC_SHA256:
+ 	case TEE_ALG_HMAC_SHA384:
+ 	case TEE_ALG_HMAC_SHA512:
++	case TEE_ALG_HMAC_SM3:
+ 		if (mode != TEE_MODE_MAC)
+ 			return TEE_ERROR_NOT_SUPPORTED;
+ 		req_key_usage = TEE_USAGE_MAC;

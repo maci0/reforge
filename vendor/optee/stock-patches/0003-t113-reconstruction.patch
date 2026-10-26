@@ -1,0 +1,468 @@
+diff --git a/core/arch/arm/kernel/generic_boot.c b/core/arch/arm/kernel/generic_boot.c
+index 57c38357..a17fa19d 100644
+--- a/core/arch/arm/kernel/generic_boot.c
++++ b/core/arch/arm/kernel/generic_boot.c
+@@ -1068,6 +1068,11 @@ void init_tee_runtime(void)
+ 		panic();
+ }
+ 
++#ifdef CFG_SUN8IW20P1
++/* Reconstructed T113 direct platform hook, observed original caller. */
++TEE_Result plat_init(void);
++#endif
++
+ static void init_primary_helper(unsigned long pageable_part,
+ 				unsigned long nsec_entry, unsigned long fdt)
+ {
+@@ -1083,6 +1088,11 @@ static void init_primary_helper(unsigned long pageable_part,
+ 	init_vfp_sec();
+ 	init_runtime(pageable_part);
+ 
++#ifdef CFG_SUN8IW20P1
++	/* Observed T113 vendor ordering, original function0x41b0bee0. */
++	IMSG("OP-TEE version: %s", core_v_str);
++#endif
++
+ #ifndef CFG_VIRTUALIZATION
+ 	thread_init_boot_thread();
+ #endif
+@@ -1094,12 +1104,18 @@ static void init_primary_helper(unsigned long pageable_part,
+ 	update_external_dt();
+ 	configure_console_from_dt();
+ 
++#ifdef CFG_SUN8IW20P1
++	MSG_RAW("\n");
++#else
+ 	IMSG("OP-TEE version: %s", core_v_str);
+-
++#endif
+ 	main_init_gic();
+ 	init_vfp_nsec();
+ #ifndef CFG_VIRTUALIZATION
+ 	init_tee_runtime();
++#endif
++#ifdef CFG_SUN8IW20P1
++	plat_init();
+ #endif
+ 	release_external_dt();
+ #ifdef CFG_VIRTUALIZATION
+diff --git a/core/arch/arm/plat-sun8iw20p1/conf.mk b/core/arch/arm/plat-sun8iw20p1/conf.mk
+new file mode 100644
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/conf.mk
+@@ -0,0 +1,21 @@
++$(call force,CFG_SUN8IW20P1,y)
++include core/arch/arm/cpu/cortex-a7.mk
++$(call force,CFG_GENERIC_BOOT,y)
++$(call force,CFG_ARM32_core,y)
++$(call force,CFG_GIC,y)
++$(call force,CFG_WITH_LPAE,n)
++$(call force,CFG_WITH_PAGER,n)
++$(call force,CFG_SECURE_TIME_SOURCE_CNTPCT,y)
++$(call force,CFG_8250_UART,y)
++CFG_TEE_CORE_NB_CORE ?= 2
++CFG_TZDRAM_START ?= 0x41b00000
++CFG_TZDRAM_SIZE ?= 0x00500000
++CFG_SHMEM_START ?= 0x41900000
++CFG_SHMEM_SIZE ?= 0x00200000
++CFG_CRYPTO_SIZE_OPTIMIZATION ?= y
++CFG_CRYPTO_SM3 ?= y
++CFG_CRYPTO_SM4 ?= y
++$(call force,CFG_PM_STUBS,y)
++CFG_WITH_STATS ?= y
++# Original image includes init_canaries/thread_check_canaries and their format strings.
++CFG_WITH_STACK_CANARIES ?= y
+diff --git a/core/arch/arm/plat-sun8iw20p1/console.c b/core/arch/arm/plat-sun8iw20p1/console.c
+new file mode 100644
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/console.c
+@@ -0,0 +1,9 @@
++/* Observed original console_init body at0x41b10ca8 is a panic path.
++ * This is the recovered body, not a replacement missing-driver stub.
++ * Its integration with the vendor early console requires caller recovery. */
++#include <kernel/panic.h>
++void console_init(void);
++void console_init(void)
++{
++    __do_panic("core/arch/arm/plat-sun8iw20p1/main.c", 183, __func__, 0);
++}
+diff --git a/core/arch/arm/plat-sun8iw20p1/gic.c b/core/arch/arm/plat-sun8iw20p1/gic.c
+new file mode 100644
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/gic.c
+@@ -0,0 +1,45 @@
++/* Reconstructed CPU interface writes, confirmed by original IDA at
++ * 0x41b13960. Register definitions agree with published Allwinner ns-gic.c
++ * Git blob28d3e7a8057bfed0516998e3f4cb224ec0ab19c0. */
++#include <stdint.h>
++#include <types_ext.h>
++#include <io.h>
++void sunxi_gic_cpuif_init(vaddr_t gicc_base, vaddr_t gicd_base);
++void sunxi_gic_cpuif_init(vaddr_t gicc_base, vaddr_t gicd_base)
++{
++    io_write32(gicd_base + 0x180, 0xffff0000);
++    io_write32(gicd_base + 0x100, 0x0000ffff);
++    io_write32(gicc_base + 4, 0xf0);
++    io_write32(gicc_base, 0xb);
++}
++
++#include <trace.h>
++void sunxi_gic_distributor_init(vaddr_t gicd_base);
++void sunxi_gic_distributor_init(vaddr_t gicd_base)
++{
++    unsigned int i;
++    unsigned int gic_irqs;
++    io_write32(gicd_base, 0);
++    gic_irqs = ((io_read32(gicd_base + 4) & 0x1f) + 1) * 32;
++    if (gic_irqs > 1020)
++        gic_irqs = 1020;
++    if (gic_irqs < 224) {
++        /* Observed original diagnostic ABI, not generated-file line padding. */
++        trace_printf(__func__, 116, TRACE_DEBUG, true,
++                     "GIC parameter config error\n");
++        return;
++    }
++    for (i = 0; i < 7; ++i)
++        io_write32(gicd_base + 0x80 + 4 * i, 0xffffffff);
++    for (i = 0; i < 14; ++i)
++        io_write32(gicd_base + 0xc00 + 4 * i, 0);
++    for (i = 0; i < 56; ++i)
++        io_write32(gicd_base + 0x400 + 4 * i, 0xa0a0a0a0);
++    for (i = 0; i < 48; ++i)
++        io_write32(gicd_base + 0x820 + 4 * i, 0x01010101);
++    for (i = 0; i < 7; ++i)
++        io_write32(gicd_base + 0x180 + 4 * i, 0xffffffff);
++    for (i = 0; i < 7; ++i)
++        io_write32(gicd_base + 0x380 + 4 * i, 0xffffffff);
++    io_write32(gicd_base, 3);
++}
+diff --git a/core/arch/arm/plat-sun8iw20p1/handlers.c b/core/arch/arm/plat-sun8iw20p1/handlers.c
+new file mode 100644
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/handlers.c
+@@ -0,0 +1,17 @@
++/* Original handler record at0x41b39588 contains six references to the
++ * observed pm_do_nothing four-byte function at0x41b2c16e. */
++#include <kernel/thread.h>
++#include <kernel/generic_boot.h>
++#include <kernel/pm_stubs.h>
++static const struct thread_handlers handlers = {
++    .cpu_on = pm_do_nothing,
++    .cpu_off = pm_do_nothing,
++    .cpu_suspend = pm_do_nothing,
++    .cpu_resume = pm_do_nothing,
++    .system_off = pm_do_nothing,
++    .system_reset = pm_do_nothing,
++};
++const struct thread_handlers *generic_boot_get_handlers(void)
++{
++    return &handlers;
++}
+diff --git a/core/arch/arm/plat-sun8iw20p1/hardware_info.c b/core/arch/arm/plat-sun8iw20p1/hardware_info.c
+new file mode 100644
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/hardware_info.c
+@@ -0,0 +1,66 @@
++/* Original hardware-policy algorithm reconstructed from IDA control flow.
++ * This preserves checks; it does not bypass device identification. */
++#include <stdint.h>
++#include <string.h>
++#include <trace.h>
++#include <io.h>
++#include <mm/core_memprot.h>
++struct sunxi_optee_header_prefix {
++    uint8_t prefix[237];
++    uint8_t hardware_flags;
++    uint16_t hardware_magic;
++    uint8_t encoded_ids[4];
++};
++#include <platform_config.h>
++#define tee_spare_head (*(struct sunxi_optee_header_prefix *)CFG_TZDRAM_START)
++uint32_t sunxi_get_hardware_id(void);
++int check_hardware_info(void);
++
++int check_hardware_info(void)
++{
++    uint8_t decoded_ids[4] = { 0 };
++    uint8_t key[16] = { 0x41,0x57,0x55,0xaa,1,2,3,4,4,3,2,1,0xa1,0xb1,0xa3,0xb3 };
++    uint8_t flags;
++    uint16_t magic;
++    uint32_t hardware_id;
++    int i, j, count;
++    flags = tee_spare_head.hardware_flags;
++    magic = tee_spare_head.hardware_magic;
++    hardware_id = sunxi_get_hardware_id();
++    if (!(uint16_t)hardware_id)
++        return 0;
++    count = flags & 0xf;
++    if (magic != 0x5741 || count > 4) {
++        trace_printf(__func__, 90, TRACE_ERROR, true, "hardware check error1\n");
++        return 1;
++    }
++    if ((flags & 0xf0) != 0x50) {
++        trace_printf(__func__, 95, TRACE_ERROR, true, "hardware check error2\n");
++        return 2;
++    }
++    for (i = 0; i < count; ++i) {
++        decoded_ids[i] = tee_spare_head.encoded_ids[i];
++        for (j = 0; j < 16; ++j)
++            decoded_ids[i] ^= key[j];
++    }
++    if (hardware_id & 0xff00) {
++        for (i = 0; i < count; i += 2) {
++            if (decoded_ids[i] == ((hardware_id >> 8) & 0xff) &&
++                decoded_ids[i + 1] == (hardware_id & 0xff)) {
++                trace_printf(__func__, 110, TRACE_DEBUG, true, "check OK\n");
++                return 0;
++            }
++        }
++    } else {
++        for (i = 0; i < count; ++i) {
++            if (hardware_id == decoded_ids[i]) {
++                trace_printf(__func__, 117, TRACE_DEBUG, true, "check OK\n");
++                return 0;
++            }
++        }
++    }
++    trace_printf(__func__, 122, TRACE_ERROR, true, "data: %x %x %x %x\n",
++                 decoded_ids[0], decoded_ids[1], decoded_ids[2], decoded_ids[3]);
++    trace_printf(__func__, 123, TRACE_ERROR, true, "hardware error 3\n");
++    return 3;
++}
+diff --git a/core/arch/arm/plat-sun8iw20p1/hash_install.c b/core/arch/arm/plat-sun8iw20p1/hash_install.c
+new file mode 100644
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/hash_install.c
+@@ -0,0 +1,36 @@
++/* Source reconstruction of original boot-provided hash-list installation.
++ * Record layout is observed: 16-byte name and32-byte digest, count at0xc0c. */
++#include <stdint.h>
++#include <string.h>
++#include <malloc.h>
++#include <trace.h>
++struct sunxi_hash_entry { char name[16]; uint8_t digest[32]; };
++struct sunxi_hash_header {
++    uint8_t before_boot_info[0xc00];
++    char boot_info_magic[8];
++    uint32_t version;
++    int hash_entries;
++    struct sunxi_hash_entry entries[16];
++};
++#include <platform_config.h>
++#define tee_spare_head (*(struct sunxi_hash_header *)CFG_TZDRAM_START)
++struct sunxi_hash_entry *sunxi_hash_list;
++int sunxi_hash_count;
++void sunxi_hash_install(void);
++void sunxi_hash_install(void)
++{
++    int i;
++    int count = tee_spare_head.hash_entries;
++    sunxi_hash_list = malloc(count * sizeof(struct sunxi_hash_entry));
++    if (!sunxi_hash_list) {
++        trace_printf(__func__, 60, TRACE_DEBUG, true, "malloc failed\n");
++        return;
++    }
++    for (i = 0; i < count; ++i) {
++        trace_printf(__func__, 64, TRACE_INFO, true, "install hash %s\n",
++                     tee_spare_head.entries[i].name);
++        memcpy(sunxi_hash_list[i].name, tee_spare_head.entries[i].name, 16);
++        memcpy(sunxi_hash_list[i].digest, tee_spare_head.entries[i].digest, 32);
++        sunxi_hash_count++;
++    }
++}
+diff --git a/core/arch/arm/plat-sun8iw20p1/main.c b/core/arch/arm/plat-sun8iw20p1/main.c
+new file mode 100644
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/main.c
+@@ -0,0 +1,61 @@
++/* Source reconstruction from original execution/data-flow observations.
++ * Undefined vendor services are deliberate unresolved source obligations,
++ * not empty implementations. No opcodes or original objects are imported. */
++#include <stdint.h>
++#include <string.h>
++#include <tee_api_types.h>
++#include <kernel/panic.h>
++#include <mm/core_mmu.h>
++#include <mm/core_memprot.h>
++#include <platform_config.h>
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, GIC_BASE, CORE_MMU_PGDIR_SIZE);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, SUNXI_RTC_BASE, 0x400);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, SUNXI_CPUCFG_BASE, 0x1000);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, SUNXI_PRCM_BASE, 0x1000);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, SUNXI_SRAM_BASE, 0x8000);
++/* Concrete vendor ABI recovered from original caller argument registers. */
++void sunxi_gic_cpuif_init(vaddr_t gicc, vaddr_t gicd);
++void sunxi_gic_distributor_init(vaddr_t gicd);
++int check_hardware_info(void);
++void sunxi_hash_install(void);
++int sunxi_secure_bus_init(void);
++int sunxi_smc_config(uint64_t start, uint64_t size);
++void main_init_gic(void);
++TEE_Result plat_init(void);
++vaddr_t gicd_base, gicc_base;
++vaddr_t prcm_base, cpucfg_base, rtc_base;
++void main_init_gic(void)
++{
++    gicc_base = (vaddr_t)phys_to_virt_io(GIC_BASE + GICC_OFFSET);
++    gicd_base = (vaddr_t)phys_to_virt_io(GIC_BASE + GICD_OFFSET);
++    if (!gicc_base || !gicd_base)
++        __do_panic(__FILE__, 219, __func__, NULL);
++    sunxi_gic_cpuif_init(gicc_base, gicd_base);
++    sunxi_gic_distributor_init(gicd_base);
++}
++TEE_Result plat_init(void)
++{
++    vaddr_t sram_base = (vaddr_t)phys_to_virt_io(SUNXI_SRAM_BASE);
++    rtc_base = (vaddr_t)phys_to_virt_io(SUNXI_RTC_BASE);
++    cpucfg_base = (vaddr_t)phys_to_virt_io(SUNXI_CPUCFG_BASE);
++    prcm_base = (vaddr_t)phys_to_virt_io(SUNXI_PRCM_BASE);
++    if (check_hardware_info())
++        __do_panic(__FILE__, 314, __func__, NULL);
++    *(volatile uint32_t *)(rtc_base + 0x144) = 24;
++    *(volatile uint32_t *)(rtc_base + 0x140) = 24;
++    *(volatile uint32_t *)(rtc_base + 0x100) = 0x16aa0000;
++    *(volatile uint32_t *)(rtc_base + 0x100) = 0xaa160001;
++    *(volatile uint32_t *)(rtc_base + 0x10c) = 255;
++    *(volatile uint32_t *)(prcm_base + 0x50) &= ~1u;
++    sunxi_hash_install();
++    memset((void *)sram_base, 0, 0x8000);
++    sunxi_secure_bus_init();
++    return sunxi_smc_config(SUNXI_TA_START, SUNXI_TA_SIZE);
++}
++
++#include <io.h>
++uint32_t sunxi_get_hardware_id(void);
++uint32_t sunxi_get_hardware_id(void)
++{
++    return io_read32((vaddr_t)phys_to_virt_io(0x03006000) + 0x200) & 0xffff;
++}
+diff --git a/core/arch/arm/plat-sun8iw20p1/platform_config.h b/core/arch/arm/plat-sun8iw20p1/platform_config.h
+new file mode 100644
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/platform_config.h
+@@ -0,0 +1,16 @@
++/* Reconstructed physical facts from original T113 secure-world image.
++ * This incomplete research profile is not a deployment artifact. */
++#ifndef PLATFORM_CONFIG_H
++#define PLATFORM_CONFIG_H
++#include <mm/generic_ram_layout.h>
++#define STACK_ALIGNMENT 64
++#define GIC_BASE 0x03020000
++#define GICC_OFFSET 0x2000
++#define GICD_OFFSET 0x1000
++#define SUNXI_RTC_BASE 0x07000400
++#define SUNXI_CPUCFG_BASE 0x09010000
++#define SUNXI_PRCM_BASE 0x07090000
++#define SUNXI_SRAM_BASE 0x00020000
++#define SUNXI_TA_START 0x41c00000
++#define SUNXI_TA_SIZE 0x00400000
++#endif
+diff --git a/core/arch/arm/plat-sun8iw20p1/secure_bus.c b/core/arch/arm/plat-sun8iw20p1/secure_bus.c
+new file mode 100644
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/secure_bus.c
+@@ -0,0 +1,13 @@
++/* Actual three MMIO writes recovered at original function0x41b140ec.
++ * Descriptive reconstruction name; original private C identifier unknown. */
++#include <stdint.h>
++#include <io.h>
++#include <mm/core_memprot.h>
++int sunxi_secure_bus_init(void);
++int sunxi_secure_bus_init(void)
++{
++    io_write32((vaddr_t)phys_to_virt_io(0x02001000) + 0xc6c, 1);
++    io_write32((vaddr_t)phys_to_virt_io(0x02004000), 0);
++    io_write32((vaddr_t)phys_to_virt_io(0x01700c00), 0);
++    return 0;
++}
+diff --git a/core/arch/arm/plat-sun8iw20p1/smc.c b/core/arch/arm/plat-sun8iw20p1/smc.c
+new file mode 100644
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/smc.c
+@@ -0,0 +1,72 @@
++/* Reconstructed SMC region programming from original0x41b13adc.
++ * Region generation preserves original32KiB minimum and diagnostics. */
++#include <stdint.h>
++#include <string.h>
++#include <trace.h>
++#include <io.h>
++#include <mm/core_memprot.h>
++struct smc_region { uint64_t start; uint64_t size; };
++static void generate_smc_mem_map(uint64_t start, uint64_t size,
++                                 struct smc_region map[16])
++{
++    int index = 0;
++    while (size) {
++        uint64_t block = (uint64_t)1 << 32;
++        int bits;
++        for (bits = 32; bits >= 16; --bits, block >>= 1) {
++            if (size >= block && !(start & (block - 1)))
++                break;
++        }
++        map[index].start = start;
++        map[index].size = block;
++        start += block;
++        if (size < block) {
++            trace_printf(__func__, 106, TRACE_ERROR, true,
++                "TA RAM not SMC align, extra 0x%llx byte mem config secured!",
++                (unsigned long long)(block - size));
++            break;
++        }
++        size -= block;
++        if (!size)
++            break;
++        if (++index == 16) {
++            trace_printf(__func__, 116, TRACE_ERROR, true,
++                "Not enough SMC region, 0x%llx byte ta ram left unsecured",
++                (unsigned long long)size);
++            break;
++        }
++    }
++}
++int sunxi_smc_config(uint64_t start, uint64_t size);
++int sunxi_smc_config(uint64_t start, uint64_t size)
++{
++    struct smc_region map[16];
++    int reg, i;
++    if (!size)
++        return 0;
++    memset(map, 0, sizeof(map));
++    generate_smc_mem_map(start, size, map);
++    for (reg = 0; reg < 16; ++reg) {
++        if (!io_read32((vaddr_t)phys_to_virt_io(0x03007108 + 16 * reg)))
++            break;
++    }
++    if (reg == 16) {
++        trace_printf(__func__, 149, TRACE_ERROR, true,
++                     "no available region for smc config!");
++        return 0;
++    }
++    for (i = 0; reg < 16 && map[i].size; ++reg, ++i) {
++        uint64_t address = map[i].start - 0x40000000;
++        uint64_t scale = map[i].size >> 15;
++        int log = 0;
++        vaddr_t high = (vaddr_t)phys_to_virt_io(0x03007104 + 16 * reg);
++        vaddr_t low = (vaddr_t)phys_to_virt_io(0x03007100 + 16 * reg);
++        vaddr_t attr = (vaddr_t)phys_to_virt_io(0x03007108 + 16 * reg);
++        io_write32(high, address >> 32);
++        io_write32(low, (uint32_t)address & 0xffff8000);
++        while ((scale >>= 1))
++            ++log;
++        io_write32(attr, 0xc0000001 | (2 * (log + 14)));
++    }
++    return 0;
++}
+diff --git a/core/arch/arm/plat-sun8iw20p1/sub.mk b/core/arch/arm/plat-sun8iw20p1/sub.mk
+new file mode 100644
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/sub.mk
+@@ -0,0 +1,9 @@
++global-incdirs-y += .
++srcs-y += main.c
++srcs-y += gic.c
++srcs-y += secure_bus.c
++srcs-y += hardware_info.c
++srcs-y += console.c
++srcs-y += hash_install.c
++srcs-y += smc.c
++srcs-y += handlers.c

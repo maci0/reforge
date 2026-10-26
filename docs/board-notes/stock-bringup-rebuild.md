@@ -64,9 +64,9 @@ must not be described as an unchanged factory boot chain throughout.
 
 | Stage | Original identity | Current result / missing input |
 |---|---|---|
-| boot0 / SPL | Two identical 48 KiB eGON copies at `0x2000` and `0x20000`; commit field `5224261`, DRAM driver `V0.32`, DDR3 at 792 MHz. | Genuine open-source SPL now builds without the held private library, but does not yet match. DRAM/MMC/PMIC source reconstruction is in progress; no byte-identical boot0 is claimed. |
+| boot0 / SPL | Two identical 48 KiB eGON copies at `0x2000` and `0x20000`; commit field `5224261`, DRAM driver `V0.32`, DDR3 at 792 MHz. | Sealed source-only SPL recipe now builds without the held private library. It uses GCC 7.2.1 plus the evidenced GCC 4.6.3 legacy chip-ID unit and reproduces the original deterministic packing algorithm. DRAM/layout reconstruction remains in progress; no byte-identical boot0 is claimed. |
 | Primary U-Boot | 2018.05, August 25, 2023 17:05:54 +0800; Linaro GCC 7.2.1 20171011, binutils 2.28.2.20170706. Historical source revision is unknown. | **Byte-identical source reconstruction verified:** 966,656 bytes, SHA-256 `31aaa8a085b4985dafdad87d97637fcc1d35a300101295edfaf51c826ff53019`. Uses pinned older source, recovered source changes and source-compiled control DTS. |
-| OP-TEE secure world | Build `553fe17e2-dirty`, Linaro 5.3.1, build #6 dated February 18, 2022. | Upstream 3.7 and published SM3/SM4 sources now build and recover common code. T113 platform/vendor-service reconstruction remains incomplete. No prebuilt payload is imported into source-build outputs. |
+| OP-TEE secure world | Build `553fe17e2-dirty`, Linaro 5.3.1, build #6 dated February 18, 2022. | Sealed source-only recipe builds upstream 3.7, published SM3/SM4 and reconstructed T113 platform code. The resulting secure OS differs from stock and is research-only; vendor header/services and exact code shapes remain incomplete. No prebuilt payload is imported. |
 | Kernel delivery | p1 uImage decompresses to raw Image SHA-256 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`, 12,970,156 bytes. | **Whole-file identical after the user-authorized 20-byte metadata patch.** Untouched source output is preserved separately. Full ELF/debug identity is not claimed. |
 | zImage / uImage | zImage SHA-256 `dd7fbccace45bbea6862597b86db12644480024ff6e276b93b6014123b9c5a34`; uImage `13c17296c9ed34cff1c355dc717ab76803410bd872a495bdefaca07cdaf89c79`. | **Whole-file identical**, actual source-built decompressor and gzip stream, after patching the raw Image before compression. Legacy header and both CRCs regenerated from source-defined metadata. |
 | Board DTBs / environments | Kernel, primary TOC and U-Boot control DTBs; both 1-MiB environment partitions. | **Byte-identical configuration source builds verified.** Recovered DTS/text inputs and strict builder are committed; no firmware image is needed to build them. |
@@ -81,6 +81,26 @@ The held SDK is `/home/maci/Desktop/Projects/flashforge/lichee.zip`, containing
 `6ed0f793436067c694bcec3538b24861b48f8d914c603f48aa5939c26f158197`.
 This is a bounded source inventory,
 not a claim that the missing original source cannot exist elsewhere.
+
+## Incomplete boot-stage source builds
+
+The boot0 [research recipe](../../tools/build/README-stock-boot0.md) and OP-TEE
+[research profile](../../vendor/optee/stock-patches/README.md) now compile from
+pinned source archives plus recovered C/assembly. Neither is a verified
+replacement for the original stage. Their comparisons require whole-file
+identity and retain the candidate and difference report on failure; they do not
+accept size equality as success or import original target code into the build.
+
+The boot0 packer reproduces the original host tool's default-seed glibc random
+stream before overlaying compiled code and calculating the checksum. The stock
+14,560-byte tail matches this algorithm; it is not copied from firmware. A
+separate legacy chip-ID C unit requires the evidenced GCC 4.6.3 compiler while
+most code uses GCC 7.2.1. The original boot0 commit text remains unresolved.
+
+OP-TEE retains an honest reconstruction version label. Published SM3/SM4 and
+recovered platform routines compile, but vendor header/services and complete
+configuration still differ from the original secure OS. These candidates are
+kept separate from the byte-identical U-Boot/kernel delivery outputs.
 
 ## Reproducible board configuration
 
