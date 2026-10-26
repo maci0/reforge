@@ -12,19 +12,66 @@ index 24893ae..82bee20 100644
  __LOOP:
  	asm volatile("WFI");
 diff --git a/board/sun8iw20p1/board.c b/board/sun8iw20p1/board.c
-index d310860..5197600 100644
+index d310860..3137f8c 100644
 --- a/board/sun8iw20p1/board.c
 +++ b/board/sun8iw20p1/board.c
-@@ -25,6 +25,9 @@
+@@ -1,6 +1,5 @@
+ /*
+  * (C) Copyright 2012 Henrik Nordstrom <henrik@henriknordstrom.net>
+-* SPDX-License-Identifier:	GPL-2.0+
+  *
+  * (C) Copyright 2007-2011
+  * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
+@@ -25,6 +24,13 @@
  int sunxi_board_init(void)
  {
  	sunxi_board_pll_init();
 +	axp_init(0);
-+	set_pll_voltage(900);
-+	set_sys_voltage(900);
++	/*
++	 * When waking up, don't change the voltage, frequency,
++	 * cpu is easy to hang. We restore it in atf.
++	 */
++		set_pll_voltage(CONFIG_SUNXI_CORE_VOL);
++		set_sys_voltage(CONFIG_SUNXI_SYS_VOL);
  	printf("board init ok\n");
  	return 0;
  }
+@@ -53,19 +59,27 @@ void sunxi_key_provision(void);
+ 	return 0;
+ }
+ 
++int sunxi_assert_arisc(void)
++{
++	printf("set arisc reset to assert state\n");
++	{
++		volatile unsigned long value;
++		value = readl(SUNXI_RCPUCFG_BASE + 0x0);
++		value &= ~1;
++		writel(value, SUNXI_RCPUCFG_BASE + 0x0);
++	}
++
++	return 0;
++}
++
+ int sunxi_deassert_arisc(void)
+ {
+ 	printf("set arisc reset to de-assert state\n");
+ 	{
+-		volatile unsigned int value;
+-		void *base = sunxi_get_iobase(SUNXI_RCPUCFG_BASE);
+-
+-		value = readl(base + 0x0);
+-		value &= ~1;
+-		writel(value, base + 0x0);
+-		value = readl(base + 0x0);
++		volatile unsigned long value;
++		value = readl(SUNXI_RCPUCFG_BASE + 0x0);
+ 		value |= 1;
+-		writel(value, base + 0x0);
++		writel(value, SUNXI_RCPUCFG_BASE + 0x0);
+ 	}
+ 
+ 	return 0;
 diff --git a/board/sun8iw20p1/clock.c b/board/sun8iw20p1/clock.c
 index c885fa0..4ff3641 100644
 --- a/board/sun8iw20p1/clock.c
@@ -382,10 +429,10 @@ index c339bd1..2bd0adf 100644
  
  $(LIB):	$(OBJS)
 diff --git a/drivers/dram/sun8iw20p1/lib-dram/Makefile b/drivers/dram/sun8iw20p1/lib-dram/Makefile
-index c8e1c7e..13fbb98 100644
+index c8e1c7e..4bdb282 100644
 --- a/drivers/dram/sun8iw20p1/lib-dram/Makefile
 +++ b/drivers/dram/sun8iw20p1/lib-dram/Makefile
-@@ -10,7 +10,7 @@ include $(TOPDIR)/mk/config.mk
+@@ -10,13 +10,14 @@ include $(TOPDIR)/mk/config.mk
  
  LIB	:= $(obj)libdram.o
  
@@ -394,10 +441,20 @@ index c8e1c7e..13fbb98 100644
  # COBJS += mctl_hal.o chip_id_sd.o
  
  
-@@ -37,6 +37,14 @@ all:	$(LIB)
+ COBJS	:= $(COBJS)
+ SRCS	:= $(COBJS:.o=.c)
+-OBJS	:= $(addprefix $(obj),$(COBJS))
++AOBJS := dram_leaf.o auto_set_timing_para.o mctl_phy_ac_remapping.o mctl_channel_init.o dqs_gate_detect.o dramc_simple_wr_test.o auto_scan_dram_size.o init_DRAM.o dram_messages.o
++OBJS := $(addprefix $(obj),$(COBJS) $(AOBJS))
+ 
+ #LIBASM  = mctl_hal.S
+ #asmgcc = /home/wuhuabin/workspace/tina-d1/lichee/brandy-2.0/tools/toolchain/riscv64-linux-x86_64-20200528/bin/riscv64-unknown-linux-gnu-gcc
+@@ -37,8 +38,16 @@ all:	$(LIB)
  #	$(asmgcc) -S -o $@ $<
  #	$(info "############################################################################")
  #	$(info "1111111111111111111111111111111111111111111111111111111111111111111111111111")
+-$(LIB):	$(obj).depend $(OBJS)
+-	$(call cmd_link_o_target, $(OBJS))
 +# The legacy chip-identification unit was built with Linaro GCC 4.6.3.
 +# Keep its ordinary .text together, as in the vendor aggregate.
 +ifndef CHIP_ID_CC
@@ -406,27 +463,40 @@ index c8e1c7e..13fbb98 100644
 +chip_id_sd.o: chip_id_sd.c
 +	$(CHIP_ID_CC) -Os -mthumb -march=armv7-a -mtune=cortex-a9 -fno-builtin -ffreestanding -fno-stack-protector -fno-common -msoft-float -c $< -o $@
 +
- $(LIB):	$(obj).depend $(OBJS)
- 	$(call cmd_link_o_target, $(OBJS))
++$(LIB):	$(obj).depend $(OBJS) dram_layout.lds Makefile
++	$(LD) -r -T dram_layout.lds -o $(LIB) $(OBJS)
  	#$(strip) -s libdram.o
+ 	cp $(LIB) ../libdram
+ 
 diff --git a/drivers/dram/sun8iw20p1/lib-dram/mctl_hal.c b/drivers/dram/sun8iw20p1/lib-dram/mctl_hal.c
-index 72246c9..9a808a6 100644
+index 72246c9..bbf0032 100644
 --- a/drivers/dram/sun8iw20p1/lib-dram/mctl_hal.c
 +++ b/drivers/dram/sun8iw20p1/lib-dram/mctl_hal.c
-@@ -4,6 +4,8 @@
+@@ -3,6 +3,9 @@
+ #include <common.h>
  #include <inttypes.h>
  #include <arch/dram_v2.h>
- 
-+extern void __usdelay(unsigned long us);
++#include "dram_messages.h"
 +
++extern void __usdelay(unsigned long us);
+ 
  #define CONFIG_DEBUG_DDR_DRIVER
  
- #ifdef CONFIG_DEBUG_DDR_DRIVER
-@@ -25,12 +27,23 @@ static inline void write32(unsigned int addr, uint32_t value)
+@@ -25,15 +28,24 @@ static inline void write32(unsigned int addr, uint32_t value)
          *((volatile uint32_t *)(addr)) = value;
  }
  
+-char *memcpy_self(char *dst, char *src, int len)
 +/* Fallback callbacks remain weak so the board PMIC implementation can replace them. */
++__attribute__((weak)) void handler_super_standby(void)
+ {
+-	int i;
+-	for (i = 0; i != len; i++) {
+-		dst[i] = src[i];
+-	}
+-	return dst;
+ }
+ 
 +__attribute__((weak)) int set_ddr_voltage(int millivolts)
 +{
 +	return millivolts;
@@ -437,20 +507,13 @@ index 72246c9..9a808a6 100644
 +	return -1;
 +}
 +
- char *memcpy_self(char *dst, char *src, int len)
++extern char *memcpy_self(char *dst, char *src, int len);
++
++
+ void sid_read_ldoB_cal(dram_para_t *para)
  {
--	int i;
--	for (i = 0; i != len; i++) {
--		dst[i] = src[i];
--	}
-+	uintptr_t out = (uintptr_t)dst - 1;
-+	char *end = src + len;
-+	while (end - src > 0)
-+		*(char *)++out = *src++;
- 	return dst;
- }
- 
-@@ -71,10 +84,11 @@ void dram_vol_set(dram_para_t *para)
+ 	uint32_t reg;
+@@ -71,10 +83,11 @@ void dram_vol_set(dram_para_t *para)
  		default:
  			vol = 0;
  	}
@@ -464,7 +527,7 @@ index 72246c9..9a808a6 100644
  	/*
  		reg = read32(0x3000150);
  		reg &= ~(0xff00);
-@@ -83,9 +97,10 @@ void dram_vol_set(dram_para_t *para)
+@@ -83,9 +96,10 @@ void dram_vol_set(dram_para_t *para)
  	*/
  	write32(0x3000150, reg);
  
@@ -476,7 +539,7 @@ index 72246c9..9a808a6 100644
  }
  
  void dram_enable_all_master(void)
-@@ -93,7 +108,7 @@ void dram_enable_all_master(void)
+@@ -93,7 +107,7 @@ void dram_enable_all_master(void)
  	write32(0x3102020, -1);
  	write32(0x3102024, 0xff);
  	write32(0x3102028, 0xffff);
@@ -485,7 +548,7 @@ index 72246c9..9a808a6 100644
  }
  
  void dram_disable_all_master(void)
-@@ -101,93 +116,64 @@ void dram_disable_all_master(void)
+@@ -101,94 +115,48 @@ void dram_disable_all_master(void)
  	write32(0x3102020, 1);
  	write32(0x3102024, 0);
  	write32(0x3102028, 0);
@@ -493,38 +556,33 @@ index 72246c9..9a808a6 100644
 +	__usdelay(10);
  }
  
- void eye_delay_compensation(dram_para_t *para) // s1
+-void eye_delay_compensation(dram_para_t *para) // s1
++void bit_delay_compensation(void)
  {
- 	unsigned int val, ptr;
-+	unsigned int tpr11 = para->dram_tpr11;
-+	unsigned int tpr12 = para->dram_tpr12;
-+	unsigned int tpr10;
- 
- 	// DATn0IOCR, n =  0...7
- 	for (ptr = 0x3103310; ptr != 0x3103334; ptr += 4) {
+-	unsigned int val, ptr;
+-
+-	// DATn0IOCR, n =  0...7
+-	for (ptr = 0x3103310; ptr != 0x3103334; ptr += 4) {
 -		val = read32(ptr);
 -		val |= (para->dram_tpr11 << 9) & 0x1e00;
 -		val |= (para->dram_tpr12 << 1) & 0x001e;
 -		write32(ptr, val);
-+		(*(volatile unsigned int *)(ptr)) |= ((tpr11 << 9) & 0x1e00) | ((tpr12 << 1) & 0x001e);
- 	}
- 
- 	// DATn1IOCR, n =  0...7
- 	for (ptr = 0x3103390; ptr != 0x31033b4; ptr += 4) {
+-	}
+-
+-	// DATn1IOCR, n =  0...7
+-	for (ptr = 0x3103390; ptr != 0x31033b4; ptr += 4) {
 -		val = read32(ptr);
 -		val |= ((para->dram_tpr11 >> 4) << 9) & 0x1e00;
 -		val |= ((para->dram_tpr12 >> 4) << 1) & 0x001e;
 -		write32(ptr, val);
-+		(*(volatile unsigned int *)(ptr)) |= (((tpr11 >> 4) << 9) & 0x1e00) | (((tpr12 >> 4) << 1) & 0x001e);
- 	}
- 
- 	// PGCR0: assert AC loopback FIFO reset
+-	}
+-
+-	// PGCR0: assert AC loopback FIFO reset
 -	val = read32(0x3103100);
 -	val &= 0xfbffffff;
 -	write32(0x3103100, val);
-+	(*(volatile unsigned int *)(0x3103100)) &= 0xfbffffff;
- 
- 	// ??
+-
+-	// ??
 -	val = read32(0x3103334);
 -	val |= ((para->dram_tpr11 >> 16) << 9) & 0x1e00;
 -	val |= ((para->dram_tpr12 >> 16) << 1) & 0x001e;
@@ -552,82 +610,87 @@ index 72246c9..9a808a6 100644
 -	val = read32(0x31033bc);
 -	val |= ((para->dram_tpr11 >> 20) << 25) & 0x1e000000;
 -	write32(0x31033bc, val);
-+	(*(volatile unsigned int *)(0x3103334)) |= (((tpr11 >> 16) << 9) & 0x1e00) | (((tpr12 >> 16) << 1) & 0x001e);
-+
-+	(*(volatile unsigned int *)(0x3103338)) |= (((tpr11 >> 16) << 9) & 0x1e00) | (((tpr12 >> 16) << 1) & 0x001e);
-+
-+	(*(volatile unsigned int *)(0x31033b4)) |= (((tpr11 >> 20) << 9) & 0x1e00) | (((tpr12 >> 20) << 1) & 0x001e);
-+
-+	ptr = read32(0x31033b8);
-+	ptr |= ((tpr11 >> 20) << 9) & 0x1e00;
-+	ptr |= ((tpr12 >> 20) << 1) & 0x001e;
-+	write32(0x31033b8, ptr);
-+
-+	(*(volatile unsigned int *)(0x310333c)) |= ((tpr11 >> 16) << 25) & 0x1e000000;
-+
-+	(*(volatile unsigned int *)(0x31033bc)) |= ((tpr11 >> 20) << 25) & 0x1e000000;
- 
- 	// PGCR0: release AC loopback FIFO reset
+-
+-	// PGCR0: release AC loopback FIFO reset
 -	val = read32(0x3103100);
 -	val |= 0x04000000;
 -	write32(0x3103100, val);
-+	(*(volatile unsigned int *)(0x3103100)) |= 0x04000000;
- 
+-
 -	sdelay(1);
-+	__usdelay(1);
-+	tpr10 = para->dram_tpr10;
- 
- 	for (ptr = 0x3103240; ptr != 0x310327c; ptr += 4) {
+-
+-	for (ptr = 0x3103240; ptr != 0x310327c; ptr += 4) {
 -		val = read32(ptr);
 -		val |= ((para->dram_tpr10 >> 4) << 8) & 0x0f00;
 -		write32(ptr, val);
-+		(*(volatile unsigned int *)(ptr)) |= ((tpr10 >> 4) << 8) & 0x0f00;
- 	}
- 
- 	for (ptr = 0x3103228; ptr != 0x3103240; ptr += 4) {
+-	}
+-
+-	for (ptr = 0x3103228; ptr != 0x3103240; ptr += 4) {
 -		val = read32(ptr);
 -		val |= ((para->dram_tpr10 >> 4) << 8) & 0x0f00;
 -		write32(ptr, val);
-+		(*(volatile unsigned int *)(ptr)) |= ((tpr10 >> 4) << 8) & 0x0f00;
- 	}
- 
+-	}
+-
 -	val = read32(0x3103218);
 -	val |= (para->dram_tpr10 << 8) & 0x0f00;
 -	write32(0x3103218, val);
-+	(*(volatile unsigned int *)(0x3103218)) |= (tpr10 << 8) & 0x0f00;
++	const unsigned int data0[44] = {
++		0, 1, 2, 3, 2, 3, 3, 3, 0, 0, 0,
++		6, 6, 6, 5, 5, 5, 5, 5, 0, 0, 0,
++		0, 2, 4, 2, 6, 5, 5, 5, 0, 0, 0,
++		3, 3, 3, 2, 2, 1, 1, 1, 0, 0, 0,
++	};
++	const unsigned int data1[44] = {
++		0, 1, 3, 3, 3, 3, 3, 4, 3, 3, 3,
++		3, 3, 4, 4, 3, 3, 3, 3, 3, 3, 3,
++		0, 3, 3, 1, 6, 6, 5, 6, 3, 3, 3,
++		5, 5, 6, 6, 4, 5, 3, 3, 3, 3, 3,
++	};
++
++	unsigned int *start = (unsigned int *)0x3102310; // DATX0IOCR
++	unsigned int *end   = (unsigned int *)0x3102510; // DATX0IOCR x + 4 * size
++	unsigned int *datxiocr;
++	unsigned int i, j, k, rval;
++
++	rval = read32(0x3102100) & ~(1U << 26);
++	write32(0x3102100, rval);
++
++	// Fill DATX0IOCR - DATX3IOCR, 11 registers per block, blocks 0x20 words apart
++	for(i = 0, datxiocr = start; datxiocr != end; i += 11, datxiocr += 0x20) {
++		for(j = 0, k = i; j != 11; j++, k++) {
++			rval  = read32((unsigned int)&datxiocr[j]);
++			rval += data1[k] << 8;
++			rval += data0[k];
++			write32((unsigned int)&datxiocr[j], rval);
++		}
++	}
++
++	rval = read32(0x3102100) | 0x04000000;
++	write32(0x3102100, rval);
++}
  
 -	val = read32(0x310321c);
 -	val |= (para->dram_tpr10 << 8) & 0x0f00;
 -	write32(0x310321c, val);
-+	(*(volatile unsigned int *)(0x310321c)) |= tpr10 & 0x0f00;
++extern void eye_delay_compensation(dram_para_t *para);
  
 -	val = read32(0x3103280);
 -	val |= ((para->dram_tpr10 >> 12) << 8) & 0x0f00;
 -	write32(0x3103280, val);
-+	(*(volatile unsigned int *)(0x3103280)) |= ((tpr10 >> 12) << 8) & 0x0f00;
- }
+-}
  
  int auto_cal_timing(unsigned int time, unsigned int freq)
-@@ -206,29 +192,31 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 	unsigned int   type; // s8
- 	unsigned int   tpr13; // 80(sp)
- 	unsigned int   reg_val;
-+	unsigned int frq2;
-+
-+	unsigned int  tccd; // 88(sp)
-+	unsigned int  trrd; // s7
-+	unsigned int  trcd; // s3
-+	unsigned int  trc; // s9
-+	unsigned int  tfaw; // s10
-+	unsigned int  tras; // s11
-+	unsigned int  trp; // 0(sp)
-+	unsigned int  twtr; // s1
-+	unsigned int  twr; // s6
-+	unsigned int  trtp; // 64(sp)
-+	unsigned int  txp; // a6
-+	unsigned int trefi; // s2
-+	unsigned int trfc; // a5 / 8(sp)
- 
+ {
+@@ -200,434 +168,8 @@ int auto_cal_timing(unsigned int time, unsigned int freq)
+ // timing settings for the specific type of sdram used. Read together with
+ // an sdram datasheet for context on the various variables.
+ //
+-void auto_set_timing_para(dram_para_t *para) // s5
+-{
+-	unsigned int   freq; // s4
+-	unsigned int   type; // s8
+-	unsigned int   tpr13; // 80(sp)
+-	unsigned int   reg_val;
+-
 -	unsigned char  tccd; // 88(sp)
 -	unsigned char  trrd; // s7
 -	unsigned char  trcd; // s3
@@ -642,293 +705,418 @@ index 72246c9..9a808a6 100644
 -	unsigned short trefi; // s2
 -	unsigned short trfc; // a5 / 8(sp)
 -
-+	tpr13 = para->dram_tpr13;
- 	freq  = para->dram_clk;
- 	type  = para->dram_type;
+-	freq  = para->dram_clk;
+-	type  = para->dram_type;
 -	tpr13 = para->dram_tpr13;
-+	frq2 = freq >> 1;
- 
+-
 -	// ddr_printf("type  = %d\r\n", type);
 -	// ddr_printf("tpr13 = %p\r\n", tpr13);
-+	// ddr_printf("type  = %d\n", type);
-+	// ddr_printf("tpr13 = %p\n", tpr13);
- 
+-
 -	if (para->dram_tpr13 & 0x2) {
-+	if (tpr13 & 0x2) {
- 		// dram_tpr0
- 		tccd = ((para->dram_tpr0 >> 21) & 0x7); // [23:21]
- 		tfaw = ((para->dram_tpr0 >> 15) & 0x3f); // [20:15]
-@@ -246,16 +234,15 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 		trfc  = ((para->dram_tpr2 >> 12) & 0x1ff); // [20:12]
- 		trefi = ((para->dram_tpr2 >> 0) & 0xfff); // [11:0 ]
- 	} else {
+-		// dram_tpr0
+-		tccd = ((para->dram_tpr0 >> 21) & 0x7); // [23:21]
+-		tfaw = ((para->dram_tpr0 >> 15) & 0x3f); // [20:15]
+-		trrd = ((para->dram_tpr0 >> 11) & 0xf); // [14:11]
+-		trcd = ((para->dram_tpr0 >> 6) & 0x1f); // [10:6 ]
+-		trc	 = ((para->dram_tpr0 >> 0) & 0x3f); // [ 5:0 ]
+-		// dram_tpr1
+-		txp	 = ((para->dram_tpr1 >> 23) & 0x1f); // [27:23]
+-		twtr = ((para->dram_tpr1 >> 20) & 0x7); // [22:20]
+-		trtp = ((para->dram_tpr1 >> 15) & 0x1f); // [19:15]
+-		twr	 = ((para->dram_tpr1 >> 11) & 0xf); // [14:11]
+-		trp	 = ((para->dram_tpr1 >> 6) & 0x1f); // [10:6 ]
+-		tras = ((para->dram_tpr1 >> 0) & 0x3f); // [ 5:0 ]
+-		// dram_tpr2
+-		trfc  = ((para->dram_tpr2 >> 12) & 0x1ff); // [20:12]
+-		trefi = ((para->dram_tpr2 >> 0) & 0xfff); // [11:0 ]
+-	} else {
 -		unsigned int frq2 = freq >> 1; // s0
- 
- 		if (type == 3) {
- 			// DDR3
+-
+-		if (type == 3) {
+-			// DDR3
 -			trfc  = auto_cal_timing(350, frq2);
 -			trefi = auto_cal_timing(7800, frq2) / 32 + 1; // XXX
 -			twr	  = auto_cal_timing(8, frq2);
 -			trcd  = auto_cal_timing(15, frq2);
 -			twtr  = twr + 2; // + 2 ? XXX
 -			if (twr < 2)
-+			twtr = auto_cal_timing(8, frq2);
-+			trcd = auto_cal_timing(15, frq2);
-+			trefi = auto_cal_timing(7800, frq2);
-+			trefi = (trefi >> 5) + ((trefi & 31) != 0);
-+			trfc = auto_cal_timing(350, frq2);
-+			if (twtr < 2)
- 				twtr = 2;
- 			twr = trcd;
- 			if (trcd < 2)
-@@ -267,17 +254,17 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 					trrd = 2;
- 				trc	 = auto_cal_timing(53, frq2);
- 				tras = auto_cal_timing(38, frq2);
--				txp	 = trrd; // 10
-+				txp	 = twtr; // minimum power-down delay
- 				trp	 = trcd; // 15
- 			} else {
- 				tfaw = auto_cal_timing(35, frq2);
+-				twtr = 2;
+-			twr = trcd;
+-			if (trcd < 2)
+-				twr = 2;
+-			if (freq <= 800) {
+-				tfaw = auto_cal_timing(50, frq2);
 -				trrd = auto_cal_timing(10, frq2);
-+				trrd = auto_cal_timing(6, frq2);
- 				if (trrd < 2)
- 					trrd = 2;
- 				trcd = auto_cal_timing(14, frq2);
- 				trc	 = auto_cal_timing(48, frq2);
- 				tras = auto_cal_timing(34, frq2);
+-				if (trrd < 2)
+-					trrd = 2;
+-				trc	 = auto_cal_timing(53, frq2);
+-				tras = auto_cal_timing(38, frq2);
 -				txp	 = trrd; // 10
-+				txp	 = trrd; // minimum power-down delay
- 				trp	 = trcd; // 14
- 			}
- 		} 
-@@ -290,7 +277,8 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 			twtr  = auto_cal_timing(8, frq2);
- 			trp	  = auto_cal_timing(15, frq2);
- 			tras  = auto_cal_timing(45, frq2);
+-				trp	 = trcd; // 15
+-			} else {
+-				tfaw = auto_cal_timing(35, frq2);
+-				trrd = auto_cal_timing(10, frq2);
+-				if (trrd < 2)
+-					trrd = 2;
+-				trcd = auto_cal_timing(14, frq2);
+-				trc	 = auto_cal_timing(48, frq2);
+-				tras = auto_cal_timing(34, frq2);
+-				txp	 = trrd; // 10
+-				trp	 = trcd; // 14
+-			}
+-		} 
+-		else if (type == 2) {
+-			// DDR2
+-			tfaw  = auto_cal_timing(50, frq2);
+-			trrd  = auto_cal_timing(10, frq2);
+-			trcd  = auto_cal_timing(20, frq2);
+-			trc	  = auto_cal_timing(65, frq2);
+-			twtr  = auto_cal_timing(8, frq2);
+-			trp	  = auto_cal_timing(15, frq2);
+-			tras  = auto_cal_timing(45, frq2);
 -			trefi = auto_cal_timing(7800, frq2) / 32;
-+			trefi = auto_cal_timing(7800, frq2);
-+			trefi = (trefi >> 5) + ((trefi & 31) != 0);
- 			trfc  = auto_cal_timing(328, frq2);
- 			txp	  = 2;
- 			twr	  = trp; // 15
-@@ -313,7 +301,6 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 			} else {
- 				twtr = txp;
- 				if (txp < 2) {
+-			trfc  = auto_cal_timing(328, frq2);
+-			txp	  = 2;
+-			twr	  = trp; // 15
+-		} else if (type == 6) {
+-			// LPDDR2
+-			tfaw = auto_cal_timing(50, frq2);
+-			if (tfaw < 4)
+-				tfaw = 4;
+-			trrd = auto_cal_timing(10, frq2);
+-			if (trrd == 0)
+-				trrd = 1;
+-			trcd = auto_cal_timing(24, frq2);
+-			if (trcd < 2)
+-				trcd = 2;
+-			trc = auto_cal_timing(70, frq2);
+-			txp = auto_cal_timing(8, frq2);
+-			if (txp == 0) {
+-				txp	 = 1;
+-				twtr = 2;
+-			} else {
+-				twtr = txp;
+-				if (txp < 2) {
 -					txp	 = 2;
- 					twtr = 2;
- 				}
- 			}
-@@ -322,7 +309,8 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 				twr = 2;
- 			trp	  = auto_cal_timing(17, frq2);
- 			tras  = auto_cal_timing(42, frq2);
+-					twtr = 2;
+-				}
+-			}
+-			twr = auto_cal_timing(15, frq2);
+-			if (twr < 2)
+-				twr = 2;
+-			trp	  = auto_cal_timing(17, frq2);
+-			tras  = auto_cal_timing(42, frq2);
 -			trefi = auto_cal_timing(3900, frq2) / 32;
-+			trefi = auto_cal_timing(3900, frq2);
-+			trefi = (trefi >> 5) + ((trefi & 31) != 0);
- 			trfc  = auto_cal_timing(210, frq2);
- 		} else if (type == 7) {
- 			// LPDDR3
-@@ -344,7 +332,8 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 				twr = 2;
- 			trp	  = auto_cal_timing(17, frq2);
- 			tras  = auto_cal_timing(42, frq2);
+-			trfc  = auto_cal_timing(210, frq2);
+-		} else if (type == 7) {
+-			// LPDDR3
+-			tfaw = auto_cal_timing(50, frq2);
+-			if (tfaw < 4)
+-				tfaw = 4;
+-			trrd = auto_cal_timing(10, frq2);
+-			if (trrd == 0)
+-				trrd = 1;
+-			trcd = auto_cal_timing(24, frq2);
+-			if (trcd < 2)
+-				trcd = 2;
+-			trc	 = auto_cal_timing(70, frq2);
+-			twtr = auto_cal_timing(8, frq2);
+-			if (twtr < 2)
+-				twtr = 2;
+-			twr = auto_cal_timing(15, frq2);
+-			if (twr < 2)
+-				twr = 2;
+-			trp	  = auto_cal_timing(17, frq2);
+-			tras  = auto_cal_timing(42, frq2);
 -			trefi = auto_cal_timing(3900, frq2) / 32;
-+			trefi = auto_cal_timing(3900, frq2);
-+			trefi = (trefi >> 5) + ((trefi & 31) != 0);
- 			trfc  = auto_cal_timing(210, frq2);
- 			txp	  = twtr;
- 		} else {
-@@ -363,19 +352,21 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 		}
- 		// assign the value back to the DRAM structure
- 		tccd			= 2;
+-			trfc  = auto_cal_timing(210, frq2);
+-			txp	  = twtr;
+-		} else {
+-			// default
+-			trfc  = 128;
+-			trp	  = 6;
+-			trefi = 98;
+-			txp	  = 10;
+-			twr	  = 8;
+-			twtr  = 3;
+-			tras  = 14;
+-			tfaw  = 16;
+-			trc	  = 20;
+-			trcd  = 6;
+-			trrd  = 3;
+-		}
+-		// assign the value back to the DRAM structure
+-		tccd			= 2;
 -		trtp			= 4; // not in .S ?
-+		trtp			= twtr;
- 		para->dram_tpr0 = (trc << 0) | (trcd << 6) | (trrd << 11) | (tfaw << 15) | (tccd << 21);
- 		para->dram_tpr1 = (tras << 0) | (trp << 6) | (twr << 11) | (trtp << 15) | (twtr << 20) | (txp << 23);
+-		para->dram_tpr0 = (trc << 0) | (trcd << 6) | (trrd << 11) | (tfaw << 15) | (tccd << 21);
+-		para->dram_tpr1 = (tras << 0) | (trp << 6) | (twr << 11) | (trtp << 15) | (twtr << 20) | (txp << 23);
 -		para->dram_tpr2 = (trefi << 0) | (trfc << 12);
- 
- 		uint32_t tref	= (para->dram_tpr4 << 0x10) >> 0x1c;
- 		if (tref == 1) {
+-
+-		uint32_t tref	= (para->dram_tpr4 << 0x10) >> 0x1c;
+-		if (tref == 1) {
 -			ddr_printf("trefi:3.9ms\r\n");
-+			trefi >>= 1;
-+			ddr_printf("trefi:3.9ms\n");
- 		} else if (tref == 2) {
+-		} else if (tref == 2) {
 -			ddr_printf("trefi:1.95ms\r\n");
-+			trefi >>= 2;
-+			ddr_printf("trefi:1.95ms\n");
- 		} else {
+-		} else {
 -			ddr_printf("trefi:7.8ms\r\n");
-+			ddr_printf("trefi:7.8ms\n");
- 		}
-+		para->dram_tpr2 = trefi | (trfc << 12);
- 	}
+-		}
+-	}
++extern void auto_set_timing_para(dram_para_t *para);
  
- 	unsigned int tcksrx; // t1
-@@ -404,6 +395,7 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 	unsigned int tdinit1; // 24(sp)
- 	unsigned int tdinit0; // 16(sp)
- 
-+	unsigned int clk = para->dram_clk;
- 	dmr1 = para->dram_mr1;
- 	dmr3 = para->dram_mr3;
- 
-@@ -411,7 +403,7 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 		case 2: // DDR2
- 		{
- 			trasmax = freq / 30;
+-	unsigned int tcksrx; // t1
+-	unsigned int tckesr; // t4;
+-	unsigned int trd2wr; // t6
+-	unsigned int trasmax; // t3;
+-	unsigned int twtp; // s6 (was twr!)
+-	unsigned int tcke; // s8
+-	unsigned int tmod; // t0
+-	unsigned int tmrd; // t5
+-	unsigned int tmrw; // a1
+-	unsigned int t_rdata_en; // a4 (was tcwl!)
+-	unsigned int tcl; // a0
+-	unsigned int wr_latency; // a7
+-	unsigned int tcwl; // first a4, then a5
+-	unsigned int mr3; // s0
+-	unsigned int mr2; // t2
+-	unsigned int mr1; // s1
+-	unsigned int mr0; // a3
+-	unsigned int dmr3; // 72(sp)
+-	// unsigned int trtp;	// 64(sp)
+-	unsigned int dmr1; // 56(sp)
+-	unsigned int twr2rd; // 48(sp)
+-	unsigned int tdinit3; // 40(sp)
+-	unsigned int tdinit2; // 32(sp)
+-	unsigned int tdinit1; // 24(sp)
+-	unsigned int tdinit0; // 16(sp)
+-
+-	dmr1 = para->dram_mr1;
+-	dmr3 = para->dram_mr3;
+-
+-	switch (type) {
+-		case 2: // DDR2
+-		{
+-			trasmax = freq / 30;
 -			if (freq < 409) {
-+			if (frq2 <= 204) {
- 				tcl		   = 3;
- 				t_rdata_en = 1;
- 				mr0		   = 0x06a3;
-@@ -430,10 +422,10 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 			wr_latency = 1;
- 			mr3		   = 0;
- 			mr2		   = 0;
+-				tcl		   = 3;
+-				t_rdata_en = 1;
+-				mr0		   = 0x06a3;
+-			} else {
+-				t_rdata_en = 2;
+-				tcl		   = 4;
+-				mr0		   = 0x0e73;
+-			}
+-			tmrd	   = 2;
+-			twtp	   = twr + 5;
+-			tcksrx	   = 5;
+-			tckesr	   = 4;
+-			trd2wr	   = 4;
+-			tcke	   = 3;
+-			tmod	   = 12;
+-			wr_latency = 1;
+-			mr3		   = 0;
+-			mr2		   = 0;
 -			tdinit0	   = 200 * freq + 1;
 -			tdinit1	   = 100 * freq / 1000 + 1;
 -			tdinit2	   = 200 * freq + 1;
 -			tdinit3	   = 1 * freq + 1;
-+			tdinit0	   = 400 * clk + 1;
-+			tdinit1	   = 500 * clk / 1000 + 1;
-+			tdinit2	   = 200 * clk + 1;
-+			tdinit3	   = 1 * clk + 1;
- 			tmrw	   = 0;
- 			twr2rd	   = twtr + 5;
- 			tcwl	   = 0;
-@@ -443,7 +435,7 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 		case 3: // DDR3
- 		{
- 			trasmax = freq / 30;
+-			tmrw	   = 0;
+-			twr2rd	   = twtr + 5;
+-			tcwl	   = 0;
+-			mr1		   = dmr1;
+-			break;
+-		}
+-		case 3: // DDR3
+-		{
+-			trasmax = freq / 30;
 -			if (freq <= 800) {
-+			if (clk <= 800) {
- 				mr0		   = 0x1c70;
- 				tcl		   = 6;
- 				wr_latency = 2;
-@@ -457,16 +449,16 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 				mr2		   = 32;
- 			}
- 
+-				mr0		   = 0x1c70;
+-				tcl		   = 6;
+-				wr_latency = 2;
+-				tcwl	   = 4;
+-				mr2		   = 24;
+-			} else {
+-				mr0		   = 0x1e14;
+-				tcl		   = 7;
+-				wr_latency = 3;
+-				tcwl	   = 5;
+-				mr2		   = 32;
+-			}
+-
 -			twtp	= tcwl + 2 + twtr; // WL+BL/2+tWTR
-+			twtp	= tcwl + 2 + twr; // WL+BL/2+tWTR
- 			trd2wr	= tcwl + 2 + twr; // WL+BL/2+tWR
+-			trd2wr	= tcwl + 2 + twr; // WL+BL/2+tWR
 -			twr2rd	= tcwl + twtr; // WL+tWTR
-+			twr2rd	= tcwl + twtr + 2; // WL+tWTR
- 
+-
 -			tdinit0 = 500 * freq + 1; // 500 us
 -			tdinit1 = 360 * freq / 1000 + 1; // 360 ns
 -			tdinit2 = 200 * freq + 1; // 200 us
 -			tdinit3 = 1 * freq + 1; //   1 us
-+			tdinit0 = 500 * clk + 1; // 500 us
-+			tdinit1 = 360 * clk / 1000 + 1; // 360 ns
-+			tdinit2 = 200 * clk + 1; // 200 us
-+			tdinit3 = 1 * clk + 1; //   1 us
- 
+-
 -			if (((tpr13 >> 2) & 0x03) == 0x01 || freq < 912) {
-+			if (((tpr13 >> 2) & 0x03) == 0x01 || clk <= 912) {
- 				mr1		   = dmr1;
- 				t_rdata_en = tcwl; // a5 <- a4
- 				tcksrx	   = 5;
-@@ -479,7 +471,7 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 				tckesr	   = 4;
- 				trd2wr	   = 6;
- 			}
+-				mr1		   = dmr1;
+-				t_rdata_en = tcwl; // a5 <- a4
+-				tcksrx	   = 5;
+-				tckesr	   = 4;
+-				trd2wr	   = 5;
+-			} else {
+-				mr1		   = dmr1;
+-				t_rdata_en = tcwl; // a5 <- a4
+-				tcksrx	   = 5;
+-				tckesr	   = 4;
+-				trd2wr	   = 6;
+-			}
 -			tcke = 3; // not in .S ?
-+			tcke = 4;
- 			tmod = 12;
- 			tmrd = 4;
- 			tmrw = 0;
-@@ -502,11 +494,11 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 			tmrw	   = 3;
- 			tcl		   = 4;
- 			wr_latency = 1;
+-			tmod = 12;
+-			tmrd = 4;
+-			tmrw = 0;
+-			mr3	 = 0;
+-			break;
+-		}
+-		case 6: // LPDDR2
+-		{
+-			trasmax	   = freq / 60;
+-			mr3		   = dmr3;
+-			twtp	   = twr + 5;
+-			mr2		   = 6;
+-			mr1		   = 5;
+-			tcksrx	   = 5;
+-			tckesr	   = 5;
+-			trd2wr	   = 10;
+-			tcke	   = 2;
+-			tmod	   = 5;
+-			tmrd	   = 5;
+-			tmrw	   = 3;
+-			tcl		   = 4;
+-			wr_latency = 1;
 -			t_rdata_en = 1;
 -			tdinit0	   = 200 * freq + 1;
 -			tdinit1	   = 100 * freq / 1000 + 1;
 -			tdinit2	   = 11 * freq + 1;
 -			tdinit3	   = 1 * freq + 1;
-+			t_rdata_en = 3;
-+			tdinit0	   = 200 * clk + 1;
-+			tdinit1	   = 100 * clk / 1000 + 1;
-+			tdinit2	   = 11 * clk + 1;
-+			tdinit3	   = 1 * clk + 1;
- 			twr2rd	   = twtr + 5;
- 			tcwl	   = 2;
- 			mr1		   = 195;
-@@ -517,7 +509,7 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 		case 7: // LPDDR3
- 		{
- 			trasmax = freq / 60;
+-			twr2rd	   = twtr + 5;
+-			tcwl	   = 2;
+-			mr1		   = 195;
+-			mr0		   = 0;
+-			break;
+-		}
+-
+-		case 7: // LPDDR3
+-		{
+-			trasmax = freq / 60;
 -			if (freq < 800) {
-+			if (clk > 800) {
- 				tcwl	   = 4;
- 				wr_latency = 3;
- 				t_rdata_en = 6;
-@@ -529,18 +521,18 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 				t_rdata_en = 5;
- 				mr2		   = 10;
- 			}
+-				tcwl	   = 4;
+-				wr_latency = 3;
+-				t_rdata_en = 6;
+-				mr2		   = 12;
+-			} else {
+-				tcwl	   = 3;
+-				tcke	   = 6;
+-				wr_latency = 2;
+-				t_rdata_en = 5;
+-				mr2		   = 10;
+-			}
 -			twtp	= tcwl + 5;
 -			tcl		= 7;
-+			twtp	= tcwl + twr + 5;
-+			tcl		= (clk <= 800) ? 6 : 7;
- 			mr3		= dmr3;
- 			tcksrx	= 5;
- 			tckesr	= 5;
- 			trd2wr	= 13;
- 			tcke	= 3;
- 			tmod	= 12;
+-			mr3		= dmr3;
+-			tcksrx	= 5;
+-			tckesr	= 5;
+-			trd2wr	= 13;
+-			tcke	= 3;
+-			tmod	= 12;
 -			tdinit0 = 400 * freq + 1;
 -			tdinit1 = 500 * freq / 1000 + 1;
 -			tdinit2 = 11 * freq + 1;
 -			tdinit3 = 1 * freq + 1;
-+			tdinit0 = 200 * clk + 1;
-+			tdinit1 = 100 * clk / 1000 + 1;
-+			tdinit2 = 11 * clk + 1;
-+			tdinit3 = 1 * clk + 1;
- 			tmrd	= 5;
- 			tmrw	= 5;
- 			twr2rd	= tcwl + twtr + 5;
-@@ -573,10 +565,9 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 			tdinit0	   = 0; // 16(sp)
- 			break;
- 	}
+-			tmrd	= 5;
+-			tmrw	= 5;
+-			twr2rd	= tcwl + twtr + 5;
+-			mr1		= 195;
+-			mr0		= 0;
+-			break;
+-		}
+-		default:
+-			twr2rd	   = 8; // 48(sp)
+-			tcksrx	   = 4; // t1
+-			tckesr	   = 3; // t4
+-			trd2wr	   = 4; // t6
+-			trasmax	   = 27; // t3
+-			twtp	   = 12; // s6
+-			tcke	   = 2; // s8
+-			tmod	   = 6; // t0
+-			tmrd	   = 2; // t5
+-			tmrw	   = 0; // a1
+-			tcwl	   = 3; // a5
+-			tcl		   = 3; // a0
+-			wr_latency = 1; // a7
+-			t_rdata_en = 1; // a4
+-			mr3		   = 0; // s0
+-			mr2		   = 0; // t2
+-			mr1		   = 0; // s1
+-			mr0		   = 0; // a3
+-			tdinit3	   = 0; // 40(sp)
+-			tdinit2	   = 0; // 32(sp)
+-			tdinit1	   = 0; // 24(sp)
+-			tdinit0	   = 0; // 16(sp)
+-			break;
+-	}
 -	if (trtp < tcl - trp + 2) {
-+	if (trtp + trp < tcl + 2) {
- 		trtp = tcl - trp + 2;
- 	}
+-		trtp = tcl - trp + 2;
+-	}
 -	trtp = 4;
- 
- 	// Update mode block when permitted
- 	if ((para->dram_mr0 & 0xffff0000) == 0)
-@@ -589,10 +580,10 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 		para->dram_mr3 = mr3;
- 
- 	// Set mode registers
+-
+-	// Update mode block when permitted
+-	if ((para->dram_mr0 & 0xffff0000) == 0)
+-		para->dram_mr0 = mr0;
+-	if ((para->dram_mr1 & 0xffff0000) == 0)
+-		para->dram_mr1 = mr1;
+-	if ((para->dram_mr2 & 0xffff0000) == 0)
+-		para->dram_mr2 = mr2;
+-	if ((para->dram_mr3 & 0xffff0000) == 0)
+-		para->dram_mr3 = mr3;
+-
+-	// Set mode registers
 -	write32(0x3103030, para->dram_mr0);
 -	write32(0x3103034, para->dram_mr1);
 -	write32(0x3103038, para->dram_mr2);
 -	write32(0x310303c, para->dram_mr3);
-+	write32(0x3103030, para->dram_mr0 & 0xffff);
-+	write32(0x3103034, para->dram_mr1 & 0xffff);
-+	write32(0x3103038, para->dram_mr2 & 0xffff);
-+	write32(0x310303c, para->dram_mr3 & 0xffff);
- 	write32(0x310302c, (para->dram_odt_en >> 4) & 0x3); // ??
- 
- 	// Set dram timing DRAMTMG0 - DRAMTMG5
-@@ -612,7 +603,7 @@ void auto_set_timing_para(dram_para_t *para) // s5
- 	// Set two rank timing
- 	reg_val = read32(0x3103078);
- 	reg_val &= 0x0fff0000;
+-	write32(0x310302c, (para->dram_odt_en >> 4) & 0x3); // ??
+-
+-	// Set dram timing DRAMTMG0 - DRAMTMG5
+-	reg_val = (twtp << 24) | (tfaw << 16) | (trasmax << 8) | (tras << 0);
+-	write32(0x3103058, reg_val);
+-	reg_val = (txp << 16) | (trtp << 8) | (trc << 0);
+-	write32(0x310305c, reg_val);
+-	reg_val = (tcwl << 24) | (tcl << 16) | (trd2wr << 8) | (twr2rd << 0);
+-	write32(0x3103060, reg_val);
+-	reg_val = (tmrw << 16) | (tmrd << 12) | (tmod << 0);
+-	write32(0x3103064, reg_val);
+-	reg_val = (trcd << 24) | (tccd << 16) | (trrd << 8) | (trp << 0);
+-	write32(0x3103068, reg_val);
+-	reg_val = (tcksrx << 24) | (tcksrx << 16) | (tckesr << 8) | (tcke << 0);
+-	write32(0x310306c, reg_val);
+-
+-	// Set two rank timing
+-	reg_val = read32(0x3103078);
+-	reg_val &= 0x0fff0000;
 -	reg_val |= (para->dram_clk < 800) ? 0xf0006600 : 0xf0007600;
-+	reg_val |= (para->dram_clk <= 800) ? 0xf0006600 : 0xf0007600;
- 	reg_val |= 0x10;
- 	write32(0x3103078, reg_val);
+-	reg_val |= 0x10;
+-	write32(0x3103078, reg_val);
+-
+-	// Set phy interface time PITMG0, PTR3, PTR4
+-	reg_val = (0x2 << 24) | (t_rdata_en << 16) | (0x1 << 8) | (wr_latency << 0);
+-	write32(0x3103080, reg_val);
+-	write32(0x3103050, ((tdinit0 << 0) | (tdinit1 << 20)));
+-	write32(0x3103054, ((tdinit2 << 0) | (tdinit3 << 20)));
+-
+-	// Set refresh timing and mode
+-	reg_val = (trefi << 16) | (trfc << 0);
+-	write32(0x3103090, reg_val);
+-	reg_val = 0x0fff0000 & (trefi << 15);
+-	write32(0x3103094, reg_val);
+-}
  
-@@ -636,7 +627,7 @@ int ccm_set_pll_ddr_clk(int index, dram_para_t *para)
+ // Purpose of this routine seems to be to initialize the PLL driving
+ // the MBUS and sdram.
+@@ -636,7 +178,7 @@ int ccm_set_pll_ddr_clk(int index, dram_para_t *para)
  {
  	unsigned int val, clk, n;
  
@@ -937,7 +1125,7 @@ index 72246c9..9a808a6 100644
  
  	// set VCO clock divider
  	n	= (clk * 2) / 24;
-@@ -645,20 +636,21 @@ int ccm_set_pll_ddr_clk(int index, dram_para_t *para)
+@@ -645,20 +187,21 @@ int ccm_set_pll_ddr_clk(int index, dram_para_t *para)
  	val &= 0xfff800fc; // clear dividers
  	val |= (n - 1) << 8; // set PLL division
  	val |= 0xc0000000; // enable PLL and LDO
@@ -964,7 +1152,7 @@ index 72246c9..9a808a6 100644
  
  	// turn clock gate on
  	val = read32(0x2001800);
-@@ -672,7 +664,7 @@ int ccm_set_pll_ddr_clk(int index, dram_para_t *para)
+@@ -672,7 +215,7 @@ int ccm_set_pll_ddr_clk(int index, dram_para_t *para)
  // Main purpose of sys_init seems to be to initalise the clocks for
  // the sdram controller.
  //
@@ -973,7 +1161,7 @@ index 72246c9..9a808a6 100644
  {
  	unsigned int val;
  
-@@ -682,14 +674,17 @@ void mctl_sys_init(dram_para_t *para)
+@@ -682,14 +225,17 @@ void mctl_sys_init(dram_para_t *para)
  	write32(0x2001540, read32(0x2001540) & 0xbfffffff);
  
  	// turn off sdram clock gate, assert sdram reset
@@ -995,7 +1183,7 @@ index 72246c9..9a808a6 100644
  	dram_disable_all_master();
  
  	// release sdram reset
-@@ -699,18 +694,20 @@ void mctl_sys_init(dram_para_t *para)
+@@ -699,18 +245,20 @@ void mctl_sys_init(dram_para_t *para)
  	write32(0x2001540, read32(0x2001540) | 0x40000000);
  	write32(0x2001800, read32(0x2001800) | 0x40000000);
  
@@ -1020,7 +1208,7 @@ index 72246c9..9a808a6 100644
  }
  
  // The main purpose of this routine seems to be to copy an address configuration
-@@ -719,137 +716,111 @@ void mctl_sys_init(dram_para_t *para)
+@@ -719,412 +267,60 @@ void mctl_sys_init(dram_para_t *para)
  //
  void mctl_com_init(dram_para_t *para)
  {
@@ -1155,8 +1343,8 @@ index 72246c9..9a808a6 100644
 -static char cfg6[] = {3, 10, 7, 13, 9, 11, 1, 2, 4, 6, 8, 5, 12, 0, 0, 0, 20, 1, 0, 21, 22, 17};
 -static char cfg7[] = {3, 2, 4, 7, 9, 1, 17, 12, 18, 14, 13, 8, 15, 6, 10, 5, 19, 22, 16, 21, 20, 11};
 -
- void mctl_phy_ac_remapping(dram_para_t *para)
- {
+-void mctl_phy_ac_remapping(dram_para_t *para)
+-{
 -	unsigned int fuse, val;
 -
 -	fuse = (read32(0x3006228) << 0x14) >> 0x1c;
@@ -1167,28 +1355,8 @@ index 72246c9..9a808a6 100644
 -
 -	if ((para->dram_tpr13 >> 18) & 0x3) {
 -		memcpy_self(cfg0, cfg7, 22);
-+	unsigned int mark = (read32(0x3006200) >> 8) & 0xff;
-+	unsigned int fuse = (read32(0x3006228) >> 8) & 0xf;
-+	unsigned int val;
-+	unsigned char cfg0[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-+	unsigned char cfg1[] = {1, 9, 3, 7, 8, 18, 4, 13, 5, 6, 10, 2, 14, 12, 0, 0, 21, 17, 20, 19, 11, 22};
-+	unsigned char cfg2[] = {4, 9, 3, 7, 8, 18, 1, 13, 2, 6, 10, 5, 14, 12, 0, 0, 21, 17, 20, 19, 11, 22};
-+	unsigned char cfg3[] = {1, 7, 8, 12, 10, 18, 4, 13, 5, 6, 3, 2, 9, 0, 0, 0, 21, 17, 20, 19, 11, 22};
-+	unsigned char cfg4[] = {4, 12, 10, 7, 8, 18, 1, 13, 2, 6, 3, 5, 9, 0, 0, 0, 21, 17, 20, 19, 11, 22};
-+	unsigned char cfg5[] = {13, 2, 7, 9, 12, 19, 5, 1, 6, 3, 4, 8, 10, 0, 0, 0, 21, 22, 18, 17, 11, 20};
-+	unsigned char cfg6[] = {3, 10, 7, 13, 9, 11, 1, 2, 4, 6, 8, 5, 12, 0, 0, 0, 20, 1, 0, 21, 22, 17};
-+	unsigned char cfg7[] = {3, 2, 4, 7, 9, 1, 17, 12, 18, 14, 13, 8, 15, 6, 10, 5, 19, 22, 16, 21, 20, 11};
-+
-+	unsigned char cfg8[] = {2,19,8,6,14,5,20,10,3,18,13,11,7,15,9,1,22,21,17,12,4,16};
-+	ddr_printf("ddr_efuse_type: 0x%x\n", fuse);
-+	ddr_printf("mark_id: 0x%x\n", mark);
-+	if ((para->dram_tpr13 & 0xc0000) || mark == 0x50 || mark == 0x7c) {
-+		if ((para->dram_tpr13 & 0x40000) || mark == 0x50)
-+			memcpy_self((char *)cfg0, (char *)cfg7, 22);
-+		if ((para->dram_tpr13 & 0x80000) || mark == 0x7c)
-+			memcpy_self((char *)cfg0, (char *)cfg8, 22);
- 	} else {
- 		switch (fuse) {
+-	} else {
+-		switch (fuse) {
 -			case 8:
 -				memcpy_self(cfg0, cfg2, 22);
 -				break;
@@ -1208,173 +1376,297 @@ index 72246c9..9a808a6 100644
 -			case 13:
 -			case 14:
 -				break;
-+		case 8: memcpy_self((char *)cfg0, (char *)cfg2, 22); break;
-+		case 9: memcpy_self((char *)cfg0, (char *)cfg3, 22); break;
-+		case 10: memcpy_self((char *)cfg0, (char *)cfg5, 22); break;
-+		case 12: memcpy_self((char *)cfg0, (char *)cfg1, 22); break;
-+		case 13: case 14: break;
-+		default: memcpy_self((char *)cfg0, (char *)cfg4, 22); break;
- 		}
- 	}
+-		}
+-	}
 -
- 	if (para->dram_type == 2) {
+-	if (para->dram_type == 2) {
 -		if (fuse == 15)
-+		if (mark == 0x50 || mark == 0x7c) {
-+		val = (cfg0[4] << 25) | (cfg0[3] << 20) | (cfg0[2] << 15) | (cfg0[1] << 10) | (cfg0[0] << 5);
-+		write32(0x3102500, val);
-+
-+		val = (cfg0[10] << 25) | (cfg0[9] << 20) | (cfg0[8] << 15) | (cfg0[7] << 10) | (cfg0[6] << 5) | cfg0[5];
-+		write32(0x3102504, val);
-+
-+		val = (cfg0[15] << 20) | (cfg0[14] << 15) | (cfg0[13] << 10) | (cfg0[12] << 5) | cfg0[11];
-+		write32(0x3102508, val);
-+
-+		val = (cfg0[21] << 25) | (cfg0[20] << 20) | (cfg0[19] << 15) | (cfg0[18] << 10) | (cfg0[17] << 5) | cfg0[16];
-+		write32(0x310250c, val);
-+
-+		val = (cfg0[4] << 25) | (cfg0[3] << 20) | (cfg0[2] << 15) | (cfg0[1] << 10) | (cfg0[0] << 5) | 1;
-+		write32(0x3102500, val);
-+		}
-+		if (fuse == 13 || fuse == 14)
-+			memcpy_self((char *)cfg0, (char *)cfg6, 22);
-+		else
- 			return;
+-			return;
 -		memcpy_self(cfg0, cfg6, 22);
-+	} else if (para->dram_type != 3) {
-+		return;
- 	}
+-	}
 -
 -	if (para->dram_type == 2 || para->dram_type == 3) {
- 		val = (cfg0[4] << 25) | (cfg0[3] << 20) | (cfg0[2] << 15) | (cfg0[1] << 10) | (cfg0[0] << 5);
- 		write32(0x3102500, val);
- 
-@@ -864,12 +835,8 @@ void mctl_phy_ac_remapping(dram_para_t *para)
- 
- 		val = (cfg0[4] << 25) | (cfg0[3] << 20) | (cfg0[2] << 15) | (cfg0[1] << 10) | (cfg0[0] << 5) | 1;
- 		write32(0x3102500, val);
+-		val = (cfg0[4] << 25) | (cfg0[3] << 20) | (cfg0[2] << 15) | (cfg0[1] << 10) | (cfg0[0] << 5);
+-		write32(0x3102500, val);
+-
+-		val = (cfg0[10] << 25) | (cfg0[9] << 20) | (cfg0[8] << 15) | (cfg0[7] << 10) | (cfg0[6] << 5) | cfg0[5];
+-		write32(0x3102504, val);
+-
+-		val = (cfg0[15] << 20) | (cfg0[14] << 15) | (cfg0[13] << 10) | (cfg0[12] << 5) | cfg0[11];
+-		write32(0x3102508, val);
+-
+-		val = (cfg0[21] << 25) | (cfg0[20] << 20) | (cfg0[19] << 15) | (cfg0[18] << 10) | (cfg0[17] << 5) | cfg0[16];
+-		write32(0x310250c, val);
+-
+-		val = (cfg0[4] << 25) | (cfg0[3] << 20) | (cfg0[2] << 15) | (cfg0[1] << 10) | (cfg0[0] << 5) | 1;
+-		write32(0x3102500, val);
 -	}
- }
- 
+-}
+-
 -// Init the controller channel. The key part is placing commands in the main
 -// command register (PIR, 0x3103000) and checking command status (PGSR0, 0x3103010).
 -//
- unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
- {
- 	unsigned int val, dqs_gating_mode;
-@@ -938,7 +905,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
- 		val &= ~(0x40);
- 		write32(0x3103108, val);
- 
+-unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
+-{
+-	unsigned int val, dqs_gating_mode;
+-
+-	dqs_gating_mode = (para->dram_tpr13 >> 2) & 0x3;
+-
+-	// set DDR clock to half of CPU clock
+-	val = read32(0x310200c) & 0xfffff000;
+-	val |= (para->dram_clk >> 1) - 1;
+-	write32(0x310200c, val);
+-
+-	// MRCTRL0 nibble 3 undocumented
+-	val = read32(0x3103108) & 0xfffff0ff;
+-	val |= 0x300;
+-	write32(0x3103108, val);
+-
+-	val = ((~para->dram_odt_en) & 1) << 5;
+-
+-	// DX0GCR0
+-	if (para->dram_clk > 672) {
+-		write32(0x3103344, read32(0x3103344) & 0xffff09c1);
+-	} else {
+-		write32(0x3103344, read32(0x3103344) & 0xffff0fc1);
+-	}
+-	write32(0x3103344, read32(0x3103344) | val);
+-
+-	// DX1GCR0
+-	if (para->dram_clk > 672) {
+-		write32(0x3103344, read32(0x3103344) | 0x400);
+-		write32(0x31033c4, read32(0x31033c4) & 0xffff09c1);
+-	} else {
+-		write32(0x31033c4, read32(0x31033c4) & 0xffff0fc1);
+-	}
+-	write32(0x31033c4, read32(0x31033c4) | val);
+-
+-	// 0x3103208 undocumented
+-	write32(0x3103208, read32(0x3103208) | 2);
+-
+-	eye_delay_compensation(para);
+-
+-	// set PLL SSCG ?
+-	//
+-	val = read32(0x3103108);
+-	if (dqs_gating_mode == 1) {
+-		val &= ~(0xc0);
+-		write32(0x3103108, val);
+-
+-		val = read32(0x31030bc);
+-		val &= 0xfffffef8;
+-		write32(0x31030bc, val);
+-	} else if (dqs_gating_mode == 2) {
+-		val &= ~(0xc0);
+-		val |= 0x80;
+-		write32(0x3103108, val);
+-
+-		val = read32(0x31030bc);
+-		val &= 0xfffffef8;
+-		val |= ((para->dram_tpr13 >> 16) & 0x1f) - 2;
+-		val |= 0x100;
+-		write32(0x31030bc, val);
+-
+-		val = read32(0x310311c) & 0x7fffffff;
+-		val |= 0x08000000;
+-		write32(0x310311c, val);
+-	} else {
+-		val &= ~(0x40);
+-		write32(0x3103108, val);
+-
 -		sdelay(10);
-+		__usdelay(10);
- 
- 		val = read32(0x3103108);
- 		val |= 0xc0;
-@@ -967,7 +934,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
- 		val &= 0xfffffffd;
- 		write32(0x7010250, val);
- 
+-
+-		val = read32(0x3103108);
+-		val |= 0xc0;
+-		write32(0x3103108, val);
+-	}
+-
+-	if (para->dram_type == 6 || para->dram_type == 7) {
+-		val = read32(0x310311c);
+-		if (dqs_gating_mode == 1) {
+-			val &= 0xf7ffff3f;
+-			val |= 0x80000000;
+-		} else {
+-			val &= 0x88ffffff;
+-			val |= 0x22000000;
+-		}
+-		write32(0x310311c, val);
+-	}
+-
+-	val = read32(0x31030c0);
+-	val &= 0xf0000000;
+-	val |= (para->dram_para2 & (1 << 12)) ? 0x03000001 : 0x01000007; // 0x01003087 XXX
+-	write32(0x31030c0, val);
+-
+-	if (read32(0x70005d4) & (1 << 16)) {
+-		val = read32(0x7010250);
+-		val &= 0xfffffffd;
+-		write32(0x7010250, val);
+-
 -		sdelay(10);
-+		__usdelay(10);
- 	}
- 
- 	// Set ZQ config
-@@ -983,7 +950,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
- 
- 		while ((read32(0x3103010) & 0x1) == 0) {
- 		} // wait for IDONE
+-	}
+-
+-	// Set ZQ config
+-	val = read32(0x3103140) & 0xfc000000;
+-	val |= para->dram_zq & 0x00ffffff;
+-	val |= 0x02000000;
+-	write32(0x3103140, val);
+-
+-	// Initialise DRAM controller
+-	if (dqs_gating_mode == 1) {
+-		//		write32(0x3103000, 0x52); // prep PHY reset + PLL init + z-cal
+-		write32(0x3103000, 0x53); // Go
+-
+-		while ((read32(0x3103010) & 0x1) == 0) {
+-		} // wait for IDONE
 -		sdelay(10);
-+		__usdelay(10);
- 
- 		// 0x520 = prep DQS gating + DRAM init + d-cal
- 		//		val = (para->dram_type == 3) ? 0x5a0	// + DRAM reset
-@@ -1019,7 +986,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
- 
- 	write32(0x3103000, read32(0x3103000) | 1); // GO
- 
+-
+-		// 0x520 = prep DQS gating + DRAM init + d-cal
+-		//		val = (para->dram_type == 3) ? 0x5a0	// + DRAM reset
+-		//					     : 0x520;
+-
+-		if (para->dram_type == 3) {
+-			write32(0x3103000, 0x5a0);
+-		} else {
+-			write32(0x3103000, 0x520);
+-		}
+-
+-	} else {
+-		if ((read32(0x70005d4) & (1 << 16)) == 0) {
+-			// prep DRAM init + PHY reset + d-cal + PLL init + z-cal
+-			//			val = (para->dram_type == 3) ? 0x1f2	// + DRAM reset
+-			//						     : 0x172;
+-
+-			if (para->dram_type == 3) {
+-				write32(0x3103000, 0x1f2);
+-			} else {
+-				write32(0x3103000, 0x172);
+-			}
+-		} else {
+-			// prep PHY reset + d-cal + z-cal
+-			//			val = 0x62;
+-			write32(0x3103000, 0x62);
+-		}
+-	}
+-
+-	//	write32(0x3103000, val); // Prep
+-	//	val |= 1;
+-	//	write32(0x3103000, val); // Go
+-
+-	write32(0x3103000, read32(0x3103000) | 1); // GO
+-
 -	sdelay(10);
-+	__usdelay(10);
- 	while ((read32(0x3103010) & 0x1) == 0) {
- 	} // wait for IDONE
- 
-@@ -1029,7 +996,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
- 		val |= 0x04000000;
- 		write32(0x310310c, val);
- 
+-	while ((read32(0x3103010) & 0x1) == 0) {
+-	} // wait for IDONE
+-
+-	if (read32(0x70005d4) & (1 << 16)) {
+-		val = read32(0x310310c);
+-		val &= 0xf9ffffff;
+-		val |= 0x04000000;
+-		write32(0x310310c, val);
+-
 -		sdelay(10);
-+		__usdelay(10);
- 
- 		val = read32(0x3103004);
- 		val |= 0x1;
-@@ -1042,7 +1009,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
- 		val &= 0xfffffffe;
- 		write32(0x7010250, val);
- 
+-
+-		val = read32(0x3103004);
+-		val |= 0x1;
+-		write32(0x3103004, val);
+-
+-		while ((read32(0x3103018) & 0x7) != 0x3) {
+-		}
+-
+-		val = read32(0x7010250);
+-		val &= 0xfffffffe;
+-		write32(0x7010250, val);
+-
 -		sdelay(10);
-+		__usdelay(10);
- 
- 		val = read32(0x3103004);
- 		val &= 0xfffffffe;
-@@ -1051,7 +1018,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
- 		while ((read32(0x3103018) & 0x7) != 0x1) {
- 		}
- 
+-
+-		val = read32(0x3103004);
+-		val &= 0xfffffffe;
+-		write32(0x3103004, val);
+-
+-		while ((read32(0x3103018) & 0x7) != 0x1) {
+-		}
+-
 -		sdelay(15);
-+		__usdelay(15);
+-
+-		if (dqs_gating_mode == 1) {
+-			val = read32(0x3103108);
+-			val &= 0xffffff3f;
+-			write32(0x3103108, val);
++extern void mctl_phy_ac_remapping(dram_para_t *para);
  
- 		if (dqs_gating_mode == 1) {
- 			val = read32(0x3103108);
-@@ -1063,7 +1030,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
- 			val |= 0x02000000;
- 			write32(0x310310c, val);
+-			val = read32(0x310310c);
+-			val &= 0xf9ffffff;
+-			val |= 0x02000000;
+-			write32(0x310310c, val);
  
 -			sdelay(1);
-+			__usdelay(1);
- 			write32(0x3103000, 0x401);
+-			write32(0x3103000, 0x401);
++extern unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para);
  
- 			while ((read32(0x3103010) & 0x1) == 0) {
-@@ -1074,7 +1041,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
- 	// Check for training error
- 	/*	val = read32(0x3103010);
- 		if (((val >> 20) & 0xff) && (val & 0x100000)) {
+-			while ((read32(0x3103010) & 0x1) == 0) {
+-			}
+-		}
+-	}
+-
+-	// Check for training error
+-	/*	val = read32(0x3103010);
+-		if (((val >> 20) & 0xff) && (val & 0x100000)) {
 -			ddr_printf("ZQ calibration error, check external 240 ohm resistor.\r\n");
-+			ddr_printf("ZQ calibration error,check external 240 ohm resistor.\n");
- 			return 0;
- 		}
- 	*/
-@@ -1085,7 +1052,7 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
- 		val = (read32(0x3103010) & 0x100000);
- 
- 		if (val != 0) {
+-			return 0;
+-		}
+-	*/
+-	if ((read32(0x3103010) & 0xff00000) == 0) {
+-		val = 1;
+-
+-	} else {
+-		val = (read32(0x3103010) & 0x100000);
+-
+-		if (val != 0) {
 -			printf("ZQ calibration error, check external 240 ohm resistor.\r\n");
-+			printf("ZQ calibration error,check external 240 ohm resistor.\n");
- 			return 0;
- 		}
- 	}
-@@ -1098,19 +1065,19 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
- 	val |= 0x80000000;
- 	write32(0x310308c, val);
- 
+-			return 0;
+-		}
+-	}
+-
+-	// STATR = Zynq STAT? Wait for status 'normal'?
+-	while ((read32(0x3103018) & 0x1) == 0) {
+-	}
+-
+-	val = read32(0x310308c);
+-	val |= 0x80000000;
+-	write32(0x310308c, val);
+-
 -	sdelay(10);
-+	__usdelay(10);
- 
- 	val = read32(0x310308c);
- 	val &= 0x7fffffff;
- 	write32(0x310308c, val);
- 
+-
+-	val = read32(0x310308c);
+-	val &= 0x7fffffff;
+-	write32(0x310308c, val);
+-
 -	sdelay(10);
-+	__usdelay(10);
- 
- 	val = read32(0x3102014);
- 	val |= 0x80000000;
- 	write32(0x3102014, val);
- 
+-
+-	val = read32(0x3102014);
+-	val |= 0x80000000;
+-	write32(0x3102014, val);
+-
 -	sdelay(10);
-+	__usdelay(10);
+-
+-	val = read32(0x310310c);
+-	val &= 0xf9ffffff;
+-	write32(0x310310c, val);
+-
+-	if (dqs_gating_mode == 1) {
+-		val = read32(0x310311c);
+-		val &= 0xffffff3f;
+-		val |= 0x00000040;
+-		write32(0x310311c, val);
+-	}
+-
+-	return 1;
+-}
  
- 	val = read32(0x310310c);
- 	val &= 0xf9ffffff;
-@@ -1132,35 +1099,19 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
+ // The below routine reads the dram config registers and extracts
+ // the number of address bits in each rank available. It then calculates
+@@ -1132,35 +328,19 @@ unsigned int mctl_channel_init(unsigned int ch_index, dram_para_t *para)
  //
  int DRAMC_get_dram_size(void)
  {
@@ -1422,73 +1714,94 @@ index 72246c9..9a808a6 100644
  }
  
  // The below routine reads the command status register to extract
-@@ -1183,10 +1134,10 @@ int dqs_gate_detect(dram_para_t *para)
+@@ -1169,98 +349,28 @@ int DRAMC_get_dram_size(void)
+ // If there was an error, figure out whether it was half DQ, single rank,
+ // or both. Set bit 12 and 0 in dram_para2 with the results.
+ //
+-int dqs_gate_detect(dram_para_t *para)
+-{
+-	unsigned int u1;
+-	unsigned int u2;
++extern int dqs_gate_detect(dram_para_t *para);
  
- 			if (u2 == 2) {
- 				para->dram_para2 = u1;
+-	if (read32(0x3103010) & (1 << 22)) {
+-		u1 = (uint32_t)(read32(0x03103348) << 6) >> 0x1e;
+-		u2 = (uint32_t)(read32(0x031033c8) << 6) >> 0x1e;
+-
+-		if (u1 == 2) {
+-			u1 = para->dram_para2 & 0xffff0ff0;
+-
+-			if (u2 == 2) {
+-				para->dram_para2 = u1;
 -				ddr_printf("[AUTO DEBUG] single rank and full DQ!\r\n");
-+				ddr_printf("[AUTO DEBUG] single rank and full DQ!\n");
- 			} else {
- 				para->dram_para2 = u1 | 1;
+-			} else {
+-				para->dram_para2 = u1 | 1;
 -				ddr_printf("[AUTO DEBUG] single rank and half DQ!\r\n");
-+				ddr_printf("[AUTO DEBUG] single rank and half DQ!\n");
- 			}
- 
- 		} else {
-@@ -1195,18 +1146,18 @@ int dqs_gate_detect(dram_para_t *para)
- 					return 0;
- 				}
- 
+-			}
+-
+-		} else {
+-			if (u1 != 0) {
+-				if ((para->dram_tpr13 & 0x20000000) == 0) {
+-					return 0;
+-				}
+-
 -				ddr_printf("DX0 state: %d\r\n", u1);
 -				ddr_printf("DX1 state: %d\r\n", u2);
-+				ddr_printf("DX0 state:%d\n", u1);
-+				ddr_printf("DX1 state:%d\n", u2);
- 				return 0;
- 			}
- 
- 			para->dram_para2 = (para->dram_para2 & 0xfffffff0) | 0x1001;
+-				return 0;
+-			}
+-
+-			para->dram_para2 = (para->dram_para2 & 0xfffffff0) | 0x1001;
 -			ddr_printf("[AUTO DEBUG] dual rank and half DQ!\r\n");
-+			ddr_printf("[AUTO DEBUG] dual rank and half DQ!\n");
- 		}
- 
- 	} else {
- 		para->dram_para2 = (para->dram_para2 & 0xfffffff0) | 0x1000;
+-		}
+-
+-	} else {
+-		para->dram_para2 = (para->dram_para2 & 0xfffffff0) | 0x1000;
 -		ddr_printf("[AUTO DEBUG] two rank and full DQ!\r\n");
-+		ddr_printf("[AUTO DEBUG] two rank and full DQ!\n");
- 	}
+-	}
+-
+-	return 1;
+-}
  
- 	return 1;
-@@ -1229,23 +1180,23 @@ int dramc_simple_wr_test(uint mem_mb, int len)
- 	}
+ #define SDRAM_BASE ((unsigned int *)0x40000000)
+ #define uint	   unsigned int
  
- 	addr = SDRAM_BASE;
+-int dramc_simple_wr_test(uint mem_mb, int len)
+-{
+-	unsigned int  offs	= (mem_mb >> 1) << 18; // half of memory size
+-	unsigned int  patt1 = 0x01234567;
+-	unsigned int  patt2 = 0xfedcba98;
+-	unsigned int *addr, v1, v2, i;
+-
+-	addr = SDRAM_BASE;
+-	for (i = 0; i != len; i++, addr++) {
+-		write32(addr, patt1 + i);
+-		write32(addr + offs, patt2 + i);
+-	}
++extern int dramc_simple_wr_test(uint mem_mb, int len);
+ 
+-	addr = SDRAM_BASE;
 -	for (i = 0; i != len; i++) {
-+	for (i = 0; i < len; i++) {
- 		v1 = read32(addr + i);
- 		v2 = patt1 + i;
- 		if (v1 != v2) {
+-		v1 = read32(addr + i);
+-		v2 = patt1 + i;
+-		if (v1 != v2) {
 -			printf("DRAM simple test FAIL.\r\n");
 -			ddr_printf("%x != %x at address %x\r\n", v1, v2, addr + i);
-+			printf("DRAM simple test FAIL.\n");
-+			ddr_printf("%x != %x at address %x\n", v1, v2, addr + i);
- 			return 1;
- 		}
- 		v1 = read32(addr + offs + i);
- 		v2 = patt2 + i;
- 		if (v1 != v2) {
+-			return 1;
+-		}
+-		v1 = read32(addr + offs + i);
+-		v2 = patt2 + i;
+-		if (v1 != v2) {
 -			printf("DRAM simple test FAIL.\r\n");
 -			ddr_printf("%x != %x at address %x\r\n", v1, v2, addr + offs + i);
-+			printf("DRAM simple test FAIL.\n");
-+			ddr_printf("%x != %x at address %x\n", v1, v2, addr + offs + i);
- 			return 1;
- 		}
- 	}
+-			return 1;
+-		}
+-	}
 -	printf("DRAM simple test OK.\r\n");
-+	printf("DRAM simple test OK.\n");
- 	return 0;
- }
+-	return 0;
+-}
  
-@@ -1254,13 +1205,14 @@ int dramc_simple_wr_test(uint mem_mb, int len)
+ // Set the Vref mode for the controller
+ //
  void mctl_vrefzq_init(dram_para_t *para)
  {
  	unsigned int val;
@@ -1505,156 +1818,182 @@ index 72246c9..9a808a6 100644
  			val = read32(0x3103114) & 0xffffff80; // IOCVR1
  			val |= para->dram_tpr6 & 0x7f;
  			write32(0x3103114, val);
-@@ -1301,38 +1253,40 @@ int auto_scan_dram_size(dram_para_t *para) // s7
- {
- 	unsigned int rval, i, j, rank, maxrank, offs, mc_work_mode;
- 	unsigned int chk, ptr, shft;
-+	unsigned int pattern_base = RAM_BASE, test_base = RAM_BASE;
- #ifdef CONFIG_DEBUG_DDR_DRIVER
- 	unsigned int banks;
- #endif
+@@ -1297,173 +407,8 @@ int mctl_core_init(dram_para_t *para)
+ // row addresses. Finally, the column address is allocated 13 lines and these are
+ // tested. The results are placed in dram_para1 and dram_para2.
+ //
+-int auto_scan_dram_size(dram_para_t *para) // s7
+-{
+-	unsigned int rval, i, j, rank, maxrank, offs, mc_work_mode;
+-	unsigned int chk, ptr, shft;
+-#ifdef CONFIG_DEBUG_DDR_DRIVER
+-	unsigned int banks;
+-#endif
++extern int auto_scan_dram_size(dram_para_t *para);
  
- 	if (mctl_core_init(para) == 0) {
+-	if (mctl_core_init(para) == 0) {
 -		printf("[ERROR DEBUG] DRAM initialisation error : 0!\r\n");
-+		printf("[ERROR DEBUG] DRAM initial error : 0!\n");
- 		return 0;
- 	}
- 
+-		return 0;
+-	}
+-
 -	maxrank		 = (para->dram_para2 & 0xf000) ? 2 : 1;
-+	maxrank		 = ((para->dram_para2 >> 12) & 0xf) == 1 ? 2 : 1;
- 	mc_work_mode = 0x3102000;
- 	offs		 = 0;
- 
-+
-+	for (rank = 0; rank < maxrank;) {
- 	// write test pattern
+-	mc_work_mode = 0x3102000;
+-	offs		 = 0;
+-
+-	// write test pattern
 -	for (i = 0, ptr = RAM_BASE; i < 64; i++, ptr += 4) {
-+	for (i = 0, ptr = test_base; i < 64; i++, ptr += 4) {
- 		write32(ptr, (i & 1) ? ptr : ~ptr);
- 	}
- 
+-		write32(ptr, (i & 1) ? ptr : ~ptr);
+-	}
+-
 -	for (rank = 0; rank < maxrank;) {
- 		// Set row mode
- 		rval = read32(mc_work_mode);
+-		// Set row mode
+-		rval = read32(mc_work_mode);
 -		rval &= 0xfffff0f3;
-+		rval &= 0xfffff003;
- 		rval |= 0x000006f0;
- 		write32(mc_work_mode, rval);
- 		while (read32(mc_work_mode) != rval) {
+-		rval |= 0x000006f0;
+-		write32(mc_work_mode, rval);
+-		while (read32(mc_work_mode) != rval) {
 -			printf("read\r\n");
-+			;
- 		}
- 
- 		// Scan per address line, until address wraps (i.e. see shadow)
- 		for (i = 11; i < 17; i++) {
+-		}
+-
+-		// Scan per address line, until address wraps (i.e. see shadow)
+-		for (i = 11; i < 17; i++) {
 -			chk = RAM_BASE + (1 << (i + 11));
 -			ptr = RAM_BASE;
-+			chk = test_base + (1 << (i + 11));
-+			ptr = pattern_base;
- 			for (j = 0; j < 64; j++) {
- 				if (read32(chk) != ((j & 1) ? ptr : ~ptr))
- 					goto out1;
-@@ -1344,7 +1298,7 @@ int auto_scan_dram_size(dram_para_t *para) // s7
- 		}
- 		if (i > 16)
- 			i = 16;
+-			for (j = 0; j < 64; j++) {
+-				if (read32(chk) != ((j & 1) ? ptr : ~ptr))
+-					goto out1;
+-				ptr += 4;
+-				chk += 4;
+-			}
+-			break;
+-		out1:;
+-		}
+-		if (i > 16)
+-			i = 16;
 -		ddr_printf("[AUTO DEBUG] rank %d row = %d\r\n", rank, i);
-+		ddr_printf("[AUTO DEBUG] rank %d row = %d \n", rank, i);
- 
- 		// Store rows in para 1
- 		shft = 4 + offs;
-@@ -1355,6 +1309,7 @@ int auto_scan_dram_size(dram_para_t *para) // s7
- 
- 		if (rank == 1) {
- 			// Set bank mode for rank0
-+			test_base = 0x40800000;
- 			rval = read32(0x3102000);
- 			rval &= 0xfffff003;
- 			rval |= 0x000006a4;
-@@ -1370,8 +1325,8 @@ int auto_scan_dram_size(dram_para_t *para) // s7
- 			;
- 
- 		// Test if bit A23 is BA2 or mirror XXX A22?
+-
+-		// Store rows in para 1
+-		shft = 4 + offs;
+-		rval = para->dram_para1;
+-		rval &= ~(0xff << shft);
+-		rval |= i << shft;
+-		para->dram_para1 = rval;
+-
+-		if (rank == 1) {
+-			// Set bank mode for rank0
+-			rval = read32(0x3102000);
+-			rval &= 0xfffff003;
+-			rval |= 0x000006a4;
+-			write32(0x3102000, rval);
+-		}
+-
+-		// Set bank mode for current rank
+-		rval = read32(mc_work_mode);
+-		rval &= 0xfffff003;
+-		rval |= 0x000006a4;
+-		write32(mc_work_mode, rval);
+-		while (read32(mc_work_mode) != rval)
+-			;
+-
+-		// Test if bit A23 is BA2 or mirror XXX A22?
 -		chk = RAM_BASE + (1 << 22);
 -		ptr = RAM_BASE;
-+		chk = test_base + 2048;
-+		ptr = pattern_base;
- 		for (i = 0, j = 0; i < 64; i++) {
- 			if (read32(chk) != ((i & 1) ? ptr : ~ptr)) {
- 				j = 1;
-@@ -1384,7 +1339,7 @@ int auto_scan_dram_size(dram_para_t *para) // s7
- #ifdef CONFIG_DEBUG_DDR_DRIVER
- 		banks = (j + 1) << 2; // 4 or 8
- #endif
+-		for (i = 0, j = 0; i < 64; i++) {
+-			if (read32(chk) != ((i & 1) ? ptr : ~ptr)) {
+-				j = 1;
+-				break;
+-			}
+-			ptr += 4;
+-			chk += 4;
+-		}
+-
+-#ifdef CONFIG_DEBUG_DDR_DRIVER
+-		banks = (j + 1) << 2; // 4 or 8
+-#endif
 -		ddr_printf("[AUTO DEBUG] rank %d bank = %d\r\n", rank, banks);
-+		ddr_printf("[AUTO DEBUG] rank %d bank = %d \n", rank, banks);
- 
- 		// Store banks in para 1
- 		shft = 12 + offs;
-@@ -1395,6 +1350,7 @@ int auto_scan_dram_size(dram_para_t *para) // s7
- 
- 		if (rank == 1) {
- 			// Set page mode for rank0
-+			test_base = 0x44000000;
- 			rval = read32(0x3102000);
- 			rval &= 0xfffff003;
- 			rval |= 0x00000aa0;
-@@ -1411,8 +1367,8 @@ int auto_scan_dram_size(dram_para_t *para) // s7
- 
- 		// Scan per address line, until address wraps (i.e. see shadow)
- 		for (i = 9; i < 14; i++) {
+-
+-		// Store banks in para 1
+-		shft = 12 + offs;
+-		rval = para->dram_para1;
+-		rval &= ~(0xf << shft);
+-		rval |= j << shft;
+-		para->dram_para1 = rval;
+-
+-		if (rank == 1) {
+-			// Set page mode for rank0
+-			rval = read32(0x3102000);
+-			rval &= 0xfffff003;
+-			rval |= 0x00000aa0;
+-			write32(0x3102000, rval);
+-		}
+-
+-		// Set page mode for current rank
+-		rval = read32(mc_work_mode);
+-		rval &= 0xfffff003;
+-		rval |= 0x00000aa0;
+-		write32(mc_work_mode, rval);
+-		while (read32(mc_work_mode) != rval)
+-			;
+-
+-		// Scan per address line, until address wraps (i.e. see shadow)
+-		for (i = 9; i < 14; i++) {
 -			chk = RAM_BASE + (1 << i);
 -			ptr = RAM_BASE;
-+			chk = test_base + (1 << i);
-+			ptr = pattern_base;
- 			for (j = 0; j < 64; j++) {
- 				if (read32(chk) != ((j & 1) ? ptr : ~ptr))
- 					goto out2;
-@@ -1425,7 +1381,7 @@ int auto_scan_dram_size(dram_para_t *para) // s7
- 		if (i > 13)
- 			i = 13;
- 		int pgsize = (i == 9) ? 0 : (1 << (i - 10));
+-			for (j = 0; j < 64; j++) {
+-				if (read32(chk) != ((j & 1) ? ptr : ~ptr))
+-					goto out2;
+-				ptr += 4;
+-				chk += 4;
+-			}
+-			break;
+-		out2:;
+-		}
+-		if (i > 13)
+-			i = 13;
+-		int pgsize = (i == 9) ? 0 : (1 << (i - 10));
 -		ddr_printf("[AUTO DEBUG] rank %d page size = %d KB\r\n", rank, pgsize);
-+		ddr_printf("[AUTO DEBUG] rank %d page size = %d KB \n", rank, pgsize);
- 
- 		// Store page size
- 		shft = offs;
-@@ -1438,15 +1394,16 @@ int auto_scan_dram_size(dram_para_t *para) // s7
- 		rank++;
- 		if (rank != maxrank) {
- 			if (rank == 1) {
+-
+-		// Store page size
+-		shft = offs;
+-		rval = para->dram_para1;
+-		rval &= ~(0xf << shft);
+-		rval |= pgsize << shft;
+-		para->dram_para1 = rval;
+-
+-		// Move to next rank
+-		rank++;
+-		if (rank != maxrank) {
+-			if (rank == 1) {
 -				rval = read32(0x3202000); // MC_WORK_MODE
-+				pattern_base = test_base = 0x48000000;
-+				rval = read32(0x3102000); // MC_WORK_MODE
- 				rval &= 0xfffff003;
- 				rval |= 0x000006f0;
+-				rval &= 0xfffff003;
+-				rval |= 0x000006f0;
 -				write32(0x3202000, rval);
-+				write32(0x3102000, rval);
- 
+-
 -				rval = read32(0x3202004); // MC_WORK_MODE2
-+				rval = read32(0x3102004); // MC_WORK_MODE2
- 				rval &= 0xfffff003;
+-				rval &= 0xfffff003;
 -				rval |= 0x000006f0;
 -				write32(0x3202004, rval);
-+				rval |= 0x000006f1;
-+				write32(0x3102004, rval);
- 			}
- 			offs += 16; // store rank1 config in upper half of para1
- 			mc_work_mode += 4; // move to MC_WORK_MODE2
-@@ -1456,10 +1413,10 @@ int auto_scan_dram_size(dram_para_t *para) // s7
- 		para->dram_para2 &= 0xfffff0ff;
- 		// note: rval is equal to para->dram_para1 here
- 		if ((rval & 0xffff) == ((rval >> 16) & 0xffff)) {
+-			}
+-			offs += 16; // store rank1 config in upper half of para1
+-			mc_work_mode += 4; // move to MC_WORK_MODE2
+-		}
+-	}
+-	if (maxrank == 2) {
+-		para->dram_para2 &= 0xfffff0ff;
+-		// note: rval is equal to para->dram_para1 here
+-		if ((rval & 0xffff) == ((rval >> 16) & 0xffff)) {
 -			ddr_printf("rank1 config same as rank0\r\n");
-+			ddr_printf("rank1 config same as rank0\n");
- 		} else {
- 			para->dram_para2 |= 0x00000100;
+-		} else {
+-			para->dram_para2 |= 0x00000100;
 -			ddr_printf("rank1 config different from rank0\r\n");
-+			ddr_printf("rank1 config different from rank0\n");
- 		}
- 	}
- 	return 1;
-@@ -1472,15 +1429,18 @@ int auto_scan_dram_size(dram_para_t *para) // s7
+-		}
+-	}
+-	return 1;
+-}
+ 
+ // This routine sets up parameters with dqs_gating_mode equal to 1 and two
+ // ranks enabled. It then configures the core and tests for 1 or 2 ranks and
+@@ -1472,15 +417,18 @@ int auto_scan_dram_size(dram_para_t *para) // s7
  //
  int auto_scan_dram_rank_width(dram_para_t *para)
  {
@@ -1676,45 +2015,33 @@ index 72246c9..9a808a6 100644
  	para->dram_tpr13 = v;
  
  	mctl_core_init(para);
-@@ -1506,11 +1466,11 @@ int auto_scan_dram_rank_width(dram_para_t *para)
+@@ -1506,11 +454,11 @@ int auto_scan_dram_rank_width(dram_para_t *para)
  int auto_scan_dram_config(dram_para_t *para)
  {
  	if (((para->dram_tpr13 & (1 << 14)) == 0) && (auto_scan_dram_rank_width(para) == 0)) {
 -		printf("[ERROR DEBUG] auto scan dram rank & width failed !\r\n");
-+		printf("[ERROR DEBUG] auto scan dram rank&width fail !\n");
++		printf(dram_scan_rank_width_error);
  		return 0;
  	}
  	if (((para->dram_tpr13 & (1 << 0)) == 0) && (auto_scan_dram_size(para) == 0)) {
 -		printf("[ERROR DEBUG] auto scan dram size failed !\r\n");
-+		printf("[ERROR DEBUG] auto scan dram size fail !\n");
++		printf(dram_scan_size_error);
  		return 0;
  	}
  	if ((para->dram_tpr13 & (1 << 15)) == 0) {
-@@ -1519,113 +1479,102 @@ int auto_scan_dram_config(dram_para_t *para)
+@@ -1519,113 +467,5 @@ int auto_scan_dram_config(dram_para_t *para)
  	return 1;
  }
  
 -signed int init_DRAM(int type, dram_para_t *para) // s0
-+signed int init_DRAM(int type, dram_para_t *para)
- {
- 	int rc, mem_size;
+-{
+-	int rc, mem_size;
 -
 -	// Test ZQ status
 -	if (para->dram_tpr13 & 0x10000) {
 -		ddr_printf("DRAM only have internal ZQ!!\r\n");
-+	if (!(para->dram_tpr13 & 0x10000)) {
-+		write32(0x7010254, 0);
-+		write32(0x3000160, read32(0x3000160) & 0xfffffffc);
-+		__usdelay(10);
-+		write32(0x3000160, read32(0x3000160) & 0xfffffef7);
-+		write32(0x3000160, read32(0x3000160) | 2);
-+		__usdelay(10);
-+		write32(0x3000160, read32(0x3000160) | 1);
-+		__usdelay(20);
-+		ddr_printf("ZQ value = 0x%x\n", read32(0x300016c));	} else {
-+		ddr_printf("DRAM only have internal ZQ!!\n");
- 		write32(0x3000160, read32(0x3000160) | 0x100);
- 		write32(0x3000168, 0);
+-		write32(0x3000160, read32(0x3000160) | 0x100);
+-		write32(0x3000168, 0);
 -		sdelay(10);
 -	} else {
 -		write32(0x3000160, read32(0x3000160) & 0xfffffffc);
@@ -1746,65 +2073,37 @@ index 72246c9..9a808a6 100644
 -		ddr_printf("DRAMC read ODT  off.\r\n");
 -	} else {
 -		ddr_printf("DRAMC ZQ value: 0x%x\r\n", para->dram_zq);
-+		__usdelay(10);
- 	}
- 
+-	}
+-
 -	// report ODT
 -	rc = para->dram_mr1;
 -	if ((rc & 0x44) == 0) {
 -		ddr_printf("DRAM ODT off.\r\n");
-+	rc = get_pmu_exist();
-+	ddr_printf("get_pmu_exist() = %d\n", rc);
-+	if (rc < 0) {
-+		dram_vol_set(para);
- 	} else {
+-	} else {
 -		ddr_printf("DRAM ODT value: 0x%x.\r\n", rc);
-+		if (para->dram_type == 2)
-+			set_ddr_voltage(1800);
-+		else if (para->dram_type == 3)
-+			set_ddr_voltage(1500);
- 	}
- 
+-	}
+-
 -	// Init core, final run
 -	if (mctl_core_init(para) == 0) {
 -		ddr_printf("DRAM initialisation error : 1 !\r\n");
-+	if (!(para->dram_tpr13 & 1) && !auto_scan_dram_config(para))
- 		return 0;
+-		return 0;
 -	}
 -
 -	// Get sdram size
-+	ddr_printf("DRAM BOOT DRIVE INFO: %s\n", "V0.32");
-+	ddr_printf("DRAM CLK = %d MHz\n", para->dram_clk);
-+	ddr_printf("DRAM Type = %d (2:DDR2,3:DDR3)\n", para->dram_type);
-+	if (para->dram_odt_en & 1)
-+		ddr_printf("DRAMC ZQ value: 0x%x\n", para->dram_zq);
-+	else
-+		ddr_printf("DRAMC read ODT  off.\n");
-+	rc = para->dram_mr1;
-+	if (rc & 0x44)
-+		ddr_printf("DRAM ODT value: 0x%x.\n", rc);
-+	else
-+		ddr_printf("DRAM ODT off.\n");
-+	mem_size = mctl_core_init(para);
-+	if (!mem_size)
-+		goto failed;
- 	rc = para->dram_para2;
- 	if (rc < 0) {
+-	rc = para->dram_para2;
+-	if (rc < 0) {
 -		rc = (rc & 0x7fff0000U) >> 16;
-+		mem_size = ((unsigned int)rc >> 16) & 0x7fff;
- 	} else {
+-	} else {
 -		rc = DRAMC_get_dram_size();
 -		printf("DRAM SIZE = %dM\r\n", rc);
 -		para->dram_para2 = (para->dram_para2 & 0xffffu) | rc << 16;
-+		mem_size = DRAMC_get_dram_size();
-+		ddr_printf("DRAM SIZE =%d M\n", mem_size);
-+		para->dram_para2 = (para->dram_para2 & 0xffff) | (mem_size << 16);
- 	}
+-	}
 -	mem_size = rc;
--
++extern signed int init_DRAM(int type, dram_para_t *para);
+ 
 -	write32(0x31030a0, read32(0x31030a0) & 0xffff0000);
 -	write32(0x3103004, read32(0x3103004) & (~0x1));
- 
+-
 -	// Pupose ??
 -	rc = read32(0x3103100) & ~(0xf000);
 -	if ((para->dram_tpr13 & 0x200) == 0) {
@@ -1823,15 +2122,7 @@ index 72246c9..9a808a6 100644
 -	rc = read32(0x3103108);
 -	if (para->dram_tpr13 & (1 << 16)) {
 -		rc &= 0xffffdfff;
-+	if (para->dram_tpr13 & 0x40000000) {
-+		unsigned int auto_sr = para->dram_tpr8;
-+		if (!auto_sr)
-+			auto_sr = 0x10000200;
-+		write32(0x31030a0, auto_sr);
-+		write32(0x310309c, 0x40a);
-+		write32(0x3103004, read32(0x3103004) | 1);
-+		ddr_printf("Enable Auto SR\n");
- 	} else {
+-	} else {
 -		rc |= 0x00002000;
 -	}
 -	write32(0x3103108, rc);
@@ -1841,46 +2132,18 @@ index 72246c9..9a808a6 100644
 -		rc = read32(0x310307c) & 0xfff0ffff;
 -		rc |= 0x0001000;
 -		write32(0x310307c, rc);
-+		write32(0x31030a0, read32(0x31030a0) & 0xffff0000);
-+		write32(0x3103004, read32(0x3103004) & ~1);
- 	}
+-	}
 -
-+	unsigned int tpr13 = para->dram_tpr13;
-+	unsigned int dram_type = para->dram_type;
-+	unsigned int val = read32(0x3103100) & ~0xf000;
-+	if ((tpr13 & 0x200) || dram_type == 6)
-+		val |= 0x5000;
-+	write32(0x3103100, val);
-+	write32(0x3103140, read32(0x3103140) | 0x80000000);
-+	if (tpr13 & 0x100)
-+		write32(0x31030b8, read32(0x31030b8) | 0x300);
-+	val = read32(0x3103108);
-+	if (tpr13 & 0x4000000)
-+		val &= ~0x2000;
-+	else
-+		val |= 0x2000;
-+	write32(0x3103108, val);
-+	if (dram_type == 7)
-+		write32(0x310307c, (read32(0x310307c) & 0xfff0ffff) | 0x10000);
-+	ddr_printf("PLL_DDR_CTRL_REG:0x%x\n", read32(0x2001010));
-+	ddr_printf("DRAM_CLK_REG:0x%x\n", read32(0x2001800));
-+	ddr_printf("[TIMING DEBUG] MR2= 0x%x\n", para->dram_mr2 & 0xffff);
- 	dram_enable_all_master();
+-	dram_enable_all_master();
 -	if (para->dram_tpr13 & (1 << 28)) {
 -		rc = read32(0x70005d4);
 -		if ((rc & (1 << 16)) || dramc_simple_wr_test(mem_size, 4096)) {
-+	if ((para->dram_tpr13 & 0x10000000) && !(read32(0x70005d4) & 0x10000)) {
-+		if (dramc_simple_wr_test(mem_size, 4096))
- 			return 0;
+-			return 0;
 -		}
- 	}
+-	}
 -
-+	handler_super_standby();
-+	return mem_size;
-+failed:
-+	ddr_printf("DRAM initial error : 1 !\n");
- 	return mem_size;
- }
+-	return mem_size;
+-}
 diff --git a/drivers/mmc/sun8iw20p1/mmc.c b/drivers/mmc/sun8iw20p1/mmc.c
 index 11e15e5..fa7982d 100644
 --- a/drivers/mmc/sun8iw20p1/mmc.c
@@ -2559,50 +2822,130 @@ index 759a36f..804e80c 100644
  }
 --- /dev/null
 +++ b/drivers/sid.c
-@@ -0,0 +1,44 @@
-+/* Reconstructed stock SID transaction protocol from original boot0. */
+@@ -0,0 +1,124 @@
++
++/*
++ * (C) Copyright 2018
++ * Allwinner Technology Co., Ltd. <www.allwinnertech.com>
++ * wangwei <wangwei@allwinnertech.com>
++ */
++
 +#include <common.h>
-+#include <asm/io.h>
++#include <errno.h>
 +#include <arch/efuse.h>
++#include <asm/io.h>
++
++#define SID_OP_LOCK  (0xAC)
 +
 +void sid_read_work_status(void)
 +{
-+	while (readl(0x03006040) & (1 << 3))
-+		;
++#ifdef SID_WORK_STATUS
++	while (readl(SID_PRCTL) & (0x1 << SID_WORK_STATUS)) {
++	};
++#endif
 +}
 +
-+u32 sid_read_key(u32 key_index)
++uint sid_sram_read(uint key_index)
 +{
-+	u32 reg;
-+	sid_read_work_status();
-+	reg = readl(0x03006040);
-+	reg &= 0xfe00fffc;
-+	reg |= key_index << 16;
-+	writel(reg, 0x03006040);
-+	writel((reg & 0xffff00fc) | 0xac02, 0x03006040);
-+	while (readl(0x03006040) & 2)
-+		;
-+	reg &= 0xfe0000fc;
-+	writel(reg, 0x03006040);
-+	return readl(0x03006060);
++	return readl(SID_EFUSE+key_index);
 +}
 +
-+void sid_program_key(u32 key_index, u32 key_value)
++uint sid_read_key(uint key_index)
 +{
-+	u32 reg;
-+	setbits_le32(0x07090204, 1);
++	uint reg_val;
++
 +	sid_read_work_status();
-+	writel(key_value, 0x03006050);
-+	reg = readl(0x03006040);
-+	reg &= 0xfe00fffc;
-+	reg |= key_index << 16;
-+	writel(reg, 0x03006040);
-+	writel((reg & 0xffff00fc) | 0xac01, 0x03006040);
-+	while (readl(0x03006040) & 1)
-+		;
-+	reg &= 0xfe0000fc;
-+	writel(reg, 0x03006040);
-+	clrbits_le32(0x07090204, 1);
++
++	reg_val = readl(SID_PRCTL);
++	reg_val &= ~((0x1ff<<16)|0x3);
++	reg_val |= key_index<<16;
++	writel(reg_val, SID_PRCTL);
++
++	reg_val &= ~((0xff<<8)|0x3);
++	reg_val |= (SID_OP_LOCK<<8) | 0x2;
++	writel(reg_val, SID_PRCTL);
++
++	while (readl(SID_PRCTL) & 0x2) {
++	};
++
++	reg_val &= ~((0x1ff<<16)|(0xff<<8)|0x3);
++	writel(reg_val, SID_PRCTL);
++
++	reg_val = readl(SID_RDKEY);
++
++	return reg_val;
++}
++
++void sid_program_key(uint key_index, uint key_value)
++{
++	uint reg_val;
++#ifdef EFUSE_HV_SWITCH
++	reg_val = readl(EFUSE_HV_SWITCH);
++	reg_val |= (0x1 << 0);
++	writel(reg_val, EFUSE_HV_SWITCH);
++#endif
++
++	sid_read_work_status();
++
++	writel(key_value, SID_PRKEY);
++
++	reg_val = readl(SID_PRCTL);
++	reg_val &= ~((0x1ff<<16)|0x3);
++	reg_val |= key_index<<16;
++	writel(reg_val, SID_PRCTL);
++
++	reg_val &= ~((0xff<<8)|0x3);
++	reg_val |= (SID_OP_LOCK<<8) | 0x1;
++	writel(reg_val, SID_PRCTL);
++
++	while (readl(SID_PRCTL) & 0x1) {
++	};
++
++	reg_val &= ~((0x1ff<<16)|(0xff<<8)|0x3);
++	writel(reg_val, SID_PRCTL);
++#ifdef EFUSE_HV_SWITCH
++	reg_val = readl(EFUSE_HV_SWITCH);
++	reg_val &= ~(0x1 << 0);
++	writel(reg_val, EFUSE_HV_SWITCH);
++#endif
++	return;
++}
++
++void sid_read_rotpk(void *dst)
++{
++	uint chipid_index = EFUSE_ROTPK;
++	uint id_length = 32;
++	uint i = 0;
++	for (i = 0; i < id_length; i += 4) {
++		*(u32 *)dst = sid_read_key(chipid_index + i);
++		dst += 4;
++	}
++	return ;
++}
++
++void sid_set_security_mode(void)
++{
++	uint reg_val;
++
++	reg_val  = sid_read_key(EFUSE_LCJS);
++	reg_val |= (0x01 << 11);
++	sid_program_key(EFUSE_LCJS, reg_val);
++	reg_val = (sid_read_key(EFUSE_LCJS) >> 11) & 1;
++
++	printf("burn finished,secure mode: %d\n", reg_val);
++
++	return;
++}
++
++void sid_disable_jtag(void)
++{
++	writel(JTAG_AT_SOURCE, SJTAG_S);
++	writel(JTAG_DEVICEEN, SJTAG_AT1);
++}
++
++int sid_probe_security_mode(void)
++{
++	return readl(SID_SECURE_MODE) & 1;
 +}
 --- /dev/null
 +++ b/drivers/dram/sun8iw20p1/lib-dram/chip_id_sd.c
@@ -2639,3 +2982,2886 @@ index 759a36f..804e80c 100644
 +		return disturb_coding(value, 1);
 +	return 0;
 +}
+--- /dev/null
++++ b/drivers/dram/sun8iw20p1/lib-dram/dram_messages.h
+@@ -0,0 +1,46 @@
++/* Recovered source-owned T113 DRAM diagnostic strings. */
++#ifndef REFORGE_STOCK_DRAM_MESSAGES_H
++#define REFORGE_STOCK_DRAM_MESSAGES_H
++
++extern const char dram_refresh_39ms[];
++extern const char dram_refresh_195ms[];
++extern const char dram_refresh_78ms[];
++extern const char dram_efuse_type[];
++extern const char dram_mark_id[];
++extern const char dram_zq_calibration_error[];
++extern const char dram_dqs_two_full[];
++extern const char dram_dqs_single_full[];
++extern const char dram_dqs_single_half[];
++extern const char dram_dqs_two_half[];
++extern const char dram_dqs_dx0_state[];
++extern const char dram_dqs_dx1_state[];
++extern const char dram_test_fail[];
++extern const char dram_test_mismatch[];
++extern const char dram_test_ok[];
++extern const char dram_initial_zero_error[];
++extern const char dram_scan_row[];
++extern const char dram_scan_bank[];
++extern const char dram_scan_page_size[];
++extern const char dram_rank_config_same[];
++extern const char dram_rank_config_different[];
++extern const char dram_scan_rank_width_error[];
++extern const char dram_scan_size_error[];
++extern const char dram_internal_zq_value[];
++extern const char dram_internal_zq_only[];
++extern const char dram_pmu_exists[];
++extern const char dram_driver_version[];
++extern const char dram_boot_driver_info[];
++extern const char dram_clock_mhz[];
++extern const char dram_type_info[];
++extern const char dram_zq_value[];
++extern const char dram_read_odt_off[];
++extern const char dram_odt_value[];
++extern const char dram_odt_off[];
++extern const char dram_initial_one_error[];
++extern const char dram_size_mb[];
++extern const char dram_auto_sr_enabled[];
++extern const char dram_pll_ctrl[];
++extern const char dram_clk_ctrl[];
++extern const char dram_timing_mr2[];
++
++#endif
+--- /dev/null
++++ b/drivers/dram/sun8iw20p1/lib-dram/dram_layout.lds
+@@ -0,0 +1,29 @@
++/* Preserve the original partial-link function order; no fixed addresses. */
++SECTIONS
++{
++  .text : { *(.text) }
++  .text.set_ddr_voltage : { *(.text.set_ddr_voltage) }
++  .text.get_pmu_exist : { *(.text.get_pmu_exist) }
++  .text.memcpy_self : { *(.text.memcpy_self) }
++  .text.sid_read_ldoB_cal : { *(.text.sid_read_ldoB_cal) }
++  .text.dram_vol_set : { *(.text.dram_vol_set) }
++  .text.dram_enable_all_master : { *(.text.dram_enable_all_master) }
++  .text.dram_disable_all_master : { *(.text.dram_disable_all_master) }
++  .text.eye_delay_compensation : { *(.text.eye_delay_compensation) }
++  .text.auto_cal_timing : { *(.text.auto_cal_timing) }
++  .text.auto_set_timing_para : { *(.text.auto_set_timing_para) }
++  .text.ccm_set_pll_ddr_clk : { *(.text.ccm_set_pll_ddr_clk) }
++  .text.mctl_sys_init : { *(.text.mctl_sys_init) }
++  .text.mctl_com_init : { *(.text.mctl_com_init) }
++  .text.mctl_phy_ac_remapping : { *(.text.mctl_phy_ac_remapping) }
++  .text.mctl_channel_init : { *(.text.mctl_channel_init) }
++  .text.DRAMC_get_dram_size : { *(.text.DRAMC_get_dram_size) }
++  .text.dqs_gate_detect : { *(.text.dqs_gate_detect) }
++  .text.dramc_simple_wr_test : { *(.text.dramc_simple_wr_test) }
++  .text.mctl_vrefzq_init : { *(.text.mctl_vrefzq_init) }
++  .text.mctl_core_init : { *(.text.mctl_core_init) }
++  .text.auto_scan_dram_size : { *(.text.auto_scan_dram_size) }
++  .text.auto_scan_dram_rank_width : { *(.text.auto_scan_dram_rank_width) }
++  .text.auto_scan_dram_config : { *(.text.auto_scan_dram_config) }
++  .text.init_DRAM : { *(.text.init_DRAM) }
++}
+--- /dev/null
++++ b/drivers/dram/sun8iw20p1/lib-dram/auto_scan_dram_size.S
+@@ -0,0 +1,312 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/* Reconstructed DRAM geometry probe: per-rank alternating address patterns,
++ * row aliasing, bank aliasing, column aliasing, and parameter writeback.
++ * r7: parameter block; r5: rank; r6: reference-pattern base;
++ * r8: current mapping's test base; fp: packed-parameter halfword shift.
++ */
++.syntax unified
++.arch armv7-a
++.thumb
++.equ DRAM_COM_WORK_MODE, 0x03102000
++.equ DRAM_WORK_MODE_GEOMETRY_MASK, 0xfffff003
++.equ DRAM_BASE, 0x40000000
++.equ SECOND_RANK_BASE, 0x48000000
++.equ RANK1_BANK_TEST_BASE, 0x40800000
++.equ RANK1_PAGE_TEST_BASE, 0x44000000
++.section .text.auto_scan_dram_size,"ax",%progbits
++.p2align 2
++.global auto_scan_dram_size
++.type auto_scan_dram_size,%function
++.thumb_func
++auto_scan_dram_size:
++    push.w {r0, r1, r2, r4, r5, r6, r7, r8, sb, sl, fp, lr}
++    mov r7, r0
++    bl mctl_core_init
++    mov r4, r0
++    cbnz r0, .Lscan_select_rank_count
++    ldr r0, .Lscan_initial_error
++    bl printf
++
++.Lscan_return_result:
++    mov r0, r4
++    add sp, #0xc
++    pop.w {r4, r5, r6, r7, r8, sb, sl, fp, pc}
++
++.Lscan_select_rank_count:
++    ldr r3, [r7, #0x14]
++    mov.w r6, #DRAM_BASE
++    ldr.w sl, .Lscan_geometry_mask
++    movs r5, #0
++    mov r8, r6
++    ubfx r3, r3, #0xc, #4
++    cmp r3, #1
++    ite eq
++    moveq r3, #2
++    movne r3, #1
++    str r3, [sp, #4]
++
++.Lscan_write_rank_pattern:
++    mov r2, r8
++    movs r3, #0
++    mvn.w r0, r8
++
++.Lscan_pattern_word:
++    lsls r4, r3, #0x1f
++    it pl
++    subpl.w r1, r0, r3, lsl #2
++    add.w r3, r3, #1
++    it mi
++    movmi r1, r2
++    cmp r3, #0x40
++    str r1, [r2], #4
++    bne.n .Lscan_pattern_word
++    add.w r4, r5, #0xc40000
++    add.w r4, r4, #0x800
++    lsls r4, r4, #2
++    ldr r3, [r4]
++    bic r3, r3, #0xf00
++    bic r3, r3, #0xc
++    orr r3, r3, #0x6f0
++    str r3, [r4]
++
++.Lscan_wait_row_mode:
++    ldr r2, [r4]
++    cmp r3, r2
++    bne.n .Lscan_wait_row_mode
++    mov.w sb, #0xb
++    mov.w ip, #1
++    mvn.w lr, r6
++
++.Lscan_row_candidate:
++    add.w r3, sb, #0xb
++    mov r1, r6
++    lsl.w r3, ip, r3
++    movs r2, #0
++    add r3, r8
++    subs r3, r3, r6
++
++.Lscan_row_pattern_word:
++    lsls r0, r2, #0x1f
++    ldr.w fp, [r3, r1]
++    ite pl
++    subpl.w r0, lr, r2, lsl #2
++    movmi r0, r1
++    cmp fp, r0
++    bne.w .Lscan_next_row_candidate
++    adds r2, #1
++    adds r1, #4
++    cmp r2, #0x40
++    bne.n .Lscan_row_pattern_word
++
++.Lscan_record_row_count:
++    lsl.w fp, r5, #4
++    mov r2, sb
++    mov r1, r5
++    ldr r0, .Lscan_row_message
++    bl printf
++    add.w r2, fp, #4
++    movs r3, #0xff
++    lsl.w r1, r3, r2
++    ldr r3, [r7, #0x10]
++    lsl.w sb, sb, r2
++    cmp r5, #1
++    bic.w r3, r3, r1
++    orr.w r3, r3, sb
++    str r3, [r7, #0x10]
++    bne.n .Lscan_configure_bank_mode
++    ldr r2, .Lscan_work_mode
++    mov.w r8, #RANK1_BANK_TEST_BASE
++    ldr r3, [r2]
++    and.w r3, r3, sl
++    orr r3, r3, #0x6a0
++    orr r3, r3, #4
++    str r3, [r2]
++
++.Lscan_configure_bank_mode:
++    ldr r3, [r4]
++    and.w r3, r3, sl
++    orr r3, r3, #0x6a0
++    orr r3, r3, #4
++    str r3, [r4]
++
++.Lscan_wait_bank_mode:
++    ldr r2, [r4]
++    cmp r2, r3
++    bne.n .Lscan_wait_bank_mode
++    add.w r2, r8, #0x800
++    movs r3, #0
++    mvn.w ip, r6
++
++.Lscan_bank_pattern_word:
++    lsls r0, r3, #2
++    tst.w r3, #1
++    add.w r1, r6, r0
++    it eq
++    subeq.w r1, ip, r0
++    ldr r0, [r2]
++    cmp r0, r1
++    bne.w .Lscan_eight_banks
++    adds r3, #1
++    adds r2, #4
++    cmp r3, #0x40
++    bne.n .Lscan_bank_pattern_word
++    mov.w sb, #0
++
++.Lscan_record_bank_count:
++    add.w r2, sb, #1
++    mov r1, r5
++    lsls r2, r2, #2
++    ldr r0, .Lscan_bank_message
++    bl printf
++    add.w r1, fp, #0xc
++    movs r3, #0xf
++    lsl.w r2, r3, r1
++    ldr r3, [r7, #0x10]
++    lsl.w sb, sb, r1
++    cmp r5, #1
++    bic.w r3, r3, r2
++    orr.w r3, r3, sb
++    str r3, [r7, #0x10]
++    bne.n .Lscan_configure_page_mode
++    ldr r2, .Lscan_work_mode
++    mov.w r8, #RANK1_PAGE_TEST_BASE
++    ldr r3, [r2]
++    and.w r3, r3, sl
++    orr r3, r3, #0xaa0
++    str r3, [r2]
++
++.Lscan_configure_page_mode:
++    ldr r3, [r4]
++    and.w r3, r3, sl
++    orr r3, r3, #0xaa0
++    str r3, [r4]
++
++.Lscan_wait_page_mode:
++    ldr r2, [r4]
++    cmp r2, r3
++    bne.n .Lscan_wait_page_mode
++    movs r3, #9
++    mov.w ip, #1
++    mvn.w lr, r6
++
++.Lscan_column_candidate:
++    lsl.w r1, ip, r3
++    mov r0, r6
++    movs r2, #0
++    add r1, r8
++    subs r1, r1, r6
++
++.Lscan_column_pattern_word:
++    lsls r4, r2, #0x1f
++    ldr.w sb, [r1, r0]
++    ite pl
++    subpl.w r4, lr, r2, lsl #2
++    movmi r4, r0
++    cmp sb, r4
++    bne.n .Lscan_next_column_candidate
++    adds r2, #1
++    adds r0, #4
++    cmp r2, #0x40
++    bne.n .Lscan_column_pattern_word
++    cmp r3, #0xd
++    beq.n .Lscan_column_size
++    cmp r3, #9
++    beq.n .Lscan_smallest_page
++
++.Lscan_column_size:
++    subs r3, #0xa
++    movs r4, #1
++    lsls r4, r3
++
++.Lscan_record_page_size:
++    mov r2, r4
++    ldr r0, .Lscan_page_message
++    mov r1, r5
++    lsl.w r4, r4, fp
++    adds r5, #1
++    bl printf
++    movs r3, #0xf
++    lsl.w r2, r3, fp
++    ldr r3, [r7, #0x10]
++    bic.w r3, r3, r2
++    orrs r4, r3
++    ldr r3, [sp, #4]
++    str r4, [r7, #0x10]
++    cmp r3, r5
++    bne.n .Lscan_advance_rank
++    cmp r3, #2
++    bne.n .Lscan_success
++    ldr r3, [r7, #0x14]
++    uxth r2, r4
++    cmp.w r2, r4, lsr #16
++    bic r3, r3, #0xf00
++    iteet ne
++    orrne r3, r3, #0x100
++    streq r3, [r7, #0x14]
++    ldreq r0, .Lscan_same_rank_message
++    strne r3, [r7, #0x14]
++    it ne
++    ldrne r0, .Lscan_different_rank_message
++    bl printf
++
++.Lscan_success:
++    movs r4, #1
++    b.n .Lscan_return_result
++
++.Lscan_advance_rank:
++    cmp r5, #1
++    bne.w .Lscan_write_rank_pattern
++    ldr r2, .Lscan_work_mode
++    mov.w r6, #SECOND_RANK_BASE
++    mov r8, r6
++    ldr r3, [r2]
++    and.w r3, r3, sl
++    orr r3, r3, #0x6f0
++    str r3, [r2]
++    ldr r3, [r2, #4]
++    and.w r3, r3, sl
++    orr r3, r3, #0x6f0
++    orr r3, r3, #1
++    str r3, [r2, #4]
++    b.n .Lscan_write_rank_pattern
++
++.Lscan_eight_banks:
++    mov.w sb, #1
++    b.n .Lscan_record_bank_count
++
++.Lscan_smallest_page:
++    movs r4, #0
++    b.n .Lscan_record_page_size
++
++.Lscan_next_row_candidate:
++    add.w sb, sb, #1
++    cmp.w sb, #0x11
++    bne.w .Lscan_row_candidate
++    mov.w sb, #0x10
++    b.n .Lscan_record_row_count
++
++.Lscan_next_column_candidate:
++    adds r3, #1
++    cmp r3, #0xe
++    bne.n .Lscan_column_candidate
++    movs r3, #0xd
++    b.n .Lscan_column_size
++    .p2align 2
++.Lscan_initial_error:
++    .word dram_initial_zero_error
++.Lscan_row_message:
++    .word dram_scan_row
++.Lscan_work_mode:
++    .word DRAM_COM_WORK_MODE
++.Lscan_bank_message:
++    .word dram_scan_bank
++.Lscan_page_message:
++    .word dram_scan_page_size
++.Lscan_same_rank_message:
++    .word dram_rank_config_same
++.Lscan_different_rank_message:
++    .word dram_rank_config_different
++.Lscan_geometry_mask:
++    .word DRAM_WORK_MODE_GEOMETRY_MASK
++.size auto_scan_dram_size,.-auto_scan_dram_size
++.section .note.GNU-stack,"",%progbits
+--- /dev/null
++++ b/drivers/dram/sun8iw20p1/lib-dram/auto_set_timing_para.S
+@@ -0,0 +1,865 @@
++/* Reconstructed T113 DRAM timing calculation and controller programming.
++ * r0: dram_para_t *. Honor supplied TPR timings when TPR13 bit 1 is set;
++ * otherwise calculate DDR2/DDR3/LPDDR2/LPDDR3 timings from the half clock.
++ * The second phase derives mode-register values and programs the controller.
++ * All branch tables contain symbolic label differences, not opcode bytes.
++ */
++.syntax unified
++.arch armv7-a
++.thumb
++.equ DDR2, 2
++.equ DDR3, 3
++.equ LPDDR2, 6
++.equ LPDDR3, 7
++.equ P_CLK,   0
++.equ P_TYPE,  4
++.equ P_ODT,   12
++.equ P_MR0,   24
++.equ P_MR1,   28
++.equ P_MR2,   32
++.equ P_MR3,   36
++.equ P_TPR0,  40
++.equ P_TPR1,  44
++.equ P_TPR2,  48
++.equ P_TPR4,  56
++.equ P_TPR13, 92
++/* Stack timing variables; FLAGS_OR_MR1 is reused after type selection. */
++.equ S_TRCD,       0
++.equ S_TXP,        4
++.equ S_TRRD,       8
++.equ S_TRC,        12
++.equ S_TFAW,       16
++.equ S_TRAS,       20
++.equ S_FLAGS_OR_MR1,24
++.equ S_MR3,        28
++.equ S_TCL,        32
++.equ S_TMOD,       36
++.equ S_TRFC,       40
++.equ S_WR_LATENCY, 44
++.equ S_TDINIT0,    48
++.equ S_TDINIT1,    52
++.equ S_TDINIT2,    56
++.equ S_TDINIT3,    60
++.equ S_MR0,        64
++.equ S_MR2,        68
++.equ S_TWTP,       72
++.equ S_TRASMAX,    76
++.equ S_TWR2RD,     80
++.equ S_SAVED_MR1,  84
++.equ S_TRTP,       88
++.equ S_SAVED_MR3,  92
++.equ S_TCCD,       96
++.equ S_TCL_PLUS2,  100
++.equ TIMING_FRAME, 108
++/* Reciprocal multiplication implements unsigned /30, /60, and /1000. */
++.equ DIV30_OR60_MULTIPLIER, 0x88888889
++.equ DIV1000_MULTIPLIER, 0x10624dd3
++.equ PHY_MR0,       0x03103030
++.equ PHY_PTR3,      0x03103050
++.equ PHY_PTR4,      0x03103054
++.equ PHY_DRAMTMG0,  0x03103058
++.equ PHY_DRAMTMG1,  0x0310305c
++.equ PHY_DRAMTMG2,  0x03103060
++.equ PHY_DRAMTMG4,  0x03103068
++.equ PHY_DRAMTMG5,  0x0310306c
++.equ PHY_RANK_TIMING,0x03103078
++.equ PHY_PITMG0,    0x03103080
++.equ PHY_REFRESH_CONFIG, 0x03103094
++.equ REFRESH_FIELD_MASK, 0x0fff0000
++
++.section .text.auto_set_timing_para,"ax",%progbits
++.p2align 2
++.global auto_set_timing_para
++.type auto_set_timing_para, %function
++.thumb_func
++auto_set_timing_para:
++	ldr r3, [r0, #P_TPR13]
++	push {r4, r5, r6, r7, r8, r9, r10, r11, lr}
++	sub sp, #TIMING_FRAME
++	ldr r9, [r0, #P_CLK]
++	mov r4, r0
++	lsls r1, r3, #30
++	str r3, [sp, #S_FLAGS_OR_MR1]
++	ldr r6, [r0, #P_TYPE]
++	lsr r8, r9, #1
++	bpl .Lcalculate_timings
++
++	/* Decode the supplied timing fields from TPR0, TPR1, and TPR2. */
++	ldr r3, [r0, #P_TPR0]
++	ubfx r2, r3, #21, #3
++	str r2, [sp, #S_TCCD]
++	ubfx r2, r3, #15, #6
++	str r2, [sp, #S_TFAW]
++	ubfx r2, r3, #11, #4
++	str r2, [sp, #S_TRRD]
++	ubfx r2, r3, #6, #5
++	and r3, r3, #0x3f
++	str r2, [sp, #S_TRCD]
++	str r3, [sp, #S_TRC]
++	ldr r3, [r0, #P_TPR1]
++	ldr r0, [r0, #P_TPR2]
++	ubfx r2, r3, #23, #5
++	ubfx r5, r3, #20, #3
++	str r2, [sp, #S_TXP]
++	ubfx r7, r3, #11, #4
++	ubfx r2, r3, #15, #5
++	ubfx r10, r3, #6, #5
++	ubfx r11, r0, #0, #12
++	and r3, r3, #0x3f
++	str r3, [sp, #S_TRAS]
++	ubfx r3, r0, #12, #9
++	str r2, [sp, #S_TRTP]
++	str r3, [sp, #S_TRFC]
++.Lselect_mode_values:
++	ldr r3, [r4, #P_MR3]
++	ldr r2, [r4, #P_CLK]
++	str r3, [sp, #S_SAVED_MR3]
++	ldr r3, [r4, #P_MR1]
++	str r3, [sp, #S_SAVED_MR1]
++	subs r3, r6, #DDR2
++	cmp r3, #(LPDDR3-DDR2)
++	bhi.w .Lmode_default
++	tbh [pc, r3, lsl #1]
++.Lmode_table:
++	.hword (.Lmode_ddr2-.Lmode_table)/2
++	.hword (.Lmode_ddr3-.Lmode_table)/2
++	.hword (.Lmode_default-.Lmode_table)/2
++	.hword (.Lmode_default-.Lmode_table)/2
++	.hword (.Lmode_lpddr2-.Lmode_table)/2
++	.hword (.Lmode_lpddr3-.Lmode_table)/2
++
++.Lcalculate_timings:
++	cmp r6, #DDR3
++	bne.w .Lcalculate_non_ddr3
++	/* DDR3: minimum two cycles for write-to-read and write recovery. */
++	mov r1, r8
++	movs r0, #8
++	bl auto_cal_timing
++	mov r1, r8
++	mov r5, r0
++	movs r0, #15
++	bl auto_cal_timing
++	mov r1, r8
++	str r0, [sp, #S_TRCD]
++	movw r0, #7800
++	bl auto_cal_timing
++	ands r3, r0, #31
++	mov r1, r8
++	it ne
++	movne r3, #1
++	add r11, r3, r0, lsr #5
++	mov r0, #350
++	bl auto_cal_timing
++	ldr r7, [sp, #S_TRCD]
++	cmp r5, #2
++	it lo
++	movlo r5, #2
++	str r0, [sp, #S_TRFC]
++	mov r1, r8
++	cmp r7, #2
++	it lo
++	movlo r7, #2
++	cmp r9, #800
++	bhi .Lddr3_fast_timings
++	movs r0, #50
++	bl auto_cal_timing
++	mov r1, r8
++	str r0, [sp, #S_TFAW]
++	movs r0, #10
++	bl auto_cal_timing
++	cmp r0, #2
++	mov r1, r8
++	it lo
++	movlo r0, #2
++	str r0, [sp, #S_TRRD]
++	movs r0, #53
++	bl auto_cal_timing
++	mov r1, r8
++	str r0, [sp, #S_TRC]
++	movs r0, #38
++	bl auto_cal_timing
++	str r5, [sp, #S_TXP]
++	str r0, [sp, #S_TRAS]
++.Lsave_ddr3_trp:
++	ldr r10, [sp, #S_TRCD]
++.Lpack_calculated_timings:
++	/* TPR0 packs tCCD, tFAW, tRRD, tRCD, and tRC. */
++	ldr r2, [sp, #S_TRCD]
++	ldr r3, [sp, #S_TRC]
++	orr r3, r3, #0x400000
++	orr r3, r3, r2, lsl #6
++	ldr r2, [sp, #S_TRRD]
++	orr r3, r3, r2, lsl #11
++	ldr r2, [sp, #S_TFAW]
++	orr r3, r3, r2, lsl #15
++	ldr r2, [sp, #S_TRAS]
++	str r3, [r4, #P_TPR0]
++	lsls r3, r7, #11
++	orr r3, r3, r10, lsl #6
++	orrs r3, r2
++	ldr r2, [sp, #S_TXP]
++	orr r3, r3, r5, lsl #15
++	orr r3, r3, r5, lsl #20
++	orr r3, r3, r2, lsl #23
++	str r3, [r4, #P_TPR1]
++	ldr r3, [r4, #P_TPR4]
++	ubfx r3, r3, #12, #4
++	cmp r3, #1
++	beq.w .Lrefresh_half
++	cmp r3, #2
++	beq.w .Lrefresh_quarter
++	ldr r0, =dram_refresh_78ms
++	b .Lrefresh_report
++
++.Lddr3_fast_timings:
++	movs r0, #35
++	bl auto_cal_timing
++	mov r1, r8
++	str r0, [sp, #S_TFAW]
++	movs r0, #6
++	bl auto_cal_timing
++	cmp r0, #2
++	mov r1, r8
++	it lo
++	movlo r0, #2
++	str r0, [sp, #S_TRRD]
++	movs r0, #14
++	bl auto_cal_timing
++	mov r1, r8
++	str r0, [sp, #S_TRCD]
++	movs r0, #48
++	bl auto_cal_timing
++	mov r1, r8
++	str r0, [sp, #S_TRC]
++	movs r0, #34
++	bl auto_cal_timing
++	ldr r3, [sp, #S_TRRD]
++	str r0, [sp, #S_TRAS]
++	str r3, [sp, #S_TXP]
++	b .Lsave_ddr3_trp
++
++.Lcalculate_non_ddr3:
++	cmp r6, #DDR2
++	bne .Lcalculate_non_ddr2
++	/* DDR2 timing limits in nanoseconds. */
++	mov r1, r8
++	movs r0, #50
++	bl auto_cal_timing
++	mov r1, r8
++	str r0, [sp, #S_TFAW]
++	movs r0, #10
++	bl auto_cal_timing
++	mov r1, r8
++	str r0, [sp, #S_TRRD]
++	movs r0, #20
++	bl auto_cal_timing
++	mov r1, r8
++	str r0, [sp, #S_TRCD]
++	movs r0, #65
++	bl auto_cal_timing
++	mov r1, r8
++	str r0, [sp, #S_TRC]
++	movs r0, #8
++	bl auto_cal_timing
++	mov r1, r8
++	mov r5, r0
++	movs r0, #15
++	bl auto_cal_timing
++	mov r1, r8
++	mov r10, r0
++	movs r0, #45
++	mov r7, r10
++	bl auto_cal_timing
++	mov r1, r8
++	str r0, [sp, #S_TRAS]
++	movw r0, #7800
++	bl auto_cal_timing
++	ands r3, r0, #31
++	mov r1, r8
++	it ne
++	movne r3, #1
++	add r11, r3, r0, lsr #5
++	mov r0, #328
++	bl auto_cal_timing
++	str r6, [sp, #S_TXP]
++	str r0, [sp, #S_TRFC]
++	b .Lpack_calculated_timings
++
++.Lcalculate_non_ddr2:
++	cmp r6, #LPDDR2
++	bne .Lcalculate_non_lpddr2
++	/* LPDDR2 adds minimum-cycle constraints to the nanosecond limits. */
++	mov r1, r8
++	movs r0, #50
++	bl auto_cal_timing
++	cmp r0, #4
++	mov r1, r8
++	it lo
++	movlo r0, #4
++	str r0, [sp, #S_TFAW]
++	movs r0, #10
++	bl auto_cal_timing
++	mov r3, r0
++	mov r1, r8
++	cmp r0, #0
++	it eq
++	moveq r3, #1
++	movs r0, #24
++	str r3, [sp, #S_TRRD]
++	bl auto_cal_timing
++	cmp r0, #2
++	mov r1, r8
++	it lo
++	movlo r0, #2
++	str r0, [sp, #S_TRCD]
++	movs r0, #70
++	bl auto_cal_timing
++	mov r1, r8
++	str r0, [sp, #S_TRC]
++	movs r0, #8
++	bl auto_cal_timing
++	str r0, [sp, #S_TXP]
++	cbz r0, .Llpddr2_minimum_txp
++	cmp r0, #2
++	mov r5, r0
++	it lo
++	movlo r5, #2
++.Llpddr2_write_timing:
++	mov r1, r8
++	movs r0, #15
++	bl auto_cal_timing
++	cmp r0, #2
++	mov r1, r8
++	it lo
++	movlo r0, #2
++	mov r7, r0
++	movs r0, #17
++	bl auto_cal_timing
++	mov r1, r8
++	mov r10, r0
++	movs r0, #42
++	bl auto_cal_timing
++	mov r1, r8
++	str r0, [sp, #S_TRAS]
++	movw r0, #3900
++	bl auto_cal_timing
++	ands r3, r0, #31
++	mov r1, r8
++	it ne
++	movne r3, #1
++	add r11, r3, r0, lsr #5
++	movs r0, #210
++	bl auto_cal_timing
++	str r0, [sp, #S_TRFC]
++	b .Lpack_calculated_timings
++.Llpddr2_minimum_txp:
++	movs r3, #1
++	movs r5, #2
++	str r3, [sp, #S_TXP]
++	b .Llpddr2_write_timing
++
++.Lcalculate_non_lpddr2:
++	cmp r6, #LPDDR3
++	bne .Lcalculate_default
++	/* LPDDR3 shares refresh limits but uses its own write latency. */
++	mov r1, r8
++	movs r0, #50
++	bl auto_cal_timing
++	cmp r0, #4
++	mov r1, r8
++	it lo
++	movlo r0, #4
++	str r0, [sp, #S_TFAW]
++	movs r0, #10
++	bl auto_cal_timing
++	mov r3, r0
++	mov r1, r8
++	cmp r0, #0
++	it eq
++	moveq r3, #1
++	movs r0, #24
++	str r3, [sp, #S_TRRD]
++	bl auto_cal_timing
++	cmp r0, #2
++	mov r1, r8
++	it lo
++	movlo r0, #2
++	str r0, [sp, #S_TRCD]
++	movs r0, #70
++	bl auto_cal_timing
++	mov r1, r8
++	str r0, [sp, #S_TRC]
++	movs r0, #8
++	bl auto_cal_timing
++	cmp r0, #2
++	mov r1, r8
++	it lo
++	movlo r0, #2
++	mov r5, r0
++	movs r0, #15
++	bl auto_cal_timing
++	cmp r0, #2
++	mov r1, r8
++	it lo
++	movlo r0, #2
++	mov r7, r0
++	movs r0, #17
++	bl auto_cal_timing
++	mov r1, r8
++	mov r10, r0
++	movs r0, #42
++	bl auto_cal_timing
++	mov r1, r8
++	str r0, [sp, #S_TRAS]
++	movw r0, #3900
++	bl auto_cal_timing
++	ands r3, r0, #31
++	mov r1, r8
++	it ne
++	movne r3, #1
++	add r11, r3, r0, lsr #5
++	movs r0, #210
++	bl auto_cal_timing
++	str r5, [sp, #S_TXP]
++	str r0, [sp, #S_TRFC]
++	b .Lpack_calculated_timings
++.Lcalculate_default:
++	movs r3, #128
++	movs r2, #14
++	str r3, [sp, #S_TRFC]
++	movs r3, #10
++	str r3, [sp, #S_TXP]
++	movs r3, #16
++	movs r5, #3
++	mov r10, #6
++	strd r3, r2, [sp, #S_TFAW]
++	movs r3, #20
++	mov r11, #98
++	movs r7, #8
++	str r3, [sp, #S_TRC]
++	str r10, [sp, #S_TRCD]
++	str r5, [sp, #S_TRRD]
++	b .Lpack_calculated_timings
++
++.Lrefresh_half:
++	ldr r0, =dram_refresh_39ms
++	lsr r11, r11, #1
++.Lrefresh_report:
++	bl printf
++	ldr r3, [sp, #S_TRFC]
++	str r5, [sp, #S_TRTP]
++	orr r3, r11, r3, lsl #12
++	str r3, [r4, #P_TPR2]
++	movs r3, #2
++	str r3, [sp, #S_TCCD]
++	b .Lselect_mode_values
++.Lrefresh_quarter:
++	lsr r11, r11, #2
++	ldr r0, =dram_refresh_195ms
++	b .Lrefresh_report
++/* Refresh diagnostics are the only literals needed by phase one. */
++.p2align 2
++.ltorg
++
++.Lmode_ddr2:
++	/* DDR2 mode values depend on whether the half clock exceeds 204 MHz. */
++	ldr r0, =DIV30_OR60_MULTIPLIER
++	cmp r8, #204
++	it hi
++	movhi r8, r6
++	mov r12, r6
++	mov r6, #3
++	it ls
++	movls r8, #1
++	mov lr, r6
++	umull r0, r1, r9, r0
++	mov r0, #500
++	mul r0, r0, r2
++	lsr r3, r1, #4
++	movw r1, #0x0e73
++	str r3, [sp, #S_TRASMAX]
++	ite hi
++	movhi r3, #4
++	movls r3, #3
++	str r3, [sp, #S_TCL]
++	movw r3, #0x0a63
++	it hi
++	movhi r3, r1
++	str r3, [sp, #S_MR0]
++	mov r3, #400
++	muls r3, r2, r3
++	adds r3, #1
++	str r3, [sp, #S_TDINIT0]
++	ldr r3, =DIV1000_MULTIPLIER
++	umull r0, r1, r0, r3
++	movs r0, #4
++	mov r9, r0
++	lsrs r3, r1, #6
++	movs r1, #5
++	adds r3, #1
++	str r3, [sp, #S_TDINIT1]
++	movs r3, #200
++	muls r3, r2, r3
++	adds r3, #1
++	str r3, [sp, #S_TDINIT2]
++	adds r3, r2, #1
++	str r3, [sp, #S_TDINIT3]
++	adds r3, r7, #5
++	str r3, [sp, #S_TWTP]
++	adds r3, r5, #5
++	str r3, [sp, #S_TWR2RD]
++	movs r5, #1
++	ldr r3, [sp, #S_SAVED_MR1]
++	str r5, [sp, #S_WR_LATENCY]
++	str r3, [sp, #S_FLAGS_OR_MR1]
++	movs r3, #12
++	str r3, [sp, #S_TMOD]
++	movs r3, #0
++	str r3, [sp, #S_MR3]
++	str r3, [sp, #S_MR2]
++
++.Lfinish_mode_values:
++	/* Ensure tRTP+tRP is at least tCL+2. */
++	ldr r5, [sp, #S_TCL]
++	adds r5, #2
++	str r5, [sp, #S_TCL_PLUS2]
++	ldr r5, [sp, #S_TRTP]
++	add r5, r10
++	mov r7, r5
++	ldr r5, [sp, #S_TCL_PLUS2]
++	cmp r7, r5
++	itttt lo
++	ldrlo r7, [sp, #S_TCL]
++	rsblo r5, r10, #2
++	addlo r5, r5, r7
++	strlo r5, [sp, #S_TRTP]
++	/* Preserve caller overrides: upper MR halfwords inhibit replacement. */
++	ldrh r5, [r4, #(P_MR0+2)]
++	cbnz r5, .Lmr0_ready
++	ldr r5, [sp, #S_MR0]
++	str r5, [r4, #P_MR0]
++.Lmr0_ready:
++	ldr r5, [sp, #S_SAVED_MR1]
++	ldrh r7, [r4, #(P_MR2+2)]
++	lsrs r5, r5, #16
++	itt eq
++	ldreq r5, [sp, #S_FLAGS_OR_MR1]
++	streq r5, [r4, #P_MR1]
++	cbnz r7, .Lmr2_ready
++	ldr r5, [sp, #S_MR2]
++	str r5, [r4, #P_MR2]
++.Lmr2_ready:
++	ldr r5, [sp, #S_SAVED_MR3]
++	lsl r12, r12, #12
++	ldrh r7, [r4, #P_MR0]
++	orr r12, r12, r3, lsl #16
++	ldr r3, [sp, #S_TMOD]
++	lsrs r5, r5, #16
++	it eq
++	ldreq r5, [sp, #S_MR3]
++	orr r3, r12, r3
++	it eq
++	streq r5, [r4, #P_MR3]
++	cmp r2, #800
++	ldr r5, =PHY_MR0
++	ldr r2, =PHY_PITMG0
++	str r7, [r5]
++	ldrh r7, [r4, #P_MR1]
++	str r7, [r5, #4]
++	ldrh r7, [r4, #P_MR2]
++	str r7, [r5, #8]
++	ldrh r7, [r4, #P_MR3]
++	ldr r4, [r4, #P_ODT]
++	str r7, [r5, #12]
++	ubfx r4, r4, #4, #2
++	str r4, [r5, #-4]
++
++	/* Program DRAMTMG0..5 from the completed timing variables. */
++	ldrd r5, r4, [sp, #S_TFAW]
++	orr r7, r4, r5, lsl #16
++	ldr r4, [sp, #S_TWTP]
++	ldr r5, [sp, #S_TXP]
++	orr r7, r7, r4, lsl #24
++	ldr r4, [sp, #S_TRASMAX]
++	orr r7, r7, r4, lsl #8
++	ldr r4, =PHY_DRAMTMG0
++	str r7, [r4]
++	ldr r4, [sp, #S_TRC]
++	orr r4, r4, r5, lsl #16
++	ldr r5, [sp, #S_TRTP]
++	orr r4, r4, r5, lsl #8
++	ldr r5, =PHY_DRAMTMG1
++	str r4, [r5]
++	ldr r4, [sp, #S_TCL]
++	lsl r5, r4, #16
++	ldr r4, [sp, #S_TWR2RD]
++	orr lr, r5, lr, lsl #24
++	orr r5, lr, r4
++	ldr r4, =PHY_DRAMTMG2
++	orr r5, r5, r9, lsl #8
++	str r5, [r4]
++	str r3, [r4, #4]             /* DRAMTMG3: tMRW, tMRD, tMOD. */
++	ldr r3, [sp, #S_TCCD]
++	ldr r4, [sp, #S_TRCD]
++	lsl r3, r3, #16
++	orr r3, r3, r4, lsl #24
++	ldr r4, [sp, #S_TRRD]
++	orr r3, r3, r10
++	orr r3, r3, r4, lsl #8
++	ldr r4, =PHY_DRAMTMG4
++	str r3, [r4]
++	lsl r3, r1, #16
++	orr r1, r3, r1, lsl #24
++	ldr r3, =PHY_DRAMTMG5
++	orr r6, r6, r1
++	ldr r1, =PHY_RANK_TIMING
++	orr r0, r6, r0, lsl #8
++	str r0, [r3]
++	ldr r3, =REFRESH_FIELD_MASK
++	ldr r0, [r1]
++	and r3, r3, r0
++	ldr r0, =REFRESH_FIELD_MASK
++	orr r3, r3, #0xf0000000
++	ite ls
++	orrls r3, r3, #0x6600
++	orrhi r3, r3, #0x7600
++	orr r3, r3, #0x10
++	str r3, [r1]
++
++	/* PHY interface, initialization delays, and refresh configuration. */
++	and r0, r0, r11, lsl #15
++	ldr r3, [sp, #S_WR_LATENCY]
++	orr r3, r3, #0x02000000
++	orr r3, r3, #0x100
++	orr r3, r3, r8, lsl #16
++	str r3, [r2]
++	ldrd r3, r2, [sp, #S_TDINIT0]
++	orr r3, r3, r2, lsl #20
++	ldr r2, =PHY_PTR3
++	str r3, [r2]
++	ldrd r3, r2, [sp, #S_TDINIT2]
++	orr r3, r3, r2, lsl #20
++	ldr r2, =PHY_PTR4
++	str r3, [r2]
++	ldr r3, [sp, #S_TRFC]
++	orr r3, r3, r11, lsl #16
++	str r3, [r2, #0x3c]          /* PHY refresh timing at 0x03103090. */
++	ldr r3, =PHY_REFRESH_CONFIG
++	str r0, [r3]
++	add sp, #TIMING_FRAME
++	pop {r4, r5, r6, r7, r8, r9, r10, r11, pc}
++
++.Lmode_ddr3:
++	ldr r0, =DIV30_OR60_MULTIPLIER
++	cmp r2, #800
++	ite hi
++	movhi r8, #5
++	movls r8, #4
++	add r7, r7, #2
++	add r5, r5, #2
++	mov lr, r8
++	umull r0, r1, r9, r0
++	mov r0, #360
++	mul r0, r0, r2
++	lsr r3, r1, #4
++	movw r1, #0x1e14
++	str r3, [sp, #S_TRASMAX]
++	ite hi
++	movhi r3, #7
++	movls r3, #6
++	str r3, [sp, #S_TCL]
++	ite hi
++	movhi r3, r6
++	movls r3, #2
++	str r3, [sp, #S_WR_LATENCY]
++	ite hi
++	movhi r3, #32
++	movls r3, #24
++	str r3, [sp, #S_MR2]
++	movw r3, #0x1c70
++	it hi
++	movhi r3, r1
++	str r3, [sp, #S_MR0]
++	mov r3, #500
++	muls r3, r2, r3
++	adds r3, #1
++	str r3, [sp, #S_TDINIT0]
++	ldr r3, =DIV1000_MULTIPLIER
++	umull r0, r1, r0, r3
++	movs r0, #4
++	lsrs r3, r1, #6
++	movs r1, #5
++	adds r3, #1
++	str r3, [sp, #S_TDINIT1]
++	movs r3, #200
++	muls r3, r2, r3
++	adds r3, #1
++	str r3, [sp, #S_TDINIT2]
++	adds r3, r2, #1
++	str r3, [sp, #S_TDINIT3]
++	add r3, r7, r8
++	str r3, [sp, #S_TWTP]
++	add r3, r5, r8
++	str r3, [sp, #S_TWR2RD]
++	ldr r3, [sp, #S_FLAGS_OR_MR1]
++	ubfx r3, r3, #2, #2
++	cmp r3, #1
++	ldr r3, [sp, #S_SAVED_MR1]
++	str r3, [sp, #S_FLAGS_OR_MR1]
++	beq.w .Lddr3_normal_read_to_write
++	cmp r2, #912
++	bls.w .Lddr3_normal_read_to_write
++	mov r9, #6
++.Lddr3_common_mode:
++	movs r3, #12
++	mov r12, r0
++	str r3, [sp, #S_TMOD]
++	movs r3, #0
++	str r3, [sp, #S_MR3]
++	b .Lfinish_mode_values
++
++.Lmode_lpddr2:
++	ldr r0, =DIV30_OR60_MULTIPLIER
++	str r6, [sp, #S_MR2]
++	movs r6, #2
++	mov lr, r6
++	umull r0, r1, r9, r0
++	movs r0, #100
++	mov r9, #10
++	muls r0, r2, r0
++	lsrs r3, r1, #5
++	str r3, [sp, #S_TRASMAX]
++	movs r3, #200
++	muls r3, r2, r3
++	adds r3, #1
++	str r3, [sp, #S_TDINIT0]
++	ldr r3, =DIV1000_MULTIPLIER
++	umull r0, r1, r0, r3
++	lsrs r3, r1, #6
++	movs r1, #5
++	mov r0, r1
++	str r1, [sp, #S_TMOD]
++	adds r3, #1
++	mov r12, r1
++	str r3, [sp, #S_TDINIT1]
++	movs r3, #11
++	muls r3, r2, r3
++	adds r3, #1
++	str r3, [sp, #S_TDINIT2]
++	adds r3, r2, #1
++	str r3, [sp, #S_TDINIT3]
++	adds r3, r7, #5
++	str r3, [sp, #S_TWTP]
++	adds r3, r5, #5
++	str r3, [sp, #S_TWR2RD]
++	movs r7, #4
++	ldr r3, [sp, #S_SAVED_MR3]
++	str r7, [sp, #S_TCL]
++	movs r7, #1
++	str r7, [sp, #S_WR_LATENCY]
++	str r3, [sp, #S_MR3]
++	movs r3, #3
++	mov r8, r3
++.Llpddr_mode_mr1:
++	movs r5, #195
++	str r5, [sp, #S_FLAGS_OR_MR1]
++	movs r5, #0
++	str r5, [sp, #S_MR0]
++	b .Lfinish_mode_values
++/* Integer division and controller MMIO literals; no code falls through. */
++.p2align 2
++.ltorg
++
++.Lmode_lpddr3:
++	ldr r0, =DIV30_OR60_MULTIPLIER
++	cmp r2, #800
++	ite hi
++	movhi lr, #4
++	movls lr, #3
++	add r7, r7, #5
++	add r5, r5, #5
++	ite hi
++	movhi r8, #6
++	movls r8, #5
++	umull r0, r1, r9, r0
++	mov r0, #100
++	mov r9, #13
++	mul r0, r0, r2
++	lsr r3, r1, #5
++	str r3, [sp, #S_TRASMAX]
++	ite hi
++	movhi r3, #3
++	movls r3, #2
++	str r3, [sp, #S_WR_LATENCY]
++	ite hi
++	movhi r3, #12
++	movls r3, #10
++	str r3, [sp, #S_MR2]
++	mov r3, #200
++	mul r3, r3, r2
++	add r3, r3, #1
++	str r3, [sp, #S_TDINIT0]
++	ldr r3, =DIV1000_MULTIPLIER
++	umull r0, r1, r0, r3
++	lsr r3, r1, #6
++	mov r1, #5
++	mov r0, r1
++	add r3, r3, #1
++	mov r12, r1
++	str r3, [sp, #S_TDINIT1]
++	mov r3, #11
++	mul r3, r3, r2
++	add r3, r3, #1
++	str r3, [sp, #S_TDINIT2]
++	add r3, r2, #1
++	str r3, [sp, #S_TDINIT3]
++	add r3, r7, lr
++	str r3, [sp, #S_TWTP]
++	add r3, r5, lr
++	str r3, [sp, #S_TWR2RD]
++	ite hi
++	movhi r3, r6
++	movls r3, #6
++	movs r6, #3
++	str r3, [sp, #S_TCL]
++	ldr r3, [sp, #S_SAVED_MR3]
++	str r3, [sp, #S_MR3]
++	movs r3, #12
++	str r3, [sp, #S_TMOD]
++	mov r3, r1
++	b .Llpddr_mode_mr1
++
++.Lmode_default:
++	/* Conservative fallback settings for an unsupported DRAM type. */
++	movs r3, #27
++	movs r5, #8
++	strd r3, r5, [sp, #S_TRASMAX]
++	movs r3, #12
++	str r3, [sp, #S_TWTP]
++	movs r3, #6
++	movs r0, #3
++	movs r5, #1
++	movs r1, #4
++	movs r6, #2
++	str r3, [sp, #S_TMOD]
++	movs r3, #0
++	mov r9, r1
++	mov r12, r6
++	mov lr, r0
++	str r0, [sp, #S_TCL]
++	str r5, [sp, #S_WR_LATENCY]
++	mov r8, r5
++	str r3, [sp, #S_MR3]
++	str r3, [sp, #S_MR2]
++	str r3, [sp, #S_FLAGS_OR_MR1]
++	strd r3, r3, [sp, #S_TDINIT3]
++	strd r3, r3, [sp, #S_TDINIT1]
++	str r3, [sp, #S_TDINIT0]
++	b .Lfinish_mode_values
++.Lddr3_normal_read_to_write:
++	mov r9, r1
++	b .Lddr3_common_mode
++.p2align 2
++.ltorg
++.size auto_set_timing_para, . - auto_set_timing_para
++.section .note.GNU-stack,"",%progbits
+--- /dev/null
++++ b/drivers/dram/sun8iw20p1/lib-dram/dqs_gate_detect.S
+@@ -0,0 +1,89 @@
++/* Reconstructed T113 DRAM rank/data-width detection.
++ * r0: dram_para_t *, whose dram_para2 field is at byte 20.
++ * Success returns 1; an unrecognized training state returns 0.
++ */
++.syntax unified
++.arch armv7-a
++.thumb
++
++.equ MCTL_PGSR0, 0x03103010
++.equ MCTL_DX0GSR0, 0x03103348
++.equ DRAM_PARA2, 20
++.equ DRAM_TPR13, 92
++
++.section .text.dqs_gate_detect,"ax",%progbits
++.p2align 2
++.global dqs_gate_detect
++.type dqs_gate_detect, %function
++.thumb_func
++dqs_gate_detect:
++	ldr r3, =MCTL_PGSR0
++	push {r4, lr}
++	ldr r3, [r3]
++	lsls r3, r3, #9              /* Test training error bit 22. */
++	bpl .Ltwo_full
++
++	ldr r3, =MCTL_DX0GSR0
++	ldr r1, [r3]
++	ldr r4, [r3, #128]          /* DX1 status, same field. */
++	ubfx r1, r1, #24, #2
++	cmp r1, #2
++	ubfx r4, r4, #24, #2
++	bne .Lother_state
++
++	/* State 2 on DX0 means one rank; DX1 selects full or half DQ. */
++	ldr r3, [r0, #DRAM_PARA2]
++	cmp r4, #2
++	bic r3, r3, #0xf000
++	bic r3, r3, #0xf
++	bne .Lsingle_half
++	str r3, [r0, #DRAM_PARA2]
++	ldr r0, =dram_dqs_single_full
++	b .Ldetected
++
++.Ltwo_full:
++	ldr r3, [r0, #DRAM_PARA2]
++	bic r3, r3, #0xf
++	orr r3, r3, #0x1000
++	str r3, [r0, #DRAM_PARA2]
++	ldr r0, =dram_dqs_two_full
++.Ldetected:
++	bl printf
++	movs r0, #1
++.Lreturn:
++	pop {r4, pc}
++
++.Lsingle_half:
++	orr r3, r3, #1
++	str r3, [r0, #DRAM_PARA2]
++	ldr r0, =dram_dqs_single_half
++	b .Ldetected
++
++.Lother_state:
++	cbnz r1, .Lfailed
++	ldr r3, [r0, #DRAM_PARA2]
++	bic r3, r3, #0xf
++	orr r3, r3, #0x1000
++	orr r3, r3, #1
++	str r3, [r0, #DRAM_PARA2]
++	ldr r0, =dram_dqs_two_half
++	b .Ldetected
++
++.Lfailed:
++	/* Debug output is conditional; the returned value is always zero. */
++	ldr r0, [r0, #DRAM_TPR13]
++	ands r0, r0, #0x20000000
++	beq .Lreturn
++	ldr r0, =dram_dqs_dx0_state
++	bl printf
++	mov r1, r4
++	ldr r0, =dram_dqs_dx1_state
++	bl printf
++	movs r0, #0
++	b .Lreturn
++
++/* Thumb literal loads require a word-aligned pool. */
++.p2align 2
++.ltorg
++.size dqs_gate_detect, . - dqs_gate_detect
++.section .note.GNU-stack,"",%progbits
+--- /dev/null
++++ b/drivers/dram/sun8iw20p1/lib-dram/dram_leaf.S
+@@ -0,0 +1,172 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * Stock boot0 leaf algorithms, reconstructed from the C implementation and
++ * verified against original boot0. These are named Thumb instructions;
++ * the only literal data are physical DRAM PHY register addresses.
++ */
++.cpu cortex-a9
++.syntax unified
++.thumb
++
++.section .text.memcpy_self,"ax",%progbits
++.align 1
++.global memcpy_self
++.type memcpy_self, %function
++.thumb_func
++memcpy_self:
++	/* r0 is retained as the return value; r2 becomes the source end. */
++	subs r3, r0, #1
++	add r2, r1
++	push {r4, lr}
++.Lcopy_remaining:
++	subs r4, r2, r1
++	cmp r4, #0
++	bgt .Lcopy_byte
++	pop {r4, pc}
++.Lcopy_byte:
++	ldrb r4, [r1], #1
++	strb r4, [r3, #1]!
++	b .Lcopy_remaining
++.size memcpy_self, .-memcpy_self
++
++	.section	.text.eye_delay_compensation,"ax",%progbits
++	.align	1
++	.global	eye_delay_compensation
++	.syntax unified
++	.thumb
++	.thumb_func
++	.fpu softvfp
++	.type	eye_delay_compensation, %function
++eye_delay_compensation:
++	/* r0: DRAM parameters. Fields +80/+84/+88 hold TPR10/11/12. */
++	push	{r3, r4, r5, r6, r7, lr}
++	mov	r4, r0
++	ldrd	r3, r2, [r0, #84]
++	ldr	r6, .Lphy_registers
++	lsls	r1, r3, #9
++	lsls	r0, r2, #1
++	and	r1, r1, #7680
++	and	r0, r0, #30
++	orrs	r1, r1, r0
++	ldr	r0, .Lphy_registers+4
++	mov	r7, r6
++.Ldat_lane0:
++	ldr	r5, [r0]
++	orrs	r5, r5, r1
++	str	r5, [r0], #4
++	cmp	r0, r6
++	bne	.Ldat_lane0
++	lsls	r1, r3, #5
++	lsrs	r0, r2, #3
++	ldr	r6, .Lphy_registers+8
++	ldr	r5, .Lphy_registers+12
++	and	r1, r1, #7680
++	and	r0, r0, #30
++	orrs	r1, r1, r0
++.Ldat_lane1:
++	ldr	r0, [r6]
++	orrs	r0, r0, r1
++	str	r0, [r6], #4
++	cmp	r6, r5
++	bne	.Ldat_lane1
++	ldr	r0, .Lphy_registers+16
++	lsrs	r5, r2, #15
++	lsrs	r2, r2, #19
++	and	r5, r5, #30
++	ldr	r1, [r0]
++	and	r2, r2, #30
++	bic	r1, r1, #67108864
++	str	r1, [r0]
++	lsrs	r1, r3, #16
++	ldr	ip, [r7]
++	lsrs	r3, r3, #20
++	lsl	lr, r1, #9
++	lsls	r1, r1, #25
++	and	lr, lr, #7680
++	and	r1, r1, #503316480
++	orr	r5, r5, lr
++	orr	ip, r5, ip
++	str	ip, [r7]
++	ldr	r7, .Lphy_registers+20
++	ldr	ip, [r7]
++	orr	r5, r5, ip
++	str	r5, [r7]
++	lsls	r7, r3, #9
++	ldr	r5, [r6]
++	lsls	r3, r3, #25
++	and	r7, r7, #7680
++	orrs	r2, r2, r7
++	and	r3, r3, #503316480
++	orrs	r5, r5, r2
++	str	r5, [r6]
++	ldr	r5, .Lphy_registers+24
++	ldr	r6, [r5]
++	orrs	r2, r2, r6
++	str	r2, [r5]
++	ldr	r2, .Lphy_registers+28
++	ldr	r5, [r2]
++	orrs	r1, r1, r5
++	str	r1, [r2]
++	ldr	r1, [r2, #128]
++	orrs	r3, r3, r1
++	str	r3, [r2, #128]
++	ldr	r3, [r0]
++	orr	r3, r3, #67108864
++	str	r3, [r0]
++	movs	r0, #1
++	bl	__usdelay
++	ldr	r3, [r4, #80]
++	ldr	r2, .Lphy_registers+32
++	ldr	r4, .Lphy_registers+36
++	lsls	r1, r3, #4
++	and	r1, r1, #3840
++.Lcommand_delays:
++	ldr	r0, [r2]
++	orrs	r0, r0, r1
++	str	r0, [r2], #4
++	cmp	r2, r4
++	bne	.Lcommand_delays
++	ldr	r2, .Lphy_registers+40
++	ldr	r4, .Lphy_registers+32
++.Laddress_delays:
++	ldr	r0, [r2]
++	orrs	r0, r0, r1
++	str	r0, [r2], #4
++	cmp	r2, r4
++	bne	.Laddress_delays
++	ldr	r1, .Lphy_registers+44
++	lsls	r2, r3, #8
++	and	r2, r2, #3840
++	ldr	r0, [r1]
++	orrs	r2, r2, r0
++	str	r2, [r1]
++	and	r2, r3, #3840
++	ldr	r0, [r1, #4]
++	lsrs	r3, r3, #4
++	and	r3, r3, #3840
++	orrs	r2, r2, r0
++	str	r2, [r1, #4]
++	ldr	r2, .Lphy_registers+48
++	ldr	r1, [r2]
++	orrs	r3, r3, r1
++	str	r3, [r2]
++	pop	{r3, r4, r5, r6, r7, pc}
++	.align	2
++.Lphy_registers:
++	/* Data-lane, PGCR0, DQS and command/address delay registers. */
++	.word	0x03103334
++	.word	0x03103310
++	.word	0x03103390
++	.word	0x031033b4
++	.word	0x03103100
++	.word	0x03103338
++	.word	0x031033b8
++	.word	0x0310333c
++	.word	0x03103240
++	.word	0x0310327c
++	.word	0x03103228
++	.word	0x03103218
++	.word	0x03103280
++	.size	eye_delay_compensation, .-eye_delay_compensation
++
++.section .note.GNU-stack,"",%progbits
+--- /dev/null
++++ b/drivers/dram/sun8iw20p1/lib-dram/dram_messages.S
+@@ -0,0 +1,246 @@
++/* Source-owned T113 DRAM strings in their recovered declaration order.
++ * These are ordinary diagnostic/version text, not executable firmware.
++ */
++.section .rodata.str1.1,"aMS",%progbits,1
++
++.global dram_refresh_39ms
++.type dram_refresh_39ms, %object
++dram_refresh_39ms:
++.asciz "trefi:3.9ms\n"
++.size dram_refresh_39ms, .-dram_refresh_39ms
++
++.global dram_refresh_195ms
++.type dram_refresh_195ms, %object
++dram_refresh_195ms:
++.asciz "trefi:1.95ms\n"
++.size dram_refresh_195ms, .-dram_refresh_195ms
++
++.global dram_refresh_78ms
++.type dram_refresh_78ms, %object
++dram_refresh_78ms:
++.asciz "trefi:7.8ms\n"
++.size dram_refresh_78ms, .-dram_refresh_78ms
++
++.global dram_efuse_type
++.type dram_efuse_type, %object
++dram_efuse_type:
++.asciz "ddr_efuse_type: 0x%x\n"
++.size dram_efuse_type, .-dram_efuse_type
++
++.global dram_mark_id
++.type dram_mark_id, %object
++dram_mark_id:
++.asciz "mark_id: 0x%x\n"
++.size dram_mark_id, .-dram_mark_id
++
++.global dram_zq_calibration_error
++.type dram_zq_calibration_error, %object
++dram_zq_calibration_error:
++.asciz "ZQ calibration error,check external 240 ohm resistor.\n"
++.size dram_zq_calibration_error, .-dram_zq_calibration_error
++
++.global dram_dqs_two_full
++.type dram_dqs_two_full, %object
++dram_dqs_two_full:
++.asciz "[AUTO DEBUG] two rank and full DQ!\n"
++.size dram_dqs_two_full, .-dram_dqs_two_full
++
++.global dram_dqs_single_full
++.type dram_dqs_single_full, %object
++dram_dqs_single_full:
++.asciz "[AUTO DEBUG] single rank and full DQ!\n"
++.size dram_dqs_single_full, .-dram_dqs_single_full
++
++.global dram_dqs_single_half
++.type dram_dqs_single_half, %object
++dram_dqs_single_half:
++.asciz "[AUTO DEBUG] single rank and half DQ!\n"
++.size dram_dqs_single_half, .-dram_dqs_single_half
++
++.global dram_dqs_two_half
++.type dram_dqs_two_half, %object
++dram_dqs_two_half:
++.asciz "[AUTO DEBUG] dual rank and half DQ!\n"
++.size dram_dqs_two_half, .-dram_dqs_two_half
++
++.global dram_dqs_dx0_state
++.type dram_dqs_dx0_state, %object
++dram_dqs_dx0_state:
++.asciz "DX0 state:%d\n"
++.size dram_dqs_dx0_state, .-dram_dqs_dx0_state
++
++.global dram_dqs_dx1_state
++.type dram_dqs_dx1_state, %object
++dram_dqs_dx1_state:
++.asciz "DX1 state:%d\n"
++.size dram_dqs_dx1_state, .-dram_dqs_dx1_state
++
++.global dram_test_fail
++.type dram_test_fail, %object
++dram_test_fail:
++.asciz "DRAM simple test FAIL.\n"
++.size dram_test_fail, .-dram_test_fail
++
++.global dram_test_mismatch
++.type dram_test_mismatch, %object
++dram_test_mismatch:
++.asciz "%x != %x at address %x\n"
++.size dram_test_mismatch, .-dram_test_mismatch
++
++.global dram_test_ok
++.type dram_test_ok, %object
++dram_test_ok:
++.asciz "DRAM simple test OK.\n"
++.size dram_test_ok, .-dram_test_ok
++
++.global dram_initial_zero_error
++.type dram_initial_zero_error, %object
++dram_initial_zero_error:
++.asciz "[ERROR DEBUG] DRAM initial error : 0!\n"
++.size dram_initial_zero_error, .-dram_initial_zero_error
++
++.global dram_scan_row
++.type dram_scan_row, %object
++dram_scan_row:
++.asciz "[AUTO DEBUG] rank %d row = %d \n"
++.size dram_scan_row, .-dram_scan_row
++
++.global dram_scan_bank
++.type dram_scan_bank, %object
++dram_scan_bank:
++.asciz "[AUTO DEBUG] rank %d bank = %d \n"
++.size dram_scan_bank, .-dram_scan_bank
++
++.global dram_scan_page_size
++.type dram_scan_page_size, %object
++dram_scan_page_size:
++.asciz "[AUTO DEBUG] rank %d page size = %d KB \n"
++.size dram_scan_page_size, .-dram_scan_page_size
++
++.global dram_rank_config_same
++.type dram_rank_config_same, %object
++dram_rank_config_same:
++.asciz "rank1 config same as rank0\n"
++.size dram_rank_config_same, .-dram_rank_config_same
++
++.global dram_rank_config_different
++.type dram_rank_config_different, %object
++dram_rank_config_different:
++.asciz "rank1 config different from rank0\n"
++.size dram_rank_config_different, .-dram_rank_config_different
++
++.global dram_scan_rank_width_error
++.type dram_scan_rank_width_error, %object
++dram_scan_rank_width_error:
++.asciz "[ERROR DEBUG] auto scan dram rank&width fail !\n"
++.size dram_scan_rank_width_error, .-dram_scan_rank_width_error
++
++.global dram_scan_size_error
++.type dram_scan_size_error, %object
++dram_scan_size_error:
++.asciz "[ERROR DEBUG] auto scan dram size fail !\n"
++.size dram_scan_size_error, .-dram_scan_size_error
++
++.global dram_internal_zq_value
++.type dram_internal_zq_value, %object
++dram_internal_zq_value:
++.asciz "ZQ value = 0x%x\n"
++.size dram_internal_zq_value, .-dram_internal_zq_value
++
++.global dram_internal_zq_only
++.type dram_internal_zq_only, %object
++dram_internal_zq_only:
++.asciz "DRAM only have internal ZQ!!\n"
++.size dram_internal_zq_only, .-dram_internal_zq_only
++
++.global dram_pmu_exists
++.type dram_pmu_exists, %object
++dram_pmu_exists:
++.asciz "get_pmu_exist() = %d\n"
++.size dram_pmu_exists, .-dram_pmu_exists
++
++.global dram_driver_version
++.type dram_driver_version, %object
++dram_driver_version:
++.asciz "V0.32"
++.size dram_driver_version, .-dram_driver_version
++
++.global dram_boot_driver_info
++.type dram_boot_driver_info, %object
++dram_boot_driver_info:
++.asciz "DRAM BOOT DRIVE INFO: %s\n"
++.size dram_boot_driver_info, .-dram_boot_driver_info
++
++.global dram_clock_mhz
++.type dram_clock_mhz, %object
++dram_clock_mhz:
++.asciz "DRAM CLK = %d MHz\n"
++.size dram_clock_mhz, .-dram_clock_mhz
++
++.global dram_type_info
++.type dram_type_info, %object
++dram_type_info:
++.asciz "DRAM Type = %d (2:DDR2,3:DDR3)\n"
++.size dram_type_info, .-dram_type_info
++
++.global dram_zq_value
++.type dram_zq_value, %object
++dram_zq_value:
++.asciz "DRAMC ZQ value: 0x%x\n"
++.size dram_zq_value, .-dram_zq_value
++
++.global dram_read_odt_off
++.type dram_read_odt_off, %object
++dram_read_odt_off:
++.asciz "DRAMC read ODT  off.\n"
++.size dram_read_odt_off, .-dram_read_odt_off
++
++.global dram_odt_value
++.type dram_odt_value, %object
++dram_odt_value:
++.asciz "DRAM ODT value: 0x%x.\n"
++.size dram_odt_value, .-dram_odt_value
++
++.global dram_odt_off
++.type dram_odt_off, %object
++dram_odt_off:
++.asciz "DRAM ODT off.\n"
++.size dram_odt_off, .-dram_odt_off
++
++.global dram_initial_one_error
++.type dram_initial_one_error, %object
++dram_initial_one_error:
++.asciz "DRAM initial error : 1 !\n"
++.size dram_initial_one_error, .-dram_initial_one_error
++
++.global dram_size_mb
++.type dram_size_mb, %object
++dram_size_mb:
++.asciz "DRAM SIZE =%d M\n"
++.size dram_size_mb, .-dram_size_mb
++
++.global dram_auto_sr_enabled
++.type dram_auto_sr_enabled, %object
++dram_auto_sr_enabled:
++.asciz "Enable Auto SR\n"
++.size dram_auto_sr_enabled, .-dram_auto_sr_enabled
++
++.global dram_pll_ctrl
++.type dram_pll_ctrl, %object
++dram_pll_ctrl:
++.asciz "PLL_DDR_CTRL_REG:0x%x\n"
++.size dram_pll_ctrl, .-dram_pll_ctrl
++
++.global dram_clk_ctrl
++.type dram_clk_ctrl, %object
++dram_clk_ctrl:
++.asciz "DRAM_CLK_REG:0x%x\n"
++.size dram_clk_ctrl, .-dram_clk_ctrl
++
++.global dram_timing_mr2
++.type dram_timing_mr2, %object
++dram_timing_mr2:
++.asciz "[TIMING DEBUG] MR2= 0x%x\n"
++.size dram_timing_mr2, .-dram_timing_mr2
++
++.section .note.GNU-stack,"",%progbits
+--- /dev/null
++++ b/drivers/dram/sun8iw20p1/lib-dram/dramc_simple_wr_test.S
+@@ -0,0 +1,86 @@
++/* Reconstructed T113 destructive DRAM test, preserving the vendor contract.
++ * r0: total memory in MiB; r1: number of words to test in each half.
++ * Write distinct incrementing patterns to both regions, then verify the
++ * second region before the first. Return 0 on success, 1 on mismatch.
++ */
++.syntax unified
++.arch armv7-a
++.thumb
++.equ SDRAM_BASE, 0x40000000
++.equ TEST_PATTERN_A, 0x01234567
++.equ TEST_PATTERN_B, 0xfedcba98
++
++.section .text.dramc_simple_wr_test,"ax",%progbits
++.p2align 2
++.global dramc_simple_wr_test
++.type dramc_simple_wr_test, %function
++.thumb_func
++dramc_simple_wr_test:
++	lsrs r0, r0, #1
++	push {r3, r4, r5, r6, r7, r8, r9, lr}
++	ldr r2, =TEST_PATTERN_A
++	mov r3, #SDRAM_BASE
++	lsls r0, r0, #20             /* Offset to the second half, in bytes. */
++	movs r4, #0
++	ldr r5, =TEST_PATTERN_B
++.Lwrite_next:
++	cmp r4, r1
++	bne .Lwrite_word
++	ldr r2, =TEST_PATTERN_B
++	mov r6, #SDRAM_BASE
++	ldr r1, =TEST_PATTERN_A
++	movs r5, #0
++.Lverify_next:
++	cmp r4, r5
++	bne .Lverify_word
++	ldr r0, =dram_test_ok
++	bl printf
++	movs r0, #0
++	b .Lreturn
++
++.Lwrite_word:
++	adds r6, r4, r2
++	str r6, [r3]
++	adds r6, r4, r5
++	str r6, [r0, r3]
++	adds r4, #1
++	adds r3, #4
++	b .Lwrite_next
++
++.Lverify_word:
++	ldr r7, [r0, r6]
++	add r8, r5, r2
++	add r9, r0, r6
++	cmp r8, r7
++	beq .Lverify_first_half
++	ldr r0, =dram_test_fail
++	bl printf
++	mov r3, r9
++.Lreport_values:
++	mov r2, r8
++	mov r1, r7
++	ldr r0, =dram_test_mismatch
++	bl printf
++	movs r0, #1
++.Lreturn:
++	pop {r3, r4, r5, r6, r7, r8, r9, pc}
++
++.Lverify_first_half:
++	mov r3, r6
++	add r8, r5, r1
++	ldr r7, [r3], #4
++	cmp r8, r7
++	beq .Lverified_word
++	ldr r0, =dram_test_fail
++	bl printf
++	mov r3, r6
++	b .Lreport_values
++.Lverified_word:
++	adds r5, #1
++	mov r6, r3
++	b .Lverify_next
++
++.p2align 2
++.ltorg
++.size dramc_simple_wr_test, . - dramc_simple_wr_test
++.section .note.GNU-stack,"",%progbits
+--- /dev/null
++++ b/drivers/dram/sun8iw20p1/lib-dram/init_DRAM.S
+@@ -0,0 +1,292 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/* Reconstructed T113 V0.32 DRAM bringup orchestration.
++ * r4 is the parameter block; r5 holds PMIC availability, then detected MiB.
++ * Preserve the board's ordered ZQ/PMIC transactions and timed delays.
++ */
++.syntax unified
++.arch armv7-a
++.thumb
++.equ ZQ_CONTROL, 0x03000160
++.equ RTC_ZQ_STATUS, 0x07010254
++.equ ZQ_RESULT, 0x0300016c
++.equ ZQ_INTERNAL_CONTROL, 0x03000168
++.equ DRAM_AUTO_REFRESH, 0x031030a0
++.equ DRAM_POWER_CONTROL, 0x03103004
++.equ AUTO_REFRESH_DEFAULT, 0x10000200
++.equ DRAM_REFRESH_TIMING, 0x0310309c
++.equ DRAM_PHY_CONTROL_100, 0x03103100
++.equ DRAM_PHY_CONTROL_140, 0x03103140
++.equ DRAM_PHY_CONTROL_108, 0x03103108
++.equ DRAM_TIMING_07C, 0x0310307c
++.equ PLL_DDR_CONTROL, 0x02001010
++.equ DRAM_CLOCK_CONTROL, 0x02001800
++.equ RTC_STANDBY_FLAG, 0x070005d4
++.equ PARA_TYPE, 4
++.equ PARA_ORG2, 20
++.equ PARA_MR2, 32
++.equ PARA_TPR8, 72
++.equ PARA_TPR13, 92
++.section .text.init_DRAM,"ax",%progbits
++.p2align 2
++.global init_DRAM
++.type init_DRAM,%function
++.thumb_func
++init_DRAM:
++    push {r3, r4, r5, lr}
++    mov r4, r1
++    ldr r3, [r1, #0x5c]
++    ldr r5, =ZQ_CONTROL
++    ands r3, r3, #0x10000
++    bne.n .Linit_internal_zq_only
++    ldr r2, =RTC_ZQ_STATUS
++    movs r0, #0xa
++    str r3, [r2]
++    ldr r3, [r5]
++    bic r3, r3, #3
++    str r3, [r5]
++    bl __usdelay
++    ldr r3, [r5]
++    movs r0, #0xa
++    bic r3, r3, #0x108
++    str r3, [r5]
++    ldr r3, [r5]
++    orr r3, r3, #2
++    str r3, [r5]
++    bl __usdelay
++    ldr r3, [r5]
++    movs r0, #0x14
++    orr r3, r3, #1
++    str r3, [r5]
++    bl __usdelay
++    ldr r3, =ZQ_RESULT
++    ldr r0, =dram_internal_zq_value
++    ldr r1, [r3]
++    bl printf
++
++.Linit_probe_pmic:
++    bl get_pmu_exist
++    mov r5, r0
++    mov r1, r0
++    ldr r0, =dram_pmu_exists
++    bl printf
++    cmp r5, #0
++    bge.n .Linit_select_pmic_voltage
++    mov r0, r4
++    bl dram_vol_set
++
++.Linit_check_automatic_scan:
++    ldr r3, [r4, #PARA_TPR13]
++    lsls r1, r3, #0x1f
++    bpl.n .Linit_scan_configuration
++
++.Linit_print_parameters:
++    ldr r1, =dram_driver_version
++    ldr r0, =dram_boot_driver_info
++    bl printf
++    ldr r1, [r4]
++    ldr r0, =dram_clock_mhz
++    bl printf
++    ldr r1, [r4, #PARA_TYPE]
++    ldr r0, =dram_type_info
++    bl printf
++    ldr r3, [r4, #0xc]
++    lsls r2, r3, #0x1f
++    bmi.n .Linit_print_zq_value
++    ldr r0, =dram_read_odt_off
++    bl printf
++    b.n .Linit_print_odt
++
++.Linit_internal_zq_only:
++    ldr r0, =dram_internal_zq_only
++    bl printf
++    ldr r3, [r5]
++    movs r2, #0
++    movs r0, #0xa
++    orr r3, r3, #0x100
++    str r3, [r5]
++    ldr r3, =ZQ_INTERNAL_CONTROL
++    str r2, [r3]
++    bl __usdelay
++    b.n .Linit_probe_pmic
++
++.Linit_select_pmic_voltage:
++    ldr r3, [r4, #PARA_TYPE]
++    cmp r3, #2
++    beq.n .Linit_ddr2_voltage
++    cmp r3, #3
++    bne.n .Linit_check_automatic_scan
++    movw r0, #0x5dc
++    b.n .Linit_apply_pmic_voltage
++
++.Linit_ddr2_voltage:
++    mov.w r0, #0x708
++
++.Linit_apply_pmic_voltage:
++    bl set_ddr_voltage
++    b.n .Linit_check_automatic_scan
++
++.Linit_scan_configuration:
++    mov r0, r4
++    bl auto_scan_dram_config
++    cmp r0, #0
++    bne.n .Linit_print_parameters
++
++.Linit_return_failure:
++    movs r0, #0
++
++.Linit_return:
++    pop {r3, r4, r5, pc}
++
++.Linit_print_zq_value:
++    ldr r1, [r4, #8]
++    ldr r0, =dram_zq_value
++    bl printf
++
++.Linit_print_odt:
++    ldr r1, [r4, #0x1c]
++    tst.w r1, #0x44
++    beq.n .Linit_print_odt_off
++    ldr r0, =dram_odt_value
++    bl printf
++
++.Linit_initialise_controller:
++    mov r0, r4
++    bl mctl_core_init
++    mov r5, r0
++    cbnz r0, .Linit_determine_size
++    ldr r0, =dram_initial_one_error
++    bl printf
++
++.Linit_return_size:
++    mov r0, r5
++    b.n .Linit_return
++
++.Linit_print_odt_off:
++    ldr r0, =dram_odt_off
++    bl printf
++    b.n .Linit_initialise_controller
++
++.Linit_determine_size:
++    ldr r5, [r4, #PARA_ORG2]
++    cmp r5, #0
++    bge.n .Linit_measure_size
++    ubfx r5, r5, #0x10, #0xf
++
++.Linit_configure_auto_refresh:
++    ldr r3, [r4, #PARA_TPR13]
++    ldr r1, =DRAM_AUTO_REFRESH
++    ldr r2, =DRAM_POWER_CONTROL
++    tst.w r3, #0x40000000
++    ldr r3, [r1]
++    beq.n .Linit_disable_auto_refresh
++    ldr r3, [r4, #PARA_TPR8]
++    ldr r0, =AUTO_REFRESH_DEFAULT
++    cmp r3, #0
++    it eq
++    moveq r3, r0
++    ldr r0, =dram_auto_sr_enabled
++    str r3, [r1]
++    movw r1, #0x40a
++    ldr r3, =DRAM_REFRESH_TIMING
++    str r1, [r3]
++    ldr r3, [r2]
++    orr r3, r3, #1
++    str r3, [r2]
++    bl printf
++
++.Linit_configure_phy:
++    ldr r2, =DRAM_PHY_CONTROL_100
++    ldr r1, [r4, #PARA_TPR13]
++    ldr r0, [r4, #PARA_TYPE]
++    ldr r3, [r2]
++    tst.w r1, #0x200
++    bic r3, r3, #0xf000
++    bne.n .Linit_enable_powerdown_timing
++    cmp r0, #6
++    bne.n .Linit_write_phy_control
++
++.Linit_enable_powerdown_timing:
++    orr r3, r3, #0x5000
++
++.Linit_write_phy_control:
++    str r3, [r2]
++    ldr r2, =DRAM_PHY_CONTROL_140
++    ldr r3, [r2]
++    orr r3, r3, #0x80000000
++    str r3, [r2]
++    lsls r3, r1, #0x17
++    ittt mi
++    ldrmi r3, [r2, #-0x88]
++    orrmi r3, r3, #0x300
++    strmi r3, [r2, #-0x88]
++    tst.w r1, #0x4000000
++    ldr r3, =DRAM_PHY_CONTROL_108
++    ldr r2, [r3]
++    ite ne
++    bicne r2, r2, #0x2000
++    orreq r2, r2, #0x2000
++    cmp r0, #7
++    str r2, [r3]
++    bne.n .Linit_print_final_registers
++    ldr r2, =DRAM_TIMING_07C
++    ldr r3, [r2]
++    bic r3, r3, #0xf0000
++    orr r3, r3, #0x10000
++    str r3, [r2]
++
++.Linit_print_final_registers:
++    ldr r3, =PLL_DDR_CONTROL
++    ldr r0, =dram_pll_ctrl
++    ldr r1, [r3]
++    bl printf
++    ldr r3, =DRAM_CLOCK_CONTROL
++    ldr r0, =dram_clk_ctrl
++    ldr r1, [r3]
++    bl printf
++    ldrh r1, [r4, #PARA_MR2]
++    ldr r0, =dram_timing_mr2
++    bl printf
++    bl dram_enable_all_master
++    ldr r3, [r4, #PARA_TPR13]
++    lsls r2, r3, #3
++    bmi.n .Linit_check_memory_test
++
++.Linit_resume_standby:
++    bl handler_super_standby
++    b.n .Linit_return_size
++
++.Linit_measure_size:
++    bl DRAMC_get_dram_size
++    mov r5, r0
++    mov r1, r0
++    ldr r0, =dram_size_mb
++    bl printf
++    ldrh r3, [r4, #PARA_ORG2]
++    orr.w r3, r3, r5, lsl #16
++    str r3, [r4, #PARA_ORG2]
++    b.n .Linit_configure_auto_refresh
++
++.Linit_disable_auto_refresh:
++    lsrs r3, r3, #0x10
++    lsls r3, r3, #0x10
++    str r3, [r1]
++    ldr r3, [r2]
++    bic r3, r3, #1
++    str r3, [r2]
++    b.n .Linit_configure_phy
++
++.Linit_check_memory_test:
++    ldr r3, =RTC_STANDBY_FLAG
++    ldr r3, [r3]
++    lsls r3, r3, #0xf
++    bmi.n .Linit_resume_standby
++    mov.w r1, #0x1000
++    mov r0, r5
++    bl dramc_simple_wr_test
++    cmp r0, #0
++    beq.n .Linit_resume_standby
++    b.n .Linit_return_failure
++    .p2align 2
++    .ltorg
++.size init_DRAM,.-init_DRAM
++.section .note.GNU-stack,"",%progbits
+--- /dev/null
++++ b/drivers/dram/sun8iw20p1/lib-dram/mctl_channel_init.S
+@@ -0,0 +1,361 @@
++/* Reconstructed T113 DRAM channel initialization and standby recovery.
++ * r1: dram_para_t * (r0 is the unused channel index).
++ * r4 holds DQS gating mode, r5 the PHY gate-control register, r6 parameters,
++ * and r7 the PHY status register. Later recovery reuses r6 for control MMIO.
++ * Return the vendor training result: 1 without training errors, 0 otherwise.
++ */
++.syntax unified
++.arch armv7-a
++.thumb
++.equ COM_TIMER,       0x0310200c
++.equ COM_CLOCK_CTRL,  0x03102014
++.equ PHY_PIR,         0x03103000
++.equ PHY_REG_004,     0x03103004
++.equ PHY_PGSR0,       0x03103010
++.equ PHY_STATUS,      0x03103018
++.equ PHY_DRAMTMG2,    0x03103060
++.equ PHY_REFRESH,     0x0310308c
++.equ PHY_DQS_DELAY,   0x031030bc
++.equ PHY_RANK_CTRL,   0x031030c0
++.equ PHY_GATE_CTRL,   0x03103108
++.equ PHY_REG_10C,     0x0310310c
++.equ PHY_DXCCR,       0x0310311c
++.equ PHY_ZQ_CTRL,     0x03103140
++.equ PHY_REG_208,     0x03103208
++.equ PHY_DX0_GCR0,    0x03103344
++.equ PHY_DX1_GCR0,    0x031033c4
++.equ RTC_STANDBY,     0x070005d4
++.equ SYSTEM_POWER,    0x07010250
++.equ SINGLE_RANK_CFG, 0x01003087
++.equ DRAM_CLK,   0
++.equ DRAM_TYPE,  4
++.equ DRAM_ZQ,    8
++.equ DRAM_ODT,   12
++.equ DRAM_PARA2, 20
++.equ DRAM_TPR13, 92
++.equ FAST_DRAM_CLK, 672
++
++.section .text.mctl_channel_init,"ax",%progbits
++.p2align 2
++.global mctl_channel_init
++.type mctl_channel_init, %function
++.thumb_func
++mctl_channel_init:
++	ldr r0, =COM_TIMER
++	push {r3, r4, r5, r6, r7, r8, r9, lr}
++	mov r6, r1
++	ldr r4, [r1, #DRAM_TPR13]
++	ldr r1, [r1, #DRAM_CLK]
++	ldr r2, [r0]
++	ubfx r4, r4, #2, #2
++	ldr r5, =PHY_GATE_CTRL
++	cmp r1, #FAST_DRAM_CLK
++	lsr.w r3, r1, #1
++	bic r2, r2, #0xff0
++	bic r2, r2, #0xf
++	add.w r3, r3, #-1
++	orr r3, r3, r2
++	ldr r2, [r6, #DRAM_ODT]
++	str r3, [r0]
++	/* Form DX0's address with encodable Thumb immediates. */
++	add.w r0, r0, #(PHY_DX0_GCR0-COM_TIMER-0x18)
++	ldr r3, [r5]
++	add.w r0, r0, #0x18
++	mvn.w r2, r2
++	lsl.w r2, r2, #5
++	bic r3, r3, #0xf00
++	orr r3, r3, #0x300
++	and r2, r2, #0x20
++	str r3, [r5]
++
++	/* Both data slices share ODT polarity and the fast-clock setting. */
++	ldr r3, [r0]
++	bic r3, r3, #0x30
++	orr r3, r3, r2
++	itete hi
++	bichi r3, r3, #0xf600
++	bicls r3, r3, #0xf000
++	bichi r3, r3, #0x1e
++	bicls r3, r3, #0x1e
++	it hi
++	orrhi r3, r3, #0x400
++	cmp r1, #FAST_DRAM_CLK
++	str r3, [r0]
++	ldr r0, =PHY_DX1_GCR0
++	ldr r3, [r0]
++	bic r3, r3, #0x30
++	orr r3, r3, r2
++	ldr r2, =PHY_REG_208
++	itete hi
++	bichi r3, r3, #0xf600
++	bicls r3, r3, #0xf000
++	bichi r3, r3, #0x1e
++	bicls r3, r3, #0x1e
++	it hi
++	orrhi r3, r3, #0x400
++	str r3, [r0]
++	mov r0, r6
++	ldr r3, [r2]
++	orr r3, r3, #2
++	str r3, [r2]
++	bl eye_delay_compensation
++
++	cmp r4, #1
++	beq .Lgate_mode_one
++	cmp r4, #2
++	beq.w .Lgate_mode_two
++	ldr r3, [r5]
++	movs r0, #10
++	bic r3, r3, #0x40
++	str r3, [r5]
++	bl __usdelay
++	ldr r3, [r5]
++	orr r3, r3, #0xc0
++	str r3, [r5]
++	b .Lgate_ready
++.Lgate_mode_one:
++	ldr r3, [r5]
++	ldr r2, =PHY_DQS_DELAY
++	bic r3, r3, #0xc0
++	str r3, [r5]
++	ldr r3, [r2]
++	bic r3, r3, #0x106
++	bic r3, r3, #1
++.Lwrite_gate_delay:
++	str r3, [r2]
++.Lgate_ready:
++	/* LPDDR2 and LPDDR3 need their corresponding DX control settings. */
++	ldr r3, [r6, #DRAM_TYPE]
++	subs r3, #6
++	cmp r3, #1
++	bhi .Lrank_control
++	ldr r2, =PHY_DXCCR
++	cmp r4, #1
++	ldr r3, [r2]
++	itete eq
++	biceq r3, r3, #0x08000000
++	bicne r3, r3, #0x77000000
++	biceq r3, r3, #0xc0
++	orrne r3, r3, #0x22000000
++	it eq
++	orreq r3, r3, #0x80000000
++	str r3, [r2]
++.Lrank_control:
++	ldr r3, [r6, #DRAM_PARA2]
++	ldr r2, =PHY_RANK_CTRL
++	tst r3, #0x1000
++	iteet ne
++	ldrne r3, [r2]
++	ldreq r1, [r2]
++	ldreq r3, =SINGLE_RANK_CFG
++	andne r3, r3, #0xf0000000
++	itete ne
++	orrne r3, r3, #0x03000000
++	andeq r1, r1, #0xf0000000
++	orrne r3, r3, #1
++	orreq r3, r1
++	str r3, [r2]
++	ldr r3, =RTC_STANDBY
++	ldr r3, [r3]
++	lsls r1, r3, #15
++	bpl .Lzq_configuration
++	ldr r2, =SYSTEM_POWER
++	movs r0, #10
++	ldr r3, [r2]
++	bic r3, r3, #2
++	str r3, [r2]
++	bl __usdelay
++.Lzq_configuration:
++	ldr r1, =PHY_ZQ_CTRL
++	cmp r4, #1
++	ldr r7, =PHY_PGSR0
++	ldr r3, [r1]
++	and r3, r3, #0xfc000000
++	orr r2, r3, #0x02000000
++	ldr r3, [r6, #DRAM_ZQ]
++	bic r3, r3, #0xff000000
++	orr r3, r3, r2
++	str r3, [r1]
++	bne.w .Lother_initialization
++
++	/* Mode 1 first initializes PHY reset, PLL, and ZQ calibration. */
++	ldr r3, =PHY_PIR
++	movs r2, #0x52
++	str r2, [r3]
++	movs r2, #0x53
++	str r2, [r3]
++.Lwait_first_idone:
++	ldr r3, [r7]
++	lsls r2, r3, #31
++	bpl .Lwait_first_idone
++	movs r0, #10
++	bl __usdelay
++	ldr r3, [r6, #DRAM_TYPE]
++	cmp r3, #3
++	ite ne
++	movne r3, #0x520
++	moveq r3, #0x5a0
++.Lstart_initialization:
++	ldr r2, =PHY_PIR
++	movs r0, #10
++	str r3, [r2]
++	orr r3, r3, #1
++	str r3, [r2]
++	bl __usdelay
++.Lwait_idone:
++	ldr r3, [r7]
++	lsls r0, r3, #31
++	bpl .Lwait_idone
++	ldr r3, =RTC_STANDBY
++	ldr r3, [r3]
++	lsls r1, r3, #15
++	bpl .Ltraining_result
++
++	/* Resume from standby, preserving the required MMIO/delay ordering. */
++	ldr r6, =PHY_REG_10C
++	movs r0, #10
++	ldr r3, [r6]
++	bic r3, r3, #0x06000000
++	orr r3, r3, #0x04000000
++	str r3, [r6]
++	bl __usdelay
++	ldr r3, =PHY_REG_004
++	ldr r2, [r3]
++	mov r8, r3
++	orr r2, r2, #1
++	str r2, [r3]
++	ldr r2, =PHY_STATUS
++	mov r9, r2
++.Lwait_self_refresh:
++	ldr r3, [r2]
++	and r3, r3, #7
++	cmp r3, #3
++	bne .Lwait_self_refresh
++	ldr r2, =SYSTEM_POWER
++	movs r0, #10
++	ldr r3, [r2]
++	bic r3, r3, #1
++	str r3, [r2]
++	bl __usdelay
++	ldr r3, [r8]
++	bic r3, r3, #1
++	str r3, [r8]
++.Lwait_normal_state:
++	ldr r3, [r9]
++	and r3, r3, #7
++	cmp r3, #1
++	bne .Lwait_normal_state
++	movs r0, #15
++	bl __usdelay
++	cmp r4, #1
++	bne .Ltraining_result
++	ldr r3, [r5]
++	mov r0, r4
++	bic r3, r3, #0xc0
++	str r3, [r5]
++	ldr r3, [r6]
++	bic r3, r3, #0x06000000
++	orr r3, r3, #0x02000000
++	str r3, [r6]
++	bl __usdelay
++	ldr r3, =PHY_PIR
++	movw r2, #0x401
++	str r2, [r3]
++.Lwait_resume_idone:
++	ldr r3, [r7]
++	lsls r2, r3, #31
++	bpl .Lwait_resume_idone
++.Ltraining_result:
++	/* Cache PGSR0 once: separate reads could observe different status. */
++	ldr r5, [r7]
++	tst r5, #0x0ff00000
++	beq .Ltraining_ok
++	ands r5, r5, #0x00100000
++	beq .Lfinish_channel
++	movs r5, #0
++	ldr r0, =dram_zq_calibration_error
++	bl printf
++.Lreturn:
++	mov r0, r5
++	pop {r3, r4, r5, r6, r7, r8, r9, pc}
++
++.Lgate_mode_two:
++	ldr r3, [r5]
++	ldr r1, =PHY_DQS_DELAY
++	bic r3, r3, #0xc0
++	orr r3, r3, #0x80
++	str r3, [r5]
++	ldr r3, =PHY_DRAMTMG2
++	ldr r3, [r3]
++	ldr r2, [r1]
++	ubfx r3, r3, #16, #5
++	bic r2, r2, #0x106
++	subs r3, #2
++	bic r2, r2, #1
++	orr r2, r2, #0x100
++	orrs r3, r2
++	ldr r2, =PHY_DXCCR
++	str r3, [r1]
++	ldr r3, [r2]
++	bic r3, r3, #0x80000000
++	orr r3, r3, #0x08000000
++	b .Lwrite_gate_delay
++.Lother_initialization:
++	ldr r3, =RTC_STANDBY
++	ldr r3, [r3]
++	lsls r3, r3, #15
++	bmi .Lresume_initialization
++	ldr r3, [r6, #DRAM_TYPE]
++	cmp r3, #3
++	ite ne
++	movne r3, #0x172
++	moveq r3, #0x1f2
++	b .Lstart_initialization
++.Lresume_initialization:
++	movs r3, #0x62
++	b .Lstart_initialization
++
++/* Safe literal-pool boundary: preceding initialization paths branch away. */
++.p2align 2
++.ltorg
++
++.Ltraining_ok:
++	movs r5, #1
++.Lfinish_channel:
++	ldr r2, =PHY_STATUS
++.Lwait_channel_normal:
++	ldr r3, [r2]
++	lsls r3, r3, #31
++	bpl .Lwait_channel_normal
++	ldr r6, =PHY_REFRESH
++	movs r0, #10
++	ldr r3, [r6]
++	orr r3, r3, #0x80000000
++	str r3, [r6]
++	bl __usdelay
++	ldr r3, [r6]
++	movs r0, #10
++	bic r3, r3, #0x80000000
++	str r3, [r6]
++	bl __usdelay
++	ldr r2, =COM_CLOCK_CTRL
++	movs r0, #10
++	ldr r3, [r2]
++	orr r3, r3, #0x80000000
++	str r3, [r2]
++	bl __usdelay
++	ldr r2, =PHY_REG_10C
++	cmp r4, #1
++	ldr r3, [r2]
++	bic r3, r3, #0x06000000
++	str r3, [r2]
++	itttt eq
++	ldreq r3, [r2, #16]
++	biceq r3, r3, #0xc0
++	orreq r3, r3, #0x40
++	streq r3, [r2, #16]
++	b .Lreturn
++.p2align 2
++.ltorg
++.size mctl_channel_init, . - mctl_channel_init
++.section .note.GNU-stack,"",%progbits
+--- /dev/null
++++ b/drivers/dram/sun8iw20p1/lib-dram/mctl_phy_ac_remapping.S
+@@ -0,0 +1,352 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/* Reconstructed T113 DRAM address/command remapping algorithm.
++ * r6: parameter block; r4: DRAM eFuse type; r5: chip mark.
++ * Nine local 22-byte maps occupy word-aligned stack slots. The zero map
++ * is the default; board/eFuse selection copies one of eight source tables.
++ */
++.syntax unified
++.arch armv7-a
++.thumb
++.equ SID_SRAM_BASE, 0x03006200
++.equ DRAM_REMAP0, 0x03102500
++.equ DRAM_REMAP1, 0x03102504
++.equ DRAM_REMAP2, 0x03102508
++.equ DRAM_REMAP3, 0x0310250c
++.section .text.mctl_phy_ac_remapping,"ax",%progbits
++.p2align 2
++.global mctl_phy_ac_remapping
++.type mctl_phy_ac_remapping,%function
++.thumb_func
++mctl_phy_ac_remapping:
++    ldr r3, =SID_SRAM_BASE
++    movs r2, #0x16
++    push {r4, r5, r6, lr}
++    sub sp, #0xd8
++    mov r6, r0
++    movs r1, #0
++    mov r0, sp
++    ldr r5, [r3]
++    ldr r4, [r3, #0x28]
++    bl memset
++    movs r2, #0x16
++    ldr r1, =dram_remap_cfg1
++    add r0, sp, #0x18
++    ubfx r4, r4, #8, #4
++    bl memcpy
++    movs r2, #0x16
++    ldr r1, =dram_remap_cfg2
++    add r0, sp, #0x30
++    ubfx r5, r5, #8, #8
++    bl memcpy
++    movs r2, #0x16
++    ldr r1, =dram_remap_cfg3
++    add r0, sp, #0x48
++    bl memcpy
++    movs r2, #0x16
++    ldr r1, =dram_remap_cfg4
++    add r0, sp, #0x60
++    bl memcpy
++    movs r2, #0x16
++    ldr r1, =dram_remap_cfg5
++    add r0, sp, #0x78
++    bl memcpy
++    movs r2, #0x16
++    ldr r1, =dram_remap_cfg6
++    add r0, sp, #0x90
++    bl memcpy
++    movs r2, #0x16
++    ldr r1, =dram_remap_cfg7
++    add r0, sp, #0xa8
++    bl memcpy
++    movs r2, #0x16
++    ldr r1, =dram_remap_cfg8
++    add r0, sp, #0xc0
++    bl memcpy
++    mov r1, r4
++    ldr r0, =dram_efuse_type
++    bl printf
++    mov r1, r5
++    ldr r0, =dram_mark_id
++    bl printf
++    ldr r3, [r6, #0x5c]
++    tst.w r3, #0xc0000
++    bne.n .Lremap_forced_remap
++    cmp r5, #0x50
++    beq.n .Lremap_forced_remap
++    cmp r5, #0x7c
++    beq.n .Lremap_forced_remap
++    sub.w r3, r4, #8
++    cmp r3, #6
++    bhi.n .Lremap_fuse_default
++    tbb [pc, r3]
++.Lremap_fuse_table:
++    .byte (.Lremap_fuse_8-.Lremap_fuse_table)/2
++    .byte (.Lremap_fuse_9-.Lremap_fuse_table)/2
++    .byte (.Lremap_fuse_10-.Lremap_fuse_table)/2
++    .byte (.Lremap_fuse_default-.Lremap_fuse_table)/2
++    .byte (.Lremap_fuse_12-.Lremap_fuse_table)/2
++    .byte (.Lremap_check_dram_type-.Lremap_fuse_table)/2
++    .byte (.Lremap_check_dram_type-.Lremap_fuse_table)/2
++    .p2align 1
++
++.Lremap_fuse_12:
++    movs r2, #0x16
++    add r1, sp, #0x18
++
++.Lremap_copy_selected_table:
++    mov r0, sp
++    bl memcpy_self
++
++.Lremap_check_dram_type:
++    ldr r3, [r6, #4]
++    cmp r3, #2
++    beq.n .Lremap_ddr2_mark_check
++    cmp r3, #3
++    beq.w .Lremap_program_common_map
++
++.Lremap_return:
++    add sp, #0xd8
++    pop {r4, r5, r6, pc}
++
++.Lremap_fuse_8:
++    movs r2, #0x16
++    add r1, sp, #0x30
++    b.n .Lremap_copy_selected_table
++
++.Lremap_fuse_9:
++    movs r2, #0x16
++    add r1, sp, #0x48
++    b.n .Lremap_copy_selected_table
++
++.Lremap_fuse_10:
++    movs r2, #0x16
++    add r1, sp, #0x78
++    b.n .Lremap_copy_selected_table
++
++.Lremap_fuse_default:
++    movs r2, #0x16
++    add r1, sp, #0x60
++    b.n .Lremap_copy_selected_table
++
++.Lremap_forced_remap:
++    lsls r2, r3, #0xd
++    bmi.n .Lremap_mark_50_table
++    cmp r5, #0x50
++    bne.n .Lremap_check_mark_7c
++
++.Lremap_mark_50_table:
++    movs r2, #0x16
++    add r1, sp, #0xa8
++    mov r0, sp
++    bl memcpy_self
++
++.Lremap_check_mark_7c:
++    ldr r3, [r6, #0x5c]
++    lsls r3, r3, #0xc
++    bmi.n .Lremap_mark_7c_table
++    cmp r5, #0x7c
++    bne.n .Lremap_check_dram_type
++
++.Lremap_mark_7c_table:
++    movs r2, #0x16
++    add r1, sp, #0xc0
++    b.n .Lremap_copy_selected_table
++
++.Lremap_ddr2_mark_check:
++    cmp r5, #0x50
++    beq.n .Lremap_program_ddr2_map
++    cmp r5, #0x7c
++    bne.n .Lremap_check_ddr2_die
++
++.Lremap_program_ddr2_map:
++    /* DDR2 marked dies: write the four packed line-mapping registers. */
++    ldrb.w r3, [sp, #1]
++    ldrb.w r2, [sp]
++    lsls r3, r3, #0xa
++    orr.w r3, r3, r2, lsl #5
++    ldrb.w r2, [sp, #2]
++    orr.w r3, r3, r2, lsl #15
++    ldrb.w r2, [sp, #3]
++    orr.w r3, r3, r2, lsl #20
++    ldrb.w r2, [sp, #4]
++    orr.w r3, r3, r2, lsl #25
++    ldr r2, =DRAM_REMAP0
++    str r3, [r2]
++    ldrb.w r3, [sp, #7]
++    ldrb.w r1, [sp, #6]
++    lsls r3, r3, #0xa
++    orr.w r3, r3, r1, lsl #5
++    ldrb.w r1, [sp, #5]
++    orrs r3, r1
++    ldrb.w r1, [sp, #8]
++    orr.w r3, r3, r1, lsl #15
++    ldrb.w r1, [sp, #9]
++    orr.w r3, r3, r1, lsl #20
++    ldrb.w r1, [sp, #0xa]
++    orr.w r3, r3, r1, lsl #25
++    ldr r1, =DRAM_REMAP1
++    str r3, [r1]
++    ldrb.w r3, [sp, #0xd]
++    ldrb.w r1, [sp, #0xc]
++    lsls r3, r3, #0xa
++    orr.w r3, r3, r1, lsl #5
++    ldrb.w r1, [sp, #0xb]
++    orrs r3, r1
++    ldrb.w r1, [sp, #0xe]
++    orr.w r3, r3, r1, lsl #15
++    ldrb.w r1, [sp, #0xf]
++    orr.w r3, r3, r1, lsl #20
++    ldr r1, =DRAM_REMAP2
++    str r3, [r1]
++    ldrb.w r3, [sp, #0x12]
++    ldrb.w r1, [sp, #0x11]
++    lsls r3, r3, #0xa
++    orr.w r3, r3, r1, lsl #5
++    ldrb.w r1, [sp, #0x10]
++    orrs r3, r1
++    ldrb.w r1, [sp, #0x13]
++    orr.w r3, r3, r1, lsl #15
++    ldrb.w r1, [sp, #0x14]
++    orr.w r3, r3, r1, lsl #20
++    ldrb.w r1, [sp, #0x15]
++    orr.w r3, r3, r1, lsl #25
++    ldr r1, =DRAM_REMAP3
++    str r3, [r1]
++    ldrb.w r3, [sp, #1]
++    ldrb.w r1, [sp]
++    lsls r3, r3, #0xa
++    orr.w r3, r3, r1, lsl #5
++    ldrb.w r1, [sp, #2]
++    orr r3, r3, #1
++    orr.w r3, r3, r1, lsl #15
++    ldrb.w r1, [sp, #3]
++    orr.w r3, r3, r1, lsl #20
++    ldrb.w r1, [sp, #4]
++    orr.w r3, r3, r1, lsl #25
++    str r3, [r2]
++
++.Lremap_check_ddr2_die:
++    subs r4, #0xd
++    cmp r4, #1
++    bhi.w .Lremap_return
++    movs r2, #0x16
++    add r1, sp, #0x90
++    mov r0, sp
++    bl memcpy_self
++
++.Lremap_program_common_map:
++    /* DDR3 and selected DDR2 dies share this mapping-enable sequence. */
++    ldrb.w r3, [sp, #1]
++    ldrb.w r2, [sp]
++    lsls r3, r3, #0xa
++    orr.w r3, r3, r2, lsl #5
++    ldrb.w r2, [sp, #2]
++    orr.w r3, r3, r2, lsl #15
++    ldrb.w r2, [sp, #3]
++    orr.w r3, r3, r2, lsl #20
++    ldrb.w r2, [sp, #4]
++    orr.w r3, r3, r2, lsl #25
++    ldr r2, =DRAM_REMAP0
++    str r3, [r2]
++    ldrb.w r3, [sp, #7]
++    ldrb.w r1, [sp, #6]
++    lsls r3, r3, #0xa
++    orr.w r3, r3, r1, lsl #5
++    ldrb.w r1, [sp, #5]
++    orrs r3, r1
++    ldrb.w r1, [sp, #8]
++    orr.w r3, r3, r1, lsl #15
++    ldrb.w r1, [sp, #9]
++    orr.w r3, r3, r1, lsl #20
++    ldrb.w r1, [sp, #0xa]
++    orr.w r3, r3, r1, lsl #25
++    ldr r1, =DRAM_REMAP1
++    str r3, [r1]
++    ldrb.w r3, [sp, #0xd]
++    ldrb.w r1, [sp, #0xc]
++    lsls r3, r3, #0xa
++    orr.w r3, r3, r1, lsl #5
++    ldrb.w r1, [sp, #0xb]
++    orrs r3, r1
++    ldrb.w r1, [sp, #0xe]
++    orr.w r3, r3, r1, lsl #15
++    ldrb.w r1, [sp, #0xf]
++    orr.w r3, r3, r1, lsl #20
++    ldr r1, =DRAM_REMAP2
++    str r3, [r1]
++    ldrb.w r3, [sp, #0x12]
++    ldrb.w r1, [sp, #0x11]
++    lsls r3, r3, #0xa
++    orr.w r3, r3, r1, lsl #5
++    ldrb.w r1, [sp, #0x10]
++    orrs r3, r1
++    ldrb.w r1, [sp, #0x13]
++    orr.w r3, r3, r1, lsl #15
++    ldrb.w r1, [sp, #0x14]
++    orr.w r3, r3, r1, lsl #20
++    ldrb.w r1, [sp, #0x15]
++    orr.w r3, r3, r1, lsl #25
++    ldr r1, =DRAM_REMAP3
++    str r3, [r1]
++    ldrb.w r3, [sp, #1]
++    ldrb.w r1, [sp]
++    lsls r3, r3, #0xa
++    orr.w r3, r3, r1, lsl #5
++    ldrb.w r1, [sp, #2]
++    orr r3, r3, #1
++    orr.w r3, r3, r1, lsl #15
++    ldrb.w r1, [sp, #3]
++    orr.w r3, r3, r1, lsl #20
++    ldrb.w r1, [sp, #4]
++    orr.w r3, r3, r1, lsl #25
++    str r3, [r2]
++    b.n .Lremap_return
++    .p2align 2
++    .ltorg
++.size mctl_phy_ac_remapping,.-mctl_phy_ac_remapping
++
++/* Non-executable DRAM line-permutation configuration tables. */
++.section .rodata,"a",%progbits
++.p2align 2
++.global dram_remap_cfg1
++.type dram_remap_cfg1,%object
++dram_remap_cfg1:
++    .byte 1, 9, 3, 7, 8, 18, 4, 13, 5, 6, 10, 2, 14, 12, 0, 0, 21, 17, 20, 19, 11, 22
++.size dram_remap_cfg1,.-dram_remap_cfg1
++.global dram_remap_cfg2
++.type dram_remap_cfg2,%object
++dram_remap_cfg2:
++    .byte 4, 9, 3, 7, 8, 18, 1, 13, 2, 6, 10, 5, 14, 12, 0, 0, 21, 17, 20, 19, 11, 22
++.size dram_remap_cfg2,.-dram_remap_cfg2
++.global dram_remap_cfg3
++.type dram_remap_cfg3,%object
++dram_remap_cfg3:
++    .byte 1, 7, 8, 12, 10, 18, 4, 13, 5, 6, 3, 2, 9, 0, 0, 0, 21, 17, 20, 19, 11, 22
++.size dram_remap_cfg3,.-dram_remap_cfg3
++.global dram_remap_cfg4
++.type dram_remap_cfg4,%object
++dram_remap_cfg4:
++    .byte 4, 12, 10, 7, 8, 18, 1, 13, 2, 6, 3, 5, 9, 0, 0, 0, 21, 17, 20, 19, 11, 22
++.size dram_remap_cfg4,.-dram_remap_cfg4
++.global dram_remap_cfg5
++.type dram_remap_cfg5,%object
++dram_remap_cfg5:
++    .byte 13, 2, 7, 9, 12, 19, 5, 1, 6, 3, 4, 8, 10, 0, 0, 0, 21, 22, 18, 17, 11, 20
++.size dram_remap_cfg5,.-dram_remap_cfg5
++.global dram_remap_cfg6
++.type dram_remap_cfg6,%object
++dram_remap_cfg6:
++    .byte 3, 10, 7, 13, 9, 11, 1, 2, 4, 6, 8, 5, 12, 0, 0, 0, 20, 1, 0, 21, 22, 17
++.size dram_remap_cfg6,.-dram_remap_cfg6
++.global dram_remap_cfg7
++.type dram_remap_cfg7,%object
++dram_remap_cfg7:
++    .byte 3, 2, 4, 7, 9, 1, 17, 12, 18, 14, 13, 8, 15, 6, 10, 5, 19, 22, 16, 21, 20, 11
++.size dram_remap_cfg7,.-dram_remap_cfg7
++.global dram_remap_cfg8
++.type dram_remap_cfg8,%object
++dram_remap_cfg8:
++    .byte 2, 19, 8, 6, 14, 5, 20, 10, 3, 18, 13, 11, 7, 15, 9, 1, 22, 21, 17, 12, 4, 16
++.size dram_remap_cfg8,.-dram_remap_cfg8
++
++.section .note.GNU-stack,"",%progbits

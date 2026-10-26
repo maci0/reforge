@@ -91,17 +91,18 @@ manifest = {'status': 'source-reconstruction-candidate',
             'discarded_prebuilt_members': discarded,
             'reference_sha256': hashlib.sha256(reference.read_bytes()).hexdigest(),
             'profile': 'sun8iw20p1 MMC, stock TWI/AXP1530/standby, no data cache',
-            'limitations': ['DRAM source reconstruction remains incomplete',
+            'limitations': ['Historical DRAM C spelling is not fully recovered; named assembly implements the verified original program',
                             'historical source commit 5224261 has not been recovered',
                             'compiler supplied locally; no compiler bootstrap claim',
                             'reference is comparison-only and never a build input'],
+            'source_label_generation': 'vendor Git generator; discovery bounded at output directory because the exported archive has no Git metadata',
             'packing': 'vendor default-seed glibc TYPE_3 rand stream, 16-KiB alignment and additive checksum'}
 (out / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
 PY
 src=$out/source
-git -C "$src" apply "$repo/tools/build/patches/stock-boot0-reconstruction.patch"
+GIT_CEILING_DIRECTORIES="$out" git -C "$src" apply "$repo/tools/build/patches/stock-boot0-reconstruction.patch"
 # The archive and patch contain source only. Clean also guards against local reuse.
-make -C "$src" p=sun8iw20p1 CROSS_COMPILE="$cross" CHIP_ID_CC="${oldcross}gcc" clean > "$out/clean.log" 2>&1
+GIT_CEILING_DIRECTORIES="$out" make -C "$src" p=sun8iw20p1 CROSS_COMPILE="$cross" CHIP_ID_CC="${oldcross}gcc" clean > "$out/clean.log" 2>&1
 python3 - "$src/drivers/dram/sun8iw20p1/libdram" <<'PY'
 from pathlib import Path
 import sys
@@ -110,7 +111,7 @@ PY
 "${cross}gcc" --version > "$out/compiler.txt"
 "${cross}ld" --version > "$out/linker.txt"
 "${oldcross}gcc" --version > "$out/legacy-compiler.txt"
-make -C "$src" p=sun8iw20p1 CROSS_COMPILE="$cross" CHIP_ID_CC="${oldcross}gcc" -j"${JOBS:-4}" V=1 mmc > "$out/build.log" 2>&1
+GIT_CEILING_DIRECTORIES="$out" make -C "$src" p=sun8iw20p1 CROSS_COMPILE="$cross" CHIP_ID_CC="${oldcross}gcc" -j"${JOBS:-4}" V=1 mmc > "$out/build.log" 2>&1
 mkdir "$out/artifacts"
 cp "$src/nboot/boot0_sdcard.elf" "$src/nboot/boot0_sdcard.bin" "$src/nboot/boot0_sdcard.map" "$out/artifacts/"
 python3 "$repo/tools/build/pack-stock-boot0.py" "$out/artifacts/boot0_sdcard.bin" "$out/artifacts/boot0.bin"
@@ -119,11 +120,50 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+import struct
 reference, out = map(Path, sys.argv[1:])
 stock = reference.read_bytes()
 candidate = (out / 'artifacts/boot0.bin').read_bytes()
 manifest = json.loads((out / 'manifest.json').read_text())
 equal = candidate == stock
+# Reporting predicates never relax the strict whole-file acceptance below.
+fields = [(12, 16, 'additive_checksum'), (0x2f8, 0x308, 'source_commit_label')]
+def field_for(offset):
+    return next((name for start, end, name in fields if start <= offset < end), 'program_or_configuration')
+different = [offset for offset, (a, b) in enumerate(zip(candidate, stock)) if a != b]
+runs = []
+for offset in different:
+    kind = field_for(offset)
+    if runs and offset == runs[-1]['offset'] + runs[-1]['length'] and kind == runs[-1]['field']:
+        runs[-1]['length'] += 1
+    else:
+        runs.append({'offset': offset, 'length': 1, 'field': kind})
+for run in runs:
+    start, length = run['offset'], run['length']
+    run['offset_hex'] = hex(start)
+    if run['field'] != 'program_or_configuration':
+        run['candidate_hex'] = candidate[start:start + length].hex()
+        run['reference_hex'] = stock[start:start + length].hex()
+label_start, label_end = 0x2f8, 0x308
+outside_equal = len(candidate) == len(stock) and all(field_for(offset) != 'program_or_configuration' for offset in different)
+def word_sum(data):
+    return sum(value[0] for value in struct.iter_unpack('<I', data))
+checksums = [struct.unpack_from('<I', data, 12)[0] for data in (candidate, stock)]
+checksum_valid = [((word_sum(data) - checksum + 0x5f0a6c39) & 0xffffffff) == checksum
+                  for data, checksum in zip((candidate, stock), checksums)]
+labels = [data[label_start:label_end] for data in (candidate, stock)]
+manifest['difference_ledger'] = runs
+manifest['all_bytes_outside_source_label_and_checksum_equal'] = outside_equal
+manifest['identical_byte_positions'] = min(len(candidate), len(stock)) - len(different)
+manifest['source_commit_label'] = {'offset': hex(label_start), 'field_length': label_end - label_start,
+    'candidate_hex': labels[0].hex(), 'reference_hex': labels[1].hex(),
+    'candidate_printable': labels[0].split(b'\0')[0].decode('ascii', errors='replace'),
+    'reference_printable': labels[1].split(b'\0')[0].decode('ascii', errors='replace')}
+manifest['checksum'] = {'candidate': hex(checksums[0]), 'reference': hex(checksums[1]),
+    'candidate_valid': checksum_valid[0], 'reference_valid': checksum_valid[1],
+    'difference_explained_by_source_label': outside_equal and
+        ((checksums[0] - checksums[1]) & 0xffffffff) == ((word_sum(labels[0]) - word_sum(labels[1])) & 0xffffffff)}
+manifest['generated_commit_header'] = (out / 'source/include/commit_info.h').read_text()
 manifest.update({'status': 'byte-identical' if equal else 'comparison-failed',
                  'candidate_sha256': hashlib.sha256(candidate).hexdigest(),
                  'candidate_length': len(candidate), 'reference_length': len(stock),

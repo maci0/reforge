@@ -64,7 +64,7 @@ must not be described as an unchanged factory boot chain throughout.
 
 | Stage | Original identity | Current result / missing input |
 |---|---|---|
-| boot0 / SPL | Two identical 48 KiB eGON copies at `0x2000` and `0x20000`; commit field `5224261`, DRAM driver `V0.32`, DDR3 at 792 MHz. | Sealed source-only SPL recipe now builds without the held private library. It uses GCC 7.2.1 plus the evidenced GCC 4.6.3 legacy chip-ID unit and reproduces the original deterministic packing algorithm. DRAM/layout reconstruction remains in progress; no byte-identical boot0 is claimed. |
+| boot0 / SPL | Two identical 48 KiB eGON copies at `0x2000` and `0x20000`; commit field `5224261`, DRAM driver `V0.32`, DDR3 at 792 MHz. | Two clean source builds reproduce all code, relocations, configuration, initialized data and packing bytes. Only **11 bytes differ**: the original seven-character commit label and its four-byte derived checksum. The archive naturally emits an empty label; original commit `5224261` remains unavailable and is not substituted. Whole-file comparison still fails. |
 | Primary U-Boot | 2018.05, August 25, 2023 17:05:54 +0800; Linaro GCC 7.2.1 20171011, binutils 2.28.2.20170706. Historical source revision is unknown. | **Byte-identical source reconstruction verified:** 966,656 bytes, SHA-256 `31aaa8a085b4985dafdad87d97637fcc1d35a300101295edfaf51c826ff53019`. Uses pinned older source, recovered source changes and source-compiled control DTS. |
 | OP-TEE secure world | Build `553fe17e2-dirty`, Linaro 5.3.1, build #6 dated February 18, 2022. | Sealed source-only recipe builds upstream 3.7, published SM3/SM4 and reconstructed T113 platform code. The resulting secure OS differs from stock and is research-only; vendor header/services and exact code shapes remain incomplete. No prebuilt payload is imported. |
 | Kernel delivery | p1 uImage decompresses to raw Image SHA-256 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`, 12,970,156 bytes. | **Whole-file identical after the user-authorized 20-byte metadata patch.** Untouched source output is preserved separately. Full ELF/debug identity is not claimed. |
@@ -92,11 +92,21 @@ replacement for the original stage. Their comparisons require whole-file
 identity and retain the candidate and difference report on failure; they do not
 accept size equality as success or import original target code into the build.
 
+Two clean boot0 builds, one outside and one inside this repository, produce
+SHA-256 `dcc60dce4700e9658f3f8c5d25ccdde1d5424b5cbeed16910ea1200779f45cc4`.
+Every byte outside `0x0c..0x0f` and `0x2f8..0x2fe` matches the original. The first
+range is the valid regenerated checksum; the second is the empty archive-export
+commit label versus stock ASCII `5224261`. The checksum difference is explained
+entirely by that label. This is an 11-byte binary difference, with **zero size
+delta**, not whole-file identity.
+
 The boot0 packer reproduces the original host tool's default-seed glibc random
 stream before overlaying compiled code and calculating the checksum. The stock
 14,560-byte tail matches this algorithm; it is not copied from firmware. A
-separate legacy chip-ID C unit requires the evidenced GCC 4.6.3 compiler while
-most code uses GCC 7.2.1. The original boot0 commit text remains unresolved.
+separate legacy chip-ID C unit requires GCC 4.6.3 while most code uses GCC 7.2.1.
+Git discovery is bounded to the source build so an unrelated parent repository
+cannot supply a false label. Neither the original label nor the checksum is
+patched.
 
 OP-TEE retains an honest reconstruction version label. Published SM3/SM4 and
 recovered platform routines compile, but vendor header/services and complete
