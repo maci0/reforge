@@ -1,0 +1,206 @@
+--- a/core/arch/arm/kernel/kern.ld.S
++++ b/core/arch/arm/kernel/kern.ld.S
+@@ -84,6 +84,12 @@
+ 	__flatmap_unpg_rx_start = ROUNDDOWN(__text_start, SMALL_PAGE_SIZE);
+ 
+ 	.text : {
++#ifdef CFG_SUN8IW20P1
++		KEEP(*(.text.sunxi_header_entry))
++		KEEP(*(.text.sunxi_header_metadata))
++		__sunxi_header_end = .;
++		. = ALIGN(2 * SMALL_PAGE_SIZE);
++#endif
+ 		KEEP(*(.text._start))
+ 		KEEP(*(.text.init .text.plat_cpu_reset_early \
+ 		       .text.reset .text.reset_primary .text.unhandled_cpu \
+@@ -99,6 +105,9 @@
+ 		*(.sram.text.glue_7* .gnu.linkonce.t.*)
+ 		. = ALIGN(8);
+ 	}
++#ifdef CFG_SUN8IW20P1
++	ASSERT(__sunxi_header_end == TEE_TEXT_VA_START + 4092, "sunxi header ABI")
++#endif
+ 	__text_end = .;
+ 
+ #ifdef CFG_CORE_RODATA_NOEXEC
+--- a/core/arch/arm/plat-sun8iw20p1/conf.mk
++++ b/core/arch/arm/plat-sun8iw20p1/conf.mk
+@@ -19,3 +19,6 @@
+ CFG_WITH_STATS ?= y
+ # Original image includes init_canaries/thread_check_canaries and their format strings.
+ CFG_WITH_STACK_CANARIES ?= y
++
++# Original common and platform DEBUG diagnostics remain compiled in.
++CFG_TEE_CORE_LOG_LEVEL = 3
+--- a/core/arch/arm/plat-sun8iw20p1/sub.mk
++++ b/core/arch/arm/plat-sun8iw20p1/sub.mk
+@@ -7,3 +7,7 @@
+ srcs-y += hash_install.c
+ srcs-y += smc.c
+ srcs-y += handlers.c
++srcs-y += header.c
++srcs-y += header_entry.S
++
++srcs-y += reset.S
+--- a/core/arch/arm/plat-sun8iw20p1/main.c
++++ b/core/arch/arm/plat-sun8iw20p1/main.c
+@@ -8,11 +8,24 @@
+ #include <mm/core_mmu.h>
+ #include <mm/core_memprot.h>
+ #include <platform_config.h>
+-register_phys_mem_pgdir(MEM_AREA_IO_SEC, GIC_BASE, CORE_MMU_PGDIR_SIZE);
+-register_phys_mem_pgdir(MEM_AREA_IO_SEC, SUNXI_RTC_BASE, 0x400);
+-register_phys_mem_pgdir(MEM_AREA_IO_SEC, SUNXI_CPUCFG_BASE, 0x1000);
+-register_phys_mem_pgdir(MEM_AREA_IO_SEC, SUNXI_PRCM_BASE, 0x1000);
+-register_phys_mem_pgdir(MEM_AREA_IO_SEC, SUNXI_SRAM_BASE, 0x8000);
++/* Original 16-byte physical-map records, including UART/SRAM non-secure IO. */
++#define SRAM_BASE SUNXI_SRAM_BASE
++register_phys_mem(MEM_AREA_IO_NSEC, SRAM_BASE, 0x8000);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, ((0x02001000) + 0x092c), 4);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, (0x02000000), 0x1000);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, (0x02504400), 0x400);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, (0x02504000), 0x400);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, 0x01700c00, 0x400);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, 0x2004000, 0x1000);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, 0x07020800, 0x400);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, 0x02050000, 0x1000);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, 0x03006000, 0x1000);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, 0x09010000, 0x1000);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, 0x07000400, 0x400);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, 0x03007000, 0x1000);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, 0x03020000, 0x3000);
++register_phys_mem_pgdir(MEM_AREA_IO_NSEC, 0x02500000, 0x1800);
++register_phys_mem_pgdir(MEM_AREA_IO_SEC, (0x03040000 + 0x800), 0x400);
+ /* Concrete vendor ABI recovered from original caller argument registers. */
+ void sunxi_gic_cpuif_init(vaddr_t gicc, vaddr_t gicd);
+ void sunxi_gic_distributor_init(vaddr_t gicd);
+--- a/core/arch/arm/plat-sun8iw20p1/console.c
++++ b/core/arch/arm/plat-sun8iw20p1/console.c
+@@ -1,9 +1,33 @@
+-/* Observed original console_init body at0x41b10ca8 is a panic path.
+- * This is the recovered body, not a replacement missing-driver stub.
+- * Its integration with the vendor early console requires caller recovery. */
++/* Recovered caller graph: reset_primary calls console_init at stock
++ * 0x41b10e6c. The panic body at 0x41b10ca8 is itr_core_handler, as its
++ * own __func__ string and the interrupt wrapper independently establish. */
++#include <stdint.h>
++#include <console.h>
++#include <drivers/serial8250_uart.h>
++#include <kernel/interrupt.h>
+ #include <kernel/panic.h>
+-void console_init(void);
+-void console_init(void)
++#include <io.h>
++#include <trace.h>
++static struct serial8250_uart_data console_data;
++void itr_core_handler(void)
+ {
+     __do_panic("core/arch/arm/plat-sun8iw20p1/main.c", 183, __func__, 0);
+ }
++static int try_uart_port(void)
++{
++    int i;
++    uint32_t enabled_ports = io_read32(0x0200190c);
++    for (i = 0; i < 6; ++i)
++        if ((1 << i) & enabled_ports)
++            return i;
++    trace_printf(__func__, 270, TRACE_ERROR, true, "try_uart_port failed\n");
++    return -1;
++}
++void console_init(void)
++{
++    int port = try_uart_port();
++    trace_printf(__func__, 279, TRACE_DEBUG, true, "uart port = %d\n", port);
++    serial8250_uart_init(&console_data, (port + 0x9400) << 10,
++                        24000000, 115200);
++    register_serial_console(&console_data.chip);
++}
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/header.c
+@@ -0,0 +1,48 @@
++/* Reconstructed Allwinner boot header data layout. Fields corroborated by
++ * BSP spl-pub/include/private_tee.h and the original pre-boot image.
++ * The executable branch is authored separately in header_entry.S. */
++#include <stdint.h>
++#include <stddef.h>
++#define IMAGE_BASE 0x41b00000u
++extern const uint32_t ta_pub_key_exponent;
++extern const uint8_t ta_pub_key_modulus[];
++extern const size_t ta_pub_key_modulus_size;
++struct sunxi_hash_entry { uint8_t name[16], hash[32]; };
++struct sunxi_secure_boot_info {
++    uint8_t magic[8];
++    uint32_t version, hash_count;
++    struct sunxi_hash_entry entries[10];
++    uint32_t reserved[131];
++};
++struct sunxi_public_key_descriptor {
++    uint8_t magic[8];
++    uint32_t exponent_offset, exponent_bytes, modulus_offset, modulus_size_offset;
++};
++struct sunxi_header_metadata {
++    uint8_t magic[8];
++    uint32_t dram_size, drm_size, length, optee_length;
++    uint8_t version[8], platform[8];
++    uint32_t dram_para[32];
++    uint8_t expand_magic[8], expand_version[8];
++    uint32_t vdd_cpua, vdd_cpub, vdd_sys, vcc_pll, vcc_io, vdd_res1, vdd_res2;
++    uint32_t pmu_count, pmu_port, pmu_para;
++    uint8_t pmu_id[4], pmu_addr[4], chipinfo[8];
++    struct sunxi_public_key_descriptor public_key;
++    uint32_t reserved[701];
++    struct sunxi_secure_boot_info secure_boot_info;
++};
++_Static_assert(sizeof(struct sunxi_header_metadata) + 4 == 4092, "image header size");
++_Static_assert(offsetof(struct sunxi_header_metadata, chipinfo) + 4 == 236, "chipinfo ABI");
++_Static_assert(offsetof(struct sunxi_header_metadata, public_key) + 4 == 244, "public key ABI");
++_Static_assert(offsetof(struct sunxi_header_metadata, secure_boot_info) + 4 == 3072, "secure boot ABI");
++const struct sunxi_header_metadata sunxi_header_metadata
++    __attribute__((section(".text.sunxi_header_metadata"), aligned(4))) = {
++    .magic = "optee", .version = "3.7", .platform = "CHKv1.0",
++    .dram_para = { IMAGE_BASE },
++    .public_key = { .magic = "AW_PUBK!",
++        .exponent_offset = (uint32_t)&ta_pub_key_exponent - IMAGE_BASE,
++        .exponent_bytes = sizeof(ta_pub_key_exponent),
++        .modulus_offset = (uint32_t)ta_pub_key_modulus - IMAGE_BASE,
++        .modulus_size_offset = (uint32_t)&ta_pub_key_modulus_size - IMAGE_BASE },
++    .secure_boot_info = { .magic = "BootInfo", .version = 1 },
++};
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/header_entry.S
+@@ -0,0 +1,11 @@
++/* ARM entry branch targeting the end of the actual 4092-byte header.
++ * The next instruction region is naturally aligned to two 4KiB pages. */
++.syntax unified
++.arm
++.section .text.sunxi_header_entry,"ax",%progbits
++.global tee_spare_head
++.type tee_spare_head,%object
++tee_spare_head:
++    b tee_spare_head + 4092
++.size tee_spare_head, .-tee_spare_head
++.section .note.GNU-stack,"",%progbits
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/reset.S
+@@ -0,0 +1,21 @@
++/* Recovered early ARM secure/non-secure access policy at stock 0x41b02178.
++ * NSACR admits non-secure VFP/SMP, ACTLR enables coherent SMP and SCTLR
++ * selects low vectors. These are instructions, not embedded opcode data. */
++#include <arm32_macros.S>
++#include <arm.h>
++#include <asm.S>
++.arm
++FUNC plat_cpu_reset_early , :
++    mrc p15, 0, r1, c1, c1, 2
++    orr r1, r1, #NSACR_CP10
++    orr r1, r1, #NSACR_CP11
++    orr r1, r1, #NSACR_NS_SMP
++    mcr p15, 0, r1, c1, c1, 2
++    read_actlr r0
++    orr r0, r0, #ACTLR_SMP
++    write_actlr r0
++    read_sctlr r0
++    bic r0, r0, #SCTLR_V
++    write_sctlr r0
++    bx lr
++END_FUNC plat_cpu_reset_early

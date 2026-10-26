@@ -64,7 +64,8 @@ with tarfile.open(archive) as source:
 PY
 patchdir="$repo/vendor/optee/stock-patches"
 patches=("$patchdir/0001-upstream-sm4.patch" "$patchdir/0002-upstream-sm3.patch"
-         "$patchdir/0003-t113-reconstruction.patch")
+         "$patchdir/0003-t113-reconstruction.patch"
+         "$patchdir/0004-source-header-console-reset.patch")
 for source_patch in "${patches[@]}"; do
     patch --batch --forward --fuzz=0 -s -p1 -d "$out/source-tree" < "$source_patch"
 done
@@ -83,22 +84,39 @@ if ! make -C "$out/source-tree" PLATFORM=sun8iw20p1 "O=$out/build" \
 fi
 mkdir "$out/artifacts"
 cp "$out/build/core/tee.bin" "$out/build/core/tee.elf" "$out/build/core/tee.map" "$out/artifacts/"
+cp "$out/build/core/tee-pager.bin" "$out/artifacts/optee.bin"
 cp "$out/build/conf.mk" "$out/artifacts/profile.mk"
 # Reference bytes are never inputs to source compilation.
 python3 - "$out" "$reference" <<'PY'
 from pathlib import Path
 import hashlib
 import json
+import struct
 import sys
 out = Path(sys.argv[1])
-candidate = out / 'artifacts/tee.bin'
+candidate = out / 'artifacts/optee.bin'
 data = candidate.read_bytes()
+if (len(data) < 8192 or data[:12] != bytes.fromhex('fd0300ea') + b'optee\0\0\0'
+        or data[28:44] != b'3.7\0\0\0\0\0CHKv1.0\0'
+        or struct.unpack_from('<I', data, 44)[0] != 0x41b00000
+        or data[244:252] != b'AW_PUBK!'
+        or data[3072:3088] != b'BootInfo' + struct.pack('<II', 1, 0)):
+    raise SystemExit('Source-generated Allwinner header does not match its ABI')
+exponent, exponent_bytes, modulus, modulus_size = struct.unpack_from('<IIII', data, 252)
+if (exponent_bytes != 4 or max(exponent + 4, modulus + 256, modulus_size + 4) > len(data)
+        or struct.unpack_from('<I', data, exponent)[0] != 65537
+        or struct.unpack_from('<I', data, modulus_size)[0] != 256):
+    raise SystemExit('Source-generated public-key offsets or RSA inputs are invalid')
 report = {
     'artifact': str(candidate), 'size': len(data),
     'sha256': hashlib.sha256(data).hexdigest(),
     'source_build_complete': True,
     'stock_equivalence_established': False,
-    'status': 'research-only; vendor header/services and exact code shape remain incomplete',
+    'status': 'research-only; standby/vendor services and exact code shape remain incomplete',
+    'carrier': 'raw source-linked Allwinner image; standard tee.bin retained separately',
+    'header': {'format': 'Allwinner 4092-byte header, reset code at offset 8192',
+               'public_key_offsets': {'exponent': exponent, 'modulus': modulus,
+                                      'modulus_size': modulus_size}},
     'comparison': None,
 }
 if sys.argv[2]:
