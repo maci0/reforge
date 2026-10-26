@@ -83,6 +83,42 @@ The held SDK is `/home/maci/Desktop/Projects/flashforge/lichee.zip`, containing
 This is a bounded source inventory,
 not a claim that the missing original source cannot exist elsewhere.
 
+## Fresh ReForge rootfs validation
+
+A fresh source build completed in `build/output-source-clean` with default
+Klipper v0.11 preserved. It includes source-built Node.js/Mainsail, zram/zsmalloc
+and the static swap helper. The compressed rootfs is 29,961,988 bytes, SHA-256
+`07d39f171586cc2833a13a6b870789de9123cf7056eb385081e6f58cdf897bf5`.
+All 68 target and 61 host package installation stages completed.
+
+ARM QEMU smoke and integration checks passed: BusyBox, Python standard/extension
+imports, Klipper's import test, the live Moonraker API with zero failed components,
+and HTTP serving of the source-built Mainsail assets. The tests selected this
+archive explicitly, rather than the older canonical output directory.
+
+```sh
+# Use a new output directory after changing the toolchain.
+make -C vendor/buildroot BR2_EXTERNAL="$PWD/br-external" \
+    O="$PWD/build/output-source-clean" reforge_defconfig
+make -C vendor/buildroot BR2_EXTERNAL="$PWD/br-external" \
+    O="$PWD/build/output-source-clean" -j"$(nproc)"
+ROOTFS_TAR="$PWD/build/output-source-clean/images/rootfs.tar.xz" \
+    tests/smoke/chroot_integration.sh
+```
+
+Device builds now use the recovered stock DTS. The resulting `images/board.dtb`
+is 55,093 bytes and matches SHA-256
+`27501dc48c5ad4c71e3a12742e3ef2a162d6a2d8285bbbac82488c7fade79e21`.
+QEMU's unused placeholder is selected separately. The source-selection variables
+live in `local.mk`, which Buildroot loads before validating the custom DTS path.
+The DTB-only rebuild left both rootfs archives, zImage and all target content
+unchanged. No printer boot or hardware module loading was tested.
+
+The integrated Buildroot zImage uses its source-built GCC 15 toolchain. The
+separately verified stock-identical kernel delivery is under
+`build/stock-kernel-delivery-verified/artifacts`, produced by the stock kernel
+recipe described below.
+
 ## Incomplete boot-stage source builds
 
 The boot0 [research recipe](../../tools/build/README-stock-boot0.md) and OP-TEE

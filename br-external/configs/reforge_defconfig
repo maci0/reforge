@@ -55,24 +55,23 @@ BR2_TARGET_ROOTFS_TAR_XZ=y
 # toolchain FlashForge actually shipped), build-bsp-kernel.sh = clean gcc 9.5
 # rebuild, build-test-kernel.sh = the qemu-virt test kernel, modules/*/build.sh =
 # the kmods. Buildroot's gcc-15 build is the integrated path and may need patches
-# under linux/ (5.4.61 vs gcc 15). No in-tree board .dts (only sun8iw20p1.dtsi),
-# so zImage only — same as build-bsp-kernel.sh. (No BR2_TARGET_UBOOT: rides stock.)
+# under linux/ (5.4.61 vs gcc 15). The recovered device DTS supplies board.dtb.
+# No BR2_TARGET_UBOOT: the rootfs installation keeps the existing bootloader.
 # ---------------------------------------------------------------------------
 BR2_LINUX_KERNEL=y
 BR2_LINUX_KERNEL_CUSTOM_VERSION=y
 BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="5.4.61"
 BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
-# $(REFORGE_LINUX_CONFIG) (external.mk) = linux.config (device, default) or
+# $(REFORGE_LINUX_CONFIG) (local.mk) = linux.config (device, default) or
 # linux-virt.config (qemu -M virt test kernel) when REFORGE_KERNEL=virt.
 BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="$(BR2_EXTERNAL_REFORGE_PATH)/board/reforge/$(REFORGE_LINUX_CONFIG)"
 BR2_LINUX_KERNEL_ZIMAGE=y
 # The BSP hardcodes `dtb-$(CONFIG_ARCH_SUN8IW20) += board.dtb`; the `all` target
-# builds it. The real device dtb lives in boot-resource (not the kernel), so we
-# feed a placeholder board.dts (swappable for the decompiled sunxi.dts) just so
-# dtbs succeeds. DTS_SUPPORT gates CUSTOM_DTS_PATH; Buildroot copies the .dts into
-# arch/arm/boot/dts/ before the build, then builds + installs board.dtb.
+# builds it. Device builds use the recovered stock DTS through board.dts; virt
+# builds use an unused placeholder because QEMU supplies its hardware tree. Both
+# source basenames stay board.dts so the BSP target builds and installs board.dtb.
 BR2_LINUX_KERNEL_DTS_SUPPORT=y
-BR2_LINUX_KERNEL_CUSTOM_DTS_PATH="$(BR2_EXTERNAL_REFORGE_PATH)/board/reforge/board.dts"
+BR2_LINUX_KERNEL_CUSTOM_DTS_PATH="$(BR2_EXTERNAL_REFORGE_PATH)/board/reforge/$(REFORGE_LINUX_DTS)"
 BR2_PACKAGE_OVERRIDE_FILE="$(BR2_EXTERNAL_REFORGE_PATH)/local.mk"
 
 # Camera: ustreamer (pikvm) — lightweight MJPEG-HTTP streamer for the USB-UVC cam,

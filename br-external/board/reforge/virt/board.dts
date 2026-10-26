@@ -1,0 +1,15 @@
+/dts-v1/;
+
+/*
+ * QEMU-only placeholder for the Tina BSP's hardcoded board.dtb target.
+ * QEMU -M virt supplies its actual hardware tree; this file is not a device DTB.
+ */
+
+/ {
+	model = "ReForge QEMU virt (unused placeholder board.dtb)";
+	compatible = "allwinner,sun8iw20p1", "allwinner,sun8iw20";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	chosen { };
+};
