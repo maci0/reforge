@@ -316,6 +316,77 @@ decompiling the digest as ARM instructions cannot reconstruct those inputs.
 Local IDA exports and scripts are retained under `/tmp/reforge-ida-buildid/`;
 they are research evidence, not build inputs or metadata overrides.
 
+### Reproducibility audit and remaining historical inputs
+
+The [Reproducible Builds definition](https://reproducible-builds.org/docs/definition/)
+requires the same source, environment and instructions. Its
+[build-path guidance](https://reproducible-builds.org/docs/build-path/) and the
+[kernel documentation](https://docs.kernel.org/5.15/kbuild/reproducible-builds.html)
+identify debug paths as build inputs. For stock identity, those inputs must
+match the historical build; choosing new normalized paths alone cannot establish
+identity with an existing factory artifact.
+
+A second clean build of the authentic-CAN-header recipe, under `LC_ALL=C`,
+`TZ=UTC`, and `BUILD_JOBS=16`, reproduced all six staged artifacts exactly.
+The complete 142,826,184-byte `vmlinux` SHA-256 is
+`0a934d3309fdd49793cb9649134c1dd54ba4a8ff9f41062b65251f12d7b53d0c`.
+The report is `build/stock-kernel-reproducibility-audit/reproducibility.json`.
+This is a controlled same-host test, not proof across arbitrary host toolsets.
+
+The kernel's checksum model was separately validated against an independent
+pre-sort relink: it naturally computes the stored
+`bed97c2650c095afe984b33260f005d8dc141eb9` ID. The final ELF differs from that
+pre-sort ELF by one byte: `main_extable_sort_needed`, raw Image offset
+`0xb2a174`, changes from 1 to 0. Thus hashing the final ELF without accounting
+for post-link processing is an invalid test of the linker's algorithm. The
+checksum includes normalized ELF/program/section headers and available section
+contents, including DWARF, `.comment`, and `.ARM.attributes`; it is not a hash
+of debug information alone. Research evidence is in
+`/tmp/reforge-kernel-link-audit/model-report.json`.
+
+The audit also found 42 compilation units whose line tables embedded the host's
+physical GCC include directory under `/home/maci/`. The builder now binds the
+compiler itself into the namespace at the SDK root's
+`out/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi` directory. The layout is
+supported by vendor build scripts and recorded as inferred in `inputs.json`;
+the exact factory compiler directory is not yet recovered. This is an actual
+compiler invocation/path change, not a debug-section rewrite or ID override.
+The clean trial at `build/stock-kernel-sdk-toolchain-path/` has no `/home/maci/`
+paths in any debug section. Its Image SHA-256 is
+`48335d88a43ffcc14bd7d341bd2f98adeea4a73b2bc0527f9c61c8df2b2882c5`,
+ID `a776534a8692e21511f8b66c56519f62013e9a44`; it still differs from stock
+only in the 20-byte ID. Wi-Fi remains fully identical.
+An independent clean invocation of the updated production recipe at
+`build/stock-kernel-toolchain-path-verified/` reproduced all six artifacts
+exactly, including full `vmlinux` SHA-256
+`edee648898df7b07717dc6ec1df3d95896564c097b79c246b87d92c55068fba6`.
+Its `reproducibility.json` records the whole-file checks.
+
+Four justified CAN debug/pipeline variants were retested after correcting the
+compiler path. A control reproduced that new baseline exactly; none of the
+variants recovered the stock ID. All preserved the complete payload outside
+the ID. Incremental experiments must restore `artifacts/kernel.config` and
+regenerate configuration headers first: the completed builder's working tree
+has the later module configuration. Invalid trials using that module profile
+were discarded. Results: `/tmp/reforge-can-sdk-toolchain/report.json`.
+
+The next original-input evidence must establish the factory compiler directory,
+the kernel output-directory spelling, and the actual source/debug envelope of
+reconstructed translation units. Useful evidence includes the original SDK's
+`.buildconfig`, build logs or `.cmd` files, matching generated CAN assembly,
+and original debug ELF/object files as read-only comparison references. Final
+acceptance remains a fresh source build whose whole raw Image SHA-256 equals
+`902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`;
+reproducibility of a different Image does not satisfy that check.
+
+The complete current `disp_lcd.c` is also authenticated as an unchanged vendor
+file in [`turing-machines/linux@dc6e999b53b3994078cff097ca569a3143660185`](https://github.com/turing-machines/linux/blob/dc6e999b53b3994078cff097ca569a3143660185/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c),
+SHA-256 `5b8d11ea9a8419963a1006eb4dce15a9b825080456bbed73585ad7ada4d043f5`.
+This corroborates its whole source text, not just the compiled behavior. The
+distinct JasonYANG170/LubanCat source was rejected because it requires a
+`get_gamma_tbl` device member absent from the original ABI and removes the
+original reload helper; that candidate was not adapted to force a match.
+
 | Area | Recovered original behavior |
 |---|---|
 | Framebuffer | Defer freeing the boot framebuffer until display startup plus 30 ms; use the original uncached ION allocation and panel layout. |

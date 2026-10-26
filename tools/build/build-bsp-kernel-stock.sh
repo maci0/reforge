@@ -77,6 +77,7 @@ for name in backports:
     'wifi_reference_sha256': digest(wifi_reference),
     'target_objects_imported': False,
     'inferred_module_preprocessing': {'CONFIG_TCP_MD5SIG': 'y'},
+    'inferred_toolchain_directory': '/home/linux/work/hard_t113_s3/t113/T113/T113-Linux-Auto-v1.1/out/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi',
 }, indent=2) + '\n')
 PY
 src="$out/source-tree"
@@ -103,17 +104,21 @@ stock_src=/home/linux/work/hard_t113_s3/t113/T113/T113-Linux-Auto-v1.1/kernel/li
 stock_out=/home/linux/work/hard_t113_s3/t113/T113/T113-Linux-Auto-v1.1/out/kernel/build
 wifi_src=/home/linux/work/hard_t113/T113-Linux-Auto-v1.1/kernel/linux-5.4
 wifi_out=/home/linux/work/hard_t113/T113-Linux-Auto-v1.1/out/kernel/build
-# Both historical paths exist only inside this private namespace.
+# shortcut: use the vendor SDK toolchain layout until factory build metadata establishes its exact path.
+stock_toolchain=/home/linux/work/hard_t113_s3/t113/T113/T113-Linux-Auto-v1.1/out/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi
+# The source, output and compiler paths exist only inside this private namespace.
 namespace=(bwrap --ro-bind / / --dev /dev --proc /proc --bind /tmp /tmp
            --tmpfs /home --ro-bind "$HOME" "$HOME"
            --dir "$(dirname "$stock_src")" --bind "$src" "$stock_src"
            --dir "$(dirname "$stock_out")" --bind "$obj" "$stock_out"
            --dir "$(dirname "$wifi_src")" --bind "$src" "$wifi_src"
            --dir "$(dirname "$wifi_out")" --bind "$obj" "$wifi_out"
+           --dir "$(dirname "$stock_toolchain")" --ro-bind "${cross%/bin/arm-linux-gnueabi-}" "$stock_toolchain"
            --bind "$out" "$out" --die-with-parent)
 export SOURCE_DATE_EPOCH=1692776013
 export KBUILD_BUILD_TIMESTAMP='Wed Aug 23 15:33:33 CST 2023'
 export KBUILD_BUILD_USER=root KBUILD_BUILD_HOST=linux-virtual-machine KBUILD_BUILD_VERSION=52
+cross="$stock_toolchain/bin/arm-linux-gnueabi-"
 common=(HOSTCXX=/bin/false ARCH=arm "CROSS_COMPILE=$cross")
 "${namespace[@]}" make -C "$stock_src" "O=$stock_out" "${common[@]}" olddefconfig > "$out/configure.log" 2>&1
 cmp -s "$obj/.config.captured" "$obj/.config" || die "configuration differs from stock; inspect $obj/.config"
