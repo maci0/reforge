@@ -9,8 +9,9 @@ config BR2_PACKAGE_REFORGE_ZRAM
 	  calls swapon(2) with SWAP_FLAG_PREFER|priority (busybox swapon lacks
 	  -p).
 
-	  These modules are for P1-P3 devices that ride the stock 5.4.61 kernel.
-	  P4 builds zram into its own kernel and does not need this package.
+	  The private vendor BSP build uses the captured stock configuration,
+	  independently of the main kernel's device/QEMU configuration.
+	  These modules require the stock 5.4.61 kernel ABI.
 
 	  The S35zram init script loads the modules at boot, configures the
 	  compression algorithm (default: zstd) and swap device size (default:
