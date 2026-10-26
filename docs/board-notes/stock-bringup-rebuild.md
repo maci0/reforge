@@ -319,6 +319,40 @@ decompiling the digest as ARM instructions cannot reconstruct those inputs.
 Local IDA exports and scripts are retained under `/tmp/reforge-ida-buildid/`;
 they are research evidence, not build inputs or metadata overrides.
 
+The exact forward calculation for this Linaro GNU ld 2.25 pipeline is now
+implemented by the read-only
+[`calculate-stock-build-id.py`](../../tools/build/calculate-stock-build-id.py):
+
+1. Start SHA-1 with the 52-byte little-endian ARM32 ELF header, setting only
+   `e_phoff` and `e_shoff` to zero in the hash input.
+2. Append each 32-byte program header in ELF order, unchanged.
+3. For each section in ELF order, append its 40-byte section header with only
+   `sh_offset` zeroed. Then append its contents, except `SHT_NOBITS` and the
+   `.symtab`, `.strtab`, and `.shstrtab` contents. Their headers still contribute.
+4. In the GNU note's section contents, treat the entire generated 36-byte GNU
+   note (header, owner and descriptor) as zero, matching the linker's write-time
+   buffer. Preserve the neighboring Linux note and all other contents.
+5. Store the resulting 20-byte SHA-1 digest as the GNU note's descriptor.
+
+The symbol/string-table content omission models the observed BFD buffer state;
+it is not a general exclusion rule for every GNU linker/version. This is also
+not `sha1sum Image` or `sha1sum vmlinux`. It must run on the ELF before
+`sortextable` and `objcopy`. Source text is not directly hashed; compiled debug
+records can carry its names, line locations, types, options and paths into the
+hashed ELF.
+
+```sh
+python3 tools/build/calculate-stock-build-id.py PRE_SORT_ELF
+python3 tests/release/test_stock_build_id.py
+```
+
+The calculator independently reproduced the pre-sort kernel ID
+`bed97c2650c095afe984b33260f005d8dc141eb9` and the original flat Wi-Fi module ID
+`1b43ea87f9b4edd2fd9b48de9c8050a0013855ba`. Its test assembles and links an ELF
+with the pinned historical tools, verifies the actual generated digest, and
+checks that changing nonallocated debug contents invalidates it without
+modifying the input file. It never writes a replacement ID.
+
 ### Reproducibility audit and remaining historical inputs
 
 The [Reproducible Builds definition](https://reproducible-builds.org/docs/definition/)
