@@ -1,0 +1,2070 @@
+{
+  "current_pre_sort_ELF": "/tmp/reforge-compiler-path-axis/matrix-current/control/canonical/vmlinux-presort",
+  "current_pre_sort_ELF_sha256": "6ef4fefd634ce2d7a3dce766fb0b4a7d6d7562252807d217a55ac1c560b121ec",
+  "current_build_id": "a776534a8692e21511f8b66c56519f62013e9a44",
+  "forward_model_matches": true,
+  "summary": {
+    "hashed_header_bytes": 1900,
+    "hashed_loaded_section_bytes": 10596544,
+    "hashed_nonloaded_section_bytes": 128172859,
+    "debug_bytes": 128172763,
+    "total_hash_input_bytes": 138771303,
+    "loaded_byte_differences_outside_GNU_descriptor_and_sort_flag": 0
+  },
+  "sections": [
+    {
+      "section": "",
+      "bytes": 0,
+      "contents_hashed": true,
+      "allocated": false
+    },
+    {
+      "section": ".head.text",
+      "bytes": 664,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "9944f63c2eecd8391ee1d5e69dd81de085e8cabc4c8795cfe14cbfd975205292",
+      "original_raw_image_offset": "0x0",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": ".text",
+      "bytes": 6929936,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "9b0e27f7f9643347e01013acfaecd4cf76e3ea1487fa3405b5cc69e4ab284003",
+      "original_raw_image_offset": "0xf8000",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": ".rodata",
+      "bytes": 2380416,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "efe3a2c13365219f3a6c27d8b95a9c0f2f92aa24a20273ddffc2afe2c1a6e94d",
+      "original_raw_image_offset": "0x7f8000",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": ".modinfo",
+      "bytes": 64635,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "f3811ab670887bfcd0bba650edba2effbb82fa405290ca84f7b6d1479c72b827",
+      "original_raw_image_offset": "0xa3d280",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": "__ksymtab",
+      "bytes": 53988,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "225c5d2376a7b7ad89512a627f46fbffcb77ce5fca6b71badfd61b99dc49e473",
+      "original_raw_image_offset": "0xa4cefc",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": "__ksymtab_gpl",
+      "bytes": 54648,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "d25ebe7fd88d7bb6fa0c5c2d5668be95bf2400c434f0daa1ff6b1fc4394f51b7",
+      "original_raw_image_offset": "0xa5a1e0",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": "__ksymtab_strings",
+      "bytes": 177669,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "7c89cc5ce309d951221d5d90b8e1a7036b61754940e0a47c7642ef1c6d792ab1",
+      "original_raw_image_offset": "0xa67758",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": "__param",
+      "bytes": 4580,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "949e141cf363703dac5396108d92f8178be90700525e894edc11d8c4d616e438",
+      "original_raw_image_offset": "0xa92d60",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": "__modver",
+      "bytes": 104,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "1db18c6c6bbf87040374facad866dc081958afc2cf75a9e30f203e8051730f8e",
+      "original_raw_image_offset": "0xa93f44",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": "__ex_table",
+      "bytes": 1584,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "249bf4474b53a9f6c7174b576a1f65dc3b093645bd6ac622a9ca7c5228e25a10",
+      "original_raw_image_offset": "0xa94000",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "current pre-sort table equals stock sorted table; original pre-sort ordering is not retained"
+    },
+    {
+      "section": ".ARM.unwind_idx",
+      "bytes": 224936,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "d745006a06d5c5a48995566b814deb0665676afc6c5730a874fd6cf85d794cba",
+      "original_raw_image_offset": "0xa94630",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": ".ARM.unwind_tab",
+      "bytes": 3180,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "7f20a06b3a311242523721899c84d58f9cb56a12aaff27cba4e87ecd8436af6e",
+      "original_raw_image_offset": "0xacb4d8",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": ".notes",
+      "bytes": 60,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "808a710b6f0451206e64a85de132df93bcdce53b683b4cb11e86038b247da7f9",
+      "original_raw_image_offset": "0xacc144",
+      "delivered_stock_byte_differences": 20,
+      "different_raw_offsets": [
+        "0xacc154",
+        "0xacc155",
+        "0xacc156",
+        "0xacc157",
+        "0xacc158",
+        "0xacc159",
+        "0xacc15a",
+        "0xacc15b",
+        "0xacc15c",
+        "0xacc15d",
+        "0xacc15e",
+        "0xacc15f",
+        "0xacc160",
+        "0xacc161",
+        "0xacc162",
+        "0xacc163",
+        "0xacc164",
+        "0xacc165",
+        "0xacc166",
+        "0xacc167"
+      ],
+      "original_linktime_status": "GNU note is zero in hash view; neighboring Linux note bytes match delivered stock"
+    },
+    {
+      "section": ".vectors",
+      "bytes": 32,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "31e6f1cc4f59b30c2f327b5cc33220bb6430e00b8097408bd8bd0db166390396",
+      "original_raw_image_offset": "0xaf8000",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": ".stubs",
+      "bytes": 704,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "c2a8307a7fb37ec29dca06698a162ee395405fc9e3a07c6b83c857ca3da3b304",
+      "original_raw_image_offset": "0xaf8020",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": ".init.text",
+      "bytes": 161404,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "9561e6a358af9e746d1ee7f5d485f1cdaffd66f2333090bf3092c4423bfaf30a",
+      "original_raw_image_offset": "0xaf82e0",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": ".exit.text",
+      "bytes": 8932,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "676c6a405535ce9f94d53da3358fdf648757528ada8897cfb3dd8e6fef0e17c6",
+      "original_raw_image_offset": "0xb1f95c",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": ".init.arch.info",
+      "bytes": 832,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "d39225678e89496345d725b88d17069de90d154371bb2c31b3535338525d29a2",
+      "original_raw_image_offset": "0xb21c40",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": ".init.smpalt",
+      "bytes": 4864,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "47868a5b736de33c46e25759e54f29cf20f11b54c1610301e34f3bba598cfaf8",
+      "original_raw_image_offset": "0xb21f80",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": ".init.pv_table",
+      "bytes": 720,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "6ae53fe288f0a54ff7afee57309c30825e7b644044c9be2118234c89df445624",
+      "original_raw_image_offset": "0xb23280",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": ".init.data",
+      "bytes": 71732,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "76cff540b1c4682078d77987fce7e5728ca4fe3fa0d86cc0f5ab5ff0169d8a92",
+      "original_raw_image_offset": "0xb24000",
+      "delivered_stock_byte_differences": 1,
+      "different_raw_offsets": [
+        "0xb2a174"
+      ],
+      "original_linktime_status": "one source-defined pre-sort flag is 1 here and 0 after sortextable; original pre-sort ELF absent"
+    },
+    {
+      "section": ".data..percpu",
+      "bytes": 30912,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "d3df31cf7e1806ea0cbf432f1b141f75ae2abf6dadd78c8be7ec7c5d3d99c0cc",
+      "original_raw_image_offset": "0xb36000",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": ".data",
+      "bytes": 393312,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "219a6dfbf3a111d0591d28251fdbf4df809cfd6e8991acf346ca22936afdd230",
+      "original_raw_image_offset": "0xbf8000",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": "__bug_table",
+      "bytes": 26700,
+      "contents_hashed": true,
+      "allocated": true,
+      "hash_input_sha256": "8e5e2c87275d1cbac9ff8550ba9a58495a452f55bec7e982d2736fa8ebe8176f",
+      "original_raw_image_offset": "0xc58060",
+      "delivered_stock_byte_differences": 0,
+      "different_raw_offsets": [],
+      "original_linktime_status": "loaded bytes agree with delivered stock, but original ELF section association is conditional"
+    },
+    {
+      "section": ".bss",
+      "bytes": 187152,
+      "contents_hashed": false,
+      "allocated": true
+    },
+    {
+      "section": ".comment",
+      "bytes": 45,
+      "contents_hashed": true,
+      "allocated": false,
+      "hash_input_sha256": "b73ccd8f18b159ade4c28553c3901da74235b22cc02ca2568eac74d4a6e9d960",
+      "original_kernel_bytes_available": false,
+      "original_linktime_status": "not present in delivered raw Image; exact original kernel bytes unverified"
+    },
+    {
+      "section": ".ARM.attributes",
+      "bytes": 51,
+      "contents_hashed": true,
+      "allocated": false,
+      "hash_input_sha256": "ccd05dd667d3533ffb018c8b334fe9c5d2cb9ffdf4905503018d70cb50fe7bf8",
+      "original_kernel_bytes_available": false,
+      "original_linktime_status": "not present in delivered raw Image; exact original kernel bytes unverified"
+    },
+    {
+      "section": ".debug_line",
+      "bytes": 7557562,
+      "contents_hashed": true,
+      "allocated": false,
+      "hash_input_sha256": "389db222fc74475d02f6a8ad0da7624ecaef986118683d145fea18b07866ad03",
+      "original_kernel_bytes_available": false,
+      "original_linktime_status": "not present in delivered raw Image; exact original kernel bytes unverified"
+    },
+    {
+      "section": ".debug_info",
+      "bytes": 108555503,
+      "contents_hashed": true,
+      "allocated": false,
+      "hash_input_sha256": "98362fb2828c98c4fba04a3ee0368b6f75f80dc50600e12aa457c8af2810809a",
+      "original_kernel_bytes_available": false,
+      "original_linktime_status": "not present in delivered raw Image; exact original kernel bytes unverified"
+    },
+    {
+      "section": ".debug_abbrev",
+      "bytes": 2609530,
+      "contents_hashed": true,
+      "allocated": false,
+      "hash_input_sha256": "9b5afe55b169ff5220627fe637521b6d047fddf131c7533fbea4f3002445af4f",
+      "original_kernel_bytes_available": false,
+      "original_linktime_status": "not present in delivered raw Image; exact original kernel bytes unverified"
+    },
+    {
+      "section": ".debug_aranges",
+      "bytes": 73056,
+      "contents_hashed": true,
+      "allocated": false,
+      "hash_input_sha256": "fc1ddbb7b8e701cc7e96fb2ad74d675bd5ff6961956774cd58c2c4b7069004cd",
+      "original_kernel_bytes_available": false,
+      "original_linktime_status": "not present in delivered raw Image; exact original kernel bytes unverified"
+    },
+    {
+      "section": ".debug_ranges",
+      "bytes": 1120352,
+      "contents_hashed": true,
+      "allocated": false,
+      "hash_input_sha256": "1ffdc71cce56a3c69ca737c9a08232b5ccb8e765bfab02d7905eb9bcd97eadbf",
+      "original_kernel_bytes_available": false,
+      "original_linktime_status": "not present in delivered raw Image; exact original kernel bytes unverified"
+    },
+    {
+      "section": ".debug_frame",
+      "bytes": 1371468,
+      "contents_hashed": true,
+      "allocated": false,
+      "hash_input_sha256": "0b8faa9b249376f390807bcf0a94d5d5fb480f1e0697e4c415b5b83c8facb079",
+      "original_kernel_bytes_available": false,
+      "original_linktime_status": "not present in delivered raw Image; exact original kernel bytes unverified"
+    },
+    {
+      "section": ".debug_loc",
+      "bytes": 4446836,
+      "contents_hashed": true,
+      "allocated": false,
+      "hash_input_sha256": "608d52da475fca3b402458a4fd1bdf1e97f29ef47737c0b4ae8d6a209f97c04f",
+      "original_kernel_bytes_available": false,
+      "original_linktime_status": "not present in delivered raw Image; exact original kernel bytes unverified"
+    },
+    {
+      "section": ".debug_str",
+      "bytes": 2438456,
+      "contents_hashed": true,
+      "allocated": false,
+      "hash_input_sha256": "326bc5a9dfb3fd08a9d31cacd161feacb863684f41f2c55e532c1d53c4fba290",
+      "original_kernel_bytes_available": false,
+      "original_linktime_status": "not present in delivered raw Image; exact original kernel bytes unverified"
+    },
+    {
+      "section": ".shstrtab",
+      "bytes": 415,
+      "contents_hashed": false,
+      "allocated": false
+    },
+    {
+      "section": ".symtab",
+      "bytes": 2296928,
+      "contents_hashed": false,
+      "allocated": false
+    },
+    {
+      "section": ".strtab",
+      "bytes": 1514183,
+      "contents_hashed": false,
+      "allocated": false
+    }
+  ],
+  "scope": "Delivered stock bytes are compared directly; unavailable original ELF headers/nonloaded contents/pre-sort order are not marked verified.",
+  "date": "2026-10-26",
+  "verification_complete_against_original_kernel_ELF": false,
+  "new_mismatch_in_checkable_data_found": false,
+  "metadata_merge_verification": {
+    "source_built_control_full_presort_ELF_equal": true,
+    "source_built_control_sha256": "6ef4fefd634ce2d7a3dce766fb0b4a7d6d7562252807d217a55ac1c560b121ec",
+    "actual_linked_object_count": 1841,
+    "input_comment_compiler_identity_count": 1,
+    "input_comment_present_count": 1780,
+    "input_comment_absent_count": 61,
+    "input_attributes_present_count": 1841,
+    "input_attributes_tags_union": [
+      "TAG_ABI_ALIGN_NEEDED",
+      "TAG_ABI_ALIGN_PRESERVED",
+      "TAG_ABI_ENUM_SIZE",
+      "TAG_ABI_FP_DENORMAL",
+      "TAG_ABI_FP_EXCEPTIONS",
+      "TAG_ABI_FP_NUMBER_MODEL",
+      "TAG_ABI_OPTIMIZATION_GOALS",
+      "TAG_ABI_PCS_WCHAR_T",
+      "TAG_ARM_ISA_USE",
+      "TAG_CPU_ARCH",
+      "TAG_CPU_ARCH_PROFILE",
+      "TAG_CPU_NAME",
+      "TAG_CPU_UNALIGNED_ACCESS",
+      "TAG_DIV_USE",
+      "TAG_FP_ARCH",
+      "TAG_MPEXTENSION_USE",
+      "TAG_THUMB_ISA_USE",
+      "TAG_VIRTUALIZATION_USE"
+    ],
+    "DIV_use_2_contributors": [
+      "arch/arm/mm/proc-v7.o"
+    ],
+    "Virtualization_use_3_contributors": [
+      "arch/arm/mm/proc-v7.o"
+    ],
+    "FP_arch_2_contributor_count": 61,
+    "MPextension_use_1_contributor_count": 437,
+    "input_metadata_host_path_strings_found": false,
+    "source_built_original_identical_WiFi_input_SHA": "7c0a036726227752359556f8e109683d5ce836bb65ec64afd46bfb754d6afa69",
+    "actual_ld_relocatable_comment_size": 8142,
+    "actual_ld_final_comment_size": 45,
+    "minimal_three_source_built_inputs_produce_exact_current_kernel_comment_45_and_attributes_51": true,
+    "original_directly_observed": "25module e_ident/flags/attributes/compileridentity; source-builtWiFibyte-identicaloriginal; originalrawImageallocatedruntimebytesmatchkerneloutsideGNUdescriptor",
+    "original_kernel_nonloaded_bytes_directly_observed": false,
+    "claim": "Fullyverifiedreconstructionmergebehaviorandknowninputcontributions; compatibleoriginalmodulecorroboration, notfulloriginalkernelELFmetadataequality."
+  },
+  "shared_header_debug_verification": {
+    "current_kernel": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-kernel-toolchain-path-verified/artifacts/vmlinux",
+    "current_kernel_sha256": "edee648898df7b07717dc6ec1df3d95896564c097b79c246b87d92c55068fba6",
+    "current_CU_count": 1836,
+    "coverage": {
+      "module_record_comparisons": 280,
+      "unique_named_header_records": 140,
+      "unique_header_files": 45,
+      "status_counts": {
+        "exact": 266,
+        "all_observed_fields_match": 14
+      },
+      "unique_status_counts": {
+        "exact": 133,
+        "all_observed_fields_match": 7
+      },
+      "original_DIEs_total": 3005,
+      "original_named_structs": 77,
+      "original_named_unions": 1,
+      "original_named_enums": 10,
+      "original_typedefs": 52,
+      "top_level_member_records": 453,
+      "enumerator_records": 87,
+      "record_declaration_lines": 140,
+      "member_declaration_lines": 445
+    },
+    "original_modules_header_record_equality": true,
+    "forward_declaration_policy": "Only additionalcurrent byte_size ignored whenoriginalresolvedpointeetypeis anEXPLICITDW_AT_declaration withnobyte_size. Those factsareunknowninoriginalDWARF, notcontradictions. Alloriginalobservedfieldsincludingdecl_lines remaincompared.",
+    "limitations": [
+      "Originalevidenceisretained.mod.c DWARFfrommodules, notoriginalkernelvmlinux.",
+      "Onlynamedcompleteheaderrecords andtheirresolvedtype/member/enumerator/decllocationdetails observedinselectedCUs.",
+      "Matchingrecords do not provefullsourcebytes/configuration/originalkernelDWARFidentity.",
+      "NotobservedmeansmissinginselectedcurrentCUs; no sourceabsenceclaim."
+    ],
+    "selected_current_CU_count": 15,
+    "current_definition_pair_comparisons": 3878,
+    "actual_conflicts": [],
+    "additional_information_types": [
+      "address_space",
+      "dev_pagemap",
+      "file",
+      "task_struct",
+      "vm_operations_struct"
+    ]
+  },
+  "DWARF_file_metadata_verification": {
+    "files": [
+      {
+        "path": "/tmp/reforge-original-rootfs-audit/modules/flat-8821cu.ko",
+        "sha256": "7c0a036726227752359556f8e109683d5ce836bb65ec64afd46bfb754d6afa69",
+        "CU_count": 1,
+        "DWARF_versions": {
+          "4": 1
+        },
+        "CU_attribute_counts": {
+          "DW_AT_producer": 1,
+          "DW_AT_language": 1,
+          "DW_AT_name": 1,
+          "DW_AT_comp_dir": 1,
+          "DW_AT_stmt_list": 1
+        },
+        "producer_counts": {
+          "GNU C89 5.3.1 20160412 -mlittle-endian -mabi=aapcs-linux -mfpu=vfp -marm -march=armv7-a -mfloat-abi=soft -mtune=cortex-a9 -mtls-dialect=gnu -g -Os -std=gnu90 -fno-strict-aliasing -fno-common -fshort-wchar -fno-PIE -fno-dwarf2-cfi-asm -fno-ipa-sra -funwind-tables -fno-delete-null-pointer-checks -fstack-protector-strong -fomit-frame-pointer -fno-var-tracking-assignments -fno-strict-overflow -fno-merge-all-constants -fmerge-constants -fstack-check=no -fconserve-stack --param allow-store-data-races=0": 1
+        },
+        "line_file_entries": 56,
+        "unique_line_file_entries": 56,
+        "mtime_value_counts": {
+          "0": 56
+        },
+        "length_value_counts": {
+          "0": 56
+        },
+        "nonzero_line_metadata": [],
+        "timestamp_sensitive_CU_attributes": [],
+        "elapsed": 0.09221625328063965
+      },
+      {
+        "path": "/tmp/reforge-original-rootfs-audit/modules/xr829.ko",
+        "sha256": "407b00133fbef0c41d33c71ed4797cc3825b9ea0236396769b0038bbd34609c0",
+        "CU_count": 1,
+        "DWARF_versions": {
+          "4": 1
+        },
+        "CU_attribute_counts": {
+          "DW_AT_producer": 1,
+          "DW_AT_language": 1,
+          "DW_AT_name": 1,
+          "DW_AT_comp_dir": 1,
+          "DW_AT_stmt_list": 1
+        },
+        "producer_counts": {
+          "GNU C89 5.3.1 20160412 -mlittle-endian -mabi=aapcs-linux -mfpu=vfp -marm -march=armv7-a -mfloat-abi=soft -mtune=cortex-a9 -mtls-dialect=gnu -g -Os -std=gnu90 -fno-strict-aliasing -fno-common -fshort-wchar -fno-PIE -fno-dwarf2-cfi-asm -fno-ipa-sra -funwind-tables -fno-delete-null-pointer-checks -fstack-protector-strong -fomit-frame-pointer -fno-var-tracking-assignments -fno-strict-overflow -fno-merge-all-constants -fmerge-constants -fstack-check=no -fconserve-stack --param allow-store-data-races=0": 1
+        },
+        "line_file_entries": 56,
+        "unique_line_file_entries": 56,
+        "mtime_value_counts": {
+          "0": 56
+        },
+        "length_value_counts": {
+          "0": 56
+        },
+        "nonzero_line_metadata": [],
+        "timestamp_sensitive_CU_attributes": [],
+        "elapsed": 0.06426167488098145
+      },
+      {
+        "path": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-kernel-toolchain-path-verified/artifacts/vmlinux",
+        "sha256": "edee648898df7b07717dc6ec1df3d95896564c097b79c246b87d92c55068fba6",
+        "CU_count": 1836,
+        "DWARF_versions": {
+          "2": 56,
+          "4": 1780
+        },
+        "CU_attribute_counts": {
+          "DW_AT_stmt_list": 1836,
+          "DW_AT_ranges": 790,
+          "DW_AT_name": 1836,
+          "DW_AT_comp_dir": 1818,
+          "DW_AT_producer": 1836,
+          "DW_AT_language": 1836,
+          "DW_AT_low_pc": 1786,
+          "DW_AT_high_pc": 1007
+        },
+        "producer_counts": {
+          "GNU AS 2.25.0": 56,
+          "GNU C89 5.3.1 20160412 -mlittle-endian -mabi=aapcs-linux -mfpu=vfp -marm -march=armv7-a -mfloat-abi=soft -mtune=cortex-a9 -mtls-dialect=gnu -g -Os -std=gnu90 -fno-strict-aliasing -fno-common -fshort-wchar -fno-PIE -fno-dwarf2-cfi-asm -fno-ipa-sra -funwind-tables -fno-delete-null-pointer-checks -fstack-protector-strong -fomit-frame-pointer -fno-var-tracking-assignments -fno-strict-overflow -fno-merge-all-constants -fmerge-constants -fstack-check=no -fconserve-stack -fno-function-sections -fno-data-sections --param allow-store-data-races=0": 6,
+          "GNU C89 5.3.1 20160412 -mlittle-endian -mabi=aapcs-linux -mfpu=vfp -marm -march=armv7-a -mfloat-abi=soft -mtune=cortex-a9 -mtls-dialect=gnu -g -Os -std=gnu90 -fno-strict-aliasing -fno-common -fshort-wchar -fno-PIE -fno-dwarf2-cfi-asm -fno-ipa-sra -funwind-tables -fno-delete-null-pointer-checks -fstack-protector-strong -fomit-frame-pointer -fno-var-tracking-assignments -fno-strict-overflow -fno-merge-all-constants -fmerge-constants -fstack-check=no -fconserve-stack --param allow-store-data-races=0": 1764,
+          "GNU C89 5.3.1 20160412 -mlittle-endian -mabi=aapcs-linux -mfpu=vfp -marm -march=armv7-a -mfloat-abi=soft -mtune=cortex-a9 -mtls-dialect=gnu -g -Os -std=gnu90 -fno-strict-aliasing -fno-common -fshort-wchar -fno-PIE -fno-dwarf2-cfi-asm -fno-ipa-sra -funwind-tables -fno-delete-null-pointer-checks -fstack-protector-strong -fno-var-tracking-assignments -fno-strict-overflow -fno-merge-all-constants -fmerge-constants -fstack-check=no -fconserve-stack -fno-omit-frame-pointer --param allow-store-data-races=0": 1,
+          "GNU C89 5.3.1 20160412 -mlittle-endian -mabi=aapcs-linux -mfpu=vfp -marm -march=armv7-a -mfloat-abi=soft -mtune=cortex-a9 -mtls-dialect=gnu -g -Os -O0 -std=gnu90 -fno-strict-aliasing -fno-common -fshort-wchar -fno-PIE -fno-dwarf2-cfi-asm -fno-ipa-sra -funwind-tables -fno-delete-null-pointer-checks -fstack-protector-strong -fomit-frame-pointer -fno-var-tracking-assignments -fno-strict-overflow -fno-merge-all-constants -fmerge-constants -fstack-check=no -fconserve-stack --param allow-store-data-races=0": 1,
+          "GNU C89 5.3.1 20160412 -mlittle-endian -mabi=aapcs-linux -mfpu=vfp -marm -march=armv7-a -mfloat-abi=soft -mtune=cortex-a9 -mtls-dialect=gnu -g -Os -O3 -std=gnu90 -fno-strict-aliasing -fno-common -fshort-wchar -fno-PIE -fno-dwarf2-cfi-asm -fno-ipa-sra -funwind-tables -fno-delete-null-pointer-checks -fstack-protector-strong -fomit-frame-pointer -fno-var-tracking-assignments -fno-strict-overflow -fno-merge-all-constants -fmerge-constants -fstack-check=no -fconserve-stack --param allow-store-data-races=0": 8
+        },
+        "line_file_entries": 270681,
+        "unique_line_file_entries": 7878,
+        "mtime_value_counts": {
+          "0": 270681
+        },
+        "length_value_counts": {
+          "0": 270681
+        },
+        "nonzero_line_metadata": [],
+        "timestamp_sensitive_CU_attributes": [],
+        "elapsed": 12.878592252731323,
+        "CU_producers_exactly_original_module_producer_count": 1764
+      }
+    ],
+    "scope": "EverycurrentkernelCUline-tableheaderfile_entry plusallCUattributes; twoactualoriginalmoduleCUs independently. No lineprograminstructions/datatargetbytes edited. Also decodedalllineprogramopcodesto inspectDW_LNE_define_file dynamicfileentries.",
+    "limitations": [
+      "ZeroDWARFmtime/lengthvaluesruleoutstoredfiletimestamp/lengthfields forobservedcurrentandoriginalmoduleCUs, notallunseenoriginalkerneldebugsections.",
+      "Compilerproducer20160412iscompilerrelease date, notsourcefiletimestamp.",
+      "Otherliteralruntimebuildtimestampsanddebugpaths remainseparateinputs; nooverallbuildIDequivalenceclaimed."
+    ],
+    "extended_line_file_metadata": [
+      {
+        "path": "/tmp/reforge-original-rootfs-audit/modules/flat-8821cu.ko",
+        "unique_line_programs": 1,
+        "opcode_count": 0,
+        "extended_define_file_count": 0,
+        "nonzero_extended_metadata": [],
+        "extended_entries": []
+      },
+      {
+        "path": "/tmp/reforge-original-rootfs-audit/modules/xr829.ko",
+        "unique_line_programs": 1,
+        "opcode_count": 0,
+        "extended_define_file_count": 0,
+        "nonzero_extended_metadata": [],
+        "extended_entries": []
+      },
+      {
+        "path": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-kernel-toolchain-path-verified/artifacts/vmlinux",
+        "unique_line_programs": 1836,
+        "opcode_count": 1350776,
+        "extended_define_file_count": 0,
+        "nonzero_extended_metadata": [],
+        "extended_entries": []
+      }
+    ]
+  },
+  "current_header_generation": {
+    "scope": "Verification of reconstructed input generation, not recovered original kernel header bytes.",
+    "program_header_model": {
+      "source_scope": "GNU binutils2.25 upstream algorithm; exact pinned Linaro binary independently reproduces output. Original ELF header bytes not recovered.",
+      "input_geometry": "current output section geometry/flags, unchanged generated script LMA mapping; this model does not make unknown geometry original",
+      "elf_phnum": {
+        "derived": 9,
+        "actual": 9,
+        "match": true
+      },
+      "load_groups": 7,
+      "headers": [
+        {
+          "index": 0,
+          "sections": [
+            ".head.text"
+          ],
+          "boundary_reason": "first section",
+          "derived": {
+            "p_type": "PT_LOAD",
+            "p_offset": 0,
+            "p_vaddr": 3221225472,
+            "p_paddr": 3221225472,
+            "p_filesz": 33432,
+            "p_memsz": 33432,
+            "p_flags": 5,
+            "p_align": 65536
+          },
+          "actual": {
+            "p_type": "PT_LOAD",
+            "p_offset": 0,
+            "p_vaddr": 3221225472,
+            "p_paddr": 3221225472,
+            "p_filesz": 33432,
+            "p_memsz": 33432,
+            "p_flags": 5,
+            "p_align": 65536
+          },
+          "fields": {
+            "p_type": {
+              "derived": "PT_LOAD",
+              "actual": "PT_LOAD",
+              "match": true
+            },
+            "p_offset": {
+              "derived": 0,
+              "actual": 0,
+              "match": true
+            },
+            "p_vaddr": {
+              "derived": 3221225472,
+              "actual": 3221225472,
+              "match": true
+            },
+            "p_paddr": {
+              "derived": 3221225472,
+              "actual": 3221225472,
+              "match": true
+            },
+            "p_filesz": {
+              "derived": 33432,
+              "actual": 33432,
+              "match": true
+            },
+            "p_memsz": {
+              "derived": 33432,
+              "actual": 33432,
+              "match": true
+            },
+            "p_flags": {
+              "derived": 5,
+              "actual": 5,
+              "match": true
+            },
+            "p_align": {
+              "derived": 65536,
+              "actual": 65536,
+              "match": true
+            }
+          },
+          "match": true
+        },
+        {
+          "index": 1,
+          "sections": [
+            ".text"
+          ],
+          "boundary_reason": "would skip an entire maximum-size page",
+          "derived": {
+            "p_type": "PT_LOAD",
+            "p_offset": 65536,
+            "p_vaddr": 3222274048,
+            "p_paddr": 3222274048,
+            "p_filesz": 6929936,
+            "p_memsz": 6929936,
+            "p_flags": 5,
+            "p_align": 65536
+          },
+          "actual": {
+            "p_type": "PT_LOAD",
+            "p_offset": 65536,
+            "p_vaddr": 3222274048,
+            "p_paddr": 3222274048,
+            "p_filesz": 6929936,
+            "p_memsz": 6929936,
+            "p_flags": 5,
+            "p_align": 65536
+          },
+          "fields": {
+            "p_type": {
+              "derived": "PT_LOAD",
+              "actual": "PT_LOAD",
+              "match": true
+            },
+            "p_offset": {
+              "derived": 65536,
+              "actual": 65536,
+              "match": true
+            },
+            "p_vaddr": {
+              "derived": 3222274048,
+              "actual": 3222274048,
+              "match": true
+            },
+            "p_paddr": {
+              "derived": 3222274048,
+              "actual": 3222274048,
+              "match": true
+            },
+            "p_filesz": {
+              "derived": 6929936,
+              "actual": 6929936,
+              "match": true
+            },
+            "p_memsz": {
+              "derived": 6929936,
+              "actual": 6929936,
+              "match": true
+            },
+            "p_flags": {
+              "derived": 5,
+              "actual": 5,
+              "match": true
+            },
+            "p_align": {
+              "derived": 65536,
+              "actual": 65536,
+              "match": true
+            }
+          },
+          "match": true
+        },
+        {
+          "index": 2,
+          "sections": [
+            ".rodata",
+            ".modinfo",
+            "__ksymtab",
+            "__ksymtab_gpl",
+            "__ksymtab_strings",
+            "__param",
+            "__modver",
+            "__ex_table",
+            ".ARM.unwind_idx",
+            ".ARM.unwind_tab",
+            ".notes"
+          ],
+          "boundary_reason": "would skip an entire maximum-size page",
+          "derived": {
+            "p_type": "PT_LOAD",
+            "p_offset": 7012352,
+            "p_vaddr": 3229614080,
+            "p_paddr": 3229614080,
+            "p_filesz": 2965888,
+            "p_memsz": 2965888,
+            "p_flags": 6,
+            "p_align": 65536
+          },
+          "actual": {
+            "p_type": "PT_LOAD",
+            "p_offset": 7012352,
+            "p_vaddr": 3229614080,
+            "p_paddr": 3229614080,
+            "p_filesz": 2965888,
+            "p_memsz": 2965888,
+            "p_flags": 6,
+            "p_align": 65536
+          },
+          "fields": {
+            "p_type": {
+              "derived": "PT_LOAD",
+              "actual": "PT_LOAD",
+              "match": true
+            },
+            "p_offset": {
+              "derived": 7012352,
+              "actual": 7012352,
+              "match": true
+            },
+            "p_vaddr": {
+              "derived": 3229614080,
+              "actual": 3229614080,
+              "match": true
+            },
+            "p_paddr": {
+              "derived": 3229614080,
+              "actual": 3229614080,
+              "match": true
+            },
+            "p_filesz": {
+              "derived": 2965888,
+              "actual": 2965888,
+              "match": true
+            },
+            "p_memsz": {
+              "derived": 2965888,
+              "actual": 2965888,
+              "match": true
+            },
+            "p_flags": {
+              "derived": 6,
+              "actual": 6,
+              "match": true
+            },
+            "p_align": {
+              "derived": 65536,
+              "actual": 65536,
+              "match": true
+            }
+          },
+          "match": true
+        },
+        {
+          "index": 3,
+          "sections": [
+            ".vectors"
+          ],
+          "boundary_reason": "different VMA/LMA delta",
+          "derived": {
+            "p_type": "PT_LOAD",
+            "p_offset": 10027008,
+            "p_vaddr": 4294901760,
+            "p_paddr": 3232759808,
+            "p_filesz": 32,
+            "p_memsz": 32,
+            "p_flags": 5,
+            "p_align": 65536
+          },
+          "actual": {
+            "p_type": "PT_LOAD",
+            "p_offset": 10027008,
+            "p_vaddr": 4294901760,
+            "p_paddr": 3232759808,
+            "p_filesz": 32,
+            "p_memsz": 32,
+            "p_flags": 5,
+            "p_align": 65536
+          },
+          "fields": {
+            "p_type": {
+              "derived": "PT_LOAD",
+              "actual": "PT_LOAD",
+              "match": true
+            },
+            "p_offset": {
+              "derived": 10027008,
+              "actual": 10027008,
+              "match": true
+            },
+            "p_vaddr": {
+              "derived": 4294901760,
+              "actual": 4294901760,
+              "match": true
+            },
+            "p_paddr": {
+              "derived": 3232759808,
+              "actual": 3232759808,
+              "match": true
+            },
+            "p_filesz": {
+              "derived": 32,
+              "actual": 32,
+              "match": true
+            },
+            "p_memsz": {
+              "derived": 32,
+              "actual": 32,
+              "match": true
+            },
+            "p_flags": {
+              "derived": 5,
+              "actual": 5,
+              "match": true
+            },
+            "p_align": {
+              "derived": 65536,
+              "actual": 65536,
+              "match": true
+            }
+          },
+          "match": true
+        },
+        {
+          "index": 4,
+          "sections": [
+            ".stubs"
+          ],
+          "boundary_reason": "different VMA/LMA delta",
+          "derived": {
+            "p_type": "PT_LOAD",
+            "p_offset": 10031104,
+            "p_vaddr": 4294905856,
+            "p_paddr": 3232759840,
+            "p_filesz": 704,
+            "p_memsz": 704,
+            "p_flags": 5,
+            "p_align": 65536
+          },
+          "actual": {
+            "p_type": "PT_LOAD",
+            "p_offset": 10031104,
+            "p_vaddr": 4294905856,
+            "p_paddr": 3232759840,
+            "p_filesz": 704,
+            "p_memsz": 704,
+            "p_flags": 5,
+            "p_align": 65536
+          },
+          "fields": {
+            "p_type": {
+              "derived": "PT_LOAD",
+              "actual": "PT_LOAD",
+              "match": true
+            },
+            "p_offset": {
+              "derived": 10031104,
+              "actual": 10031104,
+              "match": true
+            },
+            "p_vaddr": {
+              "derived": 4294905856,
+              "actual": 4294905856,
+              "match": true
+            },
+            "p_paddr": {
+              "derived": 3232759840,
+              "actual": 3232759840,
+              "match": true
+            },
+            "p_filesz": {
+              "derived": 704,
+              "actual": 704,
+              "match": true
+            },
+            "p_memsz": {
+              "derived": 704,
+              "actual": 704,
+              "match": true
+            },
+            "p_flags": {
+              "derived": 5,
+              "actual": 5,
+              "match": true
+            },
+            "p_align": {
+              "derived": 65536,
+              "actual": 65536,
+              "match": true
+            }
+          },
+          "match": true
+        },
+        {
+          "index": 5,
+          "sections": [
+            ".init.text",
+            ".exit.text",
+            ".init.arch.info",
+            ".init.smpalt",
+            ".init.pv_table",
+            ".init.data",
+            ".data..percpu"
+          ],
+          "boundary_reason": "different VMA/LMA delta",
+          "derived": {
+            "p_type": "PT_LOAD",
+            "p_offset": 10093280,
+            "p_vaddr": 3232760544,
+            "p_paddr": 3232760544,
+            "p_filesz": 284128,
+            "p_memsz": 284128,
+            "p_flags": 7,
+            "p_align": 65536
+          },
+          "actual": {
+            "p_type": "PT_LOAD",
+            "p_offset": 10093280,
+            "p_vaddr": 3232760544,
+            "p_paddr": 3232760544,
+            "p_filesz": 284128,
+            "p_memsz": 284128,
+            "p_flags": 7,
+            "p_align": 65536
+          },
+          "fields": {
+            "p_type": {
+              "derived": "PT_LOAD",
+              "actual": "PT_LOAD",
+              "match": true
+            },
+            "p_offset": {
+              "derived": 10093280,
+              "actual": 10093280,
+              "match": true
+            },
+            "p_vaddr": {
+              "derived": 3232760544,
+              "actual": 3232760544,
+              "match": true
+            },
+            "p_paddr": {
+              "derived": 3232760544,
+              "actual": 3232760544,
+              "match": true
+            },
+            "p_filesz": {
+              "derived": 284128,
+              "actual": 284128,
+              "match": true
+            },
+            "p_memsz": {
+              "derived": 284128,
+              "actual": 284128,
+              "match": true
+            },
+            "p_flags": {
+              "derived": 7,
+              "actual": 7,
+              "match": true
+            },
+            "p_align": {
+              "derived": 65536,
+              "actual": 65536,
+              "match": true
+            }
+          },
+          "match": true
+        },
+        {
+          "index": 6,
+          "sections": [
+            ".data",
+            "__bug_table",
+            ".bss"
+          ],
+          "boundary_reason": "would skip an entire maximum-size page",
+          "derived": {
+            "p_type": "PT_LOAD",
+            "p_offset": 10420224,
+            "p_vaddr": 3233808384,
+            "p_paddr": 3233808384,
+            "p_filesz": 420012,
+            "p_memsz": 607184,
+            "p_flags": 6,
+            "p_align": 65536
+          },
+          "actual": {
+            "p_type": "PT_LOAD",
+            "p_offset": 10420224,
+            "p_vaddr": 3233808384,
+            "p_paddr": 3233808384,
+            "p_filesz": 420012,
+            "p_memsz": 607184,
+            "p_flags": 6,
+            "p_align": 65536
+          },
+          "fields": {
+            "p_type": {
+              "derived": "PT_LOAD",
+              "actual": "PT_LOAD",
+              "match": true
+            },
+            "p_offset": {
+              "derived": 10420224,
+              "actual": 10420224,
+              "match": true
+            },
+            "p_vaddr": {
+              "derived": 3233808384,
+              "actual": 3233808384,
+              "match": true
+            },
+            "p_paddr": {
+              "derived": 3233808384,
+              "actual": 3233808384,
+              "match": true
+            },
+            "p_filesz": {
+              "derived": 420012,
+              "actual": 420012,
+              "match": true
+            },
+            "p_memsz": {
+              "derived": 607184,
+              "actual": 607184,
+              "match": true
+            },
+            "p_flags": {
+              "derived": 6,
+              "actual": 6,
+              "match": true
+            },
+            "p_align": {
+              "derived": 65536,
+              "actual": 65536,
+              "match": true
+            }
+          },
+          "match": true
+        },
+        {
+          "index": 7,
+          "sections": [
+            ".notes"
+          ],
+          "boundary_reason": "consecutive allocated NOTE section",
+          "derived": {
+            "p_type": "PT_NOTE",
+            "p_offset": 9978180,
+            "p_vaddr": 3232579908,
+            "p_paddr": 3232579908,
+            "p_filesz": 60,
+            "p_memsz": 60,
+            "p_flags": 4,
+            "p_align": 4
+          },
+          "actual": {
+            "p_type": "PT_NOTE",
+            "p_offset": 9978180,
+            "p_vaddr": 3232579908,
+            "p_paddr": 3232579908,
+            "p_filesz": 60,
+            "p_memsz": 60,
+            "p_flags": 4,
+            "p_align": 4
+          },
+          "fields": {
+            "p_type": {
+              "derived": "PT_NOTE",
+              "actual": "PT_NOTE",
+              "match": true
+            },
+            "p_offset": {
+              "derived": 9978180,
+              "actual": 9978180,
+              "match": true
+            },
+            "p_vaddr": {
+              "derived": 3232579908,
+              "actual": 3232579908,
+              "match": true
+            },
+            "p_paddr": {
+              "derived": 3232579908,
+              "actual": 3232579908,
+              "match": true
+            },
+            "p_filesz": {
+              "derived": 60,
+              "actual": 60,
+              "match": true
+            },
+            "p_memsz": {
+              "derived": 60,
+              "actual": 60,
+              "match": true
+            },
+            "p_flags": {
+              "derived": 4,
+              "actual": 4,
+              "match": true
+            },
+            "p_align": {
+              "derived": 4,
+              "actual": 4,
+              "match": true
+            }
+          },
+          "match": true
+        },
+        {
+          "index": 8,
+          "sections": [],
+          "boundary_reason": "1780nonexecGNU-stack notes plus61missing notes; default_execstack1",
+          "derived": {
+            "p_type": "PT_GNU_STACK",
+            "p_offset": 0,
+            "p_vaddr": 0,
+            "p_paddr": 0,
+            "p_filesz": 0,
+            "p_memsz": 0,
+            "p_flags": 7,
+            "p_align": 16
+          },
+          "actual": {
+            "p_type": "PT_GNU_STACK",
+            "p_offset": 0,
+            "p_vaddr": 0,
+            "p_paddr": 0,
+            "p_filesz": 0,
+            "p_memsz": 0,
+            "p_flags": 7,
+            "p_align": 16
+          },
+          "fields": {
+            "p_type": {
+              "derived": "PT_GNU_STACK",
+              "actual": "PT_GNU_STACK",
+              "match": true
+            },
+            "p_offset": {
+              "derived": 0,
+              "actual": 0,
+              "match": true
+            },
+            "p_vaddr": {
+              "derived": 0,
+              "actual": 0,
+              "match": true
+            },
+            "p_paddr": {
+              "derived": 0,
+              "actual": 0,
+              "match": true
+            },
+            "p_filesz": {
+              "derived": 0,
+              "actual": 0,
+              "match": true
+            },
+            "p_memsz": {
+              "derived": 0,
+              "actual": 0,
+              "match": true
+            },
+            "p_flags": {
+              "derived": 7,
+              "actual": 7,
+              "match": true
+            },
+            "p_align": {
+              "derived": 16,
+              "actual": 16,
+              "match": true
+            }
+          },
+          "match": true
+        }
+      ],
+      "summary": {
+        "program_headers": 9,
+        "descriptor_fields_checked": 72,
+        "mismatches": 0
+      },
+      "section_fields": [],
+      "section_table_checks": {
+        "e_shnum_matches_actual_sections": true,
+        "e_shstrndx_actual_name": ".shstrtab",
+        "symtab_sh_info_first_nonlocal": {
+          "derived": 124719,
+          "actual": 124719,
+          "match": true
+        },
+        "symtab_sh_link_name": ".strtab",
+        "symtab_size_from_count": {
+          "derived": 2296928,
+          "actual": 2296928,
+          "match": true
+        },
+        "section_names_all_resolve": true
+      },
+      "section_order": [
+        {
+          "index": 0,
+          "name": "",
+          "type": "SHT_NULL",
+          "flags": 0,
+          "name_offset": 0,
+          "link": 0,
+          "info": 0,
+          "alignment": 0
+        },
+        {
+          "index": 1,
+          "name": ".head.text",
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "name_offset": 27,
+          "link": 0,
+          "info": 0,
+          "alignment": 4
+        },
+        {
+          "index": 2,
+          "name": ".text",
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "name_offset": 32,
+          "link": 0,
+          "info": 0,
+          "alignment": 64
+        },
+        {
+          "index": 3,
+          "name": ".rodata",
+          "type": "SHT_PROGBITS",
+          "flags": 3,
+          "name_offset": 38,
+          "link": 0,
+          "info": 0,
+          "alignment": 64
+        },
+        {
+          "index": 4,
+          "name": ".modinfo",
+          "type": "SHT_PROGBITS",
+          "flags": 2,
+          "name_offset": 46,
+          "link": 0,
+          "info": 0,
+          "alignment": 1
+        },
+        {
+          "index": 5,
+          "name": "__ksymtab",
+          "type": "SHT_PROGBITS",
+          "flags": 2,
+          "name_offset": 55,
+          "link": 0,
+          "info": 0,
+          "alignment": 4
+        },
+        {
+          "index": 6,
+          "name": "__ksymtab_gpl",
+          "type": "SHT_PROGBITS",
+          "flags": 2,
+          "name_offset": 65,
+          "link": 0,
+          "info": 0,
+          "alignment": 4
+        },
+        {
+          "index": 7,
+          "name": "__ksymtab_strings",
+          "type": "SHT_PROGBITS",
+          "flags": 2,
+          "name_offset": 79,
+          "link": 0,
+          "info": 0,
+          "alignment": 1
+        },
+        {
+          "index": 8,
+          "name": "__param",
+          "type": "SHT_PROGBITS",
+          "flags": 2,
+          "name_offset": 97,
+          "link": 0,
+          "info": 0,
+          "alignment": 4
+        },
+        {
+          "index": 9,
+          "name": "__modver",
+          "type": "SHT_PROGBITS",
+          "flags": 2,
+          "name_offset": 105,
+          "link": 0,
+          "info": 0,
+          "alignment": 4
+        },
+        {
+          "index": 10,
+          "name": "__ex_table",
+          "type": "SHT_PROGBITS",
+          "flags": 2,
+          "name_offset": 114,
+          "link": 0,
+          "info": 0,
+          "alignment": 8
+        },
+        {
+          "index": 11,
+          "name": ".ARM.unwind_idx",
+          "type": "SHT_ARM_EXIDX",
+          "flags": 130,
+          "name_offset": 125,
+          "link": 16,
+          "info": 0,
+          "alignment": 4
+        },
+        {
+          "index": 12,
+          "name": ".ARM.unwind_tab",
+          "type": "SHT_PROGBITS",
+          "flags": 2,
+          "name_offset": 141,
+          "link": 0,
+          "info": 0,
+          "alignment": 4
+        },
+        {
+          "index": 13,
+          "name": ".notes",
+          "type": "SHT_NOTE",
+          "flags": 2,
+          "name_offset": 157,
+          "link": 0,
+          "info": 0,
+          "alignment": 4
+        },
+        {
+          "index": 14,
+          "name": ".vectors",
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "name_offset": 164,
+          "link": 0,
+          "info": 0,
+          "alignment": 4
+        },
+        {
+          "index": 15,
+          "name": ".stubs",
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "name_offset": 173,
+          "link": 0,
+          "info": 0,
+          "alignment": 32
+        },
+        {
+          "index": 16,
+          "name": ".init.text",
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "name_offset": 180,
+          "link": 0,
+          "info": 0,
+          "alignment": 32
+        },
+        {
+          "index": 17,
+          "name": ".exit.text",
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "name_offset": 191,
+          "link": 0,
+          "info": 0,
+          "alignment": 4
+        },
+        {
+          "index": 18,
+          "name": ".init.arch.info",
+          "type": "SHT_PROGBITS",
+          "flags": 2,
+          "name_offset": 202,
+          "link": 0,
+          "info": 0,
+          "alignment": 4
+        },
+        {
+          "index": 19,
+          "name": ".init.smpalt",
+          "type": "SHT_PROGBITS",
+          "flags": 2,
+          "name_offset": 218,
+          "link": 0,
+          "info": 0,
+          "alignment": 4
+        },
+        {
+          "index": 20,
+          "name": ".init.pv_table",
+          "type": "SHT_PROGBITS",
+          "flags": 2,
+          "name_offset": 231,
+          "link": 0,
+          "info": 0,
+          "alignment": 1
+        },
+        {
+          "index": 21,
+          "name": ".init.data",
+          "type": "SHT_PROGBITS",
+          "flags": 3,
+          "name_offset": 246,
+          "link": 0,
+          "info": 0,
+          "alignment": 4096
+        },
+        {
+          "index": 22,
+          "name": ".data..percpu",
+          "type": "SHT_PROGBITS",
+          "flags": 3,
+          "name_offset": 257,
+          "link": 0,
+          "info": 0,
+          "alignment": 64
+        },
+        {
+          "index": 23,
+          "name": ".data",
+          "type": "SHT_PROGBITS",
+          "flags": 3,
+          "name_offset": 251,
+          "link": 0,
+          "info": 0,
+          "alignment": 64
+        },
+        {
+          "index": 24,
+          "name": "__bug_table",
+          "type": "SHT_PROGBITS",
+          "flags": 3,
+          "name_offset": 271,
+          "link": 0,
+          "info": 0,
+          "alignment": 4
+        },
+        {
+          "index": 25,
+          "name": ".bss",
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "name_offset": 283,
+          "link": 0,
+          "info": 0,
+          "alignment": 64
+        },
+        {
+          "index": 26,
+          "name": ".comment",
+          "type": "SHT_PROGBITS",
+          "flags": 48,
+          "name_offset": 288,
+          "link": 0,
+          "info": 0,
+          "alignment": 1
+        },
+        {
+          "index": 27,
+          "name": ".ARM.attributes",
+          "type": "SHT_ARM_ATTRIBUTES",
+          "flags": 0,
+          "name_offset": 297,
+          "link": 0,
+          "info": 0,
+          "alignment": 1
+        },
+        {
+          "index": 28,
+          "name": ".debug_line",
+          "type": "SHT_PROGBITS",
+          "flags": 0,
+          "name_offset": 313,
+          "link": 0,
+          "info": 0,
+          "alignment": 1
+        },
+        {
+          "index": 29,
+          "name": ".debug_info",
+          "type": "SHT_PROGBITS",
+          "flags": 0,
+          "name_offset": 325,
+          "link": 0,
+          "info": 0,
+          "alignment": 1
+        },
+        {
+          "index": 30,
+          "name": ".debug_abbrev",
+          "type": "SHT_PROGBITS",
+          "flags": 0,
+          "name_offset": 337,
+          "link": 0,
+          "info": 0,
+          "alignment": 1
+        },
+        {
+          "index": 31,
+          "name": ".debug_aranges",
+          "type": "SHT_PROGBITS",
+          "flags": 0,
+          "name_offset": 351,
+          "link": 0,
+          "info": 0,
+          "alignment": 8
+        },
+        {
+          "index": 32,
+          "name": ".debug_ranges",
+          "type": "SHT_PROGBITS",
+          "flags": 0,
+          "name_offset": 366,
+          "link": 0,
+          "info": 0,
+          "alignment": 8
+        },
+        {
+          "index": 33,
+          "name": ".debug_frame",
+          "type": "SHT_PROGBITS",
+          "flags": 0,
+          "name_offset": 380,
+          "link": 0,
+          "info": 0,
+          "alignment": 4
+        },
+        {
+          "index": 34,
+          "name": ".debug_loc",
+          "type": "SHT_PROGBITS",
+          "flags": 0,
+          "name_offset": 393,
+          "link": 0,
+          "info": 0,
+          "alignment": 1
+        },
+        {
+          "index": 35,
+          "name": ".debug_str",
+          "type": "SHT_PROGBITS",
+          "flags": 48,
+          "name_offset": 404,
+          "link": 0,
+          "info": 0,
+          "alignment": 1
+        },
+        {
+          "index": 36,
+          "name": ".shstrtab",
+          "type": "SHT_STRTAB",
+          "flags": 0,
+          "name_offset": 17,
+          "link": 0,
+          "info": 0,
+          "alignment": 1
+        },
+        {
+          "index": 37,
+          "name": ".symtab",
+          "type": "SHT_SYMTAB",
+          "flags": 0,
+          "name_offset": 1,
+          "link": 38,
+          "info": 124719,
+          "alignment": 4
+        },
+        {
+          "index": 38,
+          "name": ".strtab",
+          "type": "SHT_STRTAB",
+          "flags": 0,
+          "name_offset": 9,
+          "link": 0,
+          "info": 0,
+          "alignment": 1
+        }
+      ]
+    },
+    "section_order_model": {
+      "nonempty_map_output_sections": [
+        ".head.text",
+        ".text",
+        ".rodata",
+        ".modinfo",
+        "__ksymtab",
+        "__ksymtab_gpl",
+        "__ksymtab_strings",
+        "__param",
+        "__modver",
+        "__ex_table",
+        ".ARM.unwind_idx",
+        ".ARM.unwind_tab",
+        ".notes",
+        ".vectors",
+        ".stubs",
+        ".init.text",
+        ".exit.text",
+        ".init.arch.info",
+        ".init.smpalt",
+        ".init.pv_table",
+        ".init.data",
+        ".data..percpu",
+        ".data",
+        "__bug_table",
+        ".bss",
+        ".comment",
+        ".ARM.attributes",
+        ".debug_line",
+        ".debug_info",
+        ".debug_abbrev",
+        ".debug_aranges",
+        ".debug_ranges",
+        ".debug_frame",
+        ".debug_loc",
+        ".debug_str"
+      ],
+      "map_output_count": 35,
+      "map_sequence_plus_three_linker_tables_and_null_matches_entire_ELF_order": true,
+      "derived_e_shnum": 39,
+      "actual_e_shnum": 39,
+      "derived_e_shstrndx": 36,
+      "actual_e_shstrndx": 36,
+      "derived_shstrtab_from_first_seen_suffix_interned_names_equal": true,
+      "section_name_fields": [
+        {
+          "index": 0,
+          "name": "",
+          "derived_offset": 0,
+          "actual_offset": 0,
+          "match": true
+        },
+        {
+          "index": 1,
+          "name": ".head.text",
+          "derived_offset": 27,
+          "actual_offset": 27,
+          "match": true
+        },
+        {
+          "index": 2,
+          "name": ".text",
+          "derived_offset": 32,
+          "actual_offset": 32,
+          "match": true
+        },
+        {
+          "index": 3,
+          "name": ".rodata",
+          "derived_offset": 38,
+          "actual_offset": 38,
+          "match": true
+        },
+        {
+          "index": 4,
+          "name": ".modinfo",
+          "derived_offset": 46,
+          "actual_offset": 46,
+          "match": true
+        },
+        {
+          "index": 5,
+          "name": "__ksymtab",
+          "derived_offset": 55,
+          "actual_offset": 55,
+          "match": true
+        },
+        {
+          "index": 6,
+          "name": "__ksymtab_gpl",
+          "derived_offset": 65,
+          "actual_offset": 65,
+          "match": true
+        },
+        {
+          "index": 7,
+          "name": "__ksymtab_strings",
+          "derived_offset": 79,
+          "actual_offset": 79,
+          "match": true
+        },
+        {
+          "index": 8,
+          "name": "__param",
+          "derived_offset": 97,
+          "actual_offset": 97,
+          "match": true
+        },
+        {
+          "index": 9,
+          "name": "__modver",
+          "derived_offset": 105,
+          "actual_offset": 105,
+          "match": true
+        },
+        {
+          "index": 10,
+          "name": "__ex_table",
+          "derived_offset": 114,
+          "actual_offset": 114,
+          "match": true
+        },
+        {
+          "index": 11,
+          "name": ".ARM.unwind_idx",
+          "derived_offset": 125,
+          "actual_offset": 125,
+          "match": true
+        },
+        {
+          "index": 12,
+          "name": ".ARM.unwind_tab",
+          "derived_offset": 141,
+          "actual_offset": 141,
+          "match": true
+        },
+        {
+          "index": 13,
+          "name": ".notes",
+          "derived_offset": 157,
+          "actual_offset": 157,
+          "match": true
+        },
+        {
+          "index": 14,
+          "name": ".vectors",
+          "derived_offset": 164,
+          "actual_offset": 164,
+          "match": true
+        },
+        {
+          "index": 15,
+          "name": ".stubs",
+          "derived_offset": 173,
+          "actual_offset": 173,
+          "match": true
+        },
+        {
+          "index": 16,
+          "name": ".init.text",
+          "derived_offset": 180,
+          "actual_offset": 180,
+          "match": true
+        },
+        {
+          "index": 17,
+          "name": ".exit.text",
+          "derived_offset": 191,
+          "actual_offset": 191,
+          "match": true
+        },
+        {
+          "index": 18,
+          "name": ".init.arch.info",
+          "derived_offset": 202,
+          "actual_offset": 202,
+          "match": true
+        },
+        {
+          "index": 19,
+          "name": ".init.smpalt",
+          "derived_offset": 218,
+          "actual_offset": 218,
+          "match": true
+        },
+        {
+          "index": 20,
+          "name": ".init.pv_table",
+          "derived_offset": 231,
+          "actual_offset": 231,
+          "match": true
+        },
+        {
+          "index": 21,
+          "name": ".init.data",
+          "derived_offset": 246,
+          "actual_offset": 246,
+          "match": true
+        },
+        {
+          "index": 22,
+          "name": ".data..percpu",
+          "derived_offset": 257,
+          "actual_offset": 257,
+          "match": true
+        },
+        {
+          "index": 23,
+          "name": ".data",
+          "derived_offset": 251,
+          "actual_offset": 251,
+          "match": true
+        },
+        {
+          "index": 24,
+          "name": "__bug_table",
+          "derived_offset": 271,
+          "actual_offset": 271,
+          "match": true
+        },
+        {
+          "index": 25,
+          "name": ".bss",
+          "derived_offset": 283,
+          "actual_offset": 283,
+          "match": true
+        },
+        {
+          "index": 26,
+          "name": ".comment",
+          "derived_offset": 288,
+          "actual_offset": 288,
+          "match": true
+        },
+        {
+          "index": 27,
+          "name": ".ARM.attributes",
+          "derived_offset": 297,
+          "actual_offset": 297,
+          "match": true
+        },
+        {
+          "index": 28,
+          "name": ".debug_line",
+          "derived_offset": 313,
+          "actual_offset": 313,
+          "match": true
+        },
+        {
+          "index": 29,
+          "name": ".debug_info",
+          "derived_offset": 325,
+          "actual_offset": 325,
+          "match": true
+        },
+        {
+          "index": 30,
+          "name": ".debug_abbrev",
+          "derived_offset": 337,
+          "actual_offset": 337,
+          "match": true
+        },
+        {
+          "index": 31,
+          "name": ".debug_aranges",
+          "derived_offset": 351,
+          "actual_offset": 351,
+          "match": true
+        },
+        {
+          "index": 32,
+          "name": ".debug_ranges",
+          "derived_offset": 366,
+          "actual_offset": 366,
+          "match": true
+        },
+        {
+          "index": 33,
+          "name": ".debug_frame",
+          "derived_offset": 380,
+          "actual_offset": 380,
+          "match": true
+        },
+        {
+          "index": 34,
+          "name": ".debug_loc",
+          "derived_offset": 393,
+          "actual_offset": 393,
+          "match": true
+        },
+        {
+          "index": 35,
+          "name": ".debug_str",
+          "derived_offset": 404,
+          "actual_offset": 404,
+          "match": true
+        },
+        {
+          "index": 36,
+          "name": ".shstrtab",
+          "derived_offset": 17,
+          "actual_offset": 17,
+          "match": true
+        },
+        {
+          "index": 37,
+          "name": ".symtab",
+          "derived_offset": 1,
+          "actual_offset": 1,
+          "match": true
+        },
+        {
+          "index": 38,
+          "name": ".strtab",
+          "derived_offset": 9,
+          "actual_offset": 9,
+          "match": true
+        }
+      ],
+      "scope": "current actual selected-input linker map, GNU2.25 sequential numbering/table append + exact Linaro relink; not original section-table recovery"
+    },
+    "linked_objects": 1841,
+    "objects_without_GNU_stack_note": 61,
+    "objects_with_nonexecuting_GNU_stack_note": 1780,
+    "objects_requesting_executable_stack": 0,
+    "default_missing_note_policy": "GNU2.25 target default_execstack=1 and stack_align=16 imply observed RWE stack header.",
+    "writable_ro_after_init_inputs": 37,
+    "rodata_writable_cause": "Generated linker script merges 37 writable .data..ro_after_init sections into .rodata.",
+    "full_relink_identical_to_control_presort_ELF": true
+  },
+  "original_reference_lookup": {
+    "build_id": "07002ca89d308edcf17b1bdca56d38bc46972263",
+    "GitHub_indexed_code_results": 0,
+    "debuginfod_server": "https://debuginfod.elfutils.org",
+    "debuginfo": "ENOENT, no artifact returned",
+    "executable": "ENOENT, no artifact returned",
+    "scope": "Only these bounded lookups; not a claim that no original artifact exists elsewhere."
+  },
+  "unverified_original_inputs": [
+    "Original ELF/program/section-table bytes not retained in raw Image.",
+    "Original kernel nonloaded .comment and merged .ARM.attributes bytes, despite verified current mergerules and original-module corroboration.",
+    "Original kernel complete debug section bytes and DIE/string/order encodings; shared module declarations only corroborate a subset.",
+    "Original pre-sort exception-table order; the delivered sorted table cannot uniquely recover its earlier order.",
+    "Original complete link input grouping/order and discarded local symbol counts."
+  ]
+}

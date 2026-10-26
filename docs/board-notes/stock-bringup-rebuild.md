@@ -563,6 +563,69 @@ build inputs. Original kernel segment grouping, permissions, exact header counts
 and stripped metadata remain unverified. No header field was changed merely to
 increase a claimed match count.
 
+### Remaining hash-input verification
+
+[stock-kernel-hash-input-verification.json](stock-kernel-hash-input-verification.json)
+records the follow-up checks, their scope, and the original inputs still missing.
+The current pre-sort ELF feeds **138,771,303 bytes** into the validated checksum:
+
+| Input group | Hashed bytes | Verification boundary |
+|---|---:|---|
+| Normalized ELF/program/section headers | 1,900 | Current generation independently reproduced; original tables absent. |
+| Loaded section contents | 10,596,544 | Compared by load address with original raw bytes; only GNU descriptor and pre-sort flag differ. Original pre-sort exception-table order remains unknown. |
+| Debug sections | 128,172,763 | Original module debug records corroborate a subset; original kernel debug bytes absent. |
+| Compiler comment | 45 | Exact current output reproduced with real source-built inputs and linker merge rules; original kernel bytes absent. |
+| ARM attributes | 51 | Exact current output reproduced from source-built inputs; original modules corroborate common tags, not the whole original kernel section. |
+
+Actual linker experiments with the already byte-identical source-built Wi-Fi
+module reproduce its 8,142-byte relocatable comment and naturally reduce it to
+45 bytes in a final executable. Three source-built inputs (that module,
+`head.o`, and `proc-v7.o`) reproduce the kernel's exact comment and ARM attribute
+contents. A trace of all 1,841 selected kernel objects finds one compiler identity
+in all 1,780 comment-bearing objects; 61 have no comment. No foreign compiler or
+host-path strings were found in those input metadata sections. Division and
+virtualization tags originate in `proc-v7.o`, rather than an unexplained metadata
+override. This verifies the reconstructed merger behavior, not missing original
+kernel bytes.
+
+The two stock modules retaining debug information independently encode the same
+140 complete named records across 45 kernel headers. Comparing them with 15
+current kernel compilation units yields 3,878 definition-pair comparisons with
+no conflicts. There are 133 exact unique record matches and seven for which all
+original observed fields match but current records add sizes absent from original
+forward declarations. Layouts, member names/types/offsets, enum values and
+declaration locations are checked. This semantic subset comparison normalizes
+known checkout prefixes only in the read-only comparison; it does not establish
+byte identity for original kernel DIE ordering, references or complete debug data.
+
+All 270,681 current DWARF file entries have timestamp and length zero, as do the
+56 entries in each original module CU. Decoding all 1,350,776 current line-program
+operations found no dynamic file definitions. No CU date/time attributes were
+found. Thus stored source-file timestamp/length fields are not a differing input
+in the observed debug information. Exactly 1,764 current producer strings match
+the original modules' complete compiler/options string; the remaining assembler
+and per-file optimization/frame-pointer variants follow actual Kbuild inputs.
+
+All 72 current program-header fields and all 39 section-name offsets were
+independently reconstructed from the real input graph and linker policy, with
+zero differences. The RWE stack header is explained by 61 legacy assembly inputs
+without GNU-stack notes and GNU ld's missing-note default; writable `.rodata`
+comes from 37 `ro_after_init` input sections. No unexplained header generation was
+found. These checks do not recover the original header tables or original input
+section grouping.
+
+The loaded comparison also distinguishes link time from delivered-image time:
+`sortextable` clears its source-defined flag after the ID is calculated. The
+current exception table is already ordered before sorting, but the original
+pre-sort order cannot be uniquely recovered from its sorted raw Image. That is
+another unobserved original hash input, separate from debug information.
+
+Bounded lookups for the original ID returned no indexed GitHub code match and no
+debug/executable artifact from `debuginfod.elfutils.org`; this is not a global
+absence claim. **Complete verification against the original link-time hash stream
+remains unachieved.** The original unstripped ELF, matching debug/build artifacts,
+or complete historical inputs are needed to compare the unavailable bytes.
+
 | Area | Recovered original behavior |
 |---|---|
 | Framebuffer | Defer freeing the boot framebuffer until display startup plus 30 ms; use the original uncached ION allocation and panel layout. |
