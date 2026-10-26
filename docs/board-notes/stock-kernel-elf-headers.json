@@ -1,0 +1,1241 @@
+{
+  "scope": "Current reconstructed ELF and candidate comparisons; no original kernel ELF header recovered.",
+  "original_header_available_in_inspected_artifacts": false,
+  "current_pre_sort_ELF_sha256": "6ef4fefd634ce2d7a3dce766fb0b4a7d6d7562252807d217a55ac1c560b121ec",
+  "current_build_id": "a776534a8692e21511f8b66c56519f62013e9a44",
+  "forward_model_matches": true,
+  "current_hashed_headers": {
+    "elf": {
+      "fields": {
+        "e_type": "ET_EXEC",
+        "e_machine": "EM_ARM",
+        "e_version": "EV_CURRENT",
+        "e_entry": 3221258240,
+        "e_phoff": 0,
+        "e_shoff": 0,
+        "e_flags": 83886594,
+        "e_ehsize": 52,
+        "e_phentsize": 32,
+        "e_phnum": 9,
+        "e_shentsize": 40,
+        "e_shnum": 39,
+        "e_shstrndx": 36,
+        "e_ident": "7f454c46010101000000000000000000"
+      },
+      "hashed_bytes": "7f454c460101010000000000000000000200280001000000008000c0000000000000000002020005340020000900280027002400"
+    },
+    "program": [
+      {
+        "index": 0,
+        "fields": {
+          "p_type": "PT_LOAD",
+          "p_offset": 0,
+          "p_vaddr": 3221225472,
+          "p_paddr": 3221225472,
+          "p_filesz": 33432,
+          "p_memsz": 33432,
+          "p_flags": 5,
+          "p_align": 65536
+        },
+        "hashed_bytes": "0100000000000000000000c0000000c098820000988200000500000000000100"
+      },
+      {
+        "index": 1,
+        "fields": {
+          "p_type": "PT_LOAD",
+          "p_offset": 65536,
+          "p_vaddr": 3222274048,
+          "p_paddr": 3222274048,
+          "p_filesz": 6929936,
+          "p_memsz": 6929936,
+          "p_flags": 5,
+          "p_align": 65536
+        },
+        "hashed_bytes": "0100000000000100000010c0000010c010be690010be69000500000000000100"
+      },
+      {
+        "index": 2,
+        "fields": {
+          "p_type": "PT_LOAD",
+          "p_offset": 7012352,
+          "p_vaddr": 3229614080,
+          "p_paddr": 3229614080,
+          "p_filesz": 2965888,
+          "p_memsz": 2965888,
+          "p_flags": 6,
+          "p_align": 65536
+        },
+        "hashed_bytes": "0100000000006b00000080c0000080c080412d0080412d000600000000000100"
+      },
+      {
+        "index": 3,
+        "fields": {
+          "p_type": "PT_LOAD",
+          "p_offset": 10027008,
+          "p_vaddr": 4294901760,
+          "p_paddr": 3232759808,
+          "p_filesz": 32,
+          "p_memsz": 32,
+          "p_flags": 5,
+          "p_align": 65536
+        },
+        "hashed_bytes": "01000000000099000000ffff0000b0c020000000200000000500000000000100"
+      },
+      {
+        "index": 4,
+        "fields": {
+          "p_type": "PT_LOAD",
+          "p_offset": 10031104,
+          "p_vaddr": 4294905856,
+          "p_paddr": 3232759840,
+          "p_filesz": 704,
+          "p_memsz": 704,
+          "p_flags": 5,
+          "p_align": 65536
+        },
+        "hashed_bytes": "01000000001099000010ffff2000b0c0c0020000c00200000500000000000100"
+      },
+      {
+        "index": 5,
+        "fields": {
+          "p_type": "PT_LOAD",
+          "p_offset": 10093280,
+          "p_vaddr": 3232760544,
+          "p_paddr": 3232760544,
+          "p_filesz": 284128,
+          "p_memsz": 284128,
+          "p_flags": 7,
+          "p_align": 65536
+        },
+        "hashed_bytes": "01000000e0029a00e002b0c0e002b0c0e0550400e05504000700000000000100"
+      },
+      {
+        "index": 6,
+        "fields": {
+          "p_type": "PT_LOAD",
+          "p_offset": 10420224,
+          "p_vaddr": 3233808384,
+          "p_paddr": 3233808384,
+          "p_filesz": 420012,
+          "p_memsz": 607184,
+          "p_flags": 6,
+          "p_align": 65536
+        },
+        "hashed_bytes": "0100000000009f000000c0c00000c0c0ac680600d04309000600000000000100"
+      },
+      {
+        "index": 7,
+        "fields": {
+          "p_type": "PT_NOTE",
+          "p_offset": 9978180,
+          "p_vaddr": 3232579908,
+          "p_paddr": 3232579908,
+          "p_filesz": 60,
+          "p_memsz": 60,
+          "p_flags": 4,
+          "p_align": 4
+        },
+        "hashed_bytes": "04000000444198004441adc04441adc03c0000003c0000000400000004000000"
+      },
+      {
+        "index": 8,
+        "fields": {
+          "p_type": "PT_GNU_STACK",
+          "p_offset": 0,
+          "p_vaddr": 0,
+          "p_paddr": 0,
+          "p_filesz": 0,
+          "p_memsz": 0,
+          "p_flags": 7,
+          "p_align": 16
+        },
+        "hashed_bytes": "51e5746400000000000000000000000000000000000000000700000010000000"
+      }
+    ],
+    "section": [
+      {
+        "index": 0,
+        "name": "",
+        "fields": {
+          "sh_name": 0,
+          "sh_type": "SHT_NULL",
+          "sh_flags": 0,
+          "sh_addr": 0,
+          "sh_offset": 0,
+          "sh_size": 0,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 0,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "index": 1,
+        "name": ".head.text",
+        "fields": {
+          "sh_name": 27,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 6,
+          "sh_addr": 3221258240,
+          "sh_offset": 0,
+          "sh_size": 664,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 4,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "1b0000000100000006000000008000c0000000009802000000000000000000000400000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "9944f63c2eecd8391ee1d5e69dd81de085e8cabc4c8795cfe14cbfd975205292"
+      },
+      {
+        "index": 2,
+        "name": ".text",
+        "fields": {
+          "sh_name": 32,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 6,
+          "sh_addr": 3222274048,
+          "sh_offset": 0,
+          "sh_size": 6929936,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 64,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "200000000100000006000000000010c00000000010be690000000000000000004000000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "9b0e27f7f9643347e01013acfaecd4cf76e3ea1487fa3405b5cc69e4ab284003"
+      },
+      {
+        "index": 3,
+        "name": ".rodata",
+        "fields": {
+          "sh_name": 38,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 3,
+          "sh_addr": 3229614080,
+          "sh_offset": 0,
+          "sh_size": 2380416,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 64,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "260000000100000003000000000080c0000000008052240000000000000000004000000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "efe3a2c13365219f3a6c27d8b95a9c0f2f92aa24a20273ddffc2afe2c1a6e94d"
+      },
+      {
+        "index": 4,
+        "name": ".modinfo",
+        "fields": {
+          "sh_name": 46,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 2,
+          "sh_addr": 3231994496,
+          "sh_offset": 0,
+          "sh_size": 64635,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 1,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "2e00000001000000020000008052a4c0000000007bfc000000000000000000000100000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "f3811ab670887bfcd0bba650edba2effbb82fa405290ca84f7b6d1479c72b827"
+      },
+      {
+        "index": 5,
+        "name": "__ksymtab",
+        "fields": {
+          "sh_name": 55,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 2,
+          "sh_addr": 3232059132,
+          "sh_offset": 0,
+          "sh_size": 53988,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 4,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "370000000100000002000000fc4ea5c000000000e4d2000000000000000000000400000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "225c5d2376a7b7ad89512a627f46fbffcb77ce5fca6b71badfd61b99dc49e473"
+      },
+      {
+        "index": 6,
+        "name": "__ksymtab_gpl",
+        "fields": {
+          "sh_name": 65,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 2,
+          "sh_addr": 3232113120,
+          "sh_offset": 0,
+          "sh_size": 54648,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 4,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "410000000100000002000000e021a6c00000000078d5000000000000000000000400000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "d25ebe7fd88d7bb6fa0c5c2d5668be95bf2400c434f0daa1ff6b1fc4394f51b7"
+      },
+      {
+        "index": 7,
+        "name": "__ksymtab_strings",
+        "fields": {
+          "sh_name": 79,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 2,
+          "sh_addr": 3232167768,
+          "sh_offset": 0,
+          "sh_size": 177669,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 1,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "4f000000010000000200000058f7a6c00000000005b6020000000000000000000100000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "7c89cc5ce309d951221d5d90b8e1a7036b61754940e0a47c7642ef1c6d792ab1"
+      },
+      {
+        "index": 8,
+        "name": "__param",
+        "fields": {
+          "sh_name": 97,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 2,
+          "sh_addr": 3232345440,
+          "sh_offset": 0,
+          "sh_size": 4580,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 4,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "61000000010000000200000060ada9c000000000e411000000000000000000000400000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "949e141cf363703dac5396108d92f8178be90700525e894edc11d8c4d616e438"
+      },
+      {
+        "index": 9,
+        "name": "__modver",
+        "fields": {
+          "sh_name": 105,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 2,
+          "sh_addr": 3232350020,
+          "sh_offset": 0,
+          "sh_size": 104,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 4,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "69000000010000000200000044bfa9c0000000006800000000000000000000000400000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "1db18c6c6bbf87040374facad866dc081958afc2cf75a9e30f203e8051730f8e"
+      },
+      {
+        "index": 10,
+        "name": "__ex_table",
+        "fields": {
+          "sh_name": 114,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 2,
+          "sh_addr": 3232350208,
+          "sh_offset": 0,
+          "sh_size": 1584,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 8,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "72000000010000000200000000c0a9c0000000003006000000000000000000000800000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "249bf4474b53a9f6c7174b576a1f65dc3b093645bd6ac622a9ca7c5228e25a10"
+      },
+      {
+        "index": 11,
+        "name": ".ARM.unwind_idx",
+        "fields": {
+          "sh_name": 125,
+          "sh_type": "SHT_ARM_EXIDX",
+          "sh_flags": 130,
+          "sh_addr": 3232351792,
+          "sh_offset": 0,
+          "sh_size": 224936,
+          "sh_link": 16,
+          "sh_info": 0,
+          "sh_addralign": 4,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "7d000000010000708200000030c6a9c000000000a86e030010000000000000000400000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "d745006a06d5c5a48995566b814deb0665676afc6c5730a874fd6cf85d794cba"
+      },
+      {
+        "index": 12,
+        "name": ".ARM.unwind_tab",
+        "fields": {
+          "sh_name": 141,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 2,
+          "sh_addr": 3232576728,
+          "sh_offset": 0,
+          "sh_size": 3180,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 4,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "8d0000000100000002000000d834adc0000000006c0c000000000000000000000400000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "7f20a06b3a311242523721899c84d58f9cb56a12aaff27cba4e87ecd8436af6e"
+      },
+      {
+        "index": 13,
+        "name": ".notes",
+        "fields": {
+          "sh_name": 157,
+          "sh_type": "SHT_NOTE",
+          "sh_flags": 2,
+          "sh_addr": 3232579908,
+          "sh_offset": 0,
+          "sh_size": 60,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 4,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "9d00000007000000020000004441adc0000000003c00000000000000000000000400000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "808a710b6f0451206e64a85de132df93bcdce53b683b4cb11e86038b247da7f9"
+      },
+      {
+        "index": 14,
+        "name": ".vectors",
+        "fields": {
+          "sh_name": 164,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 6,
+          "sh_addr": 4294901760,
+          "sh_offset": 0,
+          "sh_size": 32,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 4,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "a400000001000000060000000000ffff000000002000000000000000000000000400000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "31e6f1cc4f59b30c2f327b5cc33220bb6430e00b8097408bd8bd0db166390396"
+      },
+      {
+        "index": 15,
+        "name": ".stubs",
+        "fields": {
+          "sh_name": 173,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 6,
+          "sh_addr": 4294905856,
+          "sh_offset": 0,
+          "sh_size": 704,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 32,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "ad00000001000000060000000010ffff00000000c002000000000000000000002000000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "c2a8307a7fb37ec29dca06698a162ee395405fc9e3a07c6b83c857ca3da3b304"
+      },
+      {
+        "index": 16,
+        "name": ".init.text",
+        "fields": {
+          "sh_name": 180,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 6,
+          "sh_addr": 3232760544,
+          "sh_offset": 0,
+          "sh_size": 161404,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 32,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "b40000000100000006000000e002b0c0000000007c76020000000000000000002000000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "9561e6a358af9e746d1ee7f5d485f1cdaffd66f2333090bf3092c4423bfaf30a"
+      },
+      {
+        "index": 17,
+        "name": ".exit.text",
+        "fields": {
+          "sh_name": 191,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 6,
+          "sh_addr": 3232921948,
+          "sh_offset": 0,
+          "sh_size": 8932,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 4,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "bf00000001000000060000005c79b2c000000000e422000000000000000000000400000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "676c6a405535ce9f94d53da3358fdf648757528ada8897cfb3dd8e6fef0e17c6"
+      },
+      {
+        "index": 18,
+        "name": ".init.arch.info",
+        "fields": {
+          "sh_name": 202,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 2,
+          "sh_addr": 3232930880,
+          "sh_offset": 0,
+          "sh_size": 832,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 4,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "ca0000000100000002000000409cb2c0000000004003000000000000000000000400000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "d39225678e89496345d725b88d17069de90d154371bb2c31b3535338525d29a2"
+      },
+      {
+        "index": 19,
+        "name": ".init.smpalt",
+        "fields": {
+          "sh_name": 218,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 2,
+          "sh_addr": 3232931712,
+          "sh_offset": 0,
+          "sh_size": 4864,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 4,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "da0000000100000002000000809fb2c0000000000013000000000000000000000400000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "47868a5b736de33c46e25759e54f29cf20f11b54c1610301e34f3bba598cfaf8"
+      },
+      {
+        "index": 20,
+        "name": ".init.pv_table",
+        "fields": {
+          "sh_name": 231,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 2,
+          "sh_addr": 3232936576,
+          "sh_offset": 0,
+          "sh_size": 720,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 1,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "e7000000010000000200000080b2b2c000000000d002000000000000000000000100000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "6ae53fe288f0a54ff7afee57309c30825e7b644044c9be2118234c89df445624"
+      },
+      {
+        "index": 21,
+        "name": ".init.data",
+        "fields": {
+          "sh_name": 246,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 3,
+          "sh_addr": 3232940032,
+          "sh_offset": 0,
+          "sh_size": 71732,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 4096,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "f6000000010000000300000000c0b2c0000000003418010000000000000000000010000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "76cff540b1c4682078d77987fce7e5728ca4fe3fa0d86cc0f5ab5ff0169d8a92"
+      },
+      {
+        "index": 22,
+        "name": ".data..percpu",
+        "fields": {
+          "sh_name": 257,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 3,
+          "sh_addr": 3233013760,
+          "sh_offset": 0,
+          "sh_size": 30912,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 64,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "01010000010000000300000000e0b3c000000000c078000000000000000000004000000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "d3df31cf7e1806ea0cbf432f1b141f75ae2abf6dadd78c8be7ec7c5d3d99c0cc"
+      },
+      {
+        "index": 23,
+        "name": ".data",
+        "fields": {
+          "sh_name": 251,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 3,
+          "sh_addr": 3233808384,
+          "sh_offset": 0,
+          "sh_size": 393312,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 64,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "fb00000001000000030000000000c0c0000000006000060000000000000000004000000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "219a6dfbf3a111d0591d28251fdbf4df809cfd6e8991acf346ca22936afdd230"
+      },
+      {
+        "index": 24,
+        "name": "__bug_table",
+        "fields": {
+          "sh_name": 271,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 3,
+          "sh_addr": 3234201696,
+          "sh_offset": 0,
+          "sh_size": 26700,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 4,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "0f01000001000000030000006000c6c0000000004c68000000000000000000000400000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "8e5e2c87275d1cbac9ff8550ba9a58495a452f55bec7e982d2736fa8ebe8176f"
+      },
+      {
+        "index": 25,
+        "name": ".bss",
+        "fields": {
+          "sh_name": 283,
+          "sh_type": "SHT_NOBITS",
+          "sh_flags": 3,
+          "sh_addr": 3234228416,
+          "sh_offset": 0,
+          "sh_size": 187152,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 64,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "1b0100000800000003000000c068c6c00000000010db020000000000000000004000000000000000",
+        "contents_hashed": false
+      },
+      {
+        "index": 26,
+        "name": ".comment",
+        "fields": {
+          "sh_name": 288,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 48,
+          "sh_addr": 0,
+          "sh_offset": 0,
+          "sh_size": 45,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 1,
+          "sh_entsize": 1
+        },
+        "hashed_bytes": "20010000010000003000000000000000000000002d00000000000000000000000100000001000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "b73ccd8f18b159ade4c28553c3901da74235b22cc02ca2568eac74d4a6e9d960"
+      },
+      {
+        "index": 27,
+        "name": ".ARM.attributes",
+        "fields": {
+          "sh_name": 297,
+          "sh_type": "SHT_ARM_ATTRIBUTES",
+          "sh_flags": 0,
+          "sh_addr": 0,
+          "sh_offset": 0,
+          "sh_size": 51,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 1,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "29010000030000700000000000000000000000003300000000000000000000000100000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "ccd05dd667d3533ffb018c8b334fe9c5d2cb9ffdf4905503018d70cb50fe7bf8"
+      },
+      {
+        "index": 28,
+        "name": ".debug_line",
+        "fields": {
+          "sh_name": 313,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 0,
+          "sh_addr": 0,
+          "sh_offset": 0,
+          "sh_size": 7557562,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 1,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "3901000001000000000000000000000000000000ba51730000000000000000000100000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "389db222fc74475d02f6a8ad0da7624ecaef986118683d145fea18b07866ad03"
+      },
+      {
+        "index": 29,
+        "name": ".debug_info",
+        "fields": {
+          "sh_name": 325,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 0,
+          "sh_addr": 0,
+          "sh_offset": 0,
+          "sh_size": 108555503,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 1,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "4501000001000000000000000000000000000000ef6c780600000000000000000100000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "98362fb2828c98c4fba04a3ee0368b6f75f80dc50600e12aa457c8af2810809a"
+      },
+      {
+        "index": 30,
+        "name": ".debug_abbrev",
+        "fields": {
+          "sh_name": 337,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 0,
+          "sh_addr": 0,
+          "sh_offset": 0,
+          "sh_size": 2609530,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 1,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "51010000010000000000000000000000000000007ad1270000000000000000000100000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "9b5afe55b169ff5220627fe637521b6d047fddf131c7533fbea4f3002445af4f"
+      },
+      {
+        "index": 31,
+        "name": ".debug_aranges",
+        "fields": {
+          "sh_name": 351,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 0,
+          "sh_addr": 0,
+          "sh_offset": 0,
+          "sh_size": 73056,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 8,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "5f01000001000000000000000000000000000000601d010000000000000000000800000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "fc1ddbb7b8e701cc7e96fb2ad74d675bd5ff6961956774cd58c2c4b7069004cd"
+      },
+      {
+        "index": 32,
+        "name": ".debug_ranges",
+        "fields": {
+          "sh_name": 366,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 0,
+          "sh_addr": 0,
+          "sh_offset": 0,
+          "sh_size": 1120352,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 8,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "6e010000010000000000000000000000000000006018110000000000000000000800000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "1ffdc71cce56a3c69ca737c9a08232b5ccb8e765bfab02d7905eb9bcd97eadbf"
+      },
+      {
+        "index": 33,
+        "name": ".debug_frame",
+        "fields": {
+          "sh_name": 380,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 0,
+          "sh_addr": 0,
+          "sh_offset": 0,
+          "sh_size": 1371468,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 4,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "7c010000010000000000000000000000000000004ced140000000000000000000400000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "0b8faa9b249376f390807bcf0a94d5d5fb480f1e0697e4c415b5b83c8facb079"
+      },
+      {
+        "index": 34,
+        "name": ".debug_loc",
+        "fields": {
+          "sh_name": 393,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 0,
+          "sh_addr": 0,
+          "sh_offset": 0,
+          "sh_size": 4446836,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 1,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "890100000100000000000000000000000000000074da430000000000000000000100000000000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "608d52da475fca3b402458a4fd1bdf1e97f29ef47737c0b4ae8d6a209f97c04f"
+      },
+      {
+        "index": 35,
+        "name": ".debug_str",
+        "fields": {
+          "sh_name": 404,
+          "sh_type": "SHT_PROGBITS",
+          "sh_flags": 48,
+          "sh_addr": 0,
+          "sh_offset": 0,
+          "sh_size": 2438456,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 1,
+          "sh_entsize": 1
+        },
+        "hashed_bytes": "94010000010000003000000000000000000000003835250000000000000000000100000001000000",
+        "contents_hashed": true,
+        "hashed_contents_sha256": "326bc5a9dfb3fd08a9d31cacd161feacb863684f41f2c55e532c1d53c4fba290"
+      },
+      {
+        "index": 36,
+        "name": ".shstrtab",
+        "fields": {
+          "sh_name": 17,
+          "sh_type": "SHT_STRTAB",
+          "sh_flags": 0,
+          "sh_addr": 0,
+          "sh_offset": 0,
+          "sh_size": 415,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 1,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "11000000030000000000000000000000000000009f01000000000000000000000100000000000000",
+        "contents_hashed": false
+      },
+      {
+        "index": 37,
+        "name": ".symtab",
+        "fields": {
+          "sh_name": 1,
+          "sh_type": "SHT_SYMTAB",
+          "sh_flags": 0,
+          "sh_addr": 0,
+          "sh_offset": 0,
+          "sh_size": 2296928,
+          "sh_link": 38,
+          "sh_info": 124719,
+          "sh_addralign": 4,
+          "sh_entsize": 16
+        },
+        "hashed_bytes": "0100000002000000000000000000000000000000600c2300260000002fe701000400000010000000",
+        "contents_hashed": false
+      },
+      {
+        "index": 38,
+        "name": ".strtab",
+        "fields": {
+          "sh_name": 9,
+          "sh_type": "SHT_STRTAB",
+          "sh_flags": 0,
+          "sh_addr": 0,
+          "sh_offset": 0,
+          "sh_size": 1514183,
+          "sh_link": 0,
+          "sh_info": 0,
+          "sh_addralign": 1,
+          "sh_entsize": 0
+        },
+        "hashed_bytes": "0900000003000000000000000000000000000000c71a170000000000000000000100000000000000",
+        "contents_hashed": false
+      }
+    ]
+  },
+  "stock_address_constraints": {
+    "stext": {
+      "stock_kallsyms": "0xc0008000",
+      "current_ELF_symbol": "0xc0008000",
+      "equal": true
+    },
+    "_text": {
+      "stock_kallsyms": "0xc0008000",
+      "current_ELF_symbol": "0xc0008000",
+      "equal": true
+    },
+    "_stext": {
+      "stock_kallsyms": "0xc0100000",
+      "current_ELF_symbol": "0xc0100000",
+      "equal": true
+    },
+    "_etext": {
+      "stock_kallsyms": "0xc0800000",
+      "current_ELF_symbol": "0xc0800000",
+      "equal": true
+    },
+    "__start_notes": {
+      "stock_kallsyms": "0xc0ad4144",
+      "current_ELF_symbol": "0xc0ad4144",
+      "equal": true
+    },
+    "__stop_notes": {
+      "stock_kallsyms": "0xc0ad4180",
+      "current_ELF_symbol": "0xc0ad4180",
+      "equal": true
+    },
+    "_edata": {
+      "stock_kallsyms": "0xc0c668ac",
+      "current_ELF_symbol": "0xc0c668ac",
+      "equal": true
+    },
+    "__bss_start": {
+      "stock_kallsyms": "0xc0c668ac",
+      "current_ELF_symbol": "0xc0c668ac",
+      "equal": true
+    },
+    "__bss_stop": {
+      "stock_kallsyms": "0xc0c943d0",
+      "current_ELF_symbol": "0xc0c943d0",
+      "equal": true
+    },
+    "_end": {
+      "stock_kallsyms": "0xc0c943d0",
+      "current_ELF_symbol": "0xc0c943d0",
+      "equal": true
+    }
+  },
+  "candidate_comparison": {
+    "case_count": 64,
+    "normalized_field_count": 476,
+    "invariant_field_count": 466,
+    "varying_field_count": 10,
+    "varying_fields": {
+      "SH..debug_abbrev.sh_size": [
+        2606409,
+        2607879,
+        2608060,
+        2608080,
+        2609530
+      ],
+      "SH..debug_aranges.sh_size": [
+        72976,
+        73008,
+        73024,
+        73056
+      ],
+      "SH..debug_frame.sh_size": [
+        1370232,
+        1370824,
+        1370876,
+        1371468
+      ],
+      "SH..debug_info.sh_size": [
+        108342645,
+        108343373,
+        108445462,
+        108445464,
+        108446190,
+        108446192,
+        108451956,
+        108452077,
+        108452684,
+        108452818,
+        108554773,
+        108554775,
+        108555501,
+        108555503
+      ],
+      "SH..debug_line.sh_size": [
+        7545593,
+        7546013,
+        7546559,
+        7546979,
+        7550625,
+        7551045,
+        7551564,
+        7551591,
+        7551984,
+        7552011,
+        7552530,
+        7552696,
+        7552950,
+        7553116,
+        7553662,
+        7554082,
+        7556596,
+        7557016,
+        7557562,
+        7557982
+      ],
+      "SH..debug_loc.sh_size": [
+        4443835,
+        4444910,
+        4445761,
+        4446836
+      ],
+      "SH..debug_ranges.sh_size": [
+        1119856,
+        1119960,
+        1120248,
+        1120352
+      ],
+      "SH..debug_str.sh_size": [
+        2436900,
+        2436913,
+        2437609,
+        2437620,
+        2437622,
+        2437633,
+        2437925,
+        2437938,
+        2438443,
+        2438453,
+        2438456,
+        2438466
+      ],
+      "SH..symtab.sh_info": [
+        124717,
+        124718,
+        124719
+      ],
+      "SH..symtab.sh_size": [
+        2296896,
+        2296912,
+        2296928
+      ]
+    }
+  },
+  "same_headers_different_ID_example": {
+    "profiles": [
+      "generated-S",
+      "vendor-producer-S"
+    ],
+    "header_bytes_equal": true,
+    "build_ids": [
+      "88bf1d4c13b78b91a1a12e9d47a11347635b6b21",
+      "9fbd49f2d36eb2fdbf05b71bee15a45fe444fd35"
+    ],
+    "different_hashed_content_section": ".debug_line",
+    "content_bytes_different": 1,
+    "decoded_DWARF": {
+      "debug_line_relative_byte_offset": 4238794,
+      "line_unit_offset": 4238738,
+      "line_unit_length": 1128,
+      "byte_values": {
+        "generated-S": 235,
+        "vendor-producer-S": 228
+      },
+      "byte_context": [
+        "00050220ac4bc003eb000130302f2f2f2f",
+        "00050220ac4bc003e4000130302f2f2f2f"
+      ],
+      "line_row_counts": [
+        1046,
+        1046
+      ],
+      "all_addresses_and_file_indices_equal": true,
+      "line_deltas_distinct": [
+        -7
+      ],
+      "first_rows": [
+        [
+          {
+            "address": 3226184736,
+            "line": 108,
+            "file": 1,
+            "end_sequence": false
+          },
+          {
+            "address": 3226184740,
+            "line": 110,
+            "file": 1,
+            "end_sequence": false
+          },
+          {
+            "address": 3226184744,
+            "line": 112,
+            "file": 1,
+            "end_sequence": false
+          },
+          {
+            "address": 3226184748,
+            "line": 113,
+            "file": 1,
+            "end_sequence": false
+          },
+          {
+            "address": 3226184752,
+            "line": 114,
+            "file": 1,
+            "end_sequence": false
+          }
+        ],
+        [
+          {
+            "address": 3226184736,
+            "line": 101,
+            "file": 1,
+            "end_sequence": false
+          },
+          {
+            "address": 3226184740,
+            "line": 103,
+            "file": 1,
+            "end_sequence": false
+          },
+          {
+            "address": 3226184744,
+            "line": 105,
+            "file": 1,
+            "end_sequence": false
+          },
+          {
+            "address": 3226184748,
+            "line": 106,
+            "file": 1,
+            "end_sequence": false
+          },
+          {
+            "address": 3226184752,
+            "line": 107,
+            "file": 1,
+            "end_sequence": false
+          }
+        ]
+      ],
+      "decoded_operations": {
+        "generated-S": {
+          "ELF_file_offset": 15079126,
+          "opcode_section_relative_offset": 4238793,
+          "opcode": 3,
+          "opcode_name": "DW_LNS_advance_line",
+          "operand_SLEB128_hex": "eb00",
+          "operand_value": 107,
+          "initial_line_register": 1,
+          "first_emitted_line": 108,
+          "first_emitted_address_hex": "0xc04bac20",
+          "following_opcode": {
+            "value": 1,
+            "name": "DW_LNS_copy"
+          },
+          "file_table": [
+            {
+              "name": "sunxi_can_asm.c",
+              "dir_index": 0
+            }
+          ]
+        },
+        "vendor-producer-S": {
+          "ELF_file_offset": 15079126,
+          "opcode_section_relative_offset": 4238793,
+          "opcode": 3,
+          "opcode_name": "DW_LNS_advance_line",
+          "operand_SLEB128_hex": "e400",
+          "operand_value": 100,
+          "initial_line_register": 1,
+          "first_emitted_line": 101,
+          "first_emitted_address_hex": "0xc04bac20",
+          "following_opcode": {
+            "value": 1,
+            "name": "DW_LNS_copy"
+          },
+          "file_table": [
+            {
+              "name": "sunxi_can_asm.c",
+              "dir_index": 0
+            }
+          ]
+        }
+      },
+      "physical_assembly_source_lines": [
+        {
+          "source": "/tmp/reforge-compiler-path-axis/matrix-current/helper-generated.S",
+          "physical_line_count": 1601,
+          "first_syntax_directive_line": 94,
+          "first_instruction_line": 108,
+          "first_instruction": "\tpush\t{r4, r5, r6, r7, lr}\t@"
+        },
+        {
+          "source": "/tmp/reforge-can-vendor-producer/vendor-generated.S",
+          "physical_line_count": 1594,
+          "first_syntax_directive_line": 87,
+          "first_instruction_line": 101,
+          "first_instruction": "\tpush\t{r4, r5, r6, r7, lr}\t@"
+        }
+      ],
+      "source_prefix_basis": {
+        "vendor_exact_published_producer_comment_lines": 85,
+        "vendor_prefix_equal_bytes": 5347,
+        "evidence": "/tmp/reforge-can-vendor-producer/provenance.json",
+        "genuine_recipe_differences": "Expanded vendor cc1 uses relative include/source/auxbase paths, observedwujiayi compilerprefix, no-fno-var-tracking-assignments, originalfverboseargumentposition. Moderngenerator uses absoluteKbuildpaths andextra compilerflag; verboseoptions wrap7morephysicalsource lines. No assemblycomments/directives edited."
+      }
+    }
+  },
+  "hash_normalization": {
+    "ELF_e_phoff": 0,
+    "ELF_e_shoff": 0,
+    "section_sh_offset": 0,
+    "program_p_offset": "retained, not normalized"
+  },
+  "not_proven_for_original": [
+    "e_flags",
+    "e_phnum",
+    "e_shnum",
+    "e_shstrndx",
+    "program_segment_grouping",
+    "program_file_offsets",
+    "GNU_STACK_permissions",
+    "nonallocated_section_sizes",
+    "symbol_table_local_count"
+  ],
+  "causal_proofs": {
+    "compiler_path": "42 line-table directory entries; debug_line size delta = 42 * path-length delta.",
+    "output_path": "13-character shortening: 56 inline comp_dir strings remove 728 debug_info bytes; shared debug_str removes 13 bytes. GAS helper has one additional inline comp_dir.",
+    "symtab": "Removing C debug_frame contribution removes one local $d ARM mapping symbol: sh_size decreases 16 and sh_info decreases 1; two removed contributions double that."
+  },
+  "field_confidence": {
+    "e_entry": "Current value matches original stext plus the known ENTRY(stext) linker directive; original ELF entry bytes are not directly available.",
+    "ELF_class_endianness_machine": "Strong architecture/toolchain inference, not retained original header bytes.",
+    "counts_flags_segment_layout": "Unverified for original; invariant across the tested candidate inputs does not prove stock equality."
+  }
+}

@@ -3,6 +3,7 @@ import importlib.util
 from io import BytesIO
 from pathlib import Path
 import subprocess
+import struct
 import tempfile
 import unittest
 
@@ -30,13 +31,27 @@ class BuildIdTest(unittest.TestCase):
             subprocess.run([str(CROSS) + 'ld', '--build-id=sha1', '-o', output, obj],
                            check=True, capture_output=True)
             data = output.read_bytes()
-            self.assertTrue(MODEL.calculate(data)['matches'])
+            report = MODEL.calculate(data, include_headers=True)
+            self.assertTrue(report['matches'])
+            header = report['headers']['elf']
+            self.assertEqual(struct.unpack_from('<II', bytes.fromhex(header['hashed_bytes']), 28), (0, 0))
+            self.assertEqual(header['fields']['e_phoff'], 0)
+            self.assertEqual(header['fields']['e_shoff'], 0)
             elf = MODEL.ELFFile(BytesIO(data))
+            self.assertGreater(elf['e_shoff'], 0)
+            symbol_header = next(s for s in report['headers']['section'] if s['name'] == '.symtab')
+            self.assertFalse(symbol_header['contents_hashed'])
+            self.assertGreater(symbol_header['fields']['sh_size'], 0)
+            self.assertEqual(symbol_header['fields']['sh_offset'], 0)
             section = elf.get_section_by_name('.debug_str')
             self.assertFalse(section['sh_flags'] & 2)  # Not loaded at runtime.
             changed = bytearray(data)
             changed[section['sh_offset']] ^= 1
-            self.assertFalse(MODEL.calculate(changed)['matches'])
+            changed_report = MODEL.calculate(changed, include_headers=True)
+            self.assertFalse(changed_report['matches'])
+            self.assertEqual(changed_report['headers']['elf'], header)
+            self.assertEqual([s['hashed_bytes'] for s in changed_report['headers']['section']],
+                             [s['hashed_bytes'] for s in report['headers']['section']])
             self.assertEqual(output.read_bytes(), data)
 
 

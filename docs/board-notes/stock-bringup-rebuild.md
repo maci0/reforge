@@ -473,6 +473,51 @@ possible historical path, source spelling or debug configuration. A chance
 closer to the correct SHA-1 input. Production source defaults were not changed
 to any negative candidate.
 
+### Field-by-field ELF header audit
+
+The calculator can expose every header field and its exact serialized hash input:
+
+```sh
+python3 tools/build/calculate-stock-build-id.py PRE_SORT_ELF --headers
+```
+
+[stock-kernel-elf-headers.json](stock-kernel-elf-headers.json) records the current
+52-byte ELF header, nine 32-byte program headers and 39 40-byte section headers:
+**1,900 hashed header bytes**. Across the 64 candidates, all 52 ELF-header bytes
+and all 288 program-header bytes are identical. Of 476 decoded header fields,
+466 are invariant. Only these ten vary:
+
+| Fields | Identified input causing variation |
+|---|---|
+| `sh_size` for `.debug_line`, `.debug_info`, `.debug_abbrev`, `.debug_aranges`, `.debug_frame`, `.debug_ranges`, `.debug_loc`, `.debug_str` | Actual debug contents, paths and compilation pipeline. |
+| `.symtab.sh_size`, `.symtab.sh_info` | Local ARM `$d` mapping symbols contributed by debug sections. Removing one C debug-frame contribution removes one 16-byte symbol and lowers the first-global index by one. |
+
+Compiler-path changes affect `.debug_line.sh_size` by exactly 42 times their
+path-length delta. Shortening the output directory by 13 characters removes
+728 bytes from `.debug_info` (56 inline directory strings) and 13 bytes from
+the shared `.debug_str`; the assembly helper adds one further inline directory
+string. These are causally explained input changes, not unexplained header noise.
+
+Physical `e_phoff`, `e_shoff` and section `sh_offset` values are zeroed in the
+hash input. Program-header **`p_offset` is not zeroed**. Original segmentation,
+ABI flags, stack permissions, section counts and nonallocated section sizes
+remain unknown: the inspected stock uImage/zImage/raw Image contains no valid
+original kernel ELF header or header tables. Original kallsyms constrains entry,
+loaded addresses and BSS bounds; it does not recover those stripped tables.
+Current fields are consistent with those known address constraints, but must
+not be labeled directly verified original header bytes.
+
+Headers alone are insufficient. The generic and vendor-replayed assembly
+candidates have identical complete hashed headers, but one different hashed
+`.debug_line` byte: `eb 00` versus `e4 00` encodes `DW_LNS_advance_line` by
+107 versus 100. It places the first instruction at line 108 versus 101 and
+shifts all 1,046 line rows by seven. Both source files compile to identical
+machine code; the seven-line difference arises naturally from compiler-generated
+verbose option comments. The vendor replay reproduces the published producer
+prefix without editing comments or line numbers. Neither candidate's original
+factory line mapping is known. Header values or sizes were not forced to invent
+a stock match.
+
 | Area | Recovered original behavior |
 |---|---|
 | Framebuffer | Defer freeing the boot framebuffer until display startup plus 30 ms; use the original uncached ION allocation and panel layout. |
