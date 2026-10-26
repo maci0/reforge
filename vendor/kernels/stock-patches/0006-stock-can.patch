@@ -80,7 +80,7 @@
 +	return a;
 +}
 +
-+void can_asm_write_cmdreg(u8 cmd, void __iomem *base, void __iomem *unused)
++void can_asm_write_cmdreg(u32 cmd, volatile void __iomem *base, volatile void __iomem *unused)
 +{
 +	arithmetic_before();
 +	writel(cmd, base + 4);
@@ -126,12 +126,12 @@
 +	struct arm_smccc_res res;
 +	arm_smccc_smc(CAN_SMC, 0xffff0004UL, num, 0, 0, 0, 0, 0, &res);
 +}
-+void can_asm_fun3(void)
++void can_asm_fun3(int num)
 +{
 +	struct arm_smccc_res res;
 +	arm_smccc_smc(CAN_SMC, 0xffff0005UL, 0, 0, 0, 0, 0, 0, &res);
 +}
-+void can_asm_fun4(void)
++void can_asm_fun4(int num)
 +{
 +	struct arm_smccc_res res;
 +	arm_smccc_smc(CAN_SMC, 0xffff0006UL, 0, 0, 0, 0, 0, 0, &res);
@@ -231,7 +231,7 @@
 +	return (*pa);
 +}
 +
-+void can_asm_start(void __iomem *base, u32 ctrlmode, int num)
++void can_asm_start(volatile void __iomem *base, u32 ctrlmode, int num)
 +{
 +	struct arm_smccc_res res;
 +	u32 limit;
@@ -299,8 +299,8 @@
 +	return a;
 +}
 +
-+void can_asm_set_bittiming(void __iomem *base, u32 ctrlmode,
-+			   u32 *cfg, void __iomem *unused)
++void can_asm_set_bittiming(volatile void __iomem *base, u32 ctrlmode,
++			   u32 *cfg, volatile void __iomem *unused)
 +{
 +	timing_before();
 +	if (ctrlmode & 4)
@@ -359,7 +359,7 @@
 +	return a;
 +}
 +
-+void can_asm_clean_transfer_err(void __iomem *base, u16 *txerr, u16 *rxerr)
++void can_asm_clean_transfer_err(volatile void __iomem *base, u16 *txerr, u16 *rxerr)
 +{
 +	u32 value;
 +
@@ -388,7 +388,7 @@
 +	return a;
 +}
 +
-+void can_asm_start_xmit(void __iomem *base, void __iomem *unused,
++void can_asm_start_xmit(volatile void __iomem *base, volatile void __iomem *unused,
 +			canid_t id, u32 *msg_flag_n, u32 *dreg, u8 *data)
 +{
 +	u32 len = *msg_flag_n;
@@ -443,7 +443,7 @@
 +	return a;
 +}
 +
-+void can_asm_rx(void __iomem *base, u8 *fi, u32 *dreg, canid_t *id)
++void can_asm_rx(volatile void __iomem *base, u8 *fi, u32 *dreg, canid_t *id)
 +{
 +	u8 value = readl(base + 0x40);
 +

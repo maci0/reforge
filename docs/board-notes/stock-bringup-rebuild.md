@@ -217,7 +217,7 @@ boot or flashing was performed.
 
 ## Verified kernel source reconstruction
 
-A clean source build in `build/stock-kernel-exact-wifi/` produced a 12,970,156-byte
+A clean source build in `build/stock-kernel-authentic-can-inputs/` produced a 12,970,156-byte
 Image. Its complete executable region and every byte outside validated symbol and
 build-id metadata match the original raw Image, SHA-256
 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`.
@@ -269,6 +269,18 @@ spelling/location of this setting is inferred, not recovered source text.
 The original kernel's debug ELF was not found in the held archives. The SDK's
 available `vmlinux` is a different June 2025 GCC 6.4.1 build, not the August 2023
 GCC 5.3.1 target.
+
+The CAN interface header is now the unchanged 149-line vendor file from
+[`MYIR-ALLWINNER/myir-t1-kernel@2697a98867b8eb1d4059084a3aa3a357fc42a77f`](https://github.com/MYIR-ALLWINNER/myir-t1-kernel/blob/2697a98867b8eb1d4059084a3aa3a357fc42a77f/drivers/net/can/sunxi_can_asm.h),
+SHA-256 `28dd938ae6ed015292b5f619b8cdc6c3a852d11ae1d412c57081737f28224d07`.
+The recovered C helpers use its original prototypes. Their executable sections,
+unwind data and relocations remain unchanged. The published assembly in that
+tree is an older 2,964-byte implementation, rather than the stock 4,292-byte
+implementation; the matching original helper C and debug inputs remain unknown.
+With this header, the rebuilt Image SHA-256 is
+`f5d40c6d7b14206e8464fbf80d02b0606609309f6c398460af168550d9e8db39`;
+only the same 20-byte build-ID region differs. Wi-Fi remains byte-identical in
+this clean build.
 
 The kernel enables debug information, and GNU build IDs also depend on that
 information before it is stripped from the raw Image. A check with the pinned
