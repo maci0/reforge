@@ -222,7 +222,10 @@ Image. Its complete executable region and every byte outside validated symbol an
 build-id metadata match the original raw Image, SHA-256
 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`.
 **The complete rebuilt Image is not byte-identical:** only the 20-byte GNU
-build-id differs. All other 12,970,136 bytes match, including the entire
+build-id differs. **This is a 20-byte binary difference, not a size difference:**
+both original and rebuilt raw Images are exactly **12,970,156 bytes**, so the
+size delta is **0 bytes**. The differing bytes occupy file offsets
+`0xacc154` through `0xacc167` inclusive. All other 12,970,136 bytes match, including the entire
 compressed kallsyms table. Earlier reconstructions differed by 13,029 bytes,
 then 39 bytes; original framebuffer inputs and the recovered Goodix preprocessing
 condition removed those differences without metadata overrides or post-link
