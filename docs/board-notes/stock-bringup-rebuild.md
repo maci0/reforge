@@ -289,6 +289,33 @@ build ID while leaving every instruction unchanged. Exact source inputs remain
 necessary for natural full-file identity; matching executable behavior does not
 recover discarded source names or source-version hash inputs.
 
+### IDA 9.4 build-ID investigation
+
+IDA 9.4 inspected the original raw Image in its existing ARM32 database. At
+`0xc0ad4144` (file offset `0xacc144`), `__start_notes` contains a GNU note with
+`namesz=4`, `descsz=20`, `type=3`, owner `GNU`, and descriptor
+`07002ca89d308edcf17b1bdca56d38bc46972263`. The descriptor occupies exactly
+the remaining differing file range `0xacc154..0xacc167`. It is data, not a
+function; the existing database reports no direct references to those bytes.
+That reference result is bounded by the database's analysis coverage.
+
+IDA 9.4 also decompiled the actual pinned Linaro linker (SHA-256
+`aea26a4804c52ffbaa646b68254fc3136e355396eb755bf9389808caf198abc5`):
+`generate_build_id` at `0x41f3a0`, `bfd_elf32_checksum_contents` at `0x45a0e0`,
+and both `write_build_id` implementations at `0x421b20` and `0x4259a0`.
+The SHA-1 branch initializes a hash, feeds the ELF checksum callback, and writes
+the digest. The callback hashes normalized ELF headers and available section
+contents, including debug contents; stripping those sections from the delivered
+Image does not remove their prior contribution to the digest. The existing
+read-only hash model independently reproduces the stock Wi-Fi module's ID.
+
+This identifies the generation mechanism, not the original debug inputs.
+The 160-bit digest cannot uniquely recover discarded source names, line tables,
+or compilation paths. Candidate original inputs can be tested against it;
+decompiling the digest as ARM instructions cannot reconstruct those inputs.
+Local IDA exports and scripts are retained under `/tmp/reforge-ida-buildid/`;
+they are research evidence, not build inputs or metadata overrides.
+
 | Area | Recovered original behavior |
 |---|---|
 | Framebuffer | Defer freeing the boot framebuffer until display startup plus 30 ms; use the original uncached ION allocation and panel layout. |
