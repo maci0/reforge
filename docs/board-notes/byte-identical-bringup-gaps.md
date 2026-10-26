@@ -1,0 +1,335 @@
+# Byte-identical bring-up: remaining gaps
+
+Status at 2026-10-26, implementation commit `2e5c7dd`. **The complete captured
+machine image and complete original boot chain are not yet reproducible byte
+for byte from source.** This is the current gap ledger; the longer
+[build/status record](stock-bringup-rebuild.md) contains recipes and history.
+Reference offsets and hashes are in [the artifact manifest](stock-boot-artifacts.json).
+
+“Identical” means complete-file byte equality, including metadata and padding.
+A zero size delta, matching function shapes, a valid checksum or successful boot
+does not establish that equality. Source reconstruction, source-build
+repeatability, stock equality and hardware validation are separate claims.
+
+The early-boot firmware gaps are G01–G05; G09 covers strict runtime source
+closure, G10 covers factory MCU firmware, and G12 covers physical validation.
+G06/G07/G11 additionally apply when claiming complete partitions, the captured
+disk or original userspace. Updated ReForge userspace is intentionally a separate
+target. G08 is the accepted kernel ELF/debug residual, not an open mismatch in
+the explicitly patched delivery images.
+
+## Verified results that are not open binary gaps
+
+| Component | Established result | Boundary |
+|---|---|---|
+| 2023 primary U-Boot | All 966,656 bytes match stock; SHA-256 `31aaa8a085b4985dafdad87d97637fcc1d35a300101295edfaf51c826ff53019`. | This is the primary 2023 target, not the different 2025 backup. Historical source revision remains unknown despite byte-equivalent reconstructed source. |
+| Kernel delivery Image / zImage / uImage | All three delivery files match stock after the explicitly authorized 20-byte raw Image build-ID patch. | Natural `Image.source` and `vmlinux` remain unmodified. Original ELF/debug provenance is still open under G08. |
+| Deployed flat RTL8821CU module | Complete 2,441,368-byte file matches stock, including naturally generated source-version/build-ID fields; SHA-256 `7c0a036726227752359556f8e109683d5ce836bb65ec64afd46bfb754d6afa69`. | This proves the selected flat module, not every module/firmware variant elsewhere in the rootfs. |
+| Kernel, primary TOC and U-Boot control DTBs | Recovered DTS builds match their respective reference files. | LCD PWM7 kernel tree and PWM6 primary TOC tree are deliberately distinct. |
+| Both environment partitions | Complete 1-MiB files match stock, including redundant-format flag, CRC, record order and padding. | Does not prove their placement inside a newly generated whole-disk image. |
+| ReForge rootfs | Fresh source build and ARM QEMU integration pass, including live Moonraker API and source-built Mainsail. | Updated distribution, not stock rootfs equality; one full fresh build, not two-image reproducibility certification. |
+| Optional Klipper 13 firmware | Two clean newlib/MCU closures reproduce all 12 packaged files; matching host package also builds. | Intentional v13 upgrade, not the factory MCU firmware. Same source-built compiler binaries were reused across the repeat-build test. |
+
+The integrated Buildroot kernel uses GCC 15. The stock-identical kernel delivery
+comes from the separate historical-toolchain recipe. These outputs have distinct
+provenance even though the integrated device DTB now matches stock exactly.
+
+## G01 — boot0 source label and derived checksum
+
+**Known binary difference, zero size delta.** Both original copies are 49,152
+bytes. Two clean source-archive builds, inside and outside this repository,
+produce SHA-256 `dcc60dce4700e9658f3f8c5d25ccdde1d5424b5cbeed16910ea1200779f45cc4`.
+Original SHA-256 is `f9397c286a0faba8cf19d7583b8f508470ce5e2ea1e6c53621d77d9f9b66093e`.
+
+| Offset | Differing bytes | Original | Source-archive build |
+|---|---:|---|---|
+| `0x0c..0x0f` | 4 | Additive checksum `0x778af875` | Correctly regenerated checksum `0x4327900e` |
+| `0x2f8..0x2fe` | 7 | ASCII `5224261` | Zero bytes from the naturally empty archive-export commit label |
+
+Every other byte matches at the same offset: **49,141 identical byte positions**,
+including executable instructions, real relocations, DRAM/board configuration,
+initialized data and deterministic packing. Both checksums are valid; their
+entire difference is explained by the label. The source label occupies a
+16-byte field; the other nine bytes already match.
+
+**To close:** recover the authentic original source/Git or original generated
+input that naturally produces `5224261`. No original-label substitution or
+checksum override is currently authorized. The strict builder still exits 1.
+See [the boot0 recipe and source provenance](../../tools/build/README-stock-boot0.md).
+G09 separately records compiler-runtime source closure.
+
+## G02 — OP-TEE runtime, layout and original build inputs
+
+**Actual executable/source gaps remain.** Original Allwinner carrier:
+300,248 bytes, SHA-256
+`7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99`.
+Current clean source candidate: 258,536 bytes, SHA-256
+`ed4b751ceda60a2247debbbed463695ffc84b3d9ffaa8035e32472345c9f2915`.
+The **size delta is −41,712 bytes**; **244,839 byte positions differ in the
+shared extent**. Neither number means that exactly 41,712 instruction bytes are
+missing: section layout, data and alignment also contribute.
+
+Remaining work:
+
+- **Standalone SRAM standby program:** original carrier offsets `0x4000..0x60cf`
+  contain an 8,400-byte independently linked initialized image for SRAM address
+  `0x20000`. Its 240-byte parameter header precedes ARM entry at `0x200f0`;
+  BSS is `0x220d0..0x2229b`. It performs DRAM/clock low-power transitions,
+  optional memory checks, PMIC/TWI operations, WFI and restore. Matching complete
+  source and integration are not yet reconstructed. The following 12 ARM NOPs
+  through carrier offset `0x60ff` are consistent with 256-byte wrapper alignment;
+  zeroes then extend to `0x8000`. The exact wrapper/linker recipe still needs
+  proof. This executable region must not be replaced with padding or copied
+  reference code.
+- **Vendor services:** hardware-identification policy, hash-list installation,
+  secure-memory-controller programming and their callers still include semantic
+  drafts whose complete machine code is unverified. Correct implementation and
+  exact linked instruction/data comparison remain necessary.
+- **Complete core correspondence:** 913 source/original function correspondences
+  currently cover 125,412 bytes, including relocation-normalized matches checked
+  against 2,541 known-callee/string constraints with no contradictions. These
+  partial mappings are not whole-program equality. Unmatched MMU, TA/syscall,
+  thread and vendor code still needs explanation.
+- **Layout and integration:** all 16 recovered physical-map records match their
+  names, types, addresses and lengths, but record order is not certified. The
+  first 8,192 header bytes match except three genuine link-derived public-key
+  offset words; those offsets follow the candidate's different symbol addresses.
+  They must converge through correct code/data layout, not forced addresses.
+- **Original provenance:** vendor revision `553fe17e2-dirty`, its dirty changes,
+  build number 6 and February 18, 2022 build inputs have not been recovered.
+  The recipe deliberately identifies itself as `3.7.0-reforge-reconstruction`.
+
+The typed vendor header, 48-byte early reset routine, actual UART console,
+log level 3 and physical mappings are now source-built. Nine platform/helper
+bodies, totalling 620 bytes, match outside genuine relocation fields.
+The candidate remains **research-only and not a verified deployable secure OS**.
+
+A differential `-O2` core build approached the original size but lost 579
+previous function matches / 67,018 matched bytes and gained none. It was rejected;
+current `-Os` is retained. Current small-code crypto and memory permissions have
+positive instruction/table evidence. Further blind option/size tuning is not a
+substitute for missing-code recovery.
+
+**To close:** compile the recovered standalone SRAM program, vendor services and
+remaining authentic configuration/source changes; reproduce the carrier and
+compare every byte with no permitted exceptions. See [the OP-TEE recipe](../../vendor/optee/stock-patches/README.md).
+
+## G03 — DSP0 license, source cohort and complete partition
+
+**Compile blocked and original source identity unresolved.** The active boot
+command loads this firmware; exclusion from the current build does not remove
+it from a complete original bring-up target.
+
+- Original ELF: 261,240 bytes, SHA-256
+  `61ed4f199ca3b15f96c245a709282e1a4798b14d0f23a5e2930577487ebd20d1`.
+- Recorded source version: `sun8iw20_fpga_v0.5.0-37-gfb1fe0d`.
+- Matching tools: Cadence RI-2020.4 / XCC 14.04, Xtensa `aw_axi_cfg0` core.
+  A working compiler entitlement is unavailable. Docker host networking did not
+  resolve it: the server-file checkout still fails `-96`; the alternative file
+  fails `-5` for the requested feature. Neither probe produced an object.
+- The later public `pdscomp/oc-freertos-dsp-xt` import at
+  `38fa249bd9997f63b35aa4cdf95248b3bef5b685` is not established as the original
+  source. Mapping found 30 exact paths, 56 basename matches and two missing
+  filenames (`notifier.c`, `sunxi_dma_core.c`); filename correspondence is not
+  source equivalence. Original configuration, compile cohort and runtime-library
+  source-build closure remain unverified.
+- The whole 1-MiB DSP partition has SHA-256
+  `3ce7c4ff5b9953986c63193acde1ca8783fe6a0a1ef12df9f8983cbdc018efb1`.
+  A 904-byte residual tail follows the ELF through the 256-KiB boundary, then
+  zeroes. Its generation/history is not reproduced. An identical ELF alone
+  would not certify that partition.
+
+**To close:** obtain a valid entitlement for the actual core, recover the
+original source/configuration and compile all target/runtime inputs; reproduce
+both ELF and partition writer/tail behavior. No license bypass is part of this
+work, and no license secrets are recorded here.
+
+## G04 — different 2025 backup U-Boot and slot identity
+
+The golden backup TOC at `0x1004000` contains U-Boot
+`2018.05-g2a24076-dirty`, dated April 18, 2025. Its 966,656-byte member has
+SHA-256 `b31940650d2072b403cd109b4def5e435abf1326f8fd1292d67c83d0898ecfe3`.
+It differs from the reproduced 2023 primary in 779,577 byte positions; layout
+changes prevent inferring how many instructions differ from that count.
+Its exact source/dirty changes, build recipe and complete equality are unverified.
+The saved running-unit boot argument names the 2025 build; no UART trace has
+independently established selection of the primary or backup slot.
+
+The independent stock dump's backup instead matches the 2023 primary. Thus the
+golden capture is not an untouched single-version factory release.
+
+The golden backup DTB is understood: it equals the source-proven kernel DTB
+(PWM7) padded with zeroes to 59,392 bytes, SHA-256
+`9cc6dbe97217514628c34741d905224e75e28c0958745cc552cbe438fc7f1e04`.
+It differs from primary TOC DTB PWM6 at only offset `0x8a67`. This is a known
+configuration variant, not an unidentified driver gap.
+
+**To close:** reconstruct the 2025 build separately if reproducing this golden
+snapshot or the observed running version; establish actual slot selection.
+Do not report the exact 2023 primary as proof of the 2025 binary.
+
+## G05 — complete primary/backup TOC packaging
+
+Member reconstruction does not yet establish container equality. No complete
+source-built TOC package has passed the original whole-container comparison.
+
+- Primary: 1,343,488 bytes, SHA-256
+  `9345c28b17c90b994e7688bf611ca275b5be230ce6e9a0e9e74b8c7983f1bc07`.
+- Golden backup: same length, SHA-256
+  `8f6d733683e8e3bba479584983002be88fca56de01b08b4ddc8f0d84a9664849`.
+
+Known layout includes the 64-byte header, three 368-byte item records, 2-KiB
+member alignment, U-Boot at relative offset 2,048, OP-TEE at 968,704 and DTB at
+1,269,760, plus container alignment/checksum. A source packer must regenerate all
+records, names, unused fields, padding and checksums from verified inputs.
+
+**To close:** resolve G02, G04 where applicable, then prove complete primary and
+backup TOC equality. Copying original OP-TEE/TOC executable payloads is not a
+source-build solution.
+
+## G06 — boot-resource FAT filesystem and inactive Android carrier
+
+The configured path uses FAT p1 `uImage` and `sunxi.dtb`, both individually
+reproduced. Complete p1 filesystem equality is not established.
+Its 25-file inventory also includes 17 BMPs, two fonts, two waveform data files,
+VCOM text and a 512-byte UUID/magic file. Exact asset provenance/conversion and
+reproducible filesystem construction remain unverified. These data assets are
+not evidence of missing Linux drivers or additional native executables.
+
+File equality alone does not reproduce FAT geometry, volume identifiers,
+allocation order, directory entries/timestamps, free-space contents, FSInfo and
+backup boot records. Their original generator/parameters must be recovered or
+reimplemented and compared at partition level.
+
+The p4 Android `boot.img` is not selected by the validated saved environment.
+Its complete carrier/partition has not been source-repacked byte-identically.
+It requires a separate payload/header/ramdisk/unused-byte inventory and a proved
+packing recipe if the target includes every stored boot path.
+
+## G07 — GPT, reserved areas and whole captured disk
+
+Known boot/member offsets and partition LBAs are inventoried, but no complete
+source-generated disk image matches the golden capture. Remaining coverage
+includes primary/backup GPT metadata and CRCs, GUIDs/attributes, exact geometry,
+boot-copy placement, reserved/unallocated regions, partition padding and trailing
+sectors. Historical writes can leave residual bytes that a fresh image does not
+naturally generate.
+
+The original rootfs and UDISK filesystem images, including allocation,
+timestamps, UUIDs, journals, logs and machine/user state, have not been recreated
+from source. The golden capture also contains later modifications. Producing a
+fresh bootable image is a different test from reproducing that entire snapshot.
+
+**To close:** fix a precise snapshot/slot target; reconstruct the original writer,
+filesystem tools/options, immutable assets and relevant state/history; compare
+each partition and the full raw disk. A compressed golden-image hash alone does
+not prove regenerated raw sectors or gzip-stream equality.
+
+## G08 — accepted kernel ELF/debug provenance residual
+
+Natural raw Image differs in exactly 20 build-ID bytes at `0xacc154..0xacc167`;
+all other raw bytes match. Its size delta is zero. The user-authorized patch
+closes the delivery Image/zImage/uImage comparison, and the script verifies the
+whole resulting Image hash before writing a new output.
+
+This does **not** recover the original unstripped/pre-sort ELF. Original debug
+sections, complete symbol/string tables, some compiler/assembler path/input
+provenance and original ELF ordering are unavailable. The GNU build-ID algorithm
+is understood and independently modelled; the unavailable original hash inputs
+remain the gap. Further input-matrix/header tests have not produced the natural
+stock ID.
+
+**To close natural ELF identity:** obtain the original full ELF or recover all
+original source/compiler/assembler/debug inputs and naturally reproduce it.
+This residual is accepted for delivered kernel bring-up, not silently waived for
+other components. See the detailed [kernel evidence record](stock-bringup-rebuild.md).
+
+## G09 — historical toolchain/runtime source closure
+
+Historical Linaro compiler binaries are pinned external build tools; their own
+clean source bootstraps and cross-host repeatability have not been demonstrated.
+There is also a concrete target-runtime dependency in boot0: its link map uses
+`libgcc.a(_udivsi3.o)`, `libgcc.a(_divsi3.o)` and `libgcc.a(_dvmd_lnx.o)` from the
+pinned GCC 7.2.1 distribution. They contribute 1,332 text bytes. Those bytes match
+stock, but those three runtime objects were not rebuilt locally from source.
+The private opaque DRAM archive is not used.
+
+**To close strict target source closure:** build the exact GNU/Linaro runtime
+sources with the original flags, replace those compiler-provided objects and
+recheck all boot0 bytes. Audit the other historical-toolchain stages similarly.
+Rebuilding a compiler executable itself is a separate bootstrap/repeatability
+claim from compiling application source with a pinned compiler. The newer
+Klipper13 compiler/newlib source builds do not certify these historical tools.
+
+## G10 — factory MCU applications and retained IAP
+
+The optional v13 source/repeatability result does not reproduce factory firmware:
+
+| Factory artifact | Size | SHA-256 |
+|---|---:|---|
+| Mainboard-20230831.bin | 38,812 | `8b5d42a78de773c105bc037a49bf0fb5e4d30dcd378d1709b4e3ace7fac8dd3a` |
+| Eboard-20231012.hex (OTA reference) | 94,590 | `c8621a4279770d1c13e0e32c17d608979536bc4eb3f4516443d15c13dd65bcac` |
+| Decoded Eboard application | 33,608 | `fd56bf0baa636e254a5db4124b95f5416e9b6dbae54472a4d0a17b0d6979b3a8` |
+
+Both identify strings give `?-20230317_182329-ubuntu20-virtual-machine`, with no
+recoverable Git commit, GCC 9.2.1 and binutils 2.34. Their 144-MHz clock and
+`0x20020000` initial stack pointer are N32-like despite the `stm32f103xe` label;
+the public unmodified v0.11 STM32 selections do not explain these inputs.
+The Eboard application starts at `0x08010000`; the retained first 64-KiB IAP is
+absent from that application HEX and its source/build identity is unresolved.
+The userspace `eboard_run` launcher is not that bootloader. A separate stock
+`mcu.img` asset is a pixel image, not MCU executable firmware.
+
+**To close:** recover the original N32-aware source/configuration/toolchain inputs
+and reproduce both factory applications; separately identify/capture and source
+rebuild the retained IAP. Do not infer source identity from matching public
+Klipper host sources or substitute the intentionally different v13 firmware.
+
+## G11 — remaining deployed components and updated userspace scope
+
+The source audit has not certified every external module, firmware variant,
+vendor userspace executable or data asset stored in the original rootfs.
+The flat RTL8821CU result must not be generalized to its differently packaged
+`/lib/modules/5.4.61` variant or unrelated components without comparison.
+Built-in code in the verified stock raw kernel is already covered by that
+whole-Image equality; no separate MCU UART Linux driver gap was found.
+
+Updated ReForge services and v13 firmware deliberately target new versions.
+Their successful builds and QEMU tests establish neither equality with original
+FlashForge/modified userspace nor complete two-build rootfs reproducibility.
+Stock proprietary userspace/state would require its own source/provenance audit
+if included in a whole-machine stock-equality target.
+
+## G12 — physical validation and end-to-end acceptance
+
+No bootloader/environment write, flash operation, physical printer boot or new
+MCU flashing was performed. QEMU validates userspace integration, not the T113
+boot ROM, actual slot selection, SRAM suspend/resume, PMIC/DRAM timing, interrupt
+routing, real module loading, MCU UART communication or calibration.
+Matching zram vermagic/exports is useful static evidence, not a physical ABI test.
+
+**Acceptance still required:** source-closed component builds, strict per-file
+hashes, exact containers/partitions for the agreed target and a separately
+recorded hardware bring-up/recovery test. Hardware success cannot waive a known
+byte mismatch, and byte equality does not itself record an observed hardware test.
+
+## Evidence and maintenance
+
+Committed source/build entry points:
+
+- [Boot0 source recipe](../../tools/build/build-stock-boot0.sh) and [packing source](../../tools/build/pack-stock-boot0.py).
+- [OP-TEE recipe](../../tools/build/build-stock-optee.sh) and [source patches](../../vendor/optee/stock-patches/README.md).
+- [Stock U-Boot recipe](../../tools/build/build-stock-uboot.sh).
+- [Stock kernel recipe](../../tools/build/build-bsp-kernel-stock.sh), [build-ID patcher](../../tools/build/patch-stock-kernel-build-id.py), and [board-data recipe](../../tools/build/build-stock-board-data.py).
+
+Local retained proof records (research state; not portable build inputs):
+
+- `/tmp/reforge-boot0-source/closure-proof.json` and `build/stock-boot0-source-closure-check/manifest.json`.
+- `/tmp/reforge-stock-optee/header-reconstruction/final-clean-proof.json` and `/tmp/reforge-optee-core-config/report.json`.
+- `/tmp/reforge-stock-dsp/reproduction-status.json` and `docker-host-network-probe-results.json` in that directory.
+- `/tmp/reforge-factory-mcu-audit/report.json`.
+- `/tmp/reforge-rootfs-clean-proof/build-report.json`, `integration.log`, `full-stack-smoke.log` and `device-dtb-report.json`.
+
+A gap closes only when its stated evidence is produced. Update this ledger when
+new clean builds change hashes or comparisons; do not turn exploratory `/tmp`
+results into a claimed verified recipe before sealing and rerunning that recipe.

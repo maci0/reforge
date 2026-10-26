@@ -4,6 +4,10 @@ Rechecked 2026-10-26. **The complete original boot chain has not been rebuilt
 byte-identically.** No bootloader, environment, MCU or flash device was written.
 Reference bytes and source-build outputs are kept separately.
 
+The current [complete byte-identity gap ledger](byte-identical-bringup-gaps.md)
+records remaining code, provenance, compiler-runtime, packaging, filesystem,
+factory MCU and hardware-validation gaps with closure criteria.
+
 ## Accepted kernel result and remaining bring-up target
 
 On 2026-10-26 the user accepted the raw kernel's metadata-only difference.
