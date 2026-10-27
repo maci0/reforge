@@ -29,6 +29,25 @@ Checked in the built `vmlinux` (`nm`): symbols from `rtw8821c*`, `sun4i_tcon`, `
 top-level directory (text+data of `built-in.a`, before gc-sections): drivers 2.70M (gpu 0.51M,
 net 0.44M, media 0.29M, usb 0.24M), net 2.00M, kernel 1.08M, fs 0.99M.
 
+## Memory against the stock kernel
+
+Stock evidence from the live unit (`docs/board-notes/README.md`, `running-unit-probe.txt`,
+[stock runtime tuning](../memory/2026-06-02-stock-kernel-runtime-tuning.md)): `MemTotal
+110404 kB` of 131,072 kB DRAM, `cma=16M` (CMA counts inside `MemTotal`), `disp_reserve=1536000`,
+and the vendor `8821cu` WiFi module loaded at 2,019,328 bytes (`lsmod`).
+
+| static kernel memory | stock 5.4 | 7.3 board |
+|---|---|---|
+| vmlinux text+data+bss | 10.59 MB | 7.41 MB |
+| WiFi driver | `8821cu.ko` 2.02 MB (loaded module) | built in: rtw88 176 KB + mac80211 418 KB + cfg80211 264 KB, pre-gc sizes, already inside 7.41 MB |
+| **total** | **12.61 MB** | **7.41 MB (−5.2 MB)** |
+
+Not measured, because the board kernel does not boot yet: init sections freed after boot (both
+kernels free theirs), slab, page tables, per-CPU and other run-time kernel allocations, and the
+display buffer (stock reserves 1.5 MB outside `MemTotal`; mainline DRM would allocate its
+framebuffer from CMA, about 1.5 MB per 800×480×32 buffer). The −5.2 MB is therefore the static
+part only, not a `MemAvailable` prediction.
+
 ## In scope
 
 From [device-overview](../../board-notes/device-overview.md), the stock DTS
