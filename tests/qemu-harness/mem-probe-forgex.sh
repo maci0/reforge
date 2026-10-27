@@ -24,6 +24,16 @@
 #        b. launch /opt/klipper/start.sh directly (since ffstartup is gone)
 #        c. sleep SETTLE; snapshot; poweroff
 #
+# Knobs (env):
+#   FX_SET="key=value ..."  rewrite forge-x mod variables in
+#                           /opt/config/mod_data/variables.cfg, e.g.
+#                           FX_SET="display='FEATHER' use_swap='OFF'". The probe
+#                           launches klippy itself only when display is STOCK;
+#                           other modes start it from forge-x's boot.sh.
+#   KLIPPY_ARENA=N          export MALLOC_ARENA_MAX=N in /opt/klipper/start.sh
+#                           (every klippy launch path runs it). The snapshot
+#                           prints klippy's MALLOC_* environment as proof.
+#
 # Usage:    tests/qemu-harness/mem-probe-forgex.sh [LABEL]
 # Output:   tests/qemu-harness/build/mem-probe-forgex-<LABEL>.log
 # Needs:    qemu-system-arm, e2fsprogs, tests/qemu-harness/build/zImage,
@@ -94,6 +104,34 @@ debugfs -R "dump /opt/auto_run.sh ${TMP}/auto_run.sh" "${ROOTFS}" 2>/dev/null
 sed -i 's#^[[:space:]]*/opt/PROGRAM/ffstartup-arm.*#: "ffstartup-arm UI launch skipped by mem-probe-forgex.sh"#' "${TMP}/auto_run.sh"
 debugfs_inject "${TMP}/auto_run.sh" "/opt/auto_run.sh" 100755
 
+# --- 1b. forge-x variables + klippy allocator arenas -------------------------
+VARS=/opt/config/mod_data/variables.cfg
+debugfs -R "dump ${VARS} ${TMP}/variables.cfg" "${ROOTFS}" 2>/dev/null
+[ -s "${TMP}/variables.cfg" ] || die "${VARS} missing from ${ROOTFS_SRC}"
+for kv in ${FX_SET:-}; do
+    key=${kv%%=*}
+    grep -q "^${key} = " "${TMP}/variables.cfg" || die "FX_SET: ${key} not in ${VARS}"
+    sed -i "s|^${key} = .*|${key} = ${kv#*=}|" "${TMP}/variables.cfg"
+    log "variables.cfg: $(grep "^${key} = " "${TMP}/variables.cfg")"
+done
+[ -n "${FX_SET:-}" ] && debugfs_inject "${TMP}/variables.cfg" "${VARS}" 100644
+DISPLAY_MODE=$(sed -n "s/^display = '\(.*\)'$/\1/p" "${TMP}/variables.cfg")
+[ -n "${DISPLAY_MODE}" ] || die "no display mode in ${VARS}"
+log "display mode: ${DISPLAY_MODE}"
+
+if [ -n "${KLIPPY_ARENA:-}" ]; then
+    debugfs -R "dump /opt/klipper/start.sh ${TMP}/klipper-start.sh" "${ROOTFS}" 2>/dev/null
+    sed -i "1a export MALLOC_ARENA_MAX=${KLIPPY_ARENA}" "${TMP}/klipper-start.sh"
+    debugfs_inject "${TMP}/klipper-start.sh" "/opt/klipper/start.sh" 100755
+    log "klippy: MALLOC_ARENA_MAX=${KLIPPY_ARENA}"
+fi
+# Only the stock UI (skipped above) launches klippy in STOCK mode.
+LAUNCH_KLIPPY=0
+[ "${DISPLAY_MODE}" = STOCK ] && LAUNCH_KLIPPY=1
+# Feather and Guppy draw on /dev/fb0; the stock display needs none.
+GPU_ARGS=()
+[ "${DISPLAY_MODE}" = STOCK ] || GPU_ARGS=(-device "virtio-gpu-pci,xres=800,yres=480")
+
 # --- 2. inject S00-data-symlink: pre-create /dev/mmcblk0p7 -> /dev/vdb -------
 # Must run BEFORE S00init (forge-x's takeover, which calls mount_data_partition).
 # Init script numbering: S00init exists already, so we use S00aprep to sort earlier.
@@ -117,9 +155,11 @@ cat > "${TMP}/S99forgex-probe" <<PROBE
   # Give S00init time to finish the forge-x chroot bring-up (moonraker etc.).
   sleep ${KLIPPY_LEAD}
 
-  # Launch stock klippy directly (since ffstartup-arm UI is disabled).
+  # STOCK mode: launch stock klippy directly (the ffstartup-arm UI is disabled).
   # /opt/klipper/start.sh sets up LD_LIBRARY_PATH + PATH and execs python3.7 klippy.py.
-  if [ -x /opt/klipper/start.sh ]; then
+  if [ ${LAUNCH_KLIPPY} = 0 ]; then
+    echo "[forgex-probe] display ${DISPLAY_MODE}: klippy started by forge-x boot.sh" > /dev/console
+  elif [ -x /opt/klipper/start.sh ]; then
     echo "[forgex-probe] launching /opt/klipper/start.sh ..."
     /opt/klipper/start.sh > /var/log/klippy-launch.log 2>&1 &
   else
@@ -150,6 +190,10 @@ cat > "${TMP}/S99forgex-probe" <<PROBE
     cmd=\$(tr '\0' ' ' < "\$p/cmdline" 2>/dev/null | head -c 200)
     [ -z "\$cmd" ] && cmd="(kthread \$(cat \$p/comm 2>/dev/null))"
     echo "PID \${p#/proc/} Pss=\${pss:-0} Rss=\${rss:-0} CMD=\${cmd}" > /dev/console
+    case "\$cmd" in *klippy.py*)
+      echo "KLIPPY-ENV PID \${p#/proc/} \$(tr '\0' '\n' < "\$p/environ" | grep '^MALLOC_' | tr '\n' ' ')" > /dev/console
+      echo "KLIPPY-THREADS PID \${p#/proc/} \$(ls "\$p/task" | wc -l)" > /dev/console
+    ;; esac
   done
   echo "===MEMPROBE-END===" > /dev/console
   poweroff -f
@@ -169,6 +213,7 @@ timeout "${TIMEOUT}" qemu-system-arm \
     -drive "file=${DATA},if=virtio,format=raw" \
     -append "root=/dev/vda rw console=ttyAMA0 panic=1 loglevel=4 init=/sbin/init" \
     -netdev user,id=n0 -device virtio-net-device,netdev=n0 \
+    "${GPU_ARGS[@]}" \
     -nographic > "${SERIAL}" 2>&1 || true
 
 # --- 5. parse + summarize ---------------------------------------------------
