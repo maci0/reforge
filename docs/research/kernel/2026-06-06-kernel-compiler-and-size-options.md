@@ -207,6 +207,36 @@ entirely a `multi_v7` artifact; scope to one vendor + `-Os` + gc + lean drops an
 Size-only study: `sunxi_defconfig` doesn't boot qemu-virt, and a real T113 boot still needs a board
 DTS (see [2026-06-01-t113-mainline-kernel-support.md](2026-06-01-t113-mainline-kernel-support.md)).
 
+### Update 2026-10-27: ported to mainline 7.3
+
+Reran the stocklike migration on **`linux-7.3`** (mainline, released 2026-10-18) and, as the
+matched baseline, on `linux-7.0.11` again. The Buildroot toolchain has moved to **gcc 15.3.0 +
+binutils 2.45.1** since §5, so the June figures are not a valid baseline on their own. Both
+tarballs checked against kernel.org `sha256sums.asc` (HTTPS; PGP signature not checked). Same
+steps as §5 (`olddefconfig` from `br-external/board/reforge/linux.config`, `-d DEBUG_INFO_BTF -d
+WERROR`, then B adds `EXPERT`, `-Os`, gc-sections, `TRIM_UNUSED_KSYMS`), `size vmlinux`:
+
+| kernel (gcc 15.3 / ld 2.45.1) | .text | .data | .bss | total |
+|---|---|---|---|---|
+| 7.0.11 stocklike A | 8,497,039 | 3,035,688 | 118,172 | **11,650,899** |
+| 7.0.11 stocklike B | 7,383,468 | 2,544,800 | 113,116 | **10,041,384** |
+| 7.3 stocklike A | 8,677,990 | 3,251,712 | 107,492 | **12,037,194** |
+| 7.3 stocklike B | 7,537,955 | 2,594,360 | 101,092 | **10,233,407** |
+
+- 7.0.11 on the new toolchain reproduces the §5 figures (11.65M / 10.04M), so the toolchain bump
+  did not move kernel size.
+- **7.3 B = 10.23M: +192 KB (+1.9%) over 7.0.11 B**, still ~0.36 MB under the 5.4 stock
+  device kernel (10.59M). A grows more (+386 KB); gc-sections + trim absorb half of it.
+- Migration dropped **174** stock `=y` symbols (7.0.11: 167). The 7 extra are upstream Kconfig
+  changes, not lost features: `PROC_SYSCTL` folded into `SYSCTL` (still `=y`, `/proc/sys`
+  intact); `OABI_COMPAT` now `depends on CPU_SA110 || CPU_SA1100`; `CRYPTO_DRBG_MENU`,
+  `CRYPTO_DRBG_HMAC`, `CRYPTO_RNG_DEFAULT` removed (`CRYPTO_DRBG` still `=y`); `MDIO_BUS` and
+  `CRYPTO_MICHAEL_MIC` removed as symbols (mac80211 carries Michael MIC in `net/mac80211/wpa.c`).
+- Unchanged in 7.3: `HAVE_LD_DEAD_CODE_DATA_ELIMINATION` gate (`arch/arm/Kconfig:128`);
+  `ARCH_SUPPORTS_LTO_CLANG` still selected only by arm64, x86, riscv, loongarch, um.
+- Same caveat as §5: a size proxy, not a bootable T113 kernel. Saved config:
+  [`configs/2026-10-27-linux-7.3-stocklike.config`](configs/2026-10-27-linux-7.3-stocklike.config).
+
 ---
 
 ## Bottom line / what shipped

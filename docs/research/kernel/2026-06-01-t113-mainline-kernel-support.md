@@ -110,6 +110,15 @@ assets**, and the GKI `abi_*` XML — *not* authored SoC code. The real sun8iw20
 small (clk/pinctrl/mtd/media/display). Net: **a mainline 6.x kernel for the AD5M is just a board
 DTS + the RGB panel**, not a 5 M-line fork.
 
+## Update 2026-10-27 — re-verified against `linux-7.3`
+
+Checked the 7.3 source tree (mainline, 2026-10-18): `rtw88` still carries `rtw8821cu.c`,
+`rtw8821cs.c` and `rtw8821ce.c`; Cedrus still matches `allwinner,sun20i-d1-video-engine`
+(`drivers/staging/media/sunxi/cedrus/cedrus.c:686`); `arch/arm/boot/dts/allwinner/` adds one
+T113 board (`sun8i-t113s-netcube-dobermann.dts`). Lines mentioning `sun20i-d1` in
+`sunxi-d1s-t113.dtsi`: 51 in 7.0.11, 52 in 7.3 (a line count, not the compatible count above).
+Nothing the printer needs was removed.
+
 ## Sources
 
 - linux-sunxi.org: [T113-s3](https://linux-sunxi.org/T113-s3), [mainlining effort](https://linux-sunxi.org/Linux_mainlining_effort), [MangoPi MQ-R](https://linux-sunxi.org/MangoPi_MQ-R)
