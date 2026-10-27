@@ -63,6 +63,33 @@ drivers for the `sun8i-t113s.dtsi` / `sunxi-d1s-t113.dtsi` compatibles:
 - Rootfs features: ext4, tmpfs, devtmpfs, inotify, swap, zram with zstd (`S35zram`), IPv4,
   UNIX and packet sockets, SysV IPC, POSIX mqueue.
 
+## Stock built-ins with no consumer
+
+Checked against the stock config (`docs/board-notes/stock-kernel-config-5.4.61.txt.gz`), the
+stock DTS, and the clean stock rootfs (`stock-clean-rootfs.ext4`: init scripts, `printer.cfg`,
+the `firmwareExe` UI's linked libraries and strings):
+
+| built in (`=y`) | evidence it is unused |
+|---|---|
+| CAN (`CAN`, `CAN_RAW`, `CAN_BCM`, `CAN_GW`, `CAN_SUN8I`) | DTS `can@0x0 { status = "disabled"; }`: the driver never binds. No `canbus_uuid` in `printer.cfg`; both MCUs are UARTs. `candump`/`canbusload` ship in `/usr/bin` but nothing calls them. |
+| Bluetooth (`BT`, `BT_RFCOMM`, `BT_HCIUART`, …) | `bt_init.sh`/`bt_play.sh` are not called by `rcS`; they would run `hciattach` on `ttyS1`, the toolhead MCU's UART. |
+| Sound (24 `SND*`, sun8iw20 codec) | `firmwareExe` links no libasound and has no `/dev/snd` string; its buzzer (`buzzerPlay`) is not ALSA. Only `bt_play.sh` (unused) calls `bluealsa-aplay`. The codec's headphone-jack detector shows up as an input device the UI lists ("io Jack"). |
+| NFS (v2/v3/v4/v4.1, `NFS_SWAP`) | no nfs mount in init scripts or `fstab`. |
+| MTD/UBI/UBIFS | storage is eMMC; only `swupdate` and generic flash tools reference `/dev/mtd`. |
+| IR (`RC_CORE`, `IR_RX_SUNXI`, NEC/RC5) | the UI enumerates input devices at start (`sunxi-ir` in its log); no reader found. |
+| CSI camera input (`VIDEO_SUNXI_VIN`) | camera is USB UVC (`/dev/video0`). |
+| resistive touch (`TOUCHSCREEN_SUN4I`) | touch is Goodix (`GT9XXNEW_TS`) through tslib. |
+| G2D, ION, Cedar VE | only vendor media SDK libraries reference them; `firmwareExe` uses ffmpeg + x264 in software and links none of those libraries. |
+| debug (`DEBUG_VM`, `DEBUG_MUTEXES`, `DEBUG_PREEMPT`, `PM_DEBUG`, `KALLSYMS_ALL`, `SUNXI_IOMMU_TESTS`, `DEBUG_INFO`) | developer checks; `DEBUG_VM`/`DEBUG_MUTEXES` also cost run-time CPU. |
+| IPv6 (`IPV6`, `SIT`, tunnel) | no IPv6 configuration in the boot path; libc/busybox carry generic support only. |
+
+The ADB service is the reverse case: `rcS` starts `adb_conf.sh` at every boot, but the stock
+config has `# CONFIG_USB_GADGET is not set`, so it cannot work. Measured cost of part of the list
+on the 5.4 BSP (§4 of
+[kernel compiler and size options](2026-06-06-kernel-compiler-and-size-options.md)): dropping BT,
+CAN, SND, IPV6, PROFILING, MAGIC_SYSRQ and `KALLSYMS_ALL` takes the stock vmlinux from 10.59 to
+9.05 MB (−1.54 MB), `size` only, not booted.
+
 ## Deliberately excluded
 
 Enabled in the stock DTS or config, but nothing in ReForge uses them; each is a one-line add:
