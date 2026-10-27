@@ -19,6 +19,7 @@ write-ups: [`docs/research/`](research/).
 | **zram VM tuning** | the runtime sysctls for the zram-as-primary-swap profile: `vm.page-cluster=0` (zram is RAM — no swap read-ahead), `vm.swappiness=100` (prefer compressed-RAM swap over eMMC file re-reads), `vm.vfs_cache_pressure=50`, `vm.watermark_scale_factor=40` (kswapd reclaims ahead of demand), `vm.dirty_ratio=10` / `vm.dirty_background_ratio=5` | makes zram actually get used + targets the measured direct-reclaim/throttle storm; **no fixed RAM cost** | `.shell/reforge-vmtune.sh`, sourced by `S35zram` right after `swapon` |
 | **single shared Python interpreter** | klippy + moonraker share one python3 → COW page sharing of code/libs | avoids a second interpreter's resident set | by design |
 | **Moonraker trimmed** | `[octoprint_compat]` removed; `spoolman`/`notifier`/`ldap`/`announcements`/`job_state`/`analysis` off; `file_system_observer: none` (stock kernel has no `CONFIG_INOTIFY_USER`, so the observer would `OSError(ENOSYS)` and crash the server); `update_manager` configured with `provider: simple` + `type: web` (no `type: git_repo`) | smaller resident set; `[octoprint_compat]` removal is ~100 kB Pss (iter 4 subset). Going further — dropping `[history]` + `[update_manager]` too — measures at −1.4 MB but breaks OTA; documented in-conf as opt-in. | `moonraker.conf` |
+| **no Fortran toolchain** | `BR2_TOOLCHAIN_BUILDROOT_FORTRAN` dropped: numpy uses Fortran only through LAPACK/OpenBLAS, neither enabled | −868 KB rootfs (`libgfortran.so.5`, linked by nothing); no RAM change, faster toolchain build (`125d529`) | `reforge_defconfig` |
 
 **Note on jemalloc and klippy:** jemalloc is `LD_PRELOAD`ed for **moonraker and guppyscreen only**.
 It is **deliberately NOT used for klippy** — on real hardware jemalloc's `LD_PRELOAD` corrupts
@@ -53,6 +54,13 @@ access). It still matters for the device's **eMMC overflow swapfile** (the async
 qemu rig doesn't model; the bench's measurable wins are the reclaim-ahead knobs
 (`watermark_scale_factor`). The values are net-positive and zero-cost regardless.
 
+## Measured, not adopted
+
+| lever | measured impact | blocker |
+|---|---|---|
+| **musl instead of glibc** (gcc -Oz) | **−2.9 MB Σ Pss (−5.2%)**, about −2.1 MB of it klippy (qemu, 2026-10-27) | Hardware validation; the stock `firmwareExe` (glibc) cannot run on a musl rootfs; klippy's share is likely musl's allocator, not separated. [Write-up](research/memory/2026-10-27-clang-oz-musl-memory.md). |
+| **mainline 7.3 board kernel** (`make kernel-mainline`) | **−5.2 MB** static kernel memory: 7.41 MB vmlinux vs stock 10.59 MB + 2.02 MB `8821cu.ko` (`size` only) | Does not boot yet: no mainline board DTS, panel timings, SMP bring-up. Run-time kernel memory unmeasured. [Write-up](research/kernel/2026-10-27-mainline-board-kernel.md). |
+
 ## Plan-5 kernel-build levers (not on stock 5.4.61)
 
 These are **not** runtime-tunable on the stock BSP kernel (the configs/drivers aren't built),
@@ -78,7 +86,9 @@ so they're out of reach for P1–P3. They become available when ReForge ships it
 | jemalloc `background_thread:true` | **null at idle** | only helps async-purge latency under churn; costs a thread |
 | jemalloc `metadata_thp:never` | **+180 kB** vs `metadata_thp:auto` (autoresearch iter 6, 2026-06-04) | small but real pessimization; the default is the right answer |
 | `-ffunction-sections -fdata-sections` (per-package) | **null** (+75 kB, ~2σ, autoresearch iter 8) | overlaps almost entirely with `BR2_ENABLE_LTO=y` (LTO already does cross-TU dead-code elimination within each LTO scope); the residual cross-package gain is in the noise floor |
-| **clang as system toolchain** | **blocked** (no measurement) | BR 2026.02.2 LTS has no `BR2_TOOLCHAIN_USES_CLANG`. The `BR2_PACKAGE_CLANG` target package builds clang as a binary that ships ON the rootfs — it is **not** a system-compiler choice. Implementing it would mean patching Buildroot's toolchain layer (multi-day). Parked. |
+| **clang as system toolchain** | **−0.3 to −0.6 MB** Σ Pss (clang 23 -Oz vs gcc -Oz, 2026-10-27) | Works by overriding `TARGET_CC`/`TARGET_CXX` with `lab/toolchain-memory/clang-cc.sh` after a GCC-built toolchain. Needs six gcc compatibility fixes; two failed only at run time (missing `__aeabi_d2h`, greenlet frame pointer) and silently killed klippy. Not worth it for the gain. [Write-up](research/memory/2026-10-27-clang-oz-musl-memory.md). |
+| `-Oz` + function/data sections + no unwind tables + `--gc-sections -s` (gcc) | **−0.17 to −0.31 MB** Σ Pss, rootfs −2.9 MB (2026-10-27) | Barely past the noise floor. busybox ignores the flags. Same write-up. |
+| forge-x klippy `MALLOC_ARENA_MAX=2` / `=1` | **null** / **−287 kB** klippy Pss (forge-x 1.4.2-beta-4, Feather, 2026-10-27) | klippy runs 4 threads. [Write-up](research/memory/2026-10-27-forgex-klippy-malloc-arenas.md). |
 | `transparent_hugepage=never` | **no-op** | stock 5.4.61 kernel has **no `CONFIG_TRANSPARENT_HUGEPAGE`** |
 | `[update_manager]` git path (`type: git_repo`) | kept **off** | needs `git` (tens of MB rootfs); +0.6 MB RAM. ReForge OTA uses the patched SimpleProvider (`provider: simple`) + `type: web` for Mainsail — see [ota.md](ota.md) |
 
@@ -121,4 +131,8 @@ so they're out of reach for P1–P3. They become available when ReForge ships it
   [`lab/toolchain-memory/`](../lab/toolchain-memory/).
 - For a forge-x comparison run: `tests/qemu-harness/mem-probe-forgex.sh <label>` (slices the
   forge-x rootfs from `tools/recovery/forge-x-*.img.gz`, patches out `ffstartup-arm`, launches
-  klippy directly, snapshots like the ReForge probe).
+  klippy directly, snapshots like the ReForge probe). `FX_SET="display='FEATHER'
+  use_swap='OFF'"` boots forge-x's own defaults; `KLIPPY_ARENA=N` sets klippy's
+  `MALLOC_ARENA_MAX`.
+- -Oz / clang / musl variants: `lab/toolchain-memory/build-oz.sh gcc|clang [glibc|musl]`
+  ([README](../lab/toolchain-memory/README.md)).

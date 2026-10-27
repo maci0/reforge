@@ -22,7 +22,8 @@ real Klipper reaches `ready` on a Linux host MCU, the stock home screen renders 
 > (GuppyScreen on the panel) with **zero eMMC writes** ([live mode](docs/live-mode.md)).
 > Still open on hardware: WiFi in live mode, and the host↔MCU Klipper link (klippy needs
 > a firmware-version match). MCU firmware (Plan 4) and the full mainline image + display
-> driver (Plan 5) are not started.
+> driver (Plan 5) are not started; `make kernel-mainline` builds a T113-scoped 7.3 kernel
+> (7.41 MB) as a size proxy, without a board DTS, so it does not boot yet.
 
 ## Layout
 

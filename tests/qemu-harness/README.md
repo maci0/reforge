@@ -152,6 +152,20 @@ boot). Every `mke2fs` in the suite still routes through the `orphan_file`-disabl
 ## Screenshots
 Captured GUI renders (GuppyScreen; firmwareExe result) are in [`docs/screenshots/`](../../docs/screenshots/README.md) — all at the pinned 800x480, pixel-identical to the real panel.
 
+## Forge-X memory probe
+
+`tests/qemu-harness/mem-probe-forgex.sh <label>` boots working copies of the same
+`build/forgex-*.ext4` fixtures, skips the stock UI, and snapshots per-process Pss/Rss to
+`build/mem-probe-forgex-<label>.log`. Environment knobs:
+
+- `FX_SET="key=value ..."` rewrites forge-x variables in `/opt/config/mod_data/variables.cfg`
+  before boot and fails if a key is absent. `FX_SET="display='FEATHER' use_swap='OFF'"` boots
+  forge-x's default screen with swap off. In STOCK mode the probe launches klippy itself; in
+  other modes forge-x's `boot.sh` does, and the guest gets a virtio-gpu framebuffer.
+- `KLIPPY_ARENA=N` adds `export MALLOC_ARENA_MAX=N` to `/opt/klipper/start.sh`. The snapshot
+  prints `KLIPPY-ENV` (klippy's `MALLOC_*` environment) and `KLIPPY-THREADS`.
+- `SETTLE`, `KLIPPY_LEAD`, `MEM`, `SMP`, `TIMEOUT` as in the script header.
+
 ## Forge-X API probe
 
 `python3 tests/qemu-harness/board_mcu.py --self-test` checks the simulated

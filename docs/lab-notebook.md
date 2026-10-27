@@ -217,3 +217,31 @@ shifts us by exactly 128 B more (fragile, could land +256 or −128).
 
 Patch now: `vendor/kernels/patches/0001-byte-identical-reproduction.patch`
 26,719 B (was 19,293 B). Build script applies/reverts as before.
+
+## 2026-10-27 — mainline 7.3 kernel, -Oz / clang / musl rootfs, forge-x klippy arenas
+
+### Kernel
+- Reran the stocklike size study on `linux-7.3` and, as the matched baseline, `7.0.11` on the
+  current gcc 15.3 / binutils 2.45.1. 7.0.11 reproduced the June figures; tuned 7.3 = 10.23 MB,
+  +192 KB (`1c19f61`).
+- `make kernel-mainline` (`1733f35`): allnoconfig + `br-external/board/reforge/linux-mainline-t113.config`,
+  fails if a fragment line does not apply. 7,413,592 B vmlinux. Static kernel memory vs stock:
+  7.41 MB against 10.59 MB + 2.02 MB `8821cu.ko` = −5.2 MB (`d6842e2`). Not booted: no board DTS.
+- Stock built-ins with no consumer, checked against DTS, init scripts and `firmwareExe`
+  (`0b10ab3`): CAN (DTS node disabled), BT, sound, NFS, MTD/UBI, IR, CSI, resistive touch,
+  G2D/ION/Cedar, debug options. ADB starts at boot without `USB_GADGET`.
+
+### Rootfs compiler and libc (`d39ea8a`, `a3422ea`)
+- Dropped Fortran (`125d529`): nothing linked `libgfortran.so.5`.
+- First -Oz attempt applied no compile flags: `BR2_TARGET_OPTIMIZATION` only reaches the gcc
+  wrapper, built with the toolchain, and precedes the package's `-Os`. Fixed with a
+  `TARGET_OPTIMIZATION` override; CMake needed `toolchain-reinstall` for its toolchain file.
+- First two clang memory rounds were invalid: klippy was dead (numpy import failed on
+  `__aeabi_d2h`, then greenlet segfaulted without a frame pointer). Lesson: check every tracked
+  process is present before reading Σ Pss; a dead daemon reads as a large saving.
+- Final, all processes present: gcc -Oz −0.3 MB, clang -Oz −0.6 MB, gcc -Oz + musl −2.9 MB,
+  clang -Oz + musl −3.3 MB Σ Pss vs gcc -Os glibc (55,983 kB).
+
+### forge-x (`e8ca24a`)
+- Probe gained `FX_SET` and `KLIPPY_ARENA`. On 1.4.2-beta-4 (Feather, no swap) klippy
+  `MALLOC_ARENA_MAX=2` is noise, `=1` −287 kB.

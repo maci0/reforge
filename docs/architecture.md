@@ -121,4 +121,4 @@ replacement** (own kernel + rootfs — Plan 5). Full taxonomy + installer paths:
 | P1–P3 | core stack on stock kernel; builds/boots/serves in qemu; packaging; validation | **done** |
 | OTA | git-free in-place updates (Moonraker zip/web updaters, CI release bundles, N=3 trial/LKG) | **done** ([OTA](ota.md); [spec](specs/2026-06-01-reforge-ota-design.md)) |
 | Plan 4 | matching MCU firmware (mainboard + eboard) — **optional**: the stock v11 MCU already drives the printer; Plan 4 restores adxl345/input-shaper calibration (or moves to v13) | not started |
-| Plan 5 | mainline U-Boot + 6.12 LTS kernel + ported T113 display driver | researched ([notes](research/kernel/2026-06-01-t113-mainline-kernel-support.md)) |
+| Plan 5 | mainline U-Boot + mainline kernel + ported T113 display driver | researched ([notes](research/kernel/2026-06-01-t113-mainline-kernel-support.md)); board-scoped 7.3 config builds (`make kernel-mainline`, [size](research/kernel/2026-10-27-mainline-board-kernel.md)), no board DTS yet |
