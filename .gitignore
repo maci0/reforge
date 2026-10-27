@@ -61,8 +61,5 @@ lab/spike-stockui/extracted/
 # Recovery image archive — large third-party blobs (never commit)
 tools/recovery/archive/
 
-# graphify knowledge-graph output — regenerable via `graphify update .` (~2 GB)
-graphify-out/
-
 # Scratch work (AGENTS.md: never /tmp)
 /.scratch/
