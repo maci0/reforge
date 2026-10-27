@@ -22,6 +22,7 @@ tools/build/build-variant.sh gcc15-base lab/toolchain-memory/gcc15-base.fragment
 lab/toolchain-memory/build-oz.sh gcc           # build/output-gcc-oz
 lab/toolchain-memory/build-oz.sh clang         # build/output-clang-oz
 lab/toolchain-memory/build-oz.sh clang musl    # build/output-clang-oz-musl
+lab/toolchain-memory/build-oz.sh gcc musl      # build/output-gcc-oz-musl
 NOSWAP=1 tests/qemu-harness/mem-probe.sh build/output-<variant>/images/rootfs.tar.xz
 ```
 

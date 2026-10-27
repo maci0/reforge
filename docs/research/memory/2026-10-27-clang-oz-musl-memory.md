@@ -76,6 +76,28 @@ Two failures showed only at run time; the boot and the probe looked healthy with
    the clang-built packages affects correctness (python3 `ceval.c` and numpy use them for speed,
    iwd's applies only to gcc < 9).
 
+## Update 2026-10-27: gcc -Oz + musl
+
+Added `gcc-oz-musl` (`build-oz.sh gcc musl`) and remeasured all five variants interleaved in one
+session (3 runs each, then 3 more of both musl variants). gcc-oz-musl run 1 is excluded:
+moonraker read 29.8 MB against 34.2 to 34.3 MB in its other five runs (not finished starting at
+the probe; that run's sum was 48,634 kB). All processes present in every run.
+
+| variant | sum(Pss) kB (mean ± sd, n) | Δ vs base | klippy | moonraker |
+|---|---|---|---|---|
+| gcc15-base | 55,983 ± 58 (3) | — | 20,921 | 34,867 |
+| gcc-oz | 55,675 ± 53 (3) | −308 | 20,782 | 34,705 |
+| clang-oz | 55,397 ± 57 (3) | −586 | 20,741 | 34,454 |
+| **gcc-oz-musl** | **53,090 ± 45 (5)** | **−2,893 (−5.2%)** | 18,726 | 34,233 |
+| clang-oz-musl | 52,663 ± 83 (6) | −3,320 (−5.9%) | 18,639 | 33,892 |
+
+- **musl does not need clang:** with gcc it saves 2,585 kB over gcc-oz, nearly all in klippy
+  (−2.1 MB, same as with clang). clang on musl adds −427 kB, about the same as clang on glibc
+  (−278 kB in this session), mostly moonraker.
+- gcc-oz-musl keeps gcc's full numpy dispatch list and needs none of the clang fixes;
+  numpy and greenlet checks pass, `undefined-audit.sh` finds nothing. libpython 3,278,620 B,
+  numpy `.so` total 6,257,812 B, rootfs.tar 165.3 MB.
+
 ## Not checked
 
 - Real hardware. All numbers are qemu virt with the 5.4 test kernel.
