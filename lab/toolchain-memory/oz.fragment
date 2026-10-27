@@ -1,0 +1,10 @@
+# 2026-10-27 — -Oz small-binary link flags (gcc-oz and clang-oz variants).
+#
+# Appended by build-oz.sh AFTER `make toolchain`, so glibc, libgcc, libstdc++
+# keep the baseline flags and only target packages change. The compile flags
+# are NOT set here: BR2_TARGET_OPTIMIZATION only reaches the gcc toolchain
+# wrapper, which is built with the toolchain and puts its flags before the
+# package's own -Os, so -Oz would lose. build-oz.sh instead overrides
+# TARGET_OPTIMIZATION on the make command line, which lands in TARGET_CFLAGS
+# for gcc and clang alike. LTO stays on from reforge_defconfig.
+BR2_TARGET_LDFLAGS="-Wl,--gc-sections -Wl,-s"
