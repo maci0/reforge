@@ -28,7 +28,7 @@ docs ([`../optimizations.md`](../optimizations.md), [`../boot.md`](../boot.md),
 - [2026-06-02-stock-kernel-runtime-tuning.md](memory/2026-06-02-stock-kernel-runtime-tuning.md) — stock-kernel runtime tuning audit.
 - [2026-06-03-forge-x-memory-review.md](memory/2026-06-03-forge-x-memory-review.md) — live forge-x memory audit (what's left to cut).
 - [2026-06-05-reforge-vs-forgex-memory.md](memory/2026-06-05-reforge-vs-forgex-memory.md) — measured memory: ReForge (production) vs forge-x.
-- [2026-10-27-clang-oz-musl-memory.md](memory/2026-10-27-clang-oz-musl-memory.md) — gcc -Os vs gcc -Oz vs clang -Oz vs clang -Oz + musl (qemu, `-m 128`): -Oz alone −0.17 MB, clang −0.5 MB, musl −3.1 MB sum(Pss); six clang compatibility fixes, two found only at run time.
+- [2026-10-27-clang-oz-musl-memory.md](memory/2026-10-27-clang-oz-musl-memory.md) — gcc -Os vs gcc -Oz vs clang -Oz vs gcc/clang -Oz + musl (qemu, `-m 128`): -Oz alone −0.3 MB, clang −0.6 MB, **gcc -Oz + musl −2.9 MB**, clang -Oz + musl −3.3 MB sum(Pss). musl is the lever; clang adds ~0.4 MB and needs six compatibility fixes, two found only at run time.
 
 ## UI / camera / video
 - [2026-06-01-stock-ui-spike.md](ui-camera/2026-06-01-stock-ui-spike.md) — P3 Task 8 stock-UI feasibility spike.
