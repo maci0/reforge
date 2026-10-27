@@ -51,6 +51,7 @@ flowchart TB
 | `make rootfs` | full Buildroot build (toolchain + all packages) | `build/output/images/rootfs.tar(.xz)` |
 | `make kernel` | build the in-tree Tina BSP 5.4.61 kernel (device config, `-Os`) via Buildroot's own gcc-15 toolchain — additive to the standalone `build-bsp-kernel*.sh` scripts | `build/output/images/zImage` |
 | `make kernel-virt` | same BSP source, qemu-`virt` config — the bootable test kernel for the harness | `build/output/images/zImage` |
+| `make kernel-mainline` | mainline 7.3 (pinned in `pins.lock`) with `allnoconfig` + `br-external/board/reforge/linux-mainline-t113.config`: only T113 drivers the printer uses; fails if any fragment line does not apply. Size proxy: no board DTS, not booted | `build/kernel-mainline/vmlinux` |
 | `make tgz` | wrap the rootfs as a stock-format USB installer | `packaging/dist/reforge-<ver>.tgz` |
 | (in `modules/zram-bsp/`) `build.sh` | build zram/zsmalloc `.ko` against the BSP kernel (gcc 9.5 crosstool, vermagic-matched) | `dist/*.ko` (shipped in the overlay) |
 

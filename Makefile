@@ -1,5 +1,5 @@
 BUILD := tools/build/build.sh
-.PHONY: lint unit rootfs defconfig clean clean-artifacts kernel kernel-virt smoke repro integration smoke-guppy tgz live-usb validate-loopback \
+.PHONY: lint unit rootfs defconfig clean clean-artifacts kernel kernel-virt kernel-mainline smoke repro integration smoke-guppy tgz live-usb validate-loopback \
         run-from-mod \
         bsp-kernel-rebuild bsp-kernel-stock \
         qemu-kernel qemu-initramfs qemu-smoke qemu-all \
@@ -30,6 +30,9 @@ clean-artifacts:
 # kernel.sh stay the canonical references.
 kernel:            ; $(BUILD) kernel
 kernel-virt:       ; $(BUILD) kernel-virt
+# Mainline 7.x board kernel for the T113 (allnoconfig + board fragment); size proxy, never
+# flashed. Output: build/kernel-mainline/vmlinux. docs/research/kernel/2026-10-27-mainline-board-kernel.md
+kernel-mainline:   ; tools/build/build-mainline-kernel.sh
 smoke:             ; tests/smoke/smoke_rootfs.sh
 repro:             ; tests/smoke/repro_check.sh
 integration:       ; tests/smoke/chroot_integration.sh

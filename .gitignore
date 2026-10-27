@@ -8,6 +8,7 @@ tools/recovery/.work/
 
 # Vendored third-party (downloaded, never commit; buildroot is a submodule and stays tracked)
 /vendor/kernels/linux-5.4.61/
+/vendor/kernels/linux-7.*/
 /vendor/kernels/*.tar.xz
 /vendor/toolchains/
 
@@ -62,3 +63,6 @@ tools/recovery/archive/
 
 # graphify knowledge-graph output — regenerable via `graphify update .` (~2 GB)
 graphify-out/
+
+# Scratch work (AGENTS.md: never /tmp)
+/.scratch/

@@ -17,6 +17,8 @@ stock-uboot  zip  fc662c13f3fde9d8bda1a2ad3fc53ff827f92576  d4233e9c0f3695b5adf2
 # Older source foundation for original-kernel reconstruction; shipping BSP remains above.
 stock-kernel tarball d51ad00c047eccd5c88e807aedf56a5a25d9a155 2b85f5e3832c3ca2b6a00f179f7bccedeebdb6c6daf8ec087ac1dfeb22781b22 https://codeload.github.com/guanglun/longan-t113-linux-5.4/tar.gz/d51ad00c047eccd5c88e807aedf56a5a25d9a155
 stock-rtl8821cu tarball b6ad883ea547cbd5d144e6218cc122bb4de4ffc4 583ff0e2436d221a76a43680d5fcec03e2d3316cc3019d070f62af7cacd948d3 https://codeload.github.com/rugameuser/8821cu-20210118/tar.gz/b6ad883ea547cbd5d144e6218cc122bb4de4ffc4
+# Mainline board kernel (size proxy, never flashed); fetched by tools/build/build-mainline-kernel.sh.
+linux-mainline tarball 7.3 87363c24f10e06321eb362765521094e94471f6bff8bce2d6b3e40f39f004953 https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.tar.xz
 mainsail   tag     v2.19.0  19908bcd07804328877cf1843c2436a5c66f66e7c417972a7cd262304057cbd6
 # klipper: pinned to upstream v0.11.0 (release tag, 2022-11-29) to match the
 # AD5M / AD5M Pro stock MCU firmware (Klipper v0.11 build, 2023-03-17). Switched
