@@ -1,0 +1,41 @@
+{
+  "scope": "Runtime target text and boot0 relink, not a compiler bootstrap",
+  "source_files": {
+    "vendor/runtime/gcc-7.2.0-arm/bpabi.S": "58adbe574b287470c3292549bcfc1199e7f05d7eb16881d8f226c8d014a40587",
+    "vendor/runtime/gcc-7.2.0-arm/ieee754-df.S": "3ca3172d2f904a8d86850e1f9a468bce6e376291fe278ee07eef4151a8c58d0b",
+    "vendor/runtime/gcc-7.2.0-arm/ieee754-sf.S": "4a2f2640bd07f6af8a36c36735f8aa90e19518c5a524ee686a299f20612063a7",
+    "vendor/runtime/gcc-7.2.0-arm/lib1funcs.S": "642a72ad8ce5287138b7774ea3eaf5644217dcba8b3f8ad14f228a5c87743fa7"
+  },
+  "objects": [
+    {
+      "name": "_udivsi3.o",
+      "text_length": 632,
+      "text_sha256": "4d80abaa9d0bf52cb01778d0aa8eeeb025a361388b0c2a40ac0a558857e72133",
+      "text_equal": true
+    },
+    {
+      "name": "_divsi3.o",
+      "text_length": 688,
+      "text_sha256": "72e4d5d77b1998d67f0bba5bf9a5c46a880fa08c73dba33537cb2ad0f0edde58",
+      "text_equal": true
+    },
+    {
+      "name": "_dvmd_lnx.o",
+      "text_length": 12,
+      "text_sha256": "aa5546a2d219739139fc7961a0a6d3ed51e05351d41e94a3448b62d5192bef08",
+      "text_equal": true
+    }
+  ],
+  "raw_boot0": {
+    "length": 34592,
+    "sha256": "26350bbd4823a9921899784e893d99497580a80c4785846b7e3749ec68a7bd47",
+    "equal_to_previous_source_build": true
+  },
+  "packed_boot0": {
+    "length": 49152,
+    "sha256": "dcc60dce4700e9658f3f8c5d25ccdde1d5424b5cbeed16910ea1200779f45cc4",
+    "equal_to_previous_source_build": true
+  },
+  "validation_boundary": "Fresh runtime compile and relink of retained application objects from the earlier clean source build; complete clean recipe rerun pending restoration of pinned GCC 4.6.3",
+  "runtime_execution_test": "QEMU ARM: six unsigned cases, six signed cases and division-by-zero handler SIGFPE dispatch passed"
+}

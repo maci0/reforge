@@ -14,7 +14,7 @@ cross=$2
 oldcross=$3
 command -v "${oldcross}gcc" >/dev/null || { echo "missing Linaro GCC 4.6.3" >&2; exit 1; }
 oldcross=$(dirname "$(realpath "$(command -v "${oldcross}gcc")")")/$(basename "$oldcross")
-for tool in gcc ld objcopy strip; do
+for tool in gcc ld objcopy strip ar; do
     command -v "${cross}${tool}" >/dev/null || { echo "missing tool: ${cross}${tool}" >&2; exit 1; }
 done
 cross=$(dirname "$(realpath "$(command -v "${cross}gcc")")")/$(basename "$cross")
@@ -36,16 +36,14 @@ if digest != expected:
 if hashlib.sha256(reference.read_bytes()).hexdigest() != 'f9397c286a0faba8cf19d7583b8f508470ce5e2ea1e6c53621d77d9f9b66093e':
     raise SystemExit('reference SHA-256 mismatch; expected the original AD5M boot0')
 compiler_paths = {name + '72': Path(cross + name).resolve()
-                  for name in ('gcc', 'ld', 'objcopy', 'strip')}
+                  for name in ('gcc', 'ld', 'objcopy', 'strip', 'ar')}
 compiler_paths['gcc46'] = Path(oldcross + 'gcc').resolve()
 for version in ('72', '46'):
     for program in ('cc1', 'as'):
         path = subprocess.check_output([str(compiler_paths['gcc' + version]),
                                         '-print-prog-name=' + program], text=True).strip()
         compiler_paths[program + version] = Path(path).resolve()
-compiler_paths['libgcc72'] = Path(subprocess.check_output(
-    [str(compiler_paths['gcc72']), '-print-libgcc-file-name'], text=True).strip()).resolve()
-expected_tools = {'gcc72': '20280aed3a14ae280aa206c06aa888e1d9eac3c8023f493e529c9a66ffdcb0e0', 'ld72': '0e4e83b73d008a43be937da1a0c903c6bdddad0d3be5a8a0d553551c208b32c7', 'objcopy72': 'd9fb6bea071255c49a1017d3b96977087ff7114a1280c9c273871cf72dc7b54f', 'strip72': '8fa14db0da7ec9e8874602da373099f3e00ec45f9bbfbadf7910179c3d50167c', 'gcc46': '2a1337ee0a2b1151ec87a0ca974748c975c73342e68d598e5235c3fac3c5d9a8', 'cc172': 'c27e37274963d8fd06545ac17a22a45176aa8d3652f71196ab361bd18f6e81cd', 'as72': '8f239890b7796bc45d14f7b1a0dc667731b87288190c3ef99bb06ea6b51497b9', 'cc146': 'f256ce473d1a01a36357611feb3b5eb3a6546d27528a73f49496c29b858a2847', 'as46': '83c91670e71ff5fd70c9b98d7f4e7bff1f930fffe34c323ae44333e6fe5565c3', 'libgcc72': '8adc4b9575b6269fbd3c8a4efb61df8fa09560c2f0b9952582fcf4f3cfe2ec63'}
+expected_tools = {'gcc72': '20280aed3a14ae280aa206c06aa888e1d9eac3c8023f493e529c9a66ffdcb0e0', 'ld72': '0e4e83b73d008a43be937da1a0c903c6bdddad0d3be5a8a0d553551c208b32c7', 'objcopy72': 'd9fb6bea071255c49a1017d3b96977087ff7114a1280c9c273871cf72dc7b54f', 'strip72': '8fa14db0da7ec9e8874602da373099f3e00ec45f9bbfbadf7910179c3d50167c', 'gcc46': '2a1337ee0a2b1151ec87a0ca974748c975c73342e68d598e5235c3fac3c5d9a8', 'cc172': 'c27e37274963d8fd06545ac17a22a45176aa8d3652f71196ab361bd18f6e81cd', 'as72': '8f239890b7796bc45d14f7b1a0dc667731b87288190c3ef99bb06ea6b51497b9', 'cc146': 'f256ce473d1a01a36357611feb3b5eb3a6546d27528a73f49496c29b858a2847', 'as46': '83c91670e71ff5fd70c9b98d7f4e7bff1f930fffe34c323ae44333e6fe5565c3', 'ar72': 'd85ead4e88a73a3e5c21fbc466745ac6d07208ebc72983f21c60df9671a02011'}
 compiler_files = {}
 for name, path in compiler_paths.items():
     actual = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -85,6 +83,8 @@ manifest = {'status': 'source-reconstruction-candidate',
             'source_commit': 'aedc18e734ecc71262fb64f962f485a12e56981c',
             'source_archive_sha256': digest,
             'compiler_files': compiler_files,
+            'runtime_sources': {str(path.relative_to(patch.parents[3])): hashlib.sha256(path.read_bytes()).hexdigest()
+                                for path in sorted((patch.parents[3] / 'vendor/runtime/gcc-7.2.0-arm').glob('*.S'))},
             'compiler_profiles': {'main': 'Linaro GCC 7.2.1, vendor mk/config.mk -Os; default ARMv7-A Thumb cortex-a9',
                                   'legacy_chip_id': 'Linaro GCC 4.6.3 2012.02; -Os -mthumb -march=armv7-a -mtune=cortex-a9 -fno-builtin -ffreestanding -fno-stack-protector -fno-common -msoft-float'},
             'authored_patch_sha256': hashlib.sha256(patch.read_bytes()).hexdigest(),
@@ -111,7 +111,16 @@ PY
 "${cross}gcc" --version > "$out/compiler.txt"
 "${cross}ld" --version > "$out/linker.txt"
 "${oldcross}gcc" --version > "$out/legacy-compiler.txt"
-GIT_CEILING_DIRECTORIES="$out" make -C "$src" p=sun8iw20p1 CROSS_COMPILE="$cross" CHIP_ID_CC="${oldcross}gcc" -j"${JOBS:-4}" V=1 mmc > "$out/build.log" 2>&1
+# Compile the only target runtime routines boot0 needs; never link toolchain libgcc.a.
+runtime=$out/runtime
+mkdir "$runtime"
+for unit in udivsi3 divsi3 dvmd_lnx; do
+    "${cross}gcc" -c -g -O2 -fPIC "-DL_$unit" \
+        "$repo/vendor/runtime/gcc-7.2.0-arm/lib1funcs.S" -o "$runtime/_$unit.o"
+done
+"${cross}ar" rcsD "$runtime/libgcc-source.a" \
+    "$runtime/_udivsi3.o" "$runtime/_divsi3.o" "$runtime/_dvmd_lnx.o"
+GIT_CEILING_DIRECTORIES="$out" make -C "$src" p=sun8iw20p1 CROSS_COMPILE="$cross" CHIP_ID_CC="${oldcross}gcc" PLATFORM_LIBGCC="$runtime/libgcc-source.a" -j"${JOBS:-4}" V=1 mmc > "$out/build.log" 2>&1
 mkdir "$out/artifacts"
 cp "$src/nboot/boot0_sdcard.elf" "$src/nboot/boot0_sdcard.bin" "$src/nboot/boot0_sdcard.map" "$out/artifacts/"
 python3 "$repo/tools/build/pack-stock-boot0.py" "$out/artifacts/boot0_sdcard.bin" "$out/artifacts/boot0.bin"
@@ -152,6 +161,7 @@ checksums = [struct.unpack_from('<I', data, 12)[0] for data in (candidate, stock
 checksum_valid = [((word_sum(data) - checksum + 0x5f0a6c39) & 0xffffffff) == checksum
                   for data, checksum in zip((candidate, stock), checksums)]
 labels = [data[label_start:label_end] for data in (candidate, stock)]
+manifest['runtime_archive_sha256'] = hashlib.sha256((out / 'runtime/libgcc-source.a').read_bytes()).hexdigest()
 manifest['difference_ledger'] = runs
 manifest['all_bytes_outside_source_label_and_checksum_equal'] = outside_equal
 manifest['identical_byte_positions'] = min(len(candidate), len(stock)) - len(different)

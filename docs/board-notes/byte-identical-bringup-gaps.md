@@ -261,18 +261,25 @@ other components. See the detailed [kernel evidence record](stock-bringup-rebuil
 
 Historical Linaro compiler binaries are pinned external build tools; their own
 clean source bootstraps and cross-host repeatability have not been demonstrated.
-There is also a concrete target-runtime dependency in boot0: its link map uses
-`libgcc.a(_udivsi3.o)`, `libgcc.a(_divsi3.o)` and `libgcc.a(_dvmd_lnx.o)` from the
-pinned GCC 7.2.1 distribution. They contribute 1,332 text bytes. Those bytes match
-stock, but those three runtime objects were not rebuilt locally from source.
-The private opaque DRAM archive is not used.
 
-**To close strict target source closure:** build the exact GNU/Linaro runtime
-sources with the original flags, replace those compiler-provided objects and
-recheck all boot0 bytes. Audit the other historical-toolchain stages similarly.
-Rebuilding a compiler executable itself is a separate bootstrap/repeatability
-claim from compiling application source with a pinned compiler. The newer
-Klipper13 compiler/newlib source builds do not certify these historical tools.
+**Boot0's concrete target-runtime dependency was closed on 2026-10-28.** The
+three routines previously linked from distributed `libgcc.a` (`_udivsi3`,
+`_divsi3`, `_dvmd_lnx`) now compile from retained, unmodified GNU ARM source.
+All 1,332 text bytes match, and relinking preserves every byte of the previous
+34,592-byte raw / 49,152-byte packed source candidate. The recipe links only the
+new three-object archive, not compiler-provided target code. The private opaque
+DRAM archive also remains excluded.
+The comparison freshly rebuilt runtime source and relinked retained application
+objects from the earlier clean build; another completely clean recipe run awaits
+restoration of the pinned GCC 4.6.3 toolchain.
+See [source provenance](../../vendor/runtime/gcc-7.2.0-arm/README.md) and
+[comparison evidence](stock-boot0-runtime-proof.json).
+
+**Remaining audit:** inspect the other historical-toolchain stages for target
+runtime inputs and rebuild any such dependencies from source. A compiler
+executable bootstrap is a separate claim from application/runtime source closure;
+neither the boot0 result nor the newer Klipper13 compiler/newlib source builds
+certifies all historical tools. G01's source-label/checksum mismatch is unchanged.
 
 ## G10 — factory MCU applications and retained IAP
 

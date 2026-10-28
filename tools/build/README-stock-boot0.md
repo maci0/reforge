@@ -13,7 +13,7 @@ Additional source inputs retained in the patch:
 - The held SDK's `nboot/main/boot0_main.c`, with the observed original UART/control-flow changes. The SDK archive SHA-256 is `6ed0f793436067c694bcec3538b24861b48f8d914c603f48aa5939c26f158197`.
 - Recovered DRAM algorithms written as readable Thumb assembly with named registers, labels, configuration tables and real relocations. These reconstruct the verified program; they do not claim to recover every original C spelling. One retained C routine uses an explicit register preference. Source-owned plaintext diagnostic strings preserve the original messages and order.
 
-Supply local Linaro GCC **7.2.1 2017.11** and **4.6.3 2012.02** cross prefixes. The 92-byte legacy chip-identification C unit matches with GCC 4.6.3; other C and assembly use GCC 7.2.1. The recipe pins the compiler components, their `libgcc` input and the original reference SHA-256. Compiler binaries are external build tools; this recipe does not bootstrap them from source.
+Supply local Linaro GCC **7.2.1 2017.11** and **4.6.3 2012.02** cross prefixes. The 92-byte legacy chip-identification C unit matches with GCC 4.6.3; other C and assembly use GCC 7.2.1. The recipe pins the compiler components and the original reference SHA-256. The three required runtime objects are now compiled from retained GNU ARM source; the compiler-distributed `libgcc.a` is not linked. Compiler binaries are external build tools; this recipe does not bootstrap them from source.
 
 ```sh
 tools/build/build-stock-boot0.sh \
@@ -30,3 +30,30 @@ Recovered MMC message arguments retain original runtime diagnostic IDs as explic
 ```sh
 python3 -m unittest discover -s tests/release -p test_stock_boot0_packer.py
 ```
+
+## Runtime source closure (2026-10-28)
+
+The only compiler-runtime target routines, `_udivsi3`, `_divsi3` and `_dvmd_lnx`,
+are compiled from the unmodified [GNU sources](../../vendor/runtime/gcc-7.2.0-arm/README.md)
+with the pinned Linaro 7.2.1 toolchain, then archived deterministically. Their
+632 + 688 + 12 target text bytes match the original toolchain objects. Relinking
+boot0 with this source-built archive reproduces the complete previous 34,592-byte
+raw image and 49,152-byte packed source candidate, including genuine relocations.
+[Proof](../../docs/board-notes/stock-boot0-runtime-proof.json) records the comparison.
+The main manifest records runtime source hashes and the generated archive hash.
+This closes boot0's prebuilt target-runtime dependency, not the historical compiler
+bootstrap or the remaining seven-character original source label.
+
+The 2026-10-28 verification freshly compiles runtime source and relinks retained
+application objects from the earlier clean build. A complete clean recipe rerun
+is still pending restoration of the pinned GCC 4.6.3 toolchain after temporary
+files were removed. This boundary is recorded in the proof rather than claimed
+as another fresh full build. Runtime semantics are also executed under QEMU ARM:
+
+```sh
+BOOT0_RUNTIME_CROSS=/path/to/linaro72/bin/arm-linux-gnueabi- \
+  python3 tests/release/test_stock_boot0_runtime.py
+```
+
+This checks six unsigned divisions, six signed divisions and the SIGFPE dispatch
+of the Linux divide-by-zero helper, using a freestanding executable without libc.
