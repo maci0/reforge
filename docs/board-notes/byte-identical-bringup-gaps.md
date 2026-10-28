@@ -88,10 +88,13 @@ Remaining work:
   no excluded fields. Four delay routines add 116 recovered bytes, matching
   outside twelve genuine branch-relocation bytes; each original branch targets
   the verified countdown helper. Total source-reconstructed function extents
-  are 652 bytes, with those twelve bytes still requiring the complete SRAM link.
+  are 740 bytes after the additional complete 88-byte descriptor selector,
+  with those twelve bytes still requiring the complete SRAM link.
   The loops and adjacent division runtime also match as one contiguous 472-byte
   source-linked block with no excluded fields (588 completely matching bytes
-  including the C helpers).
+  including the C helpers). The selector raises full byte coverage to 676 bytes;
+  its [proof](stock-optee-standby-descriptor-proof.json) includes copied-source
+  repeatability and ARM selection-boundary tests.
   Independent copied-source builds reproduce objects and runtime bytes, and
   ARM QEMU verifies memory and arithmetic edge behavior. This is partial
   recovery, separate from the current carrier.

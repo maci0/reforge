@@ -1,10 +1,10 @@
 # Standalone SRAM standby reconstruction
 
-Coverage at 2026-10-28: **652 bytes of recovered function extents** from the
-original 8,400-byte SRAM image: C memory helpers (116), ARM runtime (420), and
-counted-delay routines (116). The C helpers and linked spin/runtime total
-588 completely matching bytes; the delay comparison excludes only twelve actual branch-relocation bytes pending the
-full link. [Runtime source and recipe](runtime/README.md) document its public
+Coverage at 2026-10-28: **740 bytes of recovered function extents** from the
+original 8,400-byte SRAM image: C memory helpers (116), ARM runtime (420),
+counted-delay routines (116), and descriptor selection (88). Complete comparisons
+cover 676 bytes; the delay comparison excludes only twelve actual branch-relocation
+bytes pending the full link. [Runtime source and recipe](runtime/README.md) document its public
 source origin and explicit standalone ABI adaptation. This is separate recovery work; the main OP-TEE recipe
 still has no reconstructed complete standby payload or service integration.
 
@@ -104,3 +104,28 @@ the runtime regression test verifies its full SHA-256 as well as the original
 420-byte division-only profile. Complete byte comparisons now cover 588 of the
 652 recovered function bytes; the remaining wrappers contain twelve genuine
 branch-relocation bytes pending the complete SRAM link.
+
+## Descriptor selection recovery (2026-10-28)
+
+`descriptor.S` reconstructs the complete 88-byte selector at SRAM `0x21260`
+(carrier `0x5260`). All instruction bytes match, with no relocations or excluded
+fields. Its descriptor argument contains an inclusive bound at byte offset 8
+and an entry-array pointer at offset 12. Bit zero selects entry zero immediately;
+otherwise the lowest selected index within the bound chooses an entry at
+`base + index * 48`. No match returns null. The table contents and surrounding
+callers remain unresolved; no table or target address is hardcoded in the source.
+
+Two copied-source builds reproduce identical objects and bodies. The ARM test
+checks every single-bit mask for bounds 0 through 33, bit-zero priority, multiple
+selected bits, and empty masks through bound 256. ARM register-shift semantics
+are retained rather than replaced with undefined C shifts.
+
+```sh
+python3 tests/release/test_stock_optee_standby_descriptor.py
+```
+
+[Descriptor proof](../../../docs/board-notes/stock-optee-standby-descriptor-proof.json)
+records source/reference hashes. Combined recovered function extents now total
+740 bytes, of which 676 compare completely and twelve actual branch-relocation
+bytes in the remaining 64-byte delay wrappers await the full SRAM link.
+The main carrier remains unchanged; this is not a complete standby image.

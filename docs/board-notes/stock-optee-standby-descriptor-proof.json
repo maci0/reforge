@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-28",
+  "scope": "Standalone descriptor selector; main OP-TEE carrier unchanged",
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "original_carrier_offset": "0x5260",
+  "original_sram_address": "0x21260",
+  "length": 88,
+  "sha256": "c2ccd9a776d6e8f8c467636e496ff1fd918cf46bcf6df6b78421151779e444ac",
+  "whole_body_byte_equal": true,
+  "excluded_bytes": 0,
+  "relocations": [],
+  "undefined_symbols": [],
+  "source_sha256": "b13e8a2ce0f502feafb9e28d425289bb63f5b24a1de53ea3b08ce1b4bdc9b2ba",
+  "copied_source_directories": [
+    "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-standby-descriptor/copy-a",
+    "/tmp/reforge-standby-descriptor-copy-b-20261028"
+  ],
+  "copied_source_objects_equal": true,
+  "qemu_validation": "Passed: all single-bit flags for bounds 0..33, bit-zero priority, lowest-set-bit selection, empty masks through bound 256",
+  "limitations": [
+    "Descriptor table contents and surrounding callers remain unrecovered",
+    "Returns computed pointers; test never accesses physical hardware",
+    "Full SRAM layout and integration remain incomplete"
+  ],
+  "full_unit_suite": {
+    "result": "passed, no skips",
+    "log": "build/unit-optee-standby-descriptor.log"
+  }
+}
