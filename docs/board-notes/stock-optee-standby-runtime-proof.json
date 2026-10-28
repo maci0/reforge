@@ -1,0 +1,80 @@
+{
+  "date": "2026-10-28",
+  "scope": "Partial standalone SRAM runtime recovery, not a complete standby image or main OP-TEE integration",
+  "original_sram_range": [
+    "0x21b44",
+    "0x21ce8"
+  ],
+  "original_carrier_range": [
+    "0x5b44",
+    "0x5ce8"
+  ],
+  "linked_block_bytes": 420,
+  "byte_exclusions": 0,
+  "sha256": "cc0b4d9fa3eae69b01e64d454781d3e3f13de1dc691cfa919b4615d0cbea31b4",
+  "source_provenance": {
+    "url": "https://github.com/u-boot/u-boot/blob/v2018.05/arch/arm/lib/lib1funcs.S",
+    "upstream_file_sha256": "f7a729a1f16ce16de2e2a55781be5c8609fb71556eb96e0b1545af3842649097",
+    "held_sdk_file_equal": true
+  },
+  "source_adaptations": [
+    "Small standalone linkage/ARM-return headers; ARM state and CLZ-capable profile",
+    "Source patch removes the __div0 call, preserving the observed zero-result handler",
+    "Linker selects the observed four helper bodies and handler in order; no fixed function addresses or size padding"
+  ],
+  "included_code": {
+    "division_zero_handler": 12,
+    "unsigned_division": 156,
+    "signed_division": 204,
+    "unsigned_quotient_remainder": 24,
+    "signed_quotient_remainder": 24
+  },
+  "repeat_builds": [
+    {
+      "directory": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-standby-recovery/runtime-final-a",
+      "length": 420,
+      "sha256": "cc0b4d9fa3eae69b01e64d454781d3e3f13de1dc691cfa919b4615d0cbea31b4",
+      "whole_block_equal": true
+    },
+    {
+      "directory": "/tmp/reforge-standby-runtime-final-copy-20261028",
+      "length": 420,
+      "sha256": "cc0b4d9fa3eae69b01e64d454781d3e3f13de1dc691cfa919b4615d0cbea31b4",
+      "whole_block_equal": true
+    }
+  ],
+  "complete_objects_equal": true,
+  "undefined_linked_symbols": [],
+  "runtime_validation": {
+    "unsigned_cases": 8,
+    "signed_cases": 8,
+    "coverage": [
+      "zero and smaller numerators",
+      "equal operands",
+      "power-of-two and general divisors",
+      "maximum unsigned and signed inputs",
+      "negative quotient/remainder signs",
+      "signed minimum / minus one",
+      "original zero-divisor quotient and remainder behavior"
+    ],
+    "abi": "ARM register pairs captured by ordinary assembly adapters in the test only"
+  },
+  "source_files": {
+    "vendor/optee/standby-src/runtime/COPYING": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+    "vendor/optee/standby-src/runtime/abi/asm/assembler.h": "0260bf3006b139f1e31ff4576e0915220a46fbe458e4b134f3f13505fbaa4446",
+    "vendor/optee/standby-src/runtime/abi/linux/linkage.h": "e5ef1404ea1e69857b044f2b00c2d5f30faa95bff2f3867bfcab675cc9ba1dcc",
+    "vendor/optee/standby-src/runtime/lib1funcs.S": "f7a729a1f16ce16de2e2a55781be5c8609fb71556eb96e0b1545af3842649097",
+    "vendor/optee/standby-src/runtime/runtime.lds": "869a9f0f94bba2f4aa214333663bca7ab9c87530464e42c61ffe7ca61ea56e07",
+    "vendor/optee/standby-src/runtime/standby-div0.patch": "5dd5ef26a98bc85ebb8185879de72b9fc1922087438197333f7d87abf2e7921e"
+  },
+  "limitations": [
+    "Byte-equivalent source adaptation does not recover original source package/header identity",
+    "Unused upstream modulo-only sections are omitted by this partial block profile",
+    "No standby header, entry, other DRAM/clock/PMIC/TWI code or full SRAM link is claimed",
+    "No hardware execution"
+  ],
+  "validation": {
+    "make_unit": "passed with explicit pinned BOOT0_RUNTIME_CROSS, no skips reported",
+    "log": "build/unit-optee-standby-runtime.log"
+  }
+}

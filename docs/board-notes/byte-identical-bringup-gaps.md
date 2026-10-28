@@ -82,11 +82,16 @@ Remaining work:
   optional memory checks, PMIC/TWI operations, WFI and restore. Matching complete
   source and integration are not yet reconstructed. Three memory helpers
   (master-access enable/disable and checksum) now compile from C to all 116
-  original bytes, with no relocation exclusions. Two helper-object builds
-  reproduce exactly, and ARM QEMU verifies masks, neighboring words and checksum
-  edge behavior. This is partial recovery, separate from the current carrier.
+  original bytes, with no relocation exclusions. A published-source ARM runtime
+  adaptation reproduces another complete 420-byte linked block (division-zero
+  handler, signed/unsigned division and quotient/remainder wrappers), also with
+  no excluded fields. Total retained source coverage is 536 initialized bytes.
+  Independent copied-source builds reproduce objects and runtime bytes, and
+  ARM QEMU verifies memory and arithmetic edge behavior. This is partial
+  recovery, separate from the current carrier.
   [Source/recipe](../../vendor/optee/standby-src/README.md) and
-  [proof](stock-optee-standby-memory-proof.json) record those limits.
+  [memory proof](stock-optee-standby-memory-proof.json) and
+  [runtime proof](stock-optee-standby-runtime-proof.json) record those limits.
   The following 12 ARM NOPs
   through carrier offset `0x60ff` are consistent with 256-byte wrapper alignment;
   zeroes then extend to `0x8000`. The exact wrapper/linker recipe still needs

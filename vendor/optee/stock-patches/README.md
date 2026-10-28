@@ -180,7 +180,8 @@ also pass. No hardware was used.
 ## Standalone SRAM helper source (2026-10-28)
 
 Separate [standby source](../standby-src/README.md) now recovers three C memory
-helpers, totaling 116 bytes, with complete byte equality and no relocation masks.
+helpers (116 bytes) plus a 420-byte source-built ARM runtime block, totaling
+536 initialized bytes with complete equality and no relocation masks.
 Their QEMU tests exercise original master-access masks and checksum edge cases.
 This partial module is not yet integrated into the carrier; the current carrier
 hash/size above remain unchanged. The rest of the 8,400-byte image and main

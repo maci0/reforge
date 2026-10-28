@@ -1,8 +1,10 @@
 # Standalone SRAM standby reconstruction
 
-Coverage at 2026-10-28: **three C helpers / 116 initialized-code bytes** of the
-original 8,400-byte SRAM image. Their entire function bodies match, with no
-relocation exclusions. This is separate recovery work; the main OP-TEE recipe
+Coverage at 2026-10-28: **536 initialized-code bytes** of the original 8,400-byte
+SRAM image: three C memory helpers (116 bytes) and five ARM runtime routines
+(420 bytes). Entire bodies/the linked runtime block match, with no relocation
+exclusions. [Runtime source and recipe](runtime/README.md) document its public
+source origin and explicit standalone ABI adaptation. This is separate recovery work; the main OP-TEE recipe
 still has no reconstructed complete standby payload or service integration.
 
 | C helper | Original SRAM address | Carrier offset | Bytes |
