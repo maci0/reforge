@@ -30,6 +30,9 @@
 #                           FX_SET="display='FEATHER' use_swap='OFF'". The probe
 #                           launches klippy itself only when display is STOCK;
 #                           other modes start it from forge-x's boot.sh.
+#   FX_MOONRAKER_PROFILE=trim|lean  remove optional mod config sections
+#   FX_MOONRAKER_MALLOC=1  test glibc trimming + disabled tcache (Moonraker only)
+#   FX_MOONRAKER_JEMALLOC=PATH  preload source-built ARM library (Moonraker only)
 #   KLIPPY_ARENA=N          export MALLOC_ARENA_MAX=N in /opt/klipper/start.sh
 #                           (every klippy launch path runs it). The snapshot
 #                           prints klippy's MALLOC_* environment as proof.
@@ -49,8 +52,8 @@ ROOTFS_SRC="${BUILD_DIR}/forgex-rootfs.ext4"
 DATA_SRC="${BUILD_DIR}/forgex-data.ext4"
 
 LABEL="${1:-forgex}"
-ROOTFS="${BUILD_DIR}/mem-probe-forgex-rootfs.ext4"
-DATA="${BUILD_DIR}/mem-probe-forgex-data.ext4"
+ROOTFS="${BUILD_DIR}/mem-probe-forgex-${LABEL}-rootfs.ext4"
+DATA="${BUILD_DIR}/mem-probe-forgex-${LABEL}-data.ext4"
 SERIAL="${BUILD_DIR}/mem-probe-forgex-${LABEL}.log"
 SETTLE="${SETTLE:-60}"
 KLIPPY_LEAD="${KLIPPY_LEAD:-15}"   # seconds to wait before launching klippy (let S00init settle)
@@ -81,21 +84,21 @@ TMP=$(mktemp -d); trap 'rm -rf "${TMP}"' EXIT
 # Note: `debugfs stat` prints TWO lines starting with 'Size:' — the file size
 # (`Size: <n>`) and a `Fragment:  Address: 0  Number: 0  Size: 0` line.
 # We want the FIRST one only; the regex anchors on `^Size: <digits>$`.
-debugfs_inject() {  # <src-file-on-host> <dst-path-in-image> <mode-octal>
-    local src="$1" dst="$2" mode="$3"
+debugfs_inject() {  # <src-file-on-host> <dst-path-in-image> <mode-octal> [image]
+    local src="$1" dst="$2" mode="$3" image="${4:-$ROOTFS}"
     local want; want=$(wc -c < "${src}")
     local got
     for _ in 1 2 3 4 5; do
-        debugfs -w -R "rm ${dst}" "${ROOTFS}" >/dev/null 2>&1 || true
-        debugfs -w -R "write ${src} ${dst}" "${ROOTFS}" >/dev/null 2>&1
+        debugfs -w -R "rm ${dst}" "${image}" >/dev/null 2>&1 || true
+        debugfs -w -R "write ${src} ${dst}" "${image}" >/dev/null 2>&1
         # The inode's file size sits on `... Project: N   Size: N`. Capture the
         # FIRST `Size: <digits>` in the stat output (Fragment's Size: 0 follows).
-        got=$(debugfs -R "stat ${dst}" "${ROOTFS}" 2>/dev/null \
+        got=$(debugfs -R "stat ${dst}" "${image}" 2>/dev/null \
             | grep -oE 'Size: [0-9]+' | head -n1 | awk '{print $2}')
         [ "${got}" = "${want}" ] && break
     done
     [ "${got}" = "${want}" ] || die "debugfs_inject ${dst}: size ${got} != ${want} after 5 retries"
-    debugfs -w -R "sif ${dst} mode 0${mode}" "${ROOTFS}" >/dev/null 2>&1 || true
+    debugfs -w -R "sif ${dst} mode 0${mode}" "${image}" >/dev/null 2>&1 || true
 }
 
 # --- 1. neuter the firmwareExe UI line in /opt/auto_run.sh -------------------
@@ -124,6 +127,51 @@ if [ -n "${KLIPPY_ARENA:-}" ]; then
     sed -i "1a export MALLOC_ARENA_MAX=${KLIPPY_ARENA}" "${TMP}/klipper-start.sh"
     debugfs_inject "${TMP}/klipper-start.sh" "/opt/klipper/start.sh" 100755
     log "klippy: MALLOC_ARENA_MAX=${KLIPPY_ARENA}"
+fi
+# Test only the mod environment: no stock Python/Klippy changes.
+# FX_MOONRAKER_PROFILE: default, trim (OctoPrint/example webcam), lean
+# (also history config + all update services; history still loads as a core component).
+PROFILE=${FX_MOONRAKER_PROFILE:-default}
+case "$PROFILE" in default|trim|lean) ;; *) die "unknown Moonraker profile: $PROFILE" ;; esac
+if [ "$PROFILE" != default ]; then
+    debugfs -R "dump /opt/config/mod/moonraker.conf ${TMP}/moonraker.conf" "$ROOTFS" 2>/dev/null
+    python3 - "$TMP/moonraker.conf" "$PROFILE" <<'PYCONF'
+import re
+import sys
+path, profile = sys.argv[1:]
+text = open(path).read()
+blocks = re.split(r'(?=^\[)', text, flags=re.M)
+removed = []
+kept = []
+for block in blocks:
+    section = block.split(']', 1)[0].lstrip('[').strip()
+    drop = section == 'octoprint_compat' or section.startswith('webcam ')
+    if profile == 'lean':
+        drop |= section in ('history', 'feather_updates', 'update_manager') or section.startswith('update_manager ')
+    if drop:
+        removed.append(section)
+    else:
+        kept.append(block)
+assert 'octoprint_compat' in removed, removed
+assert any(b.startswith('[server]') for b in kept)
+open(path, 'w').write(''.join(kept))
+print('Moonraker removed sections:', removed)
+PYCONF
+    debugfs_inject "$TMP/moonraker.conf" /opt/config/mod/moonraker.conf 100644
+fi
+# FX_MOONRAKER_MALLOC=1: glibc trimming experiment, scoped to Moonraker.
+if [ "${FX_MOONRAKER_MALLOC:-0}" = 1 ]; then
+    debugfs -R "dump /opt/config/mod/.root/S65moonraker ${TMP}/S65moonraker" "$ROOTFS" 2>/dev/null
+    sed -i '/export MALLOC_ARENA_MAX=2/a\    export MALLOC_TRIM_THRESHOLD_=0 MALLOC_MMAP_THRESHOLD_=131072 GLIBC_TUNABLES=glibc.malloc.tcache_count=0' "$TMP/S65moonraker"
+    debugfs_inject "$TMP/S65moonraker" /opt/config/mod/.root/S65moonraker 100755
+fi
+# Optional source-built ARM jemalloc; preload only Moonraker in the mod chroot.
+if [ -n "${FX_MOONRAKER_JEMALLOC:-}" ]; then
+    [ -f "$FX_MOONRAKER_JEMALLOC" ] || die "jemalloc library missing"
+    debugfs_inject "$FX_MOONRAKER_JEMALLOC" /.mod/.forge-x/usr/lib/libjemalloc-probe.so 100755 "$DATA"
+    debugfs -R "dump /opt/config/mod/.root/S65moonraker ${TMP}/S65moonraker" "$ROOTFS" 2>/dev/null
+    sed -i '/export MALLOC_ARENA_MAX=2/a\    export LD_PRELOAD=/usr/lib/libjemalloc-probe.so MALLOC_CONF=narenas:1,tcache:false,dirty_decay_ms:0,muzzy_decay_ms:0' "$TMP/S65moonraker"
+    debugfs_inject "$TMP/S65moonraker" /opt/config/mod/.root/S65moonraker 100755
 fi
 # Only the stock UI (skipped above) launches klippy in STOCK mode.
 LAUNCH_KLIPPY=0
@@ -173,6 +221,9 @@ cat > "${TMP}/S99forgex-probe" <<PROBE
   echo "PROBE=forgex SETTLE=${SETTLE} KLIPPY_LEAD=${KLIPPY_LEAD}" > /dev/console
   echo "--- meminfo (kB) ---" > /dev/console
   grep -E '^(MemTotal|MemFree|MemAvailable|Cached|Buffers|SwapTotal|SwapFree)' /proc/meminfo > /dev/console
+  echo "--- Moonraker API ---" > /dev/console
+  wget -qO- http://127.0.0.1:7125/server/info > /dev/console
+  echo "" > /dev/console
   echo "--- zram ---" > /dev/console
   if [ -f /sys/block/zram0/mm_stat ]; then
     echo "zram0 disksize: \$(cat /sys/block/zram0/disksize)" > /dev/console
@@ -190,6 +241,10 @@ cat > "${TMP}/S99forgex-probe" <<PROBE
     cmd=\$(tr '\0' ' ' < "\$p/cmdline" 2>/dev/null | head -c 200)
     [ -z "\$cmd" ] && cmd="(kthread \$(cat \$p/comm 2>/dev/null))"
     echo "PID \${p#/proc/} Pss=\${pss:-0} Rss=\${rss:-0} CMD=\${cmd}" > /dev/console
+    case "\$cmd" in *moonraker.py*)
+      echo "MOONRAKER-ENV \$(tr '\0' '\n' < "\$p/environ" | grep -E '^(MALLOC|GLIBC_TUNABLES|LD_PRELOAD)' | tr '\n' ' ')" > /dev/console
+      grep jemalloc "\$p/maps" > /dev/console
+    ;; esac
     case "\$cmd" in *klippy.py*)
       echo "KLIPPY-ENV PID \${p#/proc/} \$(tr '\0' '\n' < "\$p/environ" | grep '^MALLOC_' | tr '\n' ' ')" > /dev/console
       echo "KLIPPY-THREADS PID \${p#/proc/} \$(ls "\$p/task" | wc -l)" > /dev/console

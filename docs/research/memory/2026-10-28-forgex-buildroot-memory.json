@@ -1,0 +1,491 @@
+{
+  "scope": "Forge-X Buildroot/mod environment only; no production changes",
+  "fixture_tag": "1.4.2-beta-4",
+  "python": "3.11.10",
+  "glibc": "2.38",
+  "guest": {
+    "ram_mib": 128,
+    "cpus": 2,
+    "cpu": "cortex-a7",
+    "display": "FEATHER",
+    "swap": "OFF",
+    "mcu": "absent"
+  },
+  "inputs": {
+    "tests/qemu-harness/build/forgex-rootfs.ext4": "f5376f6918c7e540ea2c0cb359db901a3d28f75171b3a50d88265b9673141341",
+    "tests/qemu-harness/build/forgex-data.ext4": "62d8c5a4b9c83cb282e3e94f21e01062ab90ed921a4b2455f9819e756e190f44",
+    "build/output/target/usr/lib/libjemalloc.so.2": "f0bfa9ef088c4bbe83223ace476ee797bb37d1e4ba57672ead2d07f663c530c3"
+  },
+  "runs": [
+    {
+      "cohort": "levers",
+      "variant": "default",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-levers-default-1.log",
+      "log_sha256": "e5c6c30389d1cde511ef498054ec5f5a4e34677349763b798f24bc870b109e55",
+      "pss_kib": {
+        "moonraker": 33997,
+        "klippy": 22824,
+        "httpd": 758
+      },
+      "all_process_pss_kib": 65821,
+      "mem_available_kib": 32088,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "levers",
+      "variant": "default",
+      "run": 2,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-levers-default-2.log",
+      "log_sha256": "c9094603621d60059626e66003e851ecdab87cb23fbceab7dabbc82f095d5e76",
+      "pss_kib": {
+        "moonraker": 31989,
+        "klippy": 22852,
+        "httpd": 714
+      },
+      "all_process_pss_kib": 63492,
+      "mem_available_kib": 32120,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "levers",
+      "variant": "default",
+      "run": 3,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-levers-default-3.log",
+      "log_sha256": "0c773049801342fa8cf816c65f233d21d67937b2cf054b2a73e7ba9ccf98a2ce",
+      "pss_kib": {
+        "moonraker": 32018,
+        "klippy": 22858,
+        "httpd": 734
+      },
+      "all_process_pss_kib": 63648,
+      "mem_available_kib": 32264,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "levers",
+      "variant": "trim",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-levers-trim-1.log",
+      "log_sha256": "b4eef9f2f85e792a106f921a27699d7545878bf89a750df1739af481cae5bd46",
+      "pss_kib": {
+        "moonraker": 31295,
+        "klippy": 22952,
+        "httpd": 664
+      },
+      "all_process_pss_kib": 63026,
+      "mem_available_kib": 32200,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "levers",
+      "variant": "trim",
+      "run": 2,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-levers-trim-2.log",
+      "log_sha256": "8044e375a4a904a3f98091befd947246a3176d430b34bd647605ed9f1bb45edc",
+      "pss_kib": {
+        "moonraker": 31898,
+        "klippy": 22898,
+        "httpd": 736
+      },
+      "all_process_pss_kib": 63707,
+      "mem_available_kib": 31932,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "levers",
+      "variant": "trim",
+      "run": 3,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-levers-trim-3.log",
+      "log_sha256": "10c8fcc0253cf300345cd94f9b484a80956c89450e5a723d1a1e5f9c1f9a7ce2",
+      "pss_kib": {
+        "moonraker": 31951,
+        "klippy": 22925,
+        "httpd": 768
+      },
+      "all_process_pss_kib": 63789,
+      "mem_available_kib": 32184,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "levers",
+      "variant": "malloc",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-levers-malloc-1.log",
+      "log_sha256": "b3c943d98b92a10cba71c23cedc6b4d5ec3d266b6c119a62893af624e1ac5b8e",
+      "pss_kib": {
+        "moonraker": 34561,
+        "klippy": 22839,
+        "httpd": 736
+      },
+      "all_process_pss_kib": 66405,
+      "mem_available_kib": 32384,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "levers",
+      "variant": "malloc",
+      "run": 2,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-levers-malloc-2.log",
+      "log_sha256": "f5116299c04c91b3a34bd55b6c5d71fd7b6eb2af3cf29b7818d0b45476460919",
+      "pss_kib": {
+        "moonraker": 31754,
+        "klippy": 22909,
+        "httpd": 764
+      },
+      "all_process_pss_kib": 63825,
+      "mem_available_kib": 32288,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "levers",
+      "variant": "malloc",
+      "run": 3,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-levers-malloc-3.log",
+      "log_sha256": "491350fc09fdfd4ec7032156ba097b585cec32f0cfb06a1de42d293b7ab9aadd",
+      "pss_kib": {
+        "moonraker": 31068,
+        "klippy": 22852,
+        "httpd": 764
+      },
+      "all_process_pss_kib": 62916,
+      "mem_available_kib": 32328,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "levers",
+      "variant": "jemalloc",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-levers-jemalloc-1.log",
+      "log_sha256": "16b59f7f462754ae1c8b67cab878a66fcf67908a6bcc9ff4753dc2193503ae9e",
+      "pss_kib": {
+        "moonraker": 32790,
+        "klippy": 22830,
+        "httpd": 767
+      },
+      "all_process_pss_kib": 64643,
+      "mem_available_kib": 33288,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "levers",
+      "variant": "jemalloc",
+      "run": 2,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-levers-jemalloc-2.log",
+      "log_sha256": "da5a2be9c8a7cee09ed309ebe3fbd296c3c026d21840438b0b79d73cb7fcef72",
+      "pss_kib": {
+        "moonraker": 30022,
+        "klippy": 22717,
+        "httpd": 735
+      },
+      "all_process_pss_kib": 61786,
+      "mem_available_kib": 33052,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "levers",
+      "variant": "jemalloc",
+      "run": 3,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-levers-jemalloc-3.log",
+      "log_sha256": "72cf4f72881ab68366197a6d164f9473ecea8f4f4968593b3317842ed243ad96",
+      "pss_kib": {
+        "moonraker": 31220,
+        "klippy": 22752,
+        "httpd": 754
+      },
+      "all_process_pss_kib": 62796,
+      "mem_available_kib": 33392,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "levers",
+      "variant": "lean",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-levers-lean-1.log",
+      "log_sha256": "79ea92fbfc0fbba0be1e378d341667ffa7bc069489cfc874c47715b8f27f71c2",
+      "pss_kib": {
+        "moonraker": 31666,
+        "klippy": 22957,
+        "httpd": 763
+      },
+      "all_process_pss_kib": 63598,
+      "mem_available_kib": 32428,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "levers",
+      "variant": "lean",
+      "run": 2,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-levers-lean-2.log",
+      "log_sha256": "b8f6cbbbed4643fc16d3d018c7951442caa5cff165463a5c52bf871e4f5db3f6",
+      "pss_kib": {
+        "moonraker": 33101,
+        "klippy": 22886,
+        "httpd": 714
+      },
+      "all_process_pss_kib": 64766,
+      "mem_available_kib": 32752,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "levers",
+      "variant": "lean",
+      "run": 3,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-levers-lean-3.log",
+      "log_sha256": "87e0ab45afd91f960f1df178888ca92b72f1c1e4d0a64cecf3b03dd2594fe8be",
+      "pss_kib": {
+        "moonraker": 32332,
+        "klippy": 22894,
+        "httpd": 731
+      },
+      "all_process_pss_kib": 64219,
+      "mem_available_kib": 22952,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "long",
+      "variant": "default",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-long-default-1.log",
+      "log_sha256": "e680cceaa9d2095048e7001016ef4379fd425dd7218bba79b7a6d07dfdeff70f",
+      "pss_kib": {
+        "moonraker": 33584,
+        "klippy": 22928,
+        "httpd": 738
+      },
+      "all_process_pss_kib": 65509,
+      "mem_available_kib": 32128,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "long",
+      "variant": "default",
+      "run": 2,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-long-default-2.log",
+      "log_sha256": "c0e88ff8d6998e53aea1e8f03d13eabdbd56702f81031916c3b03cceda322fdf",
+      "pss_kib": {
+        "moonraker": 32524,
+        "klippy": 22749,
+        "httpd": 731
+      },
+      "all_process_pss_kib": 64193,
+      "mem_available_kib": 32156,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "long",
+      "variant": "default",
+      "run": 3,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-long-default-3.log",
+      "log_sha256": "f7ece87def73a030b59114b9bd1897543dbc67a721d47e10891a24c4034f584c",
+      "pss_kib": {
+        "moonraker": 35127,
+        "klippy": 22860,
+        "httpd": 758
+      },
+      "all_process_pss_kib": 67034,
+      "mem_available_kib": 32008,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "long",
+      "variant": "trim",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-long-trim-1.log",
+      "log_sha256": "087f87146becaad80203a38df0e28e8c97c75d2d6f6df39bbb92fa072a8c7159",
+      "pss_kib": {
+        "moonraker": 32195,
+        "klippy": 22916,
+        "httpd": 736
+      },
+      "all_process_pss_kib": 64205,
+      "mem_available_kib": 22748,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "long",
+      "variant": "trim",
+      "run": 2,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-long-trim-2.log",
+      "log_sha256": "ad8feb3b42e80d96b27d5faf37d8cb2ac6758b47e50fd43264e8c9116c6bf87b",
+      "pss_kib": {
+        "moonraker": 31478,
+        "klippy": 22939,
+        "httpd": 724
+      },
+      "all_process_pss_kib": 63333,
+      "mem_available_kib": 31980,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "long",
+      "variant": "trim",
+      "run": 3,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-long-trim-3.log",
+      "log_sha256": "bb08644eb19d65d46d33a84f2d8bd8290549ab525fda6ba3630f06e5bb0c670b",
+      "pss_kib": {
+        "moonraker": 31791,
+        "klippy": 22953,
+        "httpd": 582
+      },
+      "all_process_pss_kib": 63544,
+      "mem_available_kib": 32072,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "long",
+      "variant": "jemalloc",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-long-jemalloc-1.log",
+      "log_sha256": "42a15777f930e67f66dd9c5f5c9b68b9fa888580c6637fe1eb8725a8ffff126f",
+      "pss_kib": {
+        "moonraker": 31560,
+        "klippy": 22837,
+        "httpd": 731
+      },
+      "all_process_pss_kib": 63442,
+      "mem_available_kib": 33356,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "long",
+      "variant": "jemalloc",
+      "run": 2,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-long-jemalloc-2.log",
+      "log_sha256": "35b362e9d8144b412c21d66bc6fdc204eb740a97284b51b65d0d60a8bc590d80",
+      "pss_kib": {
+        "moonraker": 33759,
+        "klippy": 22937,
+        "httpd": 732
+      },
+      "all_process_pss_kib": 65778,
+      "mem_available_kib": 33436,
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "long",
+      "variant": "jemalloc",
+      "run": 3,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-long-jemalloc-3.log",
+      "log_sha256": "cd22bcd125ab2f79b07b5d723a144b14329b02ba53ad5f32ad1a12947044cdd0",
+      "pss_kib": {
+        "moonraker": 30880,
+        "klippy": 22698,
+        "httpd": 731
+      },
+      "all_process_pss_kib": 62612,
+      "mem_available_kib": 33344,
+      "failed_components": [],
+      "warnings": []
+    }
+  ],
+  "summary": {
+    "levers": {
+      "default": {
+        "moonraker_pss_kib": [
+          33997,
+          31989,
+          32018
+        ],
+        "mean_kib": 32668,
+        "sample_sd_kib": 1151.04,
+        "delta_vs_default_kib": 0
+      },
+      "trim": {
+        "moonraker_pss_kib": [
+          31295,
+          31898,
+          31951
+        ],
+        "mean_kib": 31714.67,
+        "sample_sd_kib": 364.41,
+        "delta_vs_default_kib": -953.33
+      },
+      "malloc": {
+        "moonraker_pss_kib": [
+          34561,
+          31754,
+          31068
+        ],
+        "mean_kib": 32461,
+        "sample_sd_kib": 1850.72,
+        "delta_vs_default_kib": -207
+      },
+      "jemalloc": {
+        "moonraker_pss_kib": [
+          32790,
+          30022,
+          31220
+        ],
+        "mean_kib": 31344,
+        "sample_sd_kib": 1388.16,
+        "delta_vs_default_kib": -1324
+      },
+      "lean": {
+        "moonraker_pss_kib": [
+          31666,
+          33101,
+          32332
+        ],
+        "mean_kib": 32366.33,
+        "sample_sd_kib": 718.12,
+        "delta_vs_default_kib": -301.67
+      }
+    },
+    "long": {
+      "default": {
+        "moonraker_pss_kib": [
+          33584,
+          32524,
+          35127
+        ],
+        "mean_kib": 33745,
+        "sample_sd_kib": 1308.95,
+        "delta_vs_default_kib": 0
+      },
+      "trim": {
+        "moonraker_pss_kib": [
+          32195,
+          31478,
+          31791
+        ],
+        "mean_kib": 31821.33,
+        "sample_sd_kib": 359.46,
+        "delta_vs_default_kib": -1923.67
+      },
+      "jemalloc": {
+        "moonraker_pss_kib": [
+          31560,
+          33759,
+          30880
+        ],
+        "mean_kib": 32066.33,
+        "sample_sd_kib": 1504.81,
+        "delta_vs_default_kib": -1678.67
+      }
+    }
+  }
+}

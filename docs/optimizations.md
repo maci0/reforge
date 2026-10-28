@@ -30,7 +30,9 @@ glibc allocator). `S60klipper` ships without the preload by design.
 
 **Note on `MALLOC_ARENA_MAX=2`:** this was the prior allocator win (−2.7 MB/daemon vs glibc
 default) and is still what the **forge-x PRs** ship. ReForge has now **superseded it with jemalloc**
-(jemalloc ignores `MALLOC_ARENA_MAX`). A forge-x jemalloc change is under evaluation.
+(jemalloc ignores `MALLOC_ARENA_MAX`). [Buildroot-only Forge-X tests](research/memory/2026-10-28-forgex-buildroot-memory.md)
+measured trim/jemalloc candidates across 24 boots; allocator results overlap baseline, so no
+production change is adopted.
 
 **Note on the zram VM tuning:** the six knobs above are the "no fixed RAM cost" set from the
 runtime-tuning audit ([`docs/research/memory/2026-06-02-stock-kernel-runtime-tuning.md`](research/memory/2026-06-02-stock-kernel-runtime-tuning.md)).
