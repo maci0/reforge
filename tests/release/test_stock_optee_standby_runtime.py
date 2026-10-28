@@ -32,6 +32,17 @@ class StandbyRuntimeTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256(data).hexdigest(),
                              'cc0b4d9fa3eae69b01e64d454781d3e3f13de1dc691cfa919b4615d0cbea31b4')
             self.assertFalse(subprocess.check_output([CROSS + 'nm', '-u', out / 'runtime.elf'], text=True).strip())
+            subprocess.run([CROSS + 'gcc', '-c', '-marm', '-march=armv7-a',
+                            SOURCE.parent / 'spin.S', '-o', out / 'spin.o'], check=True)
+            subprocess.run([CROSS + 'ld', '-T', SOURCE / 'with-spin.lds', out / 'spin.o',
+                            out / 'runtime.o', '-o', out / 'with-spin.elf'], check=True)
+            subprocess.run([CROSS + 'objcopy', '-O', 'binary', '-j', '.text', out / 'with-spin.elf',
+                            out / 'with-spin.bin'], check=True)
+            combined = (out / 'with-spin.bin').read_bytes()
+            self.assertEqual(len(combined), 472)
+            self.assertEqual(hashlib.sha256(combined).hexdigest(),
+                             '6f729d0fb22652dff6ec5f42593c2fe9656d2910af8b46a63294ecd6d8726ac9')
+            self.assertFalse(subprocess.check_output([CROSS + 'nm', '-u', out / 'with-spin.elf'], text=True).strip())
             (out / 'test.c').write_text(r'''
 extern unsigned __aeabi_uidiv(unsigned, unsigned);
 extern int __aeabi_idiv(int, int);

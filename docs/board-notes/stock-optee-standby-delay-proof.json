@@ -1,0 +1,131 @@
+{
+  "date": "2026-10-28",
+  "scope": "Partial SRAM delay source recovery; main OP-TEE carrier unchanged",
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "function_extent_bytes": 116,
+  "whole_byte_equal_loop_bytes": 52,
+  "wrapper_bytes": 64,
+  "genuine_branch_relocation_bytes_excluded": 12,
+  "other_wrapper_bytes_equal": true,
+  "functions": [
+    {
+      "name": "standby_delay_repeat17",
+      "original_carrier_offset": "0x5b10",
+      "length": 40,
+      "relocation_offsets": [],
+      "other_bytes_equal": true,
+      "sha256_after_zeroing_relocations": "422f95b129ccbd8aa840559707c2f8aaf483c5d20bf56dab334feef15f62f58f"
+    },
+    {
+      "name": "standby_delay_cycles",
+      "original_carrier_offset": "0x5b38",
+      "length": 12,
+      "relocation_offsets": [],
+      "other_bytes_equal": true,
+      "sha256_after_zeroing_relocations": "0771f5a29eb0b0bc129b4080f19aa5e1c5e6084eb10951dca48e8b1d733669fa"
+    },
+    {
+      "name": "standby_delay_us",
+      "original_carrier_offset": "0x50a4",
+      "length": 8,
+      "relocation_offsets": [
+        4
+      ],
+      "other_bytes_equal": true,
+      "sha256_after_zeroing_relocations": "22f66107c44ea8d006bed2b9913a6478f47daed08d484580b8a578227a161866"
+    },
+    {
+      "name": "standby_delay_ms",
+      "original_carrier_offset": "0x50ac",
+      "length": 56,
+      "relocation_offsets": [
+        24,
+        52
+      ],
+      "other_bytes_equal": true,
+      "sha256_after_zeroing_relocations": "fb3c1ee7b84f8f2acb627dde35e1e4e58a5a0d5b4a406e491d4cac025e4ed342"
+    }
+  ],
+  "branch_constraints": [
+    {
+      "caller": "standby_delay_us",
+      "carrier_offset": "0x50a8",
+      "original_branch_target": "0x21b38",
+      "source_target": "standby_delay_cycles"
+    },
+    {
+      "caller": "standby_delay_ms",
+      "carrier_offset": "0x50c4",
+      "original_branch_target": "0x21b38",
+      "source_target": "standby_delay_cycles"
+    },
+    {
+      "caller": "standby_delay_ms",
+      "carrier_offset": "0x50e0",
+      "original_branch_target": "0x21b38",
+      "source_target": "standby_delay_cycles"
+    }
+  ],
+  "source_files": {
+    "vendor/optee/standby-src/spin.S": "4a3dbb4cc1a4e183321c5f35f225f95d1288cabbb796436ac00b1f59e08ddec5",
+    "vendor/optee/standby-src/delay.S": "8a1ff16c602de741ee19b9b49276605e6b291567e658eb9456a0d6c5583de362",
+    "vendor/optee/standby-src/delay.h": "f5db243eb1d835633b2995a1932141a4180673ab9a93cba1af8aa2996de7af81",
+    "vendor/optee/standby-src/runtime/with-spin.lds": "e08f6e445e0a975cd26fb671dd3a5f56f5c0550dfc393919ed5840a5c9711d76"
+  },
+  "compile_flags": [
+    "-c",
+    "-marm",
+    "-march=armv7-a"
+  ],
+  "copied_source_repeatability": {
+    "directories": [
+      "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-standby-delay/copy-a",
+      "/tmp/reforge-standby-delay-copy-b-20261028"
+    ],
+    "all_objects_equal": true,
+    "combined_object_sha256": "b91384aca836442e9b6b18380de3d2b7ff2cacb40ffc4819691d917af64c2b11",
+    "undefined_symbols": []
+  },
+  "qemu_validation": {
+    "real_loop_probes": "counts 0..17, checking r0-r3 and return/stack behavior",
+    "wrapper_count_cases": [
+      "us 0",
+      "us 5",
+      "us 0x40000000 wrap",
+      "us 0x80000001 wrap",
+      "ms 0",
+      "ms 1",
+      "ms 10",
+      "ms 11",
+      "ms 20",
+      "ms 21",
+      "ms 25"
+    ],
+    "method": "Real loop bodies executed; wrappers separately call a test-only count recorder"
+  },
+  "limitations": [
+    "Physical elapsed-time calibration and suspend/resume were not tested",
+    "Wrapper relocation values await the complete SRAM link; these are not accepted whole-image exceptions",
+    "No fixed original function addresses, target code arrays, post-link substitutions or partial executable gap fill",
+    "Full SRAM header/entry, other routines, data/link layout and secure-OS integration remain unfinished"
+  ],
+  "whole_linked_spin_runtime": {
+    "original_carrier_offset": "0x5b10",
+    "length": 472,
+    "sha256": "6f729d0fb22652dff6ec5f42593c2fe9656d2910af8b46a63294ecd6d8726ac9",
+    "excluded_bytes": 0,
+    "byte_equal": true,
+    "copied_source_directories": [
+      "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-standby-delay/linked-a",
+      "/tmp/reforge-standby-delay-linked-b-20261028"
+    ],
+    "repeat_equal": true,
+    "undefined_symbols": []
+  },
+  "validation": {
+    "targeted_runtime_and_delay_tests": "passed",
+    "full_unit_suite": "passed, no skips",
+    "log": "build/unit-optee-standby-delay.log",
+    "physical_hardware_test": false
+  }
+}

@@ -1,9 +1,10 @@
 # Standalone SRAM standby reconstruction
 
-Coverage at 2026-10-28: **536 initialized-code bytes** of the original 8,400-byte
-SRAM image: three C memory helpers (116 bytes) and five ARM runtime routines
-(420 bytes). Entire bodies/the linked runtime block match, with no relocation
-exclusions. [Runtime source and recipe](runtime/README.md) document its public
+Coverage at 2026-10-28: **652 bytes of recovered function extents** from the
+original 8,400-byte SRAM image: C memory helpers (116), ARM runtime (420), and
+counted-delay routines (116). The C helpers and linked spin/runtime total
+588 completely matching bytes; the delay comparison excludes only twelve actual branch-relocation bytes pending the
+full link. [Runtime source and recipe](runtime/README.md) document its public
 source origin and explicit standalone ABI adaptation. This is separate recovery work; the main OP-TEE recipe
 still has no reconstructed complete standby payload or service integration.
 
@@ -57,3 +58,49 @@ test. No printer hardware was used.
 
 The full `make unit` suite passes with the pinned boot0 compiler supplied;
 no tests were skipped in that run.
+
+## Counted-delay recovery (2026-10-28)
+
+`spin.S` recovers the 40-byte repeated loop at SRAM `0x21b10` and the 12-byte
+countdown loop at `0x21b38`. Both entire bodies match with no excluded bytes.
+`delay.S` recovers the 8-byte scaled wrapper at `0x210a4` and 56-byte chunked
+wrapper at `0x210ac`. Their only excluded bytes are three genuine four-byte
+branch relocations; all three original branches target `0x21b38`, corresponding
+to the source-defined `standby_delay_cycles`. Full relocation values await the
+complete SRAM link; these are not exceptions to the final whole-image gate.
+
+The short wrapper requests `(count << 2)` modulo 2^32. The chunked wrapper
+requests 40,000 iterations while subtracting chunks of ten, followed by
+`remaining * 1000 << 2`. The countdown loop runs one subtraction even for zero;
+the repeated loop executes the original 17-pass structure and restores r0-r3.
+Names retain the legacy scaling convention; physical microsecond/millisecond
+calibration remains unverified.
+
+ARM QEMU executes both real loop bodies for counts 0 through 17 and checks the
+observed register/return behavior. Separate wrapper tests use a count recorder
+to check zero, 32-bit scaling wrap and chunk boundaries at 10/11/20/21/25 without
+substituting anything in production source. Two copied-source builds reproduce
+identical individual and combined relocatable objects, with no undefined
+symbols after combining the two units.
+
+```sh
+python3 tests/release/test_stock_optee_standby_delay.py
+```
+
+[Delay proof](../../../docs/board-notes/stock-optee-standby-delay-proof.json)
+records exact body hashes, actual relocation fields and original branch targets.
+Source-reconstructed function extents now total **652 bytes**: the earlier
+536-byte complete comparisons plus these 116 delay bytes, of which twelve
+branch-relocation bytes require the full link. This is not a complete SRAM
+image. Header/entry, other DRAM/clock/PMIC/TWI code, data/link layout and main
+secure-OS integration remain open. No physical timing or suspend/resume test was
+performed.
+
+`runtime/with-spin.lds` also links the loops immediately before the division
+runtime in the observed source-section order. The entire contiguous 472-byte
+block matches the original at carrier `0x5b10`, without excluded bytes, fixed
+addresses or filler. Two separate copied-source builds reproduce the block;
+the runtime regression test verifies its full SHA-256 as well as the original
+420-byte division-only profile. Complete byte comparisons now cover 588 of the
+652 recovered function bytes; the remaining wrappers contain twelve genuine
+branch-relocation bytes pending the complete SRAM link.

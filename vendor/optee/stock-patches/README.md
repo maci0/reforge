@@ -187,3 +187,16 @@ This partial module is not yet integrated into the carrier; the current carrier
 hash/size above remain unchanged. The rest of the 8,400-byte image and main
 standby integration are still open. The source note also records the entry clear
 loop's inclusive `0x2229c` boundary, separate from unresolved allocation symbols.
+
+
+## Standalone counted delays (2026-10-28)
+
+Separate [SRAM delay source](../standby-src/README.md#counted-delay-recovery-2026-10-28)
+adds four routines spanning 116 bytes. The 52-byte loop bodies match completely;
+the 64-byte wrappers match outside twelve genuine branch-relocation bytes,
+whose original targets all identify the recovered countdown helper. QEMU checks
+real register behavior and requested scaled/chunked counts. The complete SRAM
+link and physical timing remain open; no partial payload is inserted into the
+current OP-TEE carrier. The full unit suite passes with the pinned boot0 compiler
+supplied. [Proof](../../../docs/board-notes/stock-optee-standby-delay-proof.json)
+records the comparison boundary.
