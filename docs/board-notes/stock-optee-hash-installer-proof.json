@@ -1,0 +1,83 @@
+{
+  "date": "2026-10-28",
+  "original_reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "original_function_address": "0x41b14f20",
+  "original_file_offset": "0x14f20",
+  "function_length": 172,
+  "source_function_address": "0x41b0ac9c",
+  "relocation_fields": [
+    "0x14",
+    "0x3a",
+    "0x5e",
+    "0x6c",
+    "0x7c",
+    "0x94",
+    "0x98",
+    "0x9c",
+    "0xa0",
+    "0xa4",
+    "0xa8"
+  ],
+  "relocation_bytes": 44,
+  "other_bytes_equal": true,
+  "normalized_function_sha256": "30ddf17742bfb7aa213eafcb5264e0f1d37dabcf40841b53aaaccf6878b1fdcb",
+  "unwind": {
+    "original_file_offset": "0x46c28",
+    "descriptor": "0x8004afb0",
+    "generated_descriptor_equal": true,
+    "semantics": "restore 20-byte local stack, pop r4-r11/lr, finish"
+  },
+  "runtime_validation": "ARM QEMU passed copied names/digests, cumulative count, logging, allocation failure and zero entries",
+  "other_platform_objects_unchanged_after_debug_removal": [
+    "console.o",
+    "gic.o",
+    "handlers.o",
+    "hardware_info.o",
+    "header.o",
+    "header_entry.o",
+    "main.o",
+    "reset.o",
+    "secure_bus.o",
+    "smc.o"
+  ],
+  "fresh_recipe_report": {
+    "artifact": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-vendor-recovery/source-build/artifacts/optee.bin",
+    "size": 258536,
+    "sha256": "ed608f12a28dcf68edf33f6901a40d1d7c609cb283e4fee5bf44ed406e760bd0",
+    "source_build_complete": true,
+    "stock_equivalence_established": false,
+    "status": "research-only; standby/vendor services and exact code shape remain incomplete",
+    "carrier": "raw source-linked Allwinner image; standard tee.bin retained separately",
+    "header": {
+      "format": "Allwinner 4092-byte header, reset code at offset 8192",
+      "public_key_offsets": {
+        "exponent": 195596,
+        "modulus": 226754,
+        "modulus_size": 195592
+      }
+    },
+    "comparison": {
+      "reference": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-toc-reconstruction/optee.reference.bin",
+      "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+      "reference_size": 300248,
+      "full_file_equal": false,
+      "byte_differences_in_shared_extent": 244777,
+      "first_differing_offset": 252,
+      "candidate_length_difference": -41712,
+      "permitted_exceptions": []
+    }
+  },
+  "boundaries": [
+    "Function assembly reconstructs verified instructions, not the unavailable original C spelling",
+    "Only actual ELF relocation fields are excluded in function comparison; linked whole carrier still fails strict stock comparison",
+    "No copied target opcodes, literal target pointer addresses or metadata substitutions",
+    "No hardware execution"
+  ],
+  "clean_repeat_build": {
+    "output": "/tmp/reforge-optee-hash-source-20261028",
+    "raw_image_sha256": "ed608f12a28dcf68edf33f6901a40d1d7c609cb283e4fee5bf44ed406e760bd0",
+    "raw_image_size": 258536,
+    "whole_candidate_equal": true
+  },
+  "source_patch_sha256": "3e1cb6ddf5b98d9c54eb3002300f45420d040ab09e66cb2a0dbd255966d81213"
+}

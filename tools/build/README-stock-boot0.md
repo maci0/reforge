@@ -44,11 +44,14 @@ The main manifest records runtime source hashes and the generated archive hash.
 This closes boot0's prebuilt target-runtime dependency, not the historical compiler
 bootstrap or the remaining seven-character original source label.
 
-The 2026-10-28 verification freshly compiles runtime source and relinks retained
-application objects from the earlier clean build. A complete clean recipe rerun
-is still pending restoration of the pinned GCC 4.6.3 toolchain after temporary
-files were removed. This boundary is recorded in the proof rather than claimed
-as another fresh full build. Runtime semantics are also executed under QEMU ARM:
+The pinned GCC 4.6.3 toolchain has now been restored and hash-checked. A fresh
+complete invocation at `build/stock-boot0-runtime/fresh-source-runtime` compiles
+all application and runtime sources and reproduces the same packed candidate
+SHA-256 `dcc60dce4700e9658f3f8c5d25ccdde1d5424b5cbeed16910ea1200779f45cc4`.
+The final link explicitly uses the newly compiled three-object archive. Its
+strict stock comparison correctly exits 1 on the unchanged eleven provenance
+bytes; this is a completed clean build, not a stock-equality result.
+Runtime semantics are also executed under QEMU ARM:
 
 ```sh
 BOOT0_RUNTIME_CROSS=/path/to/linaro72/bin/arm-linux-gnueabi- \

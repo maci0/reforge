@@ -65,8 +65,9 @@ G09 separately records compiler-runtime source closure.
 300,248 bytes, SHA-256
 `7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99`.
 Current clean source candidate: 258,536 bytes, SHA-256
-`ed4b751ceda60a2247debbbed463695ffc84b3d9ffaa8035e32472345c9f2915`.
-The **size delta is −41,712 bytes**; **244,839 byte positions differ in the
+`ed608f12a28dcf68edf33f6901a40d1d7c609cb283e4fee5bf44ed406e760bd0`
+(after the 2026-10-28 hash-installer reconstruction).
+The **size delta is −41,712 bytes**; **244,777 byte positions differ in the
 shared extent**. Neither number means that exactly 41,712 instruction bytes are
 missing: section layout, data and alignment also contribute.
 
@@ -82,14 +83,19 @@ Remaining work:
   zeroes then extend to `0x8000`. The exact wrapper/linker recipe still needs
   proof. This executable region must not be replaced with padding or copied
   reference code.
-- **Vendor services:** hardware-identification policy, hash-list installation,
-  secure-memory-controller programming and their callers still include semantic
-  drafts whose complete machine code is unverified. Correct implementation and
-  exact linked instruction/data comparison remain necessary.
-- **Complete core correspondence:** 913 source/original function correspondences
-  currently cover 125,412 bytes, including relocation-normalized matches checked
+- **Vendor services:** the 172-byte hash-list installer is now reconstructed as
+  readable Thumb source with genuine symbolic relocations. All bytes outside its
+  eleven real relocation fields match the original, and its unwind descriptor
+  also matches. ARM QEMU verifies copying, count/log updates, allocation failure
+  and zero entries. Hardware-identification policy, secure-memory-controller
+  programming and their callers still contain unverified semantic drafts.
+  Exact complete linked instruction/data comparison remains necessary.
+  [Installer evidence](stock-optee-hash-installer-proof.json) records the boundaries.
+- **Complete core correspondence:** the pre-installer baseline mapped 913
+  source/original functions covering 125,412 bytes, including normalized matches checked
   against 2,541 known-callee/string constraints with no contradictions. These
-  partial mappings are not whole-program equality. Unmatched MMU, TA/syscall,
+  partial mappings are not whole-program equality; the complete correspondence
+  graph has not been regenerated after the installer change. Unmatched MMU, TA/syscall,
   thread and vendor code still needs explanation.
 - **Layout and integration:** all 16 recovered physical-map records match their
   names, types, addresses and lengths, but record order is not certified. The
@@ -101,8 +107,10 @@ Remaining work:
   The recipe deliberately identifies itself as `3.7.0-reforge-reconstruction`.
 
 The typed vendor header, 48-byte early reset routine, actual UART console,
-log level 3 and physical mappings are now source-built. Nine platform/helper
-bodies, totalling 620 bytes, match outside genuine relocation fields.
+log level 3 and physical mappings are now source-built. Ten platform/helper
+bodies, totalling 792 bytes, match outside genuine relocation fields. The other
+ten platform objects remain byte-identical after debug removal across the
+hash-installer change.
 The candidate remains **research-only and not a verified deployable secure OS**.
 
 A differential `-O2` core build approached the original size but lost 579
@@ -269,9 +277,10 @@ All 1,332 text bytes match, and relinking preserves every byte of the previous
 34,592-byte raw / 49,152-byte packed source candidate. The recipe links only the
 new three-object archive, not compiler-provided target code. The private opaque
 DRAM archive also remains excluded.
-The comparison freshly rebuilt runtime source and relinked retained application
-objects from the earlier clean build; another completely clean recipe run awaits
-restoration of the pinned GCC 4.6.3 toolchain.
+After restoring and hash-checking GCC 4.6.3, a complete clean source-archive
+recipe run also reproduces the same candidate. Its link uses only the newly
+compiled runtime archive; the unchanged eleven G01 provenance bytes still fail
+the strict stock comparison.
 See [source provenance](../../vendor/runtime/gcc-7.2.0-arm/README.md) and
 [comparison evidence](stock-boot0-runtime-proof.json).
 

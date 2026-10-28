@@ -36,6 +36,17 @@
     "sha256": "dcc60dce4700e9658f3f8c5d25ccdde1d5424b5cbeed16910ea1200779f45cc4",
     "equal_to_previous_source_build": true
   },
-  "validation_boundary": "Fresh runtime compile and relink of retained application objects from the earlier clean source build; complete clean recipe rerun pending restoration of pinned GCC 4.6.3",
-  "runtime_execution_test": "QEMU ARM: six unsigned cases, six signed cases and division-by-zero handler SIGFPE dispatch passed"
+  "validation_boundary": "Fresh complete source-archive build with pinned GCC 7.2.1 and restored GCC 4.6.3, compiled target runtime and normal packing",
+  "runtime_execution_test": "QEMU ARM: six unsigned cases, six signed cases and division-by-zero handler SIGFPE dispatch passed",
+  "fresh_full_recipe": {
+    "output": "build/stock-boot0-runtime/fresh-source-runtime",
+    "runtime_archive_sha256": "cf959028c7f57ca2d23f142c704a2ff5a21218f0736bc64367c3814e89d6e2c2",
+    "candidate_sha256": "dcc60dce4700e9658f3f8c5d25ccdde1d5424b5cbeed16910ea1200779f45cc4",
+    "candidate_length": 49152,
+    "stock_differing_byte_positions": 11,
+    "strict_stock_comparison_exit_status": 1,
+    "source_compile_complete": true,
+    "target_runtime_from_source": true,
+    "source_label_and_checksum_only": true
+  }
 }

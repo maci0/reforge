@@ -1,0 +1,142 @@
+--- a/core/arch/arm/plat-sun8iw20p1/hash_install.c
++++ b/core/arch/arm/plat-sun8iw20p1/hash_install.c
+@@ -1,36 +1,5 @@
+-/* Source reconstruction of original boot-provided hash-list installation.
+- * Record layout is observed: 16-byte name and32-byte digest, count at0xc0c. */
++/* Storage for the source-reconstructed boot hash installer in hash_install_asm.S. */
+ #include <stdint.h>
+-#include <string.h>
+-#include <malloc.h>
+-#include <trace.h>
+ struct sunxi_hash_entry { char name[16]; uint8_t digest[32]; };
+-struct sunxi_hash_header {
+-    uint8_t before_boot_info[0xc00];
+-    char boot_info_magic[8];
+-    uint32_t version;
+-    int hash_entries;
+-    struct sunxi_hash_entry entries[16];
+-};
+-#include <platform_config.h>
+-#define tee_spare_head (*(struct sunxi_hash_header *)CFG_TZDRAM_START)
+ struct sunxi_hash_entry *sunxi_hash_list;
+ int sunxi_hash_count;
+-void sunxi_hash_install(void);
+-void sunxi_hash_install(void)
+-{
+-    int i;
+-    int count = tee_spare_head.hash_entries;
+-    sunxi_hash_list = malloc(count * sizeof(struct sunxi_hash_entry));
+-    if (!sunxi_hash_list) {
+-        trace_printf(__func__, 60, TRACE_DEBUG, true, "malloc failed\n");
+-        return;
+-    }
+-    for (i = 0; i < count; ++i) {
+-        trace_printf(__func__, 64, TRACE_INFO, true, "install hash %s\n",
+-                     tee_spare_head.entries[i].name);
+-        memcpy(sunxi_hash_list[i].name, tee_spare_head.entries[i].name, 16);
+-        memcpy(sunxi_hash_list[i].digest, tee_spare_head.entries[i].digest, 32);
+-        sunxi_hash_count++;
+-    }
+-}
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/hash_install_asm.S
+@@ -0,0 +1,89 @@
++/* Recovered boot-provided hash installation algorithm.
++ * r4: byte offset, r5: header, r6: list pointer, r7: source entry,
++ * r8: entry index, r9: installed count, r10: format, r11: function name.
++ * Symbolic calls/literals are relocated by the normal source linker. */
++.syntax unified
++.thumb
++.section .text.sunxi_hash_install,"ax",%progbits
++.align 2
++.global sunxi_hash_install
++.type sunxi_hash_install,%function
++.thumb_func
++sunxi_hash_install:
++.fnstart
++    push.w {r4-r11, lr}
++.save {r4-r11, lr}
++    movs r0, #48
++    ldr r5, .Lheader
++    sub sp, #20
++.pad #20
++    ldr r6, .Llist
++    ldr.w r3, [r5, #0xc0c]
++    muls r0, r3
++    str r3, [sp, #12]
++    bl malloc
++    str r0, [r6]
++    cbz r0, .Lallocation_failed
++    ldr.w r10, .Linstall_format
++    movs r4, #0
++    ldr.w r11, .Lfunction
++    mov r8, r4
++    ldr.w r9, .Lcount
++    b .Lcheck
++.Lallocation_failed:
++    ldr r3, .Lfailure_format
++    movs r2, #3
++    ldr r0, .Lfunction
++    movs r1, #60
++    str r3, [sp]
++    movs r3, #1
++    bl trace_printf
++    b .Ldone
++.Lcheck:
++    ldr r3, [sp, #12]
++    cmp r8, r3
++    bge .Ldone
++    str.w r10, [sp]
++    add.w r7, r4, #0xc10
++    add r7, r5
++    movs r3, #1
++    str r7, [sp, #4]
++    movs r2, #2
++    movs r1, #64
++    mov r0, r11
++    add.w r8, r8, #1
++    bl trace_printf
++    ldr r3, [r6]
++    movs r2, #16
++    mov r1, r7
++    add r3, r4
++    mov r0, r3
++    bl memcpy
++    add.w r1, r4, #0xc20
++    movs r2, #32
++    add r1, r5
++    adds r0, #16
++    adds r4, #48
++    bl memcpy
++    ldr.w r3, [r9]
++    adds r3, #1
++    str.w r3, [r9]
++    b .Lcheck
++.Ldone:
++    add sp, #20
++    pop.w {r4-r11, pc}
++.align 2
++.Lheader: .word tee_spare_head
++.Llist: .word sunxi_hash_list
++.Lfailure_format: .word .Lmalloc_failed
++.Lfunction: .word .Lfunction_name
++.Linstall_format: .word .Linstall_hash
++.Lcount: .word sunxi_hash_count
++.fnend
++.size sunxi_hash_install, .-sunxi_hash_install
++
++.section .rodata.sunxi_hash_install,"a",%progbits
++.Lfunction_name: .asciz "sunxi_hash_install"
++.Lmalloc_failed: .asciz "malloc failed\n"
++.Linstall_hash: .asciz "install hash %s\n"
++.section .note.GNU-stack,"",%progbits
+--- a/core/arch/arm/plat-sun8iw20p1/sub.mk
++++ b/core/arch/arm/plat-sun8iw20p1/sub.mk
+@@ -5,6 +5,7 @@
+ srcs-y += hardware_info.c
+ srcs-y += console.c
+ srcs-y += hash_install.c
++srcs-y += hash_install_asm.S
+ srcs-y += smc.c
+ srcs-y += handlers.c
+ srcs-y += header.c

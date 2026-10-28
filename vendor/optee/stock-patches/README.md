@@ -49,3 +49,39 @@ fresh build's own source-built archives. OP-TEE supplies its integer division,
 is narrower than a historical compiler bootstrap or whole-firmware source audit.
 [Retained evidence](../../../docs/board-notes/stock-runtime-link-audit.json) includes
 raw carrier hashes, build locations, link-map hashes and comparison boundaries.
+
+## Hash-list installer recovery (2026-10-28)
+
+Patch 0005 replaces the draft C body with readable Thumb assembly implementing
+the observed allocation, record-copy and count/logging algorithm. It uses real
+calls to `malloc`, `trace_printf` and `memcpy`, references the source-defined
+header and globals symbolically, and carries ordinary generated EHABI unwind
+information. Plaintext diagnostics are source-owned strings. No original opcode
+array, fixed target pointer or post-link replacement is used. This recovers the
+program, not the unavailable original C spelling.
+
+Original function `0x41b14f20` has 172 bytes. All 128 bytes outside its eleven
+four-byte ELF relocation fields match exactly. The generated unwind descriptor
+`0x8004afb0` also matches the original entry at file offset `0x46c28`, which lies
+between neighboring unwind entries. ARM QEMU checks copied names and
+digests, cumulative count, trace arguments, allocation failure and zero entries.
+Ten other platform objects remain identical after removal of debug information.
+The verified platform/helper total is now ten bodies / 792 bytes outside genuine
+relocations; whole-program correspondence is still incomplete.
+
+A fresh recipe invocation at `build/stock-optee-vendor-recovery/source-build`
+produces 258,536 bytes, SHA-256
+`ed608f12a28dcf68edf33f6901a40d1d7c609cb283e4fee5bf44ed406e760bd0`.
+A second clean build outside Reforge reproduces every raw carrier byte.
+Strict comparison correctly exits 1: size delta −41,712 bytes, 244,777 differing
+positions in the common extent, first difference at 252. This remains a research
+candidate with unresolved standby and other vendor services, not a deployable
+secure OS. [Evidence](../../../docs/board-notes/stock-optee-hash-installer-proof.json)
+records the exact function comparison, relocation scope and fresh-build report.
+
+```sh
+python3 tests/release/test_stock_optee_hash_installer.py
+```
+
+The test uses the local pinned Linaro 5.3.1 compiler and `qemu-arm`; it explicitly
+skips if either is absent. No hardware was used.
