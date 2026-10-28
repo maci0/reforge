@@ -11,7 +11,7 @@ The first two patches are published upstream implementations, unchanged:
 - [SM4](https://github.com/OP-TEE/optee_os/commit/ade6f848e084d7c63f1e3866d7c059b8a9f9e834).
 - [SM3](https://github.com/OP-TEE/optee_os/commit/47645577).
 
-The third patch contains reconstructed T113 C and a platform-specific boot hook. The current profile has eleven platform/helper functions matching every original byte outside genuine object relocation fields (1,192 bytes in total); the CPU-interface initializer and early CPU-reset routine also match all their bytes without relocations. Other bodies are semantic drafts and remain unverified. No original opcodes, target objects, post-link metadata replacements or empty vendor-service implementations are used. Explicit diagnostic arguments preserve observed runtime error reports, rather than manufacturing source-line padding.
+The third patch introduces the reconstructed T113 platform and boot hook; patches 0005–0007 replace three draft service units with verified source assembly. The current profile has twelve platform/helper bodies matching every original byte outside genuine object relocation fields (1,528 bytes in total); the CPU-interface initializer and early CPU-reset routine also match all their bytes without relocations. Complete service integration and unmatched core functions remain unverified. No original opcodes, target objects, post-link metadata replacements or empty vendor-service implementations are used. Explicit diagnostic arguments preserve observed runtime error reports, rather than manufacturing source-line padding.
 
 The fourth patch reconstructs the Allwinner image header as typed C data plus an ARM branch, with link-derived offsets to the genuine generated TA public key. The 4092-byte header and normal 8-KiB reset alignment reproduce all first-8192 bytes except the three public-key offset words, whose values correctly track this reconstruction's different symbol addresses. No header or executable bytes are imported from the original image.
 
@@ -119,8 +119,8 @@ positions in the shared extent, first difference at 252. The number of differing
 whole-file positions is not a measure of how many routines are recovered, because
 layout and relocated addresses also differ. All eleven other platform objects
 remain identical after debug removal; eleven bodies / 1,192 bytes now match
-outside real relocation fields. SRAM standby, hardware policy and complete
-service/layout/original-input reconstruction remain unfinished.
+outside real relocation fields. SRAM standby and complete service/layout/original-input reconstruction remain
+unfinished. Hardware policy is covered by patch 0007 below.
 [SMC proof](../../../docs/board-notes/stock-optee-smc-proof.json) records the exact
 comparison boundary and fresh build report.
 
@@ -130,3 +130,48 @@ python3 tests/release/test_stock_optee_smc.py
 
 Validation: `make unit` passes, including the new QEMU register-policy test;
 `bash -n` and ShellCheck pass for the build recipe. No hardware was used.
+
+## Hardware-identification policy recovery (2026-10-28)
+
+Patch 0007 replaces the draft hardware-policy C unit with readable Thumb source,
+preserving the original checks and return values. The source copies the observed
+16-byte XOR data, reads the hardware identifier, checks metadata magic/count and
+flags, then searches decoded single-byte or paired identifiers. This is a
+reconstruction of the observed policy, not a change to device acceptance.
+
+The original `check_hardware_info` at `0x41b2bcd4` is 336 bytes. All 276 bytes
+outside fifteen real relocation fields match. The 16-byte data array also
+matches. Original unwind entry `0x479c0` covers addresses
+`0x41b2bc9c..0x41b2be24` with `CANTUNWIND`; the source uses `.cantunwind` and the
+linked function retains that policy. No synthetic stack-unwind descriptor is
+introduced. Calls, header and diagnostic pointers are symbolic relocations;
+there are no copied executable bytes or post-link replacements.
+
+Fifteen freestanding ARM QEMU cases cover the zero-low-halfword shortcut, invalid
+magic/count/flags, single-byte and paired matches, mismatches, zero entries,
+and original odd-count zero-padding behavior. They verify return codes, exact
+trace lines/severity/decoded-byte payload, one key copy and hardware-ID read,
+and that header data stays unchanged. The test does not replace the production
+hardware-ID reader; only the isolated QEMU fixture supplies simulated identifiers.
+
+A fresh build produces 258,536 bytes with SHA-256
+`e53b9b393bf567607263ebf4bec6db9626f33f1d5af0301a18491adccb9af53b`.
+A second clean build outside Reforge reproduces every raw carrier byte.
+The full stock comparison still exits 1: size delta −41,712 bytes, first difference
+252, and 244,787 differing positions in the shared extent. All eleven other
+platform objects remain unchanged after debug removal. Twelve platform/helper
+bodies / 1,528 bytes now match outside actual relocation fields, while complete
+layout, standby, other integration and original inputs remain unresolved.
+[Evidence](../../../docs/board-notes/stock-optee-hardware-policy-proof.json) records
+function, unwind, data, execution-test and whole-build comparison boundaries.
+
+```sh
+python3 tests/release/test_stock_optee_hardware_policy.py
+```
+
+The original C spelling is unknown. QEMU exercises controlled header/identifier
+inputs; no printer hardware or physical fuse access was used.
+
+Validation: the full `make unit` suite passes with the pinned boot0 compiler
+explicitly supplied; no skips are reported. Build-script syntax and ShellCheck
+also pass. No hardware was used.

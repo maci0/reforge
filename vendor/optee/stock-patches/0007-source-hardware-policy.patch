@@ -1,0 +1,262 @@
+--- a/core/arch/arm/plat-sun8iw20p1/hardware_info.c
++++ /dev/null
+@@ -1,66 +0,0 @@
+-/* Original hardware-policy algorithm reconstructed from IDA control flow.
+- * This preserves checks; it does not bypass device identification. */
+-#include <stdint.h>
+-#include <string.h>
+-#include <trace.h>
+-#include <io.h>
+-#include <mm/core_memprot.h>
+-struct sunxi_optee_header_prefix {
+-    uint8_t prefix[237];
+-    uint8_t hardware_flags;
+-    uint16_t hardware_magic;
+-    uint8_t encoded_ids[4];
+-};
+-#include <platform_config.h>
+-#define tee_spare_head (*(struct sunxi_optee_header_prefix *)CFG_TZDRAM_START)
+-uint32_t sunxi_get_hardware_id(void);
+-int check_hardware_info(void);
+-
+-int check_hardware_info(void)
+-{
+-    uint8_t decoded_ids[4] = { 0 };
+-    uint8_t key[16] = { 0x41,0x57,0x55,0xaa,1,2,3,4,4,3,2,1,0xa1,0xb1,0xa3,0xb3 };
+-    uint8_t flags;
+-    uint16_t magic;
+-    uint32_t hardware_id;
+-    int i, j, count;
+-    flags = tee_spare_head.hardware_flags;
+-    magic = tee_spare_head.hardware_magic;
+-    hardware_id = sunxi_get_hardware_id();
+-    if (!(uint16_t)hardware_id)
+-        return 0;
+-    count = flags & 0xf;
+-    if (magic != 0x5741 || count > 4) {
+-        trace_printf(__func__, 90, TRACE_ERROR, true, "hardware check error1\n");
+-        return 1;
+-    }
+-    if ((flags & 0xf0) != 0x50) {
+-        trace_printf(__func__, 95, TRACE_ERROR, true, "hardware check error2\n");
+-        return 2;
+-    }
+-    for (i = 0; i < count; ++i) {
+-        decoded_ids[i] = tee_spare_head.encoded_ids[i];
+-        for (j = 0; j < 16; ++j)
+-            decoded_ids[i] ^= key[j];
+-    }
+-    if (hardware_id & 0xff00) {
+-        for (i = 0; i < count; i += 2) {
+-            if (decoded_ids[i] == ((hardware_id >> 8) & 0xff) &&
+-                decoded_ids[i + 1] == (hardware_id & 0xff)) {
+-                trace_printf(__func__, 110, TRACE_DEBUG, true, "check OK\n");
+-                return 0;
+-            }
+-        }
+-    } else {
+-        for (i = 0; i < count; ++i) {
+-            if (hardware_id == decoded_ids[i]) {
+-                trace_printf(__func__, 117, TRACE_DEBUG, true, "check OK\n");
+-                return 0;
+-            }
+-        }
+-    }
+-    trace_printf(__func__, 122, TRACE_ERROR, true, "data: %x %x %x %x\n",
+-                 decoded_ids[0], decoded_ids[1], decoded_ids[2], decoded_ids[3]);
+-    trace_printf(__func__, 123, TRACE_ERROR, true, "hardware error 3\n");
+-    return 3;
+-}
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/hardware_info_asm.S
+@@ -0,0 +1,179 @@
++/* Recovered hardware-identification policy, including original return codes.
++ * Header offsets 237/238/240 hold flags, magic and four encoded identifiers.
++ * Local decoded bytes start zeroed; the 16-byte key is ordinary source data.
++ * Calls and data pointers are resolved by the source linker. */
++.syntax unified
++.thumb
++.section .text.check_hardware_info,"ax",%progbits
++.align 2
++.global check_hardware_info
++.type check_hardware_info,%function
++.thumb_func
++check_hardware_info:
++.fnstart
++.cantunwind
++    push.w {r4-r8, lr}
++    sub sp, #48
++    ldr r7, .Lheader
++    add r6, sp, #32
++    ldr r1, .Lkey
++    movs r2, #16
++    movs r4, #0
++    mov r0, r6
++    str r4, [sp, #28]
++    bl memcpy
++    ldrb.w r5, [r7, #237]
++    ldrh.w r8, [r7, #238]
++    bl sunxi_get_hardware_id
++    uxth r3, r0
++    cmp r3, #0
++    beq .Lno_hardware_id
++    movw r3, #0x5741
++    cmp r8, r3
++    bne .Lbad_metadata
++    and.w lr, r5, #15
++    cmp.w lr, #4
++    bls .Lcheck_flags
++.Lbad_metadata:
++    ldr r3, .Lerror1
++    movs r1, #90
++    ldr r0, .Lfunction
++    str r3, [sp]
++    movs r3, #1
++    mov r2, r3
++    bl trace_printf
++    movs r0, #1
++    b .Lreturn
++.Lcheck_flags:
++    and.w r5, r5, #0xf0
++    cmp r5, #0x50
++    bne .Lbad_flags
++    mov r3, r4
++    add r1, sp, #28
++    b .Lnext_identifier
++.Lbad_flags:
++    ldr r3, .Lerror2
++    movs r1, #95
++    ldr r0, .Lfunction
++    str r3, [sp]
++    movs r3, #1
++    mov r2, r3
++    bl trace_printf
++    movs r0, #2
++    b .Lreturn
++.Lxor_key:
++    ldrb r5, [r1, r3]
++    ldrb r4, [r6, r2]
++    adds r2, #1
++    cmp r2, #16
++    eor.w r4, r4, r5
++    strb r4, [r1, r3]
++    bne .Lxor_key
++    adds r3, #1
++.Lnext_identifier:
++    cmp r3, lr
++    bge .Lchoose_id_width
++    adds r2, r7, r3
++    ldrb.w r2, [r2, #240]
++    strb r2, [r3, r1]
++    movs r2, #0
++    b .Lxor_key
++.Lchoose_id_width:
++    ands.w r3, r0, #0xff00
++    bne .Lpaired_identifiers
++    add r2, sp, #28
++    b .Lcheck_single_identifier
++.Lpaired_identifiers:
++    ubfx r1, r0, #8, #8
++    movs r3, #0
++    add r2, sp, #28
++    uxtb r0, r0
++.Lcheck_pair:
++    cmp r3, lr
++    bge .Lnot_found
++    ldrb r4, [r3, r2]
++    cmp r4, r1
++    bne .Lnext_pair
++    adds r4, r2, r3
++    ldrb r4, [r4, #1]
++    cmp r4, r0
++    bne .Lnext_pair
++    ldr r3, .Lsuccess
++    movs r2, #3
++    movs r1, #110
++    str r3, [sp]
++    movs r3, #1
++    b .Llog_success
++.Lnext_pair:
++    adds r3, #2
++    b .Lcheck_pair
++.Lnext_single_identifier:
++    adds r3, #1
++.Lcheck_single_identifier:
++    cmp r3, lr
++    bge .Lnot_found
++    ldrb r1, [r3, r2]
++    cmp r0, r1
++    bne .Lnext_single_identifier
++    ldr r3, .Lsuccess
++    movs r2, #3
++    movs r1, #117
++    str r3, [sp]
++    movs r3, #1
++.Llog_success:
++    ldr r0, .Lfunction
++    bl trace_printf
++    movs r0, #0
++    b .Lreturn
++.Lnot_found:
++    ldrb.w r3, [sp, #31]
++    movs r1, #122
++    ldr r0, .Lfunction
++    str r3, [sp, #16]
++    ldrb.w r3, [sp, #30]
++    str r3, [sp, #12]
++    ldrb.w r3, [sp, #29]
++    str r3, [sp, #8]
++    ldrb.w r3, [sp, #28]
++    str r3, [sp, #4]
++    ldr r3, .Ldecoded_data
++    str r3, [sp]
++    movs r3, #1
++    mov r2, r3
++    bl trace_printf
++    ldr r3, .Lerror3
++    movs r1, #123
++    ldr r0, .Lfunction
++    str r3, [sp]
++    movs r3, #1
++    mov r2, r3
++    bl trace_printf
++    movs r0, #3
++    b .Lreturn
++.Lno_hardware_id:
++    mov r0, r3
++.Lreturn:
++    add sp, #48
++    pop.w {r4-r8, pc}
++.align 2
++.Lheader: .word tee_spare_head
++.Lkey: .word .Lkey_data
++.Lerror1: .word .Lerror1_text
++.Lfunction: .word .Lfunction_text
++.Lerror2: .word .Lerror2_text
++.Lsuccess: .word .Lsuccess_text
++.Ldecoded_data: .word .Ldata_text
++.Lerror3: .word .Lerror3_text
++.fnend
++.size check_hardware_info, .-check_hardware_info
++
++.section .rodata.check_hardware_info,"a",%progbits
++.Lkey_data:
++.byte 0x41,0x57,0x55,0xaa,1,2,3,4,4,3,2,1,0xa1,0xb1,0xa3,0xb3
++.Lfunction_text: .asciz "check_hardware_info"
++.Lerror1_text: .asciz "hardware check error1\n"
++.Lerror2_text: .asciz "hardware check error2\n"
++.Lsuccess_text: .asciz "check OK\n"
++.Ldata_text: .asciz "data: %x %x %x %x\n"
++.Lerror3_text: .asciz "hardware error 3\n"
++.section .note.GNU-stack,"",%progbits
+--- a/core/arch/arm/plat-sun8iw20p1/sub.mk
++++ b/core/arch/arm/plat-sun8iw20p1/sub.mk
+@@ -2,7 +2,7 @@
+ srcs-y += main.c
+ srcs-y += gic.c
+ srcs-y += secure_bus.c
+-srcs-y += hardware_info.c
++srcs-y += hardware_info_asm.S
+ srcs-y += console.c
+ srcs-y += hash_install.c
+ srcs-y += hash_install_asm.S

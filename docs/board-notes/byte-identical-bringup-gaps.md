@@ -65,9 +65,9 @@ G09 separately records compiler-runtime source closure.
 300,248 bytes, SHA-256
 `7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99`.
 Current clean source candidate: 258,536 bytes, SHA-256
-`becab365f99411fee5de13460aa2fe2c4d7aa39f527b0920d9d1458d0fb4dc2e`
-(after the 2026-10-28 SMC reconstruction).
-The **size delta is −41,712 bytes**; **244,833 byte positions differ in the
+`e53b9b393bf567607263ebf4bec6db9626f33f1d5af0301a18491adccb9af53b`
+(after the 2026-10-28 hardware-policy reconstruction).
+The **size delta is −41,712 bytes**; **244,787 byte positions differ in the
 shared extent**. Neither number means that exactly 41,712 instruction bytes are
 missing: section layout, data and alignment also contribute.
 
@@ -91,16 +91,20 @@ Remaining work:
   its real MMIO constants, twelve symbolic relocation fields and exact unwind
   descriptor. QEMU verifies region selection, split/rounded mappings, 64-bit
   offsets and exhaustion against a simulated register bank.
-  Hardware-identification policy and remaining service integration still
-  contain unverified semantic drafts.
+  The 336-byte hardware-identification routine is now source-built with its
+  original XOR data, return paths and `CANTUNWIND` policy. Fifteen QEMU cases
+  preserve original acceptance/rejection, diagnostics and edge behavior.
+  Remaining service integration still requires complete instruction/data
+  verification, especially SRAM standby and its callers.
   Exact complete linked instruction/data comparison remains necessary.
   [Installer evidence](stock-optee-hash-installer-proof.json) and
-  [SMC evidence](stock-optee-smc-proof.json) record the boundaries.
+  [SMC evidence](stock-optee-smc-proof.json) and
+  [hardware-policy evidence](stock-optee-hardware-policy-proof.json) record the boundaries.
 - **Complete core correspondence:** the pre-installer baseline mapped 913
   source/original functions covering 125,412 bytes, including normalized matches checked
   against 2,541 known-callee/string constraints with no contradictions. These
   partial mappings are not whole-program equality; the complete correspondence
-  graph has not been regenerated after the installer change. Unmatched MMU, TA/syscall,
+  graph has not been regenerated after these service reconstructions. Unmatched MMU, TA/syscall,
   thread and vendor code still needs explanation.
 - **Layout and integration:** all 16 recovered physical-map records match their
   names, types, addresses and lengths, but record order is not certified. The
@@ -112,10 +116,10 @@ Remaining work:
   The recipe deliberately identifies itself as `3.7.0-reforge-reconstruction`.
 
 The typed vendor header, 48-byte early reset routine, actual UART console,
-log level 3 and physical mappings are now source-built. Eleven platform/helper
-bodies, totalling 1,192 bytes, match outside genuine relocation fields. The other
+log level 3 and physical mappings are now source-built. Twelve platform/helper
+bodies, totalling 1,528 bytes, match outside genuine relocation fields. The other
 eleven platform objects remain byte-identical after debug removal across the
-SMC change.
+hardware-policy change.
 The candidate remains **research-only and not a verified deployable secure OS**.
 
 A differential `-O2` core build approached the original size but lost 579

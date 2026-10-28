@@ -1,0 +1,117 @@
+{
+  "date": "2026-10-28",
+  "scope": "Reconstruct original hardware-identification policy without changing its checks",
+  "original_reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "original_function_address": "0x41b2bcd4",
+  "source_function_address": "0x41b0aaac",
+  "function_length": 336,
+  "actual_elf_relocation_fields": [
+    "0x14",
+    "0x20",
+    "0x48",
+    "0x6a",
+    "0xe2",
+    "0x10e",
+    "0x11e",
+    "0x130",
+    "0x134",
+    "0x138",
+    "0x13c",
+    "0x140",
+    "0x144",
+    "0x148",
+    "0x14c"
+  ],
+  "relocation_bytes": 60,
+  "other_bytes_equal": true,
+  "normalized_function_sha256": "b9de6d6f32762b949a768f2915d97b7a5864b5faff8851ebaac40f9c65e9b5de",
+  "key_data": {
+    "original_file_offset": "0x45d5f",
+    "length": 16,
+    "source_bytes_equal": true
+  },
+  "unwind": {
+    "original_entry_file_offset": "0x479c0",
+    "original_covered_range": [
+      "0x41b2bc9c",
+      "0x41b2be24"
+    ],
+    "original_descriptor": "0x1 (CANTUNWIND)",
+    "source_annotation": ".cantunwind",
+    "source_object_policy_equal": true
+  },
+  "qemu_validation": {
+    "cases": 15,
+    "checks": [
+      "zero-low-halfword ID shortcut",
+      "bad magic and count > 4 return 1",
+      "bad high flags return 2",
+      "single-byte identifiers",
+      "paired identifiers",
+      "original odd-count zero-padding behavior",
+      "nonmatching and zero-entry lists return 3",
+      "exact diagnostics, severities and decoded-byte payload",
+      "header data unchanged",
+      "16-byte key copy and hardware-ID read occur once"
+    ]
+  },
+  "other_platform_objects_unchanged_after_debug_removal": [
+    "console.o",
+    "gic.o",
+    "handlers.o",
+    "hash_install.o",
+    "hash_install_asm.o",
+    "header.o",
+    "header_entry.o",
+    "main.o",
+    "reset.o",
+    "secure_bus.o",
+    "smc_asm.o"
+  ],
+  "source_patch_sha256": "60fb51350d5be805ba78f30539dd7a306b39a0270488979fe34aa57d83119b95",
+  "fresh_recipe_report": {
+    "artifact": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-hardware-recovery/source-build/artifacts/optee.bin",
+    "size": 258536,
+    "sha256": "e53b9b393bf567607263ebf4bec6db9626f33f1d5af0301a18491adccb9af53b",
+    "source_build_complete": true,
+    "stock_equivalence_established": false,
+    "status": "research-only; standby/vendor services and exact code shape remain incomplete",
+    "carrier": "raw source-linked Allwinner image; standard tee.bin retained separately",
+    "header": {
+      "format": "Allwinner 4092-byte header, reset code at offset 8192",
+      "public_key_offsets": {
+        "exponent": 195596,
+        "modulus": 226754,
+        "modulus_size": 195592
+      }
+    },
+    "comparison": {
+      "reference": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-toc-reconstruction/optee.reference.bin",
+      "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+      "reference_size": 300248,
+      "full_file_equal": false,
+      "byte_differences_in_shared_extent": 244787,
+      "first_differing_offset": 252,
+      "candidate_length_difference": -41712,
+      "permitted_exceptions": []
+    }
+  },
+  "limitations": [
+    "Original C spelling is unknown; source assembly reconstructs the verified program",
+    "Only genuine ELF relocation fields are excluded in function comparison",
+    "Preserves the original policy, including legacy edge cases; not a security redesign",
+    "No original machine-code array, fixed executable pointer or post-link substitution",
+    "No hardware execution; standby and complete integration/layout/original inputs remain unresolved"
+  ],
+  "clean_repeat_build": {
+    "output": "/tmp/reforge-optee-hardware-source-20261028",
+    "raw_image_size": 258536,
+    "raw_image_sha256": "e53b9b393bf567607263ebf4bec6db9626f33f1d5af0301a18491adccb9af53b",
+    "whole_candidate_equal": true
+  },
+  "validation": {
+    "make_unit": "passed with explicit pinned BOOT0_RUNTIME_CROSS; no skips reported",
+    "log": "build/unit-optee-hardware-policy.log",
+    "build_recipe_shell_checks": "bash -n and ShellCheck passed"
+  }
+}
