@@ -111,3 +111,21 @@ runs. Raw serial log paths/hashes, individual PSS measurements and input hashes 
 JSON data. Original fixture hashes were rechecked unchanged after the experiments.
 Harness `bash -n`, ShellCheck and result assertions passed. No unrelated build/test suite
 was rerun for these test-harness and research-document changes.
+
+## Independent reconfirmation
+
+Three additional fresh boots repeated the default, trim and jemalloc treatments with
+`SETTLE=180`, using the same verified input hashes and guest limits. Moonraker PSS was
+31,451 KiB (default), 31,724 KiB (trim, **+273 KiB**) and 31,076 KiB (jemalloc,
+**−375 KiB**). All three API responses had no failed components or warnings; expected
+OctoPrint presence/absence and the jemalloc mapping were verified. Raw log hashes and
+measurements are retained under the JSON `reconfirmation` cohort (27 total boots).
+
+This independent round does **not** confirm a reliable trim saving and reinforces that
+the allocator effect is noisy. Do not pool this one-run cohort into the earlier means
+or advertise their deltas as guaranteed savings. Within the requested mod-only boundary,
+the next useful build experiment remains Thumb-2/`-Os`, then separate LTO, keeping the
+existing libc/ABI and checking the actual Python optimization flags. Lazy updater imports
+are another source-level candidate, but require a patch for Forge-X's older Moonraker.
+Neither compiler variants nor that port were built in these trials. No Tina BSP source,
+kernel, stock Python or production filesystem was changed.

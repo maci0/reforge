@@ -400,6 +400,48 @@
       "mem_available_kib": 33344,
       "failed_components": [],
       "warnings": []
+    },
+    {
+      "cohort": "reconfirmation",
+      "variant": "default",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-reconfirm-control.log",
+      "log_sha256": "23833d2a31cb367176f836b67c09a25ca4106da1975d6a85017579a104957558",
+      "pss_kib": {
+        "klippy": 22947,
+        "moonraker": 31451,
+        "httpd": 756
+      },
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "reconfirmation",
+      "variant": "trim",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-reconfirm-trim.log",
+      "log_sha256": "11b09b8a4f115cce9fdc197217a70c931e7dcd745469d78b35b1612dd3d92dc6",
+      "pss_kib": {
+        "klippy": 22823,
+        "moonraker": 31724,
+        "httpd": 737
+      },
+      "failed_components": [],
+      "warnings": []
+    },
+    {
+      "cohort": "reconfirmation",
+      "variant": "jemalloc",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-reconfirm-jemalloc.log",
+      "log_sha256": "2a27f14b6b56618d3053d83e763a21ed1ef9398e669ae6f10afeacce283b4161",
+      "pss_kib": {
+        "klippy": 22753,
+        "moonraker": 31076,
+        "httpd": 713
+      },
+      "failed_components": [],
+      "warnings": []
     }
   ],
   "summary": {
