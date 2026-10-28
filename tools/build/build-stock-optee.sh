@@ -60,6 +60,7 @@ with tarfile.open(archive) as source:
     'status': 'incomplete research reconstruction; not stock-equivalent',
     'stock_reference_used_as_source': False,
     'target_objects_imported': False,
+    'source_git_discovery': 'bounded at output directory; source archive has no Git metadata',
 }, indent=2) + '\n')
 PY
 patchdir="$repo/vendor/optee/stock-patches"
@@ -76,7 +77,8 @@ sha256sum "${patches[@]}" > "$out/source-patches.sha256"
     sha256sum "${cross}gcc" "${cross}ld" "$("${cross}gcc" -print-prog-name=cc1)"
 } > "$out/toolchain.txt"
 export SOURCE_DATE_EPOCH=1571399438 LC_ALL=C TZ=UTC
-if ! make -C "$out/source-tree" PLATFORM=sun8iw20p1 "O=$out/build" \
+# Do not let an exported source tree inherit an unrelated parent repository revision.
+if ! GIT_CEILING_DIRECTORIES="$out" make -C "$out/source-tree" PLATFORM=sun8iw20p1 "O=$out/build" \
     "CROSS_COMPILE=$cross" TEE_IMPL_VERSION=3.7.0-reforge-reconstruction \
     -j"${BUILD_JOBS:-8}" > "$out/build.log" 2>&1; then
     tail -35 "$out/build.log" >&2

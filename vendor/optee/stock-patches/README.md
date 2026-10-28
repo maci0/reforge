@@ -24,3 +24,28 @@ The vendor comparison candidate is `artifacts/optee.bin`, the raw source-linked 
 Validation on 2026-10-26: a fresh invocation of this recipe produced a 258,536-byte `optee.bin`, SHA-256 `ed4b751ceda60a2247debbbed463695ffc84b3d9ffaa8035e32472345c9f2915`. Generated configuration and the actual compiler command both select log level 3, and the observed common DEBUG/version messages are present. Full comparison correctly exits 1: the original is 300,248 bytes, the first differing position is offset 252 (a naturally linked public-key offset), and 244,839 positions differ within the shared extent. Nine function bodies (620 bytes) match outside actual relocations; the full runtime instruction stream does not yet match.
 
 The original also contains executable ARM standby/DRAM code and parameters between offsets `0x4000` and `0x6100`, referenced by its vendor standby service. Those sources and service integration remain unresolved; that region is not filled with copied target code. No hardware execution was performed.
+
+
+## Source export reproducibility and target-runtime audit (2026-10-28)
+
+Git discovery is now bounded at the new output directory. An extracted upstream
+archive has no Git metadata; its OS revision response must not inherit the parent
+Reforge repository's unrelated SHA. No `TEE_IMPL_GIT_SHA1` override is supplied:
+the upstream generator naturally falls back to zero. The explicit honest
+reconstruction version remains unchanged.
+
+A control build inside Reforge had compiled `0x3f2be1b1` from the parent repository
+and produced SHA-256 `fc98f9a5f4e8e022f38a593bda014d152b6039f68c9d1e7ec58bb1697b01512c`.
+Two fresh bounded builds, one inside Reforge and one outside it, now reproduce
+all 258,536 raw carrier bytes with the previously verified SHA-256
+`ed4b751ceda60a2247debbbed463695ffc84b3d9ffaa8035e32472345c9f2915`.
+Both generated compiler commands contain the natural `0x0` archive fallback,
+and both correctly exit 1 on the unresolved stock comparison.
+
+The core link map includes a `LOAD` line for the compiler's `libgcc.a` but extracts
+**no members** from that archive. All 193 selected archive members are from this
+fresh build's own source-built archives. OP-TEE supplies its integer division,
+64-bit division and shift helpers under `lib/libutils/isoc/arch/arm`; this result
+is narrower than a historical compiler bootstrap or whole-firmware source audit.
+[Retained evidence](../../../docs/board-notes/stock-runtime-link-audit.json) includes
+raw carrier hashes, build locations, link-map hashes and comparison boundaries.

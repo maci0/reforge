@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-28",
+  "scope": "Selected target-runtime archive members in primary U-Boot and rebuilt OP-TEE core; not a whole-toolchain bootstrap or exhaustive disk firmware audit",
+  "optee_repeatability": {
+    "inside_reforge": {
+      "output": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-runtime-audit/bounded-inside",
+      "raw_image_size": 258536,
+      "raw_image_sha256": "ed4b751ceda60a2247debbbed463695ffc84b3d9ffaa8035e32472345c9f2915",
+      "git_sha_macro": "0x0 (natural archive fallback after bounded discovery)",
+      "stock_comparison": {
+        "reference": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-toc-reconstruction/optee.reference.bin",
+        "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+        "reference_size": 300248,
+        "full_file_equal": false,
+        "byte_differences_in_shared_extent": 244839,
+        "first_differing_offset": 252,
+        "candidate_length_difference": -41712,
+        "permitted_exceptions": []
+      }
+    },
+    "outside_reforge": {
+      "output": "/tmp/reforge-optee-bounded-outside-20261028",
+      "raw_image_size": 258536,
+      "raw_image_sha256": "ed4b751ceda60a2247debbbed463695ffc84b3d9ffaa8035e32472345c9f2915",
+      "git_sha_macro": "0x0 (natural archive fallback after bounded discovery)",
+      "stock_comparison": {
+        "reference": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-toc-reconstruction/optee.reference.bin",
+        "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+        "reference_size": 300248,
+        "full_file_equal": false,
+        "byte_differences_in_shared_extent": 244839,
+        "first_differing_offset": 252,
+        "candidate_length_difference": -41712,
+        "permitted_exceptions": []
+      }
+    }
+  },
+  "runtime_link_audit": {
+    "primary_uboot": {
+      "map": "build/stock-uboot-identical/u-boot.map",
+      "map_sha256": "128777f3dd218fb9200342ccacc58142645e40fe9aca6e9f8a557f0ee4cfbe6a",
+      "unique_selected_archive_members": 3,
+      "selected_compiler_distributed_archive_members": [],
+      "source_runtime": [
+        "arch/arm/lib/lib1funcs.S",
+        "arch/arm/lib/uldivmod.S",
+        "arch/arm/lib/div0.c",
+        "arch/arm/lib/eabi_compat.c"
+      ],
+      "libgcc_mentioned_as_load_input": false
+    },
+    "optee_core": {
+      "map": "build/stock-optee-runtime-audit/bounded-inside/artifacts/tee.map",
+      "map_sha256": "8a365c6ccb593a49a010ff545de10fbf46e464c29dd72e9d5eac1b4b6661542e",
+      "unique_selected_archive_members": 193,
+      "selected_compiler_distributed_archive_members": [],
+      "source_runtime": [
+        "lib/libutils/isoc/arch/arm/arm32_aeabi_divmod_a32.S",
+        "lib/libutils/isoc/arch/arm/arm32_aeabi_divmod.c",
+        "lib/libutils/isoc/arch/arm/arm32_aeabi_ldivmod_a32.S",
+        "lib/libutils/isoc/arch/arm/arm32_aeabi_ldivmod.c",
+        "lib/libutils/isoc/arch/arm/arm32_aeabi_shift.c"
+      ],
+      "libgcc_mentioned_as_load_input": true
+    }
+  },
+  "unbounded_control": {
+    "parent_git_sha_compiled_into_os_revision_response": "0x3f2be1b1",
+    "raw_image_sha256": "fc98f9a5f4e8e022f38a593bda014d152b6039f68c9d1e7ec58bb1697b01512c",
+    "raw_image_size": 258536
+  },
+  "limitations": [
+    "Original OP-TEE source identity/standby/vendor gaps remain; no target metadata is restored from stock",
+    "No hardware execution",
+    "Archive-member audit does not certify all original userspace, DSP or factory MCU runtime inputs"
+  ]
+}

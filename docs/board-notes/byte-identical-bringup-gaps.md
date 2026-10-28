@@ -275,8 +275,18 @@ restoration of the pinned GCC 4.6.3 toolchain.
 See [source provenance](../../vendor/runtime/gcc-7.2.0-arm/README.md) and
 [comparison evidence](stock-boot0-runtime-proof.json).
 
-**Remaining audit:** inspect the other historical-toolchain stages for target
-runtime inputs and rebuild any such dependencies from source. A compiler
+**Additional selected-runtime checks on 2026-10-28:** primary U-Boot's link map
+selects only three members of its source-built `arch/arm/lib/lib.a`, with no
+compiler-distributed archive members. A fresh OP-TEE core selects 193 members
+from its own newly built archives; the compiler's `libgcc.a` is listed as an
+input but contributes no selected member. OP-TEE implements its AEABI helpers
+in source. [Audit evidence](stock-runtime-link-audit.json) records map hashes and
+scope. Two clean OP-TEE builds inside/outside Reforge also reproduce the previous
+candidate after bounding Git discovery; unrelated Reforge revisions can no
+longer contaminate the exported-source OS revision response.
+
+**Remaining audit:** inspect remaining historical-toolchain stages and packaged
+firmware for target runtime inputs and rebuild any such dependencies from source. A compiler
 executable bootstrap is a separate claim from application/runtime source closure;
 neither the boot0 result nor the newer Klipper13 compiler/newlib source builds
 certifies all historical tools. G01's source-label/checksum mismatch is unchanged.
