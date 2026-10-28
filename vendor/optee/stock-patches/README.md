@@ -251,3 +251,17 @@ records the field-level comparison and unresolved 444-byte BSS/layout constraint
 This adds no arbitrary BSS padding. Earlier code/header, full BSS and carrier
 integration remain open; the main carrier and strict comparison are unchanged.
 No physical timing, clock stability or DRAM-retention test has run.
+
+## Complete initialized SRAM source image (2026-10-28)
+
+The [complete SRAM source build](../standby-src/README.md#complete-initialized-image-and-dram-reconstruction-2026-10-28)
+now emits all 8,400 initialized bytes. Size delta is zero; exactly eight byte
+positions still differ, all address immediates caused by the unresolved 16-byte
+BSS/layout gap. Every other byte matches without normalization. The strict
+[source builder/comparer](../../../tools/build/build-stock-optee-standby.sh) exits 1
+against stock and has no accepted-difference rule. Source-copy object/ELF/bin
+repeats and DRAM snapshot/restore/helper tests pass. [Proof](../../../docs/board-notes/stock-optee-standby-full-proof.json)
+records exact differences and remaining inputs. No placeholder allocation or
+recorded-address override fixes BSS. The main carrier remains unchanged and its
+standby wrapper/service integration is still open; no privileged/full-resume or
+physical suspend/resume execution has been validated.

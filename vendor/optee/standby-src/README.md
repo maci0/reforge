@@ -1,20 +1,23 @@
 # Standalone SRAM standby reconstruction
 
-Coverage at 2026-10-28: **3,668 bytes of recovered function extents plus
-1,004 bytes of initialized data** from the original 8,400-byte SRAM image.
-Recovered modules cover memory, delays, clock selection/entry/exit, PMIC setup/
-register/group operations, regulator policy, TWI, stack, division and secure WFI.
-Across these extents, every bit matches outside twenty-six real MOVW/MOVT
-address-immediate fields (416 bits) and four real data-pointer words (16 bytes).
-**All branch encodings now compare without masks**, including the delay wrappers.
-These address fields require the complete SRAM link; they are not final exceptions.
-Complete function-byte comparisons cover 2,080 bytes. The connected 4,556-byte
-code/data suffix has every initialized symbol at its original relative offset.
-Its 16 bytes of recovered zeroed BSS are separate from initialized-data totals;
-a preceding 444-byte BSS/layout gap remains unresolved.
+Current source build at 2026-10-28 emits the **complete 8,400-byte initialized
+SRAM image**: 7,144 function bytes and 1,256 parameter/data/literal bytes. It has
+**zero size delta and eight differing byte positions** versus stock. Every other
+byte already compares directly, without normalization. All eight differences
+are MOVW address-immediate bytes explained by the unresolved 16-byte BSS/layout
+gap. The strict whole-file comparison **fails**; these are not accepted exceptions.
+
+The source build declares only the observed 424-byte DRAM snapshot extent. With
+the saved SP, auxiliary word and TWI state, BSS spans 444 bytes versus the recorded
+460-byte clear-bound span. The missing 16 bytes might belong to a larger object,
+other declarations or original layout inputs; no placeholder allocation or fixed
+address override has been added. See the complete-image section below for exact
+differences, reproduction and execution limits.
+
 [Runtime source and recipe](runtime/README.md) document its public source origin
-and explicit standalone ABI adaptation. This is separate recovery work; the main
-OP-TEE recipe still has no reconstructed complete standby payload or integration.
+and explicit standalone ABI adaptation. Earlier section/object profiles below
+remain useful bounded checks. This SRAM build is not yet integrated into the main
+OP-TEE carrier and does not establish whole-bringup equality.
 
 | C helper | Original SRAM address | Carrier offset | Bytes |
 |---|---:|---:|---:|
@@ -391,3 +394,71 @@ records exact fields, original targets, relative symbol positions, BSS constrain
 and repeat builds. Earlier header/entry/DRAM code, full BSS and secure-OS
 integration remain open. Secure WFI is still static-only; no physical clock
 stability, DRAM retention or suspend/resume validation was performed.
+
+## Complete initialized image and DRAM reconstruction (2026-10-28)
+
+`entry.S` and `dram.S` reconstruct the remaining entry, return stubs and DRAM
+controller operations as ARM instructions with symbolic calls/data references.
+Three literal words refer to actual offsets inside the source-declared DRAM
+snapshot. `parameters.c` emits the original parameter values; its 24-word DRAM
+prefix follows the BSP `dram_v2.h` layout. The 36 extension slots preserve the
+observed 240-byte parameter/entry ABI; some slot meanings and original identifiers
+remain unknown. These are initialized parameter data, not executable gap fill.
+
+`standby.lds` uses the hardware SRAM origin/size, places the parameter header before
+entry, and derives BSS bounds from source declarations. It does not force recorded
+BSS targets. `dram-state.c` allocates the saved SP and the 106 words actually used
+by snapshot code (highest observed word offset `0x1a4`). The clear loop retains
+its original inclusive bound behavior. The 16-byte layout gap remains explicit;
+there is no evidence yet to assign it to a particular declaration or alignment.
+
+[Source-only builder](../../../tools/build/build-stock-optee-standby.sh) copies
+sources into a **fresh, nonexistent output path**, compiles every target object,
+applies the documented division-runtime source patch, and links/objcopies the
+initialized image. It uses pinned Linaro 5.3.1 by default; `CROSS_COMPILE` accepts
+an alternative compiler prefix. No stock/prebuilt payload supplies build bytes.
+A reference, if given, is consumed only by the strict comparison after linking.
+It compares every byte and the complete length and exits 1 on any difference.
+
+```sh
+tools/build/build-stock-optee-standby.sh build/standby-source-new
+# Use another fresh output path; this currently exits 1 (not identical).
+tools/build/build-stock-optee-standby.sh build/standby-source-check   build/stock-optee-standby-recovery/standby.reference.bin
+```
+
+| Artifact | Bytes | SHA-256 |
+|---|---:|---|
+| Current source candidate | 8,400 | `7f058be9ae2b5e7d94c2fa951e3a62bba8dd3db24de9860bcbe7e63d2946ad86` |
+| Stock SRAM image | 8,400 | `4b3d43d353d9419e107d556a2e4ded905ad658a59816ae0c18097b8b67decdca` |
+
+The eight differing positions are **binary differences, not a size difference**:
+
+| Image offset | Source byte → stock byte | Address operand |
+|---|---|---|
+| `0x00f4` | `8c → 9c` | BSS clear bound: `0x2228c → 0x2229c` |
+| `0x0fe0`, `0x106c` | `7c → 8c` | Clock auxiliary word: `0x2227c → 0x2228c` |
+| `0x1754`, `0x17f0`, `0x1834`, `0x184c`, `0x1898` | `80 → 90` | TWI state: `0x22280 → 0x22290` |
+
+All other **8,392 byte positions** match without masking. Both source-copy builds
+reproduce every object and the ELF/bin. No post-link patch, target-address override
+or extra allocation is used to close the unresolved gap. The main OP-TEE carrier
+remains unchanged; its wrapper/service integration and other bringup gaps remain.
+
+New ARM tests execute the unmodified DRAM/state/memory objects against four
+virtual MMIO banks. They check all 106 snapshot words including untouched slots,
+17 destructive writes in order, three real ready-poll iterations, all other MMIO
+words, lane/common-config restore, eight modulation modes and TPR5/6 write policy.
+The snapshot has 132 MMIO operations, lane restore 83 and common-config restore 4.
+The strict recipe is also tested against identical, one-byte-different and
+extra-trailing-byte inputs. It never accepts a mismatch.
+
+```sh
+python3 tests/release/test_stock_optee_standby_full.py
+```
+
+[Complete-image proof](../../../docs/board-notes/stock-optee-standby-full-proof.json)
+records unnormalized differences, source hashes, repeat builds and BSS constraints.
+Entry/secure CP15/WFI, PLL-lock polling and complete DRAM resume execution remain
+untested. No physical retention, clock stability or suspend/resume test has run.
+Original C/debug inputs and some parameter meanings remain unrecovered. Complete
+SRAM and whole-bringup equality are still **not achieved**.

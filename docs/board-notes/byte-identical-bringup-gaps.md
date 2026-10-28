@@ -78,40 +78,31 @@ Remaining work:
   `0x20000`. Its 240-byte parameter header precedes ARM entry at `0x200f0`.
   The entry clear loop writes `0x220d0` through `0x2229c` **inclusively**;
   original allocated BSS/linker-symbol bounds remain unverified.
-  It performs DRAM/clock low-power transitions, optional memory checks,
-  PMIC/TWI operations, WFI and restore. Reconstructed extents now cover 3,668
-  function bytes plus 1,004 initialized-data bytes, separately from the unchanged
-  main carrier. C memory helpers, counted delays, selector, C PMIC helpers,
-  setup/group control, regulator policy, TWI, clocks, secure-WFI primitive, stack
-  helpers and a published-source ARM division runtime are retained in the [source/recipes](../../vendor/optee/standby-src/README.md).
-  The [clock/code/data suffix proof](stock-optee-standby-clock-proof.json) verifies
-  4,556 continuous initialized bytes with every branch compared, including the
-  formerly masked delay branches. All nine initialized symbols have the original
-  relative positions; four real table pointers also resolve to those relative
-  targets. Only 26 MOVW/MOVT address-immediate fields (416 bits) and four ABS32
-  pointer words (16 bytes) await the full link. Opcode/register bits remain
-  checked. Complete function comparisons cover 2,080 bytes. The secure-WFI body
-  remains static-only; privileged execution was not tested. The recovered
-  auxiliary/TWI BSS words span 16 bytes with correct relative spacing, but a
-  preceding 444-byte BSS/layout gap remains unresolved. This is not proof of
-  444 variable bytes: original declarations/alignment/linker inputs are needed;
-  no arbitrary BSS padding is inserted. Two copied-source builds reproduce
-  objects/ELF; no symbols are undefined in the connected suffix.
-  ARM tests cover all 16 entries and 256 register codes, voltage/enable edge
-  semantics, source division/stack behavior, original null reads and error
-  propagation. [Reactive TWI tests](stock-optee-standby-twi-proof.json) execute
-  all controller bases and full stop/transfer polling limits. The original
-  table-count/inclusive-selector mismatch and driver quirks remain preserved.
-  Ordered simulated-MMIO tests also cover the clock sequence and save-once
-  metadata, using real delay loops without physical timing claims.
-  Earlier DRAM/entry code, header, full BSS placement and
-  secure-OS integration remain unresolved. Complete source and whole-image
-  equality are not established; no physical bringup or suspend/resume test ran.
-  Supporting evidence: [memory](stock-optee-standby-memory-proof.json),
-  [runtime](stock-optee-standby-runtime-proof.json),
-  [delays](stock-optee-standby-delay-proof.json),
-  [selector](stock-optee-standby-descriptor-proof.json), and
-  [typed PMIC helpers/tables](stock-optee-standby-pmic-proof.json).
+  All initialized code/data now build from reconstructed C/ARM source plus the
+  published division runtime. The [source recipe](../../tools/build/build-stock-optee-standby.sh)
+  emits **8,400 bytes, size delta zero, with exactly eight differing byte positions**.
+  Every other byte matches directly, without normalization. The eight positions
+  are low address-immediate bytes in MOVW instructions for the BSS clear bound,
+  clock auxiliary word and TWI state. The strict full-file comparison exits 1;
+  no difference is accepted as an exception. Exact offsets/values and hashes are
+  in the [complete-image proof](stock-optee-standby-full-proof.json).
+  The source BSS has saved SP (4 bytes), the observed DRAM snapshot extent
+  (424), clock auxiliary word (4) and TWI state (12): 444 bytes versus the recorded
+  clear-bound span of 460. The remaining **16-byte layout gap** is unexplained;
+  original declarations/object extents/alignment are needed. No placeholder
+  tail, recorded-address override or post-link substitution closes it.
+  The 240-byte initialized parameter area matches all bytes. Its DRAM prefix
+  follows the BSP type; some extension meanings and original debug names remain
+  unknown. Both copied-source builds reproduce every object and the ELF/bin,
+  and the strict checker rejects byte or trailing-length mismatches.
+  ARM tests exercise snapshot/write/restore behavior in four virtual MMIO banks,
+  prior clock/TWI/register/regulator paths and real source division/stack helpers.
+  Entry, privileged CP15/WFI, PLL lock and full DRAM resume execution remain
+  untested. The source SRAM image is not integrated into the main secure-OS
+  carrier, whose hash/strict-comparison failure above are unchanged. Complete
+  SRAM and whole-bringup equality are not established; no physical bringup or
+  suspend/resume test ran. [Source and detailed history](../../vendor/optee/standby-src/README.md)
+  retain the individual instruction/data/relocation proofs and limitations.
   The following 12 ARM NOPs
   through carrier offset `0x60ff` are consistent with 256-byte wrapper alignment;
   zeroes then extend to `0x8000`. The exact wrapper/linker recipe still needs
