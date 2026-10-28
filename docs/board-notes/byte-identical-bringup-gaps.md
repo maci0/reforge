@@ -78,45 +78,35 @@ Remaining work:
   `0x20000`. Its 240-byte parameter header precedes ARM entry at `0x200f0`.
   The entry clear loop writes `0x220d0` through `0x2229c` **inclusively**;
   original allocated BSS/linker-symbol bounds remain unverified.
-  It performs DRAM/clock low-power transitions,
-  optional memory checks, PMIC/TWI operations, WFI and restore. Matching complete
-  source and integration are not yet reconstructed. Three memory helpers
-  (master-access enable/disable and checksum) now compile from C to all 116
-  original bytes, with no relocation exclusions. A published-source ARM runtime
-  adaptation reproduces another complete 420-byte linked block (division-zero
-  handler, signed/unsigned division and quotient/remainder wrappers), also with
-  no excluded fields. Four delay routines add 116 recovered bytes, matching
-  outside twelve genuine branch-relocation bytes; each original branch targets
-  the verified countdown helper. Total source-reconstructed function extents
-  are 900 bytes including the complete 88-byte descriptor selector and 160-byte
-  C PMIC register helpers. The latter match outside four actual TWI branches
-  (16 bytes), so 28 branch-relocation bytes total await the complete SRAM link.
-  Typed C also reconstructs 896 bytes of device/entry/range data, matching
-  outside four actual pointer relocations (16 bytes). The
-  [PMIC proof](stock-optee-standby-pmic-proof.json) records those fields, copied-source
-  repeats and ARM register/linked-table tests. The original table-count versus
-  inclusive-selector mismatch is retained, not silently repaired.
-  The loops and adjacent division runtime also match as one contiguous 472-byte
-  source-linked block with no excluded fields (588 completely matching bytes
-  including the C helpers). The selector raises full byte coverage to 676 bytes;
-  its [proof](stock-optee-standby-descriptor-proof.json) includes copied-source
-  repeatability and ARM selection-boundary tests.
-  The connected [TWI engine](stock-optee-standby-twi-proof.json) now reconstructs
-  another 932 code bytes plus the 20-byte controller table and 12-byte zeroed
-  state. All internal branch encodings match after linking; only twelve actual
-  MOVW/MOVT address-immediate fields (192 bits) await the full SRAM layout.
-  Opcodes and register choices are compared, not masked. The linked engine has
-  no undefined symbols. ARM tests exercise reactive simulated MMIO, all controller
-  bases, full stop/transfer polling limits, error paths and real PMIC callers.
-  Total recovered extents are now 1,832 code and 916 initialized-data bytes;
-  remaining regulator/DRAM/clock/entry code and full layout/integration are open.
-  Independent copied-source builds reproduce objects and runtime bytes, and
-  ARM QEMU verifies memory and arithmetic edge behavior. This is partial
-  recovery, separate from the current carrier.
-  [Source/recipe](../../vendor/optee/standby-src/README.md) and
-  [memory proof](stock-optee-standby-memory-proof.json) and
-  [runtime proof](stock-optee-standby-runtime-proof.json) and
-  [delay proof](stock-optee-standby-delay-proof.json) record those limits.
+  It performs DRAM/clock low-power transitions, optional memory checks,
+  PMIC/TWI operations, WFI and restore. Reconstructed extents now cover 2,872
+  function bytes plus 920 initialized-data bytes, separately from the unchanged
+  main carrier. C memory helpers, counted delays, selector, C PMIC helpers,
+  regulator policy, TWI, stack helpers and a published-source ARM division
+  runtime are retained in the [source/recipes](../../vendor/optee/standby-src/README.md).
+  The connected [PMIC/regulator/TWI/stack/runtime proof](stock-optee-standby-regulator-proof.json)
+  verifies a continuous 2,696-byte source-linked block with no branch exclusions.
+  Only twelve genuine TWI MOVW/MOVT address-immediate fields (192 bits) await
+  full layout; opcodes and register bits remain checked. Complete comparisons
+  cover all regulator and PMIC helpers, stack routines/literal, selector,
+  loops/runtime, and C memory helpers (1,876 function bytes in total).
+  Outside that block, three delay branches (12 bytes) and four table pointers
+  (16 bytes) also need complete layout. These are not whole-image exceptions.
+  The 12-byte TWI state is source-defined zeroed BSS. Two copied-source builds
+  reproduce objects/ELF; no symbols are undefined in the connected block.
+  ARM tests cover all 16 entries and 256 register codes, voltage/enable edge
+  semantics, source division/stack behavior, original null reads and error
+  propagation. [Reactive TWI tests](stock-optee-standby-twi-proof.json) execute
+  all controller bases and full stop/transfer polling limits. The original
+  table-count/inclusive-selector mismatch and driver quirks remain preserved.
+  Earlier PMIC setup, DRAM/clock/entry code, header, full data/BSS placement and
+  secure-OS integration remain unresolved. Complete source and whole-image
+  equality are not established; no physical bringup or suspend/resume test ran.
+  Supporting evidence: [memory](stock-optee-standby-memory-proof.json),
+  [runtime](stock-optee-standby-runtime-proof.json),
+  [delays](stock-optee-standby-delay-proof.json),
+  [selector](stock-optee-standby-descriptor-proof.json), and
+  [typed PMIC helpers/tables](stock-optee-standby-pmic-proof.json).
   The following 12 ARM NOPs
   through carrier offset `0x60ff` are consistent with 256-byte wrapper alignment;
   zeroes then extend to `0x8000`. The exact wrapper/linker recipe still needs

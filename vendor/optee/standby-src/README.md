@@ -1,14 +1,17 @@
 # Standalone SRAM standby reconstruction
 
-Coverage at 2026-10-28: **1,832 bytes of recovered function extents plus
-916 bytes of initialized data** from the original 8,400-byte SRAM image. Functions
+Coverage at 2026-10-28: **2,872 bytes of recovered function extents plus
+920 bytes of initialized data** from the original 8,400-byte SRAM image. Functions
 include C memory helpers (116), ARM runtime (420), counted delays (116), descriptor
-selection (88), C PMIC register helpers (160), and the connected TWI engine (932).
-Comparisons match every bit outside 28 branch-relocation bytes, 16 data-pointer
-bytes and twelve MOVW/MOVT address-immediate fields (192 bits). These require
+selection (88), C PMIC register helpers (160), the TWI engine (932), regulator
+policy (1,020), and stack switch/restore (20). Across these recovered extents,
+comparisons match every bit outside twelve delay-branch bytes, sixteen data-pointer
+bytes and twelve TWI MOVW/MOVT address-immediate fields (192 bits). These require
 the complete SRAM layout; they are not exceptions to the final whole-image gate.
-Complete function comparisons cover 676 bytes, including the contiguous 472-byte
-loop/runtime block. The connected TWI block also resolves all its internal branches.
+Complete function comparisons now cover 1,876 bytes. The connected 2,696-byte
+PMIC/regulator/TWI/stack/runtime block resolves every internal branch and includes
+its exact stack-address literal. The 12-byte TWI state is zero-initialized BSS,
+separate from initialized-data totals.
 [Runtime source and recipe](runtime/README.md) document its public source origin
 and explicit standalone ABI adaptation. This is separate recovery work; the main
 OP-TEE recipe still has no reconstructed complete standby payload or integration.
@@ -234,6 +237,53 @@ python3 tests/release/test_stock_optee_standby_twi.py
 
 [TWI proof](../../../docs/board-notes/stock-optee-standby-twi-proof.json) retains
 source/reference hashes, the exact immediate fields, original symbol targets,
-resolved-call checks and copied-source repeatability. Remaining regulator,
-DRAM/clock, entry/stack code and full SRAM data/BSS layout still prevent a complete
-payload and carrier build. No physical bus timing, PMIC or suspend/resume test ran.
+resolved-call checks and copied-source repeatability. The connected recovery
+below also supplies regulator and stack code. Earlier PMIC setup, DRAM/clock,
+entry code and full SRAM data/BSS layout still prevent a complete payload and
+carrier build. No physical bus timing, PMIC or suspend/resume test ran.
+
+## Connected regulator and stack recovery (2026-10-28)
+
+`regulator.S` reconstructs set/get voltage and set/get enable routines from
+SRAM `0x21358..0x21753` (1,020 bytes). `regulator.h` exposes their reconstructed
+interfaces. `stack.S` reconstructs the 12-byte switch and 8-byte restore routines
+plus their four-byte literal at `0x21af8..0x21b0f`. The literal is expressed from
+observed SRAM geometry (`0x20000 + 0x8000 - 16`), not an executable pointer or
+post-link substitution. The stack helpers change SP and must be called through
+assembly; a guest assembly adapter verifies switching and restoring the real SP.
+
+`pmic-twi-runtime.lds` links the selector, C PMIC helpers, regulators, TWI engine,
+stack routines, loops and published-source division runtime as one continuous
+**2,696-byte block**, matching original carrier `0x5260..0x5ce7` outside only the
+TWI global-address immediates already identified above. No branch bytes are
+masked: previous PMIC-to-TWI calls, regulator-to-TWI/update/division calls and
+all runtime/internal branches now compare completely. All four regulator bodies
+and both stack bodies match every byte in this linked profile. Source sections
+supply every byte in the block; no gap fill or reference payload is inserted.
+Two copied-source builds reproduce every object and the linked ELF, which has
+no undefined symbols. The final SRAM layout remains unresolved.
+
+The ARM test uses the real entry/range tables and recovered division runtime.
+It checks all 4,096 voltage reads and 4,096 enable reads (16 entries × 256 byte
+codes each), plus piecewise gaps/endpoints, linear rounding, fixed-voltage
+zero-divisor handling, no-write paths, error propagation and explicit enable/
+disable encodings. Separate runs observe each original invalid-selection null
+read using a SIGSEGV handler; the routines are not changed to return safe errors.
+The stack test maps guest virtual SRAM only, never physical memory.
+
+Observed behavior is preserved: linear voltage requests round up, piecewise
+requests round down, linear setters do not clamp to the maximum field, and
+voltage codes are not masked before merging into the output byte. With the
+legacy default disable encoding, an already-clear bit can still cause a write.
+Explicit enable/disable status fields compare the whole read byte. These facts
+are useful for fidelity; they do not establish corrected or hardware-safe behavior.
+
+```sh
+python3 tests/release/test_stock_optee_standby_regulator.py
+```
+
+[Regulator proof](../../../docs/board-notes/stock-optee-standby-regulator-proof.json)
+records full per-function hashes, the connected block comparison, exact stack
+literal and source-copy repeatability. Earlier PMIC setup and DRAM/clock/entry
+code, header, complete data/BSS placement and carrier integration are still open.
+No physical regulator, stack bringup or suspend/resume validation was performed.

@@ -213,3 +213,15 @@ source builds reproduce the linked ELF. [Proof](../../../docs/board-notes/stock-
 records the exact fields and original targets. The full unit suite passes without
 skips. Remaining SRAM code/layout and carrier integration are still open; the
 carrier artifact, size and strict-comparison failure above remain unchanged.
+
+## Connected standalone regulator/stack block (2026-10-28)
+
+The [connected recovery](../standby-src/README.md#connected-regulator-and-stack-recovery-2026-10-28)
+adds four regulator routines and both stack helpers. Selector, PMIC, regulators,
+TWI, stack, loops and division now link into a continuous 2,696-byte source block.
+All branches match, including previously masked PMIC calls. Only twelve actual
+TWI address-immediate fields still require full SRAM layout. ARM tests cover all
+entry/code pairs, rounding/boundary/error behavior, original invalid-selection
+faults and stack switch/restore in guest memory. [Proof](../../../docs/board-notes/stock-optee-standby-regulator-proof.json)
+records full new-function hashes and repeat builds. Main carrier artifacts and
+strict comparison remain unchanged; full standby and integration are unfinished.

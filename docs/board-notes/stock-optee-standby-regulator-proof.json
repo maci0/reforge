@@ -1,0 +1,152 @@
+{
+  "date": "2026-10-28",
+  "scope": "Connected standalone PMIC/regulator/TWI/stack/runtime reconstruction; main carrier unchanged",
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "new_function_extent_bytes": 1040,
+  "new_literal_bytes": 4,
+  "regulator_functions": [
+    {
+      "name": "standby_regulator_set_voltage",
+      "original_carrier_offset": "0x5358",
+      "length": 424,
+      "whole_linked_bytes_equal": true,
+      "sha256": "2a22326dcdc54a8623f854e8ceaff6627975527f62bc826bee8dd348b12aa37f"
+    },
+    {
+      "name": "standby_regulator_get_voltage",
+      "original_carrier_offset": "0x5500",
+      "length": 248,
+      "whole_linked_bytes_equal": true,
+      "sha256": "5b733547bbeea4f185afc61066212b9d709b399f90c95e9c6489af1c9a80f136"
+    },
+    {
+      "name": "standby_regulator_set_enabled",
+      "original_carrier_offset": "0x55f8",
+      "length": 148,
+      "whole_linked_bytes_equal": true,
+      "sha256": "975d1a7be685693c314be0e5b41aaf6fa44d673c8728c082ebf18520dbee56c6"
+    },
+    {
+      "name": "standby_regulator_get_enabled",
+      "original_carrier_offset": "0x568c",
+      "length": 200,
+      "whole_linked_bytes_equal": true,
+      "sha256": "e4c08dbc4deb7f1aa2cff957074538f47bbc5bc079d55bc5f6dd12e5521ddb97"
+    }
+  ],
+  "stack_block": {
+    "original_carrier_offset": "0x5af8",
+    "length": 24,
+    "function_bytes": 20,
+    "literal_bytes": 4,
+    "whole_linked_bytes_equal": true,
+    "sha256": "e5a799c49f6c7918e930ed838c6761a5851d6e10b181ffafbe739eee2aa57caf",
+    "stack_top": "0x27ff0",
+    "source_expression": "0x20000 + 0x8000 - 16",
+    "basis": "Observed SRAM base/32-KiB mapping and original top-of-stack literal; no executable pointer substitution"
+  },
+  "connected_block": {
+    "original_carrier_offset": "0x5260",
+    "original_sram_address": "0x21260",
+    "length": 2696,
+    "instruction_bytes": 2692,
+    "literal_bytes": 4,
+    "normalized_sha256": "9a19fe0779a925ffccd3b56538b604fd3dd83a3ab4790760dd81c7d16c79d4c2",
+    "raw_differing_byte_positions": [
+      1268,
+      1269,
+      1270,
+      1276,
+      1412,
+      1414,
+      1420,
+      1424,
+      1425,
+      1426,
+      1432,
+      1492,
+      1493,
+      1494,
+      1500,
+      1516,
+      1517,
+      1518,
+      1524,
+      1592,
+      1593,
+      1594,
+      1600
+    ],
+    "only_masked_fields": "12 actual TWI MOVW/MOVT address immediates, mask 0x000f0fff, 192 bits total",
+    "all_other_bits_equal": true,
+    "branch_bytes_excluded": 0,
+    "undefined_symbols": []
+  },
+  "source_sha256": {
+    "vendor/optee/standby-src/pmic.c": "c69cecc1d082402f795df9faa83b116e43a89258bd0cdcae258b602ac141db6b",
+    "vendor/optee/standby-src/pmic.h": "28bde0bece26d1a6e5cdcb44399a831517566c53b935760f8fbf02ec5cebc858",
+    "vendor/optee/standby-src/pmic-data.c": "cbda712f7187434963283204b8ca177900ece772477c949da9028f0e1d3e3dd7",
+    "vendor/optee/standby-src/pmic-data.h": "186c31c6b9bf609225e6eb189d7328bbde4e2aca65df3dc04c7ceb3adbfcaf4f",
+    "vendor/optee/standby-src/descriptor.S": "b13e8a2ce0f502feafb9e28d425289bb63f5b24a1de53ea3b08ce1b4bdc9b2ba",
+    "vendor/optee/standby-src/regulator.S": "4e99da4785f07d7ae5adf662632abad9c7b489bd774e94e058732e676130b86e",
+    "vendor/optee/standby-src/regulator.h": "9f974ecbbeca7f937e435cddabefe3b7a1de7ce53c410b582ce9c0955875c296",
+    "vendor/optee/standby-src/twi.c": "e81995ef73c9664decfc72656f45fa67d69da5c717b11702b5945b76f45fc8aa",
+    "vendor/optee/standby-src/twi.h": "61d7ca29c39368edcd87f4ed57d834bcc593f803350d2999f88769546b6f334c",
+    "vendor/optee/standby-src/twi-transfer.S": "ae7660c2764ca98545e1554a296dce4037c1fbe9b0864cdf88ab925a0d60b6e3",
+    "vendor/optee/standby-src/stack.S": "d69d0e3b49d2b73816b371e55238cc70f89de392de0477f89358e8f081ee10c7",
+    "vendor/optee/standby-src/spin.S": "4a3dbb4cc1a4e183321c5f35f225f95d1288cabbb796436ac00b1f59e08ddec5",
+    "vendor/optee/standby-src/pmic-twi-runtime.lds": "d88db761e59befc0edd302641c9db3665576fe52be77efbc8f57600ef7432c31",
+    "vendor/optee/standby-src/runtime/lib1funcs.S": "f7a729a1f16ce16de2e2a55781be5c8609fb71556eb96e0b1545af3842649097",
+    "vendor/optee/standby-src/runtime/standby-div0.patch": "5dd5ef26a98bc85ebb8185879de72b9fc1922087438197333f7d87abf2e7921e",
+    "vendor/optee/standby-src/runtime/abi/linux/linkage.h": "e5ef1404ea1e69857b044f2b00c2d5f30faa95bff2f3867bfcab675cc9ba1dcc",
+    "vendor/optee/standby-src/runtime/abi/asm/assembler.h": "0260bf3006b139f1e31ff4576e0915220a46fbe458e4b134f3f13505fbaa4446"
+  },
+  "compile_flags": [
+    "-O2",
+    "-marm",
+    "-march=armv7-a",
+    "-mtune=cortex-a9",
+    "-ffreestanding",
+    "-fno-builtin",
+    "-fno-unwind-tables",
+    "-ffunction-sections",
+    "-fno-section-anchors"
+  ],
+  "copied_source_directories": [
+    "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-standby-regulator/copy-a",
+    "/tmp/reforge-standby-regulator-copy-b-20261028"
+  ],
+  "all_objects_and_linked_elf_repeat_equal": true,
+  "linked_elf_sha256": "9ba364331c6bb23dcb2ea152ea386386dbd8de59b8af54ada2700447021bfc11",
+  "qemu_validation": {
+    "all_real_entries": 16,
+    "read_codes_per_entry": 256,
+    "checks": [
+      "All 4096 voltage reads and 4096 enable reads against the recovered tables",
+      "Linear ceil versus piecewise floor, range gaps and endpoints, fixed-voltage zero-divisor behavior",
+      "No maximum clamping and unmasked high voltage-code write preserved",
+      "Read/write error propagation, unchanged-code no-write paths",
+      "Default and explicit enable/disable encodings, exact-byte status comparisons",
+      "All four invalid-selection null-read addresses observed through SIGSEGV handlers",
+      "Actual stack switch and restore in guest virtual SRAM"
+    ]
+  },
+  "limitations": [
+    "Full SRAM header, earlier clock/DRAM/PMIC setup routines, layout and secure-OS integration remain unfinished",
+    "TWI global-address immediate values still require full SRAM placement; no final whole-image exception",
+    "Original invalid-selection faults and enable/voltage quirks intentionally preserved",
+    "Typed field/function names are reconstruction names, not recovered original debug names",
+    "No physical PMIC/TWI, stack bringup or suspend/resume execution"
+  ],
+  "validation": {
+    "full_unit_suite": "passed, no skips",
+    "log": "build/unit-optee-standby-regulator.log",
+    "test_sha256": {
+      "tests/release/test_stock_optee_standby_regulator.py": "5d23b25ef437426bd5e4f807b700b3dada2106c5d987cd93da138998114c7b42",
+      "tests/release/stock_optee_standby_regulator_guest.c": "6a78d3bc7f949877bec0be35e46e48266bd5723e34521bad35558fb2253d4119"
+    },
+    "guest_test_text_segment": "0x100000, outside the SRAM test page",
+    "guest_stack_mapping": "non-replacing anonymous virtual mapping at 0x27000",
+    "physical_hardware": false
+  }
+}
