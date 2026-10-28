@@ -1,17 +1,16 @@
 # Standalone SRAM standby reconstruction
 
-Coverage at 2026-10-28: **2,872 bytes of recovered function extents plus
-920 bytes of initialized data** from the original 8,400-byte SRAM image. Functions
-include C memory helpers (116), ARM runtime (420), counted delays (116), descriptor
-selection (88), C PMIC register helpers (160), the TWI engine (932), regulator
-policy (1,020), and stack switch/restore (20). Across these recovered extents,
-comparisons match every bit outside twelve delay-branch bytes, sixteen data-pointer
-bytes and twelve TWI MOVW/MOVT address-immediate fields (192 bits). These require
-the complete SRAM layout; they are not exceptions to the final whole-image gate.
-Complete function comparisons now cover 1,876 bytes. The connected 2,696-byte
-PMIC/regulator/TWI/stack/runtime block resolves every internal branch and includes
-its exact stack-address literal. The 12-byte TWI state is zero-initialized BSS,
-separate from initialized-data totals.
+Coverage at 2026-10-28: **3,252 bytes of recovered function extents plus
+920 bytes of initialized data** from the original 8,400-byte SRAM image. Recovered
+modules cover memory helpers, counted delays, descriptor selection, PMIC setup/
+register/group operations, regulator policy, TWI, stack, the division runtime,
+and the secure-WFI primitive. Across these extents, comparisons match every bit
+outside twelve delay-branch bytes, sixteen data-pointer bytes and eighteen
+MOVW/MOVT address-immediate fields (288 bits). These require complete SRAM layout;
+they are not exceptions to the final whole-image gate. Complete function-byte
+comparisons cover 2,016 bytes. The connected 3,076-byte secure-WFI/PMIC/regulator/
+TWI/stack/runtime block resolves every branch and includes its exact stack literal.
+The 12-byte TWI state is zero-initialized BSS, outside initialized-data totals.
 [Runtime source and recipe](runtime/README.md) document its public source origin
 and explicit standalone ABI adaptation. This is separate recovery work; the main
 OP-TEE recipe still has no reconstructed complete standby payload or integration.
@@ -287,3 +286,53 @@ records full per-function hashes, the connected block comparison, exact stack
 literal and source-copy repeatability. Earlier PMIC setup and DRAM/clock/entry
 code, header, complete data/BSS placement and carrier integration are still open.
 No physical regulator, stack bringup or suspend/resume validation was performed.
+
+## PMIC setup, grouped control and secure WFI (2026-10-28)
+
+`pmic-setup.c` reconstructs preparation (108 bytes), direct register-3 read
+(20), and address/controller initialization (24) from C. `pmic-group.S`
+reconstructs the 132-byte grouped-control routine with its original signed-byte
+loads and register allocation. The C candidate for grouping was not byte-identical;
+the readable ARM source supplies symbolic device/selector/update references.
+`pmic-setup.h` declares the reconstructed interfaces.
+
+Preparation writes `0xff` to registers `0x48`, `0x49`, `0x4a`, then `0x1d` to
+`0x26`. It ignores the first three statuses and returns the fourth. Grouped control
+considers only entry bits 0..15 whose full control-register field equals the
+request; it gathers their byte masks and calls update even for empty/unmatched
+selection. Its legacy request encoding can force an unchanged write. The ID
+wrapper passes the full address argument with register 3. Initialization stores
+the full address word before calling TWI init, and returns zero regardless of
+its callee's status. These observed behaviors are preserved, not corrected.
+
+The ARM test executes **1,048,576 grouped cases**: every 16-bit subset, four
+control registers (including a nonmatching high-valued register), and four old
+bytes. It uses the real selector, register-update helper and entry data with a
+test-only TWI/init recorders. Additional cases check high flag bits, empty masks, errors,
+preparation ordering/return behavior, ID reads, address-store ordering and all
+five forwarded controller indices.
+
+`power.S` reconstructs the adjacent 96-byte secure-WFI primitive at SRAM
+`0x210e4`. Every byte matches, including its MMIO/key writes, SCR save/set/restore,
+barriers and WFI. This is **static instruction verification only**: no userspace
+QEMU execution is claimed for privileged CP15/WFI or the board power sequence.
+The execution guest deliberately does not link or call this primitive.
+
+`pmic-control-runtime.lds` extends the connected block to **3,076 bytes** at
+carrier `0x50e4..0x5ce7`. All branch encodings match. Only eighteen real MOVW/
+MOVT address-immediate fields remain masked: six refer to the original device
+record at `0x21dc0`, and the previous twelve to TWI state/controller-table symbols.
+All opcode/register bits remain compared. No fixed function addresses, reference
+payload, gap fill or post-link edits supply the block. Two copied-source builds
+reproduce every object and the linked ELF with no undefined symbols. Earlier
+profiles and their individual object relocation checks remain available.
+
+```sh
+python3 tests/release/test_stock_optee_standby_pmic_setup.py
+```
+
+[Setup/WFI proof](../../../docs/board-notes/stock-optee-standby-pmic-setup-proof.json)
+records source and original hashes, exact masked fields, original device target,
+repeat builds and execution scope. Header/entry, earlier DRAM/clock routines,
+complete data/BSS placement and carrier integration remain open. No physical PMIC,
+CPU power transition or suspend/resume validation has run.

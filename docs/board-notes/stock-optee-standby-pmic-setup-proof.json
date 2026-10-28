@@ -1,0 +1,205 @@
+{
+  "date": "2026-10-28",
+  "scope": "Extended standalone source reconstruction; main OP-TEE carrier unchanged",
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "new_function_extent_bytes": 380,
+  "functions": [
+    {
+      "name": "standby_secure_wfi",
+      "original_carrier_offset": "0x50e4",
+      "length": 96,
+      "whole_linked_bytes_equal": true,
+      "address_immediate_offsets": [],
+      "compared_bits_equal": true,
+      "normalized_sha256": "f1c10ea8e36b1d72e21862ecaa3772a8e770da5996f06863623bbb67212d0586",
+      "privileged_runtime_tested": false
+    },
+    {
+      "name": "standby_pmic_prepare",
+      "original_carrier_offset": "0x5144",
+      "length": 108,
+      "whole_linked_bytes_equal": false,
+      "address_immediate_offsets": [
+        4,
+        20
+      ],
+      "compared_bits_equal": true,
+      "normalized_sha256": "bc712e8ba8bf9dd3ce9ee49b908edb81d1b4910a467aa8111302e4ada42901c5"
+    },
+    {
+      "name": "standby_pmic_group_control",
+      "original_carrier_offset": "0x51b0",
+      "length": 132,
+      "whole_linked_bytes_equal": false,
+      "address_immediate_offsets": [
+        8,
+        24,
+        104,
+        120
+      ],
+      "compared_bits_equal": true,
+      "normalized_sha256": "dd8225856b2f3b83b2aed7cfb2e0b394944534d3a3cdf57837594bb30d0b7140"
+    },
+    {
+      "name": "standby_pmic_read_id",
+      "original_carrier_offset": "0x5234",
+      "length": 20,
+      "whole_linked_bytes_equal": true,
+      "address_immediate_offsets": [],
+      "compared_bits_equal": true,
+      "normalized_sha256": "5863ca01e8e75f150bc4a450520304675a1f5d8dde9eddbb4f3a8c3f546f0b44"
+    },
+    {
+      "name": "standby_pmic_initialize",
+      "original_carrier_offset": "0x5248",
+      "length": 24,
+      "whole_linked_bytes_equal": true,
+      "address_immediate_offsets": [],
+      "compared_bits_equal": true,
+      "normalized_sha256": "1d236287a1c99df2d9efc38af068178ca189576d819c82b466d080733d8b2983"
+    }
+  ],
+  "connected_block": {
+    "original_carrier_offset": "0x50e4",
+    "original_sram_address": "0x210e4",
+    "length": 3076,
+    "instruction_bytes": 3072,
+    "literal_bytes": 4,
+    "normalized_sha256": "b7165695763bac1e0769203b54d936aa124685c5bab3b06e1fda9167bd41b0da",
+    "raw_differing_byte_positions": [
+      100,
+      101,
+      102,
+      116,
+      212,
+      213,
+      214,
+      228,
+      308,
+      309,
+      310,
+      324,
+      1648,
+      1649,
+      1650,
+      1656,
+      1792,
+      1793,
+      1794,
+      1800,
+      1804,
+      1805,
+      1806,
+      1812,
+      1872,
+      1873,
+      1874,
+      1880,
+      1896,
+      1897,
+      1898,
+      1904,
+      1972,
+      1973,
+      1974,
+      1980
+    ],
+    "masked_mov_immediate_offsets": [
+      100,
+      116,
+      212,
+      228,
+      308,
+      324,
+      1648,
+      1656,
+      1792,
+      1800,
+      1804,
+      1812,
+      1872,
+      1880,
+      1896,
+      1904,
+      1972,
+      1980
+    ],
+    "mask_per_actual_relocation": "0x000f0fff",
+    "masked_immediate_bits": 288,
+    "branch_bytes_excluded": 0,
+    "all_other_bits_equal": true,
+    "undefined_symbols": []
+  },
+  "new_address_pairs_target": {
+    "original_address": "0x21dc0",
+    "source_symbol": "standby_pmic_device"
+  },
+  "source_sha256": {
+    "vendor/optee/standby-src/power.S": "7c6903c91b8fe00b4894aca1f505c08c1dc1a9e4d3c520e8c397ba7da3aa62e0",
+    "vendor/optee/standby-src/pmic-setup.c": "f807e6ed46bf8dfae7807fd8a9600b45a81531597504bf30e3a0315425741a4c",
+    "vendor/optee/standby-src/pmic-setup.h": "207a96b0f17ec425742e6c4fdb0b03ff3c55f30aaae84659375d47a8d063c217",
+    "vendor/optee/standby-src/pmic-group.S": "12725f39c0440b3083be50ae457d3ca47ceba6a288b5a4fa9afb40996533211e",
+    "vendor/optee/standby-src/pmic.c": "c69cecc1d082402f795df9faa83b116e43a89258bd0cdcae258b602ac141db6b",
+    "vendor/optee/standby-src/pmic.h": "28bde0bece26d1a6e5cdcb44399a831517566c53b935760f8fbf02ec5cebc858",
+    "vendor/optee/standby-src/pmic-data.c": "cbda712f7187434963283204b8ca177900ece772477c949da9028f0e1d3e3dd7",
+    "vendor/optee/standby-src/pmic-data.h": "186c31c6b9bf609225e6eb189d7328bbde4e2aca65df3dc04c7ceb3adbfcaf4f",
+    "vendor/optee/standby-src/descriptor.S": "b13e8a2ce0f502feafb9e28d425289bb63f5b24a1de53ea3b08ce1b4bdc9b2ba",
+    "vendor/optee/standby-src/regulator.S": "4e99da4785f07d7ae5adf662632abad9c7b489bd774e94e058732e676130b86e",
+    "vendor/optee/standby-src/twi.c": "e81995ef73c9664decfc72656f45fa67d69da5c717b11702b5945b76f45fc8aa",
+    "vendor/optee/standby-src/twi.h": "61d7ca29c39368edcd87f4ed57d834bcc593f803350d2999f88769546b6f334c",
+    "vendor/optee/standby-src/twi-transfer.S": "ae7660c2764ca98545e1554a296dce4037c1fbe9b0864cdf88ab925a0d60b6e3",
+    "vendor/optee/standby-src/stack.S": "d69d0e3b49d2b73816b371e55238cc70f89de392de0477f89358e8f081ee10c7",
+    "vendor/optee/standby-src/spin.S": "4a3dbb4cc1a4e183321c5f35f225f95d1288cabbb796436ac00b1f59e08ddec5",
+    "vendor/optee/standby-src/pmic-control-runtime.lds": "db5dc068d6d2cf16e9054070228c21b77d88bfd251303d42c0a21465bd6b747d",
+    "vendor/optee/standby-src/runtime/lib1funcs.S": "f7a729a1f16ce16de2e2a55781be5c8609fb71556eb96e0b1545af3842649097",
+    "vendor/optee/standby-src/runtime/standby-div0.patch": "5dd5ef26a98bc85ebb8185879de72b9fc1922087438197333f7d87abf2e7921e",
+    "vendor/optee/standby-src/runtime/abi/linux/linkage.h": "e5ef1404ea1e69857b044f2b00c2d5f30faa95bff2f3867bfcab675cc9ba1dcc",
+    "vendor/optee/standby-src/runtime/abi/asm/assembler.h": "0260bf3006b139f1e31ff4576e0915220a46fbe458e4b134f3f13505fbaa4446"
+  },
+  "compile_flags": [
+    "-O2",
+    "-marm",
+    "-march=armv7-a",
+    "-mtune=cortex-a9",
+    "-ffreestanding",
+    "-fno-builtin",
+    "-fno-unwind-tables",
+    "-ffunction-sections",
+    "-fno-section-anchors"
+  ],
+  "copied_source_directories": [
+    "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-standby-pmic-setup/copy-a",
+    "/tmp/reforge-standby-pmic-setup-copy-b-20261028"
+  ],
+  "all_objects_and_linked_elf_repeat_equal": true,
+  "linked_elf_sha256": "e6dd60e1a919cfde9410cf8655588c9a5e2cdda93795ea916809ec96d3afdc36",
+  "qemu_validation": {
+    "group_cases": 1048576,
+    "group_inputs": "All 65536 subsets, four control registers and four old bytes, using actual table/selector/update sources",
+    "other_checks": [
+      "Preparation write order/values and propagation of only the final status",
+      "High flag bits ignored; empty/unmatched masks still reach update",
+      "Group read/write failures propagate",
+      "Direct ID read uses register 3, preserves full address argument and callee status",
+      "Initialization stores full address before call, forwards five controller indices and ignores failure status"
+    ],
+    "method": "Unmodified setup/group/selector/update sources execute with test-only TWI transfer and init recorders"
+  },
+  "limitations": [
+    "Secure WFI compared statically only; privileged CP15/WFI/MMIO execution not tested",
+    "Remaining earlier header/entry/DRAM/clock code, full data/BSS placement and carrier integration unfinished",
+    "18 actual global-address immediate fields still await complete SRAM layout; no whole-image exceptions",
+    "Reconstructed names/types are not original debug input recovery",
+    "No physical PMIC, CPU power transition or suspend/resume execution"
+  ],
+  "validation": {
+    "full_unit_suite": "passed, no skips",
+    "log": "build/unit-optee-standby-pmic-setup.log",
+    "test_sha256": {
+      "tests/release/test_stock_optee_standby_pmic_setup.py": "e61053ad5e6ebf50d9362d75096db779e41de5fe034b743f09b469720438f07e",
+      "tests/release/stock_optee_standby_pmic_setup_guest.c": "357bcd6aa6fd9c8e8f39981bf2b64c2f8249dc4c15e97cff85dca5c4c51c16a2"
+    },
+    "physical_hardware": false,
+    "privileged_wfi_execution": false
+  }
+}

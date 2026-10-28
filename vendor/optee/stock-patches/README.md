@@ -225,3 +225,16 @@ entry/code pairs, rounding/boundary/error behavior, original invalid-selection
 faults and stack switch/restore in guest memory. [Proof](../../../docs/board-notes/stock-optee-standby-regulator-proof.json)
 records full new-function hashes and repeat builds. Main carrier artifacts and
 strict comparison remain unchanged; full standby and integration are unfinished.
+
+## Extended standalone setup and WFI block (2026-10-28)
+
+The [setup/WFI recovery](../standby-src/README.md#pmic-setup-grouped-control-and-secure-wfi-2026-10-28)
+adds three C setup wrappers, grouped control in ARM source, and the 96-byte secure
+WFI primitive. A continuous 3,076-byte linked block now compares with no branch
+exclusions; eighteen genuine address-immediate fields await full SRAM layout.
+ARM tests cover 1,048,576 grouped transactions and preparation/init/error paths.
+The secure-WFI body matches all bytes but has no privileged execution validation.
+[Proof](../../../docs/board-notes/stock-optee-standby-pmic-setup-proof.json) records
+source-copy repeats and the exact comparison/execution boundary. The main carrier
+and its strict comparison remain unchanged; header/earlier code/layout/integration
+are still unfinished.
