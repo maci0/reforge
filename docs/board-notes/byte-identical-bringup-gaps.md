@@ -88,8 +88,14 @@ Remaining work:
   no excluded fields. Four delay routines add 116 recovered bytes, matching
   outside twelve genuine branch-relocation bytes; each original branch targets
   the verified countdown helper. Total source-reconstructed function extents
-  are 740 bytes after the additional complete 88-byte descriptor selector,
-  with those twelve bytes still requiring the complete SRAM link.
+  are 900 bytes including the complete 88-byte descriptor selector and 160-byte
+  C PMIC register helpers. The latter match outside four actual TWI branches
+  (16 bytes), so 28 branch-relocation bytes total await the complete SRAM link.
+  Typed C also reconstructs 896 bytes of device/entry/range data, matching
+  outside four actual pointer relocations (16 bytes). The
+  [PMIC proof](stock-optee-standby-pmic-proof.json) records those fields, copied-source
+  repeats and ARM register/linked-table tests. The original table-count versus
+  inclusive-selector mismatch is retained, not silently repaired.
   The loops and adjacent division runtime also match as one contiguous 472-byte
   source-linked block with no excluded fields (588 completely matching bytes
   including the C helpers). The selector raises full byte coverage to 676 bytes;

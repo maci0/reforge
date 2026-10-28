@@ -1,12 +1,16 @@
 # Standalone SRAM standby reconstruction
 
-Coverage at 2026-10-28: **740 bytes of recovered function extents** from the
-original 8,400-byte SRAM image: C memory helpers (116), ARM runtime (420),
-counted-delay routines (116), and descriptor selection (88). Complete comparisons
-cover 676 bytes; the delay comparison excludes only twelve actual branch-relocation
-bytes pending the full link. [Runtime source and recipe](runtime/README.md) document its public
-source origin and explicit standalone ABI adaptation. This is separate recovery work; the main OP-TEE recipe
-still has no reconstructed complete standby payload or service integration.
+Coverage at 2026-10-28: **900 bytes of recovered function extents plus
+896 bytes of typed PMIC data** from the original 8,400-byte SRAM image. Functions
+include C memory helpers (116), ARM runtime (420), counted delays (116), descriptor
+selection (88), and C PMIC register helpers (160). Comparisons match all bytes
+outside 28 actual branch-relocation bytes in function bodies and 16
+bytes across four pointer relocations in the data. These require the complete SRAM link; they are not
+exceptions to the final whole-image gate. Complete function comparisons cover
+676 bytes, including the contiguous 472-byte loop/runtime block.
+[Runtime source and recipe](runtime/README.md) document its public source origin
+and explicit standalone ABI adaptation. This is separate recovery work; the main
+OP-TEE recipe still has no reconstructed complete standby payload or integration.
 
 | C helper | Original SRAM address | Carrier offset | Bytes |
 |---|---:|---:|---:|
@@ -125,7 +129,52 @@ python3 tests/release/test_stock_optee_standby_descriptor.py
 ```
 
 [Descriptor proof](../../../docs/board-notes/stock-optee-standby-descriptor-proof.json)
-records source/reference hashes. Combined recovered function extents now total
+records source/reference hashes. At that recovery stage, function extents totalled
 740 bytes, of which 676 compare completely and twelve actual branch-relocation
 bytes in the remaining 64-byte delay wrappers await the full SRAM link.
 The main carrier remains unchanged; this is not a complete standby image.
+
+## PMIC register helpers and tables (2026-10-28)
+
+`pmic.c` reconstructs three helpers from C: read at SRAM `0x212b8` (20 bytes),
+write at `0x212cc` (20), and masked update at `0x212e0` (120). The pinned GCC 5.3
+flags used for the memory helpers reproduce every instruction outside four
+actual branch relocations to `standby_twi_transfer`. All four original branches
+target SRAM `0x21880`; the source uses that unresolved symbol, not a fixed
+executable address. No target-code arrays or post-link substitutions are used.
+
+The update helper reads first and returns on read failure. It compares
+`(old & mask)` with the **unmasked** request before deciding whether to write;
+only the write combines `(old & ~mask) | (request & mask)`, truncated to a byte.
+It returns the write status. An ARM test covers all 256 old bytes, all 256 byte
+masks, and five requests each (327,680 cases), plus direct calls, high-bit masks
+and requests, no-write paths and failure propagation. The test-only TWI backend
+records transactions; it is not compiled into the production sources.
+
+`pmic-data.c` reconstructs the 16-byte device record, sixteen 48-byte entries,
+and three piecewise voltage-range tables (112 bytes). These total 896 bytes at
+carrier `0x5d08..0x5d77` and `0x5dc0..0x60cf`. Every non-pointer byte matches;
+the four actual `R_ARM_ABS32` relocations reference the entry array and its three
+range tables. Linked ARM tests validate all sixteen selector results and range
+pointers using the real recovered selector. Field names express observed consumer
+behavior; original C/debug names and the PMIC part identity are not established.
+
+The original device address is zero and must be initialized by its caller.
+The table count is 16, although the recovered selector treats that bound
+inclusively. Selecting bit 16 consequently returns a one-past-end pointer. This
+original behavior is retained and tested without dereference; this partial
+reconstruction must not be deployed as a corrected driver.
+
+Two copied-source builds reproduce each object and the combined relocatable
+object. The link uses relative input paths so GNU ld's automatically generated
+`STT_FILE` symbol does not capture the build directory. The only undefined symbol
+in the combined PMIC/data/selector object is `standby_twi_transfer`.
+
+```sh
+python3 tests/release/test_stock_optee_standby_pmic.py
+```
+
+[PMIC proof](../../../docs/board-notes/stock-optee-standby-pmic-proof.json) records
+hashes, relocation fields and original branch/pointer targets. The TWI engine,
+remaining regulator consumers, full SRAM link and main carrier integration remain
+unfinished. No physical PMIC/TWI, calibrated timing or suspend/resume test was run.

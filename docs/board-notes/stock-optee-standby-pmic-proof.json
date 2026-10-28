@@ -1,0 +1,171 @@
+{
+  "date": "2026-10-28",
+  "scope": "Partial source recovery; main OP-TEE carrier unchanged",
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "function_extent_bytes": 160,
+  "function_relocation_bytes": 16,
+  "data_extent_bytes": 896,
+  "data_relocation_bytes": 16,
+  "functions": [
+    {
+      "name": "standby_pmic_read",
+      "original_carrier_offset": "0x52b8",
+      "length": 20,
+      "actual_relocation_offsets": [
+        16
+      ],
+      "other_bytes_equal": true,
+      "sha256_after_zeroing_relocations": "20185a79231fb8ec0fb0273b271029b5ce47bdb43d3194f3f92f3ca601a8264b",
+      "original_branch_targets": [
+        "0x21880"
+      ],
+      "source_target": "standby_twi_transfer"
+    },
+    {
+      "name": "standby_pmic_write",
+      "original_carrier_offset": "0x52cc",
+      "length": 20,
+      "actual_relocation_offsets": [
+        16
+      ],
+      "other_bytes_equal": true,
+      "sha256_after_zeroing_relocations": "8acaaaf2e4e23ce9409aeef9d26ecfb34a460a0905ef31b6be47eab44f9159a4",
+      "original_branch_targets": [
+        "0x21880"
+      ],
+      "source_target": "standby_twi_transfer"
+    },
+    {
+      "name": "standby_pmic_update",
+      "original_carrier_offset": "0x52e0",
+      "length": 120,
+      "actual_relocation_offsets": [
+        48,
+        108
+      ],
+      "other_bytes_equal": true,
+      "sha256_after_zeroing_relocations": "6092aa77152a5323fad497545408e2a3d646ad86892cbcaa5fe668ab8adf3256",
+      "original_branch_targets": [
+        "0x21880",
+        "0x21880"
+      ],
+      "source_target": "standby_twi_transfer"
+    }
+  ],
+  "tables": [
+    {
+      "name": "standby_pmic_ranges_3",
+      "original_carrier_offset": "0x5d08",
+      "length": 32,
+      "actual_relocation_offsets": [],
+      "other_bytes_equal": true,
+      "sha256_after_zeroing_relocations": "c6dc126a513827965d182fe4294b5289ed24d49b70f702e1ec5bace8be17f999",
+      "original_pointer_targets": []
+    },
+    {
+      "name": "standby_pmic_ranges_2",
+      "original_carrier_offset": "0x5d28",
+      "length": 48,
+      "actual_relocation_offsets": [],
+      "other_bytes_equal": true,
+      "sha256_after_zeroing_relocations": "6304738977bfbb502c262566704b0ee38e2e5a78dd7f2d9dadf1b056aa160d66",
+      "original_pointer_targets": []
+    },
+    {
+      "name": "standby_pmic_ranges_1",
+      "original_carrier_offset": "0x5d58",
+      "length": 32,
+      "actual_relocation_offsets": [],
+      "other_bytes_equal": true,
+      "sha256_after_zeroing_relocations": "1d0612c91c2e4d39b0a49e63f7bba41201c855b44765972c8cd87501ba60ddd3",
+      "original_pointer_targets": []
+    },
+    {
+      "name": "standby_pmic_device",
+      "original_carrier_offset": "0x5dc0",
+      "length": 16,
+      "actual_relocation_offsets": [
+        12
+      ],
+      "other_bytes_equal": true,
+      "sha256_after_zeroing_relocations": "ef4097f995a2af33eb31599bb6844f37d4c3057ff7a9fd1285ab72b4cca9405d",
+      "original_pointer_targets": [
+        "0x21dd0"
+      ]
+    },
+    {
+      "name": "standby_pmic_entries",
+      "original_carrier_offset": "0x5dd0",
+      "length": 768,
+      "actual_relocation_offsets": [
+        84,
+        132,
+        180
+      ],
+      "other_bytes_equal": true,
+      "sha256_after_zeroing_relocations": "eae2576fdf51a250e6f6a06fce69ca97b7f4ea801d6f06bdb29e20b8272ca2dc",
+      "original_pointer_targets": [
+        "0x21d58",
+        "0x21d28",
+        "0x21d08"
+      ]
+    }
+  ],
+  "source_sha256": {
+    "vendor/optee/standby-src/pmic.c": "c69cecc1d082402f795df9faa83b116e43a89258bd0cdcae258b602ac141db6b",
+    "vendor/optee/standby-src/pmic.h": "28bde0bece26d1a6e5cdcb44399a831517566c53b935760f8fbf02ec5cebc858",
+    "vendor/optee/standby-src/pmic-data.c": "cbda712f7187434963283204b8ca177900ece772477c949da9028f0e1d3e3dd7",
+    "vendor/optee/standby-src/pmic-data.h": "186c31c6b9bf609225e6eb189d7328bbde4e2aca65df3dc04c7ceb3adbfcaf4f"
+  },
+  "compile_flags": [
+    "-O2",
+    "-marm",
+    "-march=armv7-a",
+    "-mtune=cortex-a9",
+    "-ffreestanding",
+    "-fno-builtin",
+    "-fno-unwind-tables",
+    "-ffunction-sections"
+  ],
+  "copied_source_directories": [
+    "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-standby-pmic/copy-a",
+    "/tmp/reforge-standby-pmic-copy-b-20261028"
+  ],
+  "all_objects_repeat_equal": true,
+  "link_command": [
+    "ld",
+    "-r",
+    "pmic.o",
+    "pmic-data.o",
+    "descriptor.o",
+    "-o",
+    "combined.o"
+  ],
+  "combined_object_sha256": "70dbb1abd5c68090d3b9b6be0fa86160dd2ab3d9d5197edd442c91e4f56c21e4",
+  "combined_undefined_symbols": [
+    "standby_twi_transfer"
+  ],
+  "qemu_validation": {
+    "register_cases": 327680,
+    "additional_checks": [
+      "Direct read/write argument propagation",
+      "Read failure prevents write",
+      "Write failure propagates",
+      "Unmasked comparison versus masked output",
+      "High-bit request and mask truncation",
+      "All 16 real descriptor entries and linked range pointers",
+      "Bit 16 returns one-past-end pointer; never dereferenced"
+    ]
+  },
+  "limitations": [
+    "TWI transfer implementation, full SRAM layout and integration remain unfinished",
+    "Actual branches and pointer relocations await the complete SRAM link; no final whole-image exceptions",
+    "No physical PMIC/TWI or suspend/resume execution",
+    "Original count/selector inclusive-bound mismatch retained",
+    "Record field names are inferred from observed consumers, not recovered source/debug names"
+  ],
+  "full_unit_suite": {
+    "result": "passed, no skips",
+    "log": "build/unit-optee-standby-pmic.log"
+  }
+}
