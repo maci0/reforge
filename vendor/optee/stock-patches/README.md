@@ -175,3 +175,14 @@ inputs; no printer hardware or physical fuse access was used.
 Validation: the full `make unit` suite passes with the pinned boot0 compiler
 explicitly supplied; no skips are reported. Build-script syntax and ShellCheck
 also pass. No hardware was used.
+
+
+## Standalone SRAM helper source (2026-10-28)
+
+Separate [standby source](../standby-src/README.md) now recovers three C memory
+helpers, totaling 116 bytes, with complete byte equality and no relocation masks.
+Their QEMU tests exercise original master-access masks and checksum edge cases.
+This partial module is not yet integrated into the carrier; the current carrier
+hash/size above remain unchanged. The rest of the 8,400-byte image and main
+standby integration are still open. The source note also records the entry clear
+loop's inclusive `0x2229c` boundary, separate from unresolved allocation symbols.

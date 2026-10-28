@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-28",
+  "scope": "Partial standalone SRAM program recovery: three C helpers, not a complete standby image or OP-TEE integration",
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "original_standby_initialized_length": 8400,
+  "recovered_function_bytes": 116,
+  "functions": [
+    {
+      "source_function": "standby_dram_master_enable",
+      "original_sram_address": "0x202a0",
+      "original_carrier_offset": "0x42a0",
+      "length": 36,
+      "whole_function_equal": true,
+      "relocation_bytes_excluded": 0,
+      "sha256": "7cb8f54e9c2a64a25b07b0751ebd98a3e1d8d8a06f70061dc86986ef9830957d"
+    },
+    {
+      "source_function": "standby_dram_master_disable",
+      "original_sram_address": "0x202c4",
+      "original_carrier_offset": "0x42c4",
+      "length": 32,
+      "whole_function_equal": true,
+      "relocation_bytes_excluded": 0,
+      "sha256": "025f90499410aa6694c042b28786db466ea64749073c171556b4f7d1c1be2c3a"
+    },
+    {
+      "source_function": "standby_dram_checksum",
+      "original_sram_address": "0x20ed4",
+      "original_carrier_offset": "0x4ed4",
+      "length": 48,
+      "whole_function_equal": true,
+      "relocation_bytes_excluded": 0,
+      "sha256": "702a4eff6b0ed85dee877a30d4c73cc6707251b9c1c92368e66c1e7e3f4be267"
+    }
+  ],
+  "source_files": {
+    "vendor/optee/standby-src/memory.c": "6f32dcd7dccd621f4875163e26489654afc04dc336b51c3090cfb5d24962386a",
+    "vendor/optee/standby-src/memory.h": "f6d39e96ed2d282e758bfd6a87e46f5eafbdda19996f1884098576e53cf01e74"
+  },
+  "compiler_prefix": "vendor/toolchains/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi/bin/arm-linux-gnueabi-",
+  "compile_flags": [
+    "-O2",
+    "-marm",
+    "-march=armv7-a",
+    "-mtune=cortex-a9",
+    "-ffreestanding",
+    "-fno-builtin",
+    "-fno-unwind-tables",
+    "-ffunction-sections"
+  ],
+  "repeatability": {
+    "outputs": [
+      "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-standby-recovery/build-a",
+      "/tmp/reforge-standby-memory-source-copy-20261028"
+    ],
+    "whole_object_equal": true,
+    "whole_object_sha256": "5ec189c26927777d60193e33d2bfd7d92c2a0c4ba20af41361172c1362aac1c2",
+    "undefined_symbols": [],
+    "source_directory_varied": true,
+    "second_source_files_copied_fresh": true
+  },
+  "qemu_validation": [
+    "enable/disable/enable master masks in anonymous guest-memory bank",
+    "all neighboring register words preserved",
+    "empty, full and partial-word checksums",
+    "32-bit sum overflow",
+    "32-bit end-address wrap skips memory access",
+    "checksum source words unchanged"
+  ],
+  "entry_clear_observation": {
+    "original_entry_address": "0x200f0",
+    "first_clear_address": "0x220d0",
+    "loaded_end_address": "0x2229c",
+    "clear_loop_branch": "BLS after post-increment byte store and pointer comparison",
+    "last_byte_cleared_inclusive": "0x2229c",
+    "allocation_boundary": "Original linker-symbol semantics and complete BSS layout remain unverified"
+  },
+  "limitations": [
+    "Only 116 initialized-code bytes recovered; header, entry, other DRAM/clock/PMIC/TWI code, data and complete SRAM linkage remain open",
+    "Source not integrated into or used to fill OP-TEE executable gaps",
+    "No original executable bytes or target objects are compilation inputs",
+    "No hardware execution"
+  ],
+  "compiler_files": {
+    "vendor/toolchains/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi/bin/arm-linux-gnueabi-gcc": "22b8f18a46c997fa48b40aa4ec7f5a3e5b951e666852aa483169744bfcb3b098"
+  },
+  "validation": {
+    "make_unit": "passed with explicit pinned BOOT0_RUNTIME_CROSS; no skips reported",
+    "log": "build/unit-optee-standby-memory.log"
+  }
+}

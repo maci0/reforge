@@ -75,10 +75,19 @@ Remaining work:
 
 - **Standalone SRAM standby program:** original carrier offsets `0x4000..0x60cf`
   contain an 8,400-byte independently linked initialized image for SRAM address
-  `0x20000`. Its 240-byte parameter header precedes ARM entry at `0x200f0`;
-  BSS is `0x220d0..0x2229b`. It performs DRAM/clock low-power transitions,
+  `0x20000`. Its 240-byte parameter header precedes ARM entry at `0x200f0`.
+  The entry clear loop writes `0x220d0` through `0x2229c` **inclusively**;
+  original allocated BSS/linker-symbol bounds remain unverified.
+  It performs DRAM/clock low-power transitions,
   optional memory checks, PMIC/TWI operations, WFI and restore. Matching complete
-  source and integration are not yet reconstructed. The following 12 ARM NOPs
+  source and integration are not yet reconstructed. Three memory helpers
+  (master-access enable/disable and checksum) now compile from C to all 116
+  original bytes, with no relocation exclusions. Two helper-object builds
+  reproduce exactly, and ARM QEMU verifies masks, neighboring words and checksum
+  edge behavior. This is partial recovery, separate from the current carrier.
+  [Source/recipe](../../vendor/optee/standby-src/README.md) and
+  [proof](stock-optee-standby-memory-proof.json) record those limits.
+  The following 12 ARM NOPs
   through carrier offset `0x60ff` are consistent with 256-byte wrapper alignment;
   zeroes then extend to `0x8000`. The exact wrapper/linker recipe still needs
   proof. This executable region must not be replaced with padding or copied
