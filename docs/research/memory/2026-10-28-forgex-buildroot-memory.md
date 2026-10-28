@@ -3,6 +3,8 @@
 Date: 2026-10-28. Tested local Forge-X `1.4.2-beta-4` fixture; no product changes.
 The Tina BSP, its libc/Python, stock Klippy and kernel remain outside this work.
 
+Subsequent experiment: [source-built Python Thumb-2/`-Os` and separate LTO trials](2026-10-28-forgex-python-opts.md). Those tests keep the mod libc and existing extensions unchanged.
+
 ## What transfers from Reforge
 
 | Lever | Fit for Forge-X's mod Buildroot | Evidence / decision |

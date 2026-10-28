@@ -1,0 +1,627 @@
+{
+  "scope": "CPython core in disposable Forge-X mod Buildroot only; Tina BSP and production untouched",
+  "guest": {
+    "ram_mib": 128,
+    "cpus": 2,
+    "cpu": "cortex-a7",
+    "display": "FEATHER",
+    "swap": "OFF",
+    "mcu": "absent"
+  },
+  "settle_seconds": 180,
+  "klippy_lead_seconds": 15,
+  "inputs": {
+    "tests/qemu-harness/build/forgex-rootfs.ext4": "f5376f6918c7e540ea2c0cb359db901a3d28f75171b3a50d88265b9673141341",
+    "tests/qemu-harness/build/forgex-data.ext4": "62d8c5a4b9c83cb282e3e94f21e01062ab90ed921a4b2455f9819e756e190f44"
+  },
+  "source_archives": {
+    "build/forgex-python-opts/downloads/Python-3.11.10.tar.xz": "07a4356e912900e61a15cb0949a06c4a05012e213ecd6b4e84d0f67aabbee372",
+    "build/forgex-python-opts/downloads/glibc-2.38.tar.xz": "fb82998998b2b29965467bc1b69d152e9c307d2cf301c9eafb4555b770ef3fd2"
+  },
+  "builds": {
+    "arm-o3": {
+      "variant": "arm-o3",
+      "source": "/home/maci/Desktop/Projects/flashforge/reforge/build/forgex-python-opts/Python-3.11.10",
+      "compiler": "arm-buildroot-linux-gnueabihf-gcc.br_real (Buildroot 2026.08.1) 15.3.0",
+      "artifacts": {
+        "artifacts/python3.11": {
+          "bytes": 5540,
+          "sha256": "d61d2a6800fa35d38e817113342441c47e1e717b37c2da305223003c1ebf2a05"
+        },
+        "artifacts/libpython3.11.so.1.0": {
+          "bytes": 4502576,
+          "sha256": "9f4ae7e7924606016344f1bd776cd13709dc4d5f39124a83b1c93bdfd46bf789"
+        }
+      },
+      "make_flags": [
+        "OPT=\t\t-DNDEBUG -DNDEBUG -fwrapv -Wall",
+        "CONFIGURE_CFLAGS=\t-marm -O3 -g0 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_FORTIFY_SOURCE=1",
+        "CONFIGURE_CFLAGS_NODIST= -std=c11 -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wstrict-prototypes -Werror=implicit-function-declaration -fvisibility=hidden",
+        "CONFIGURE_LDFLAGS_NODIST=",
+        "PY_CFLAGS=\t$(BASECFLAGS) $(OPT) $(CONFIGURE_CFLAGS) $(CFLAGS) $(EXTRA_CFLAGS)",
+        "PY_LDFLAGS=\t$(CONFIGURE_LDFLAGS) $(LDFLAGS)",
+        "PY_CORE_CFLAGS=\t$(PY_STDMODULE_CFLAGS) -DPy_BUILD_CORE"
+      ],
+      "maximum_required_glibc": "GLIBC_2.38",
+      "ceval_compile_command": "/home/maci/Desktop/Projects/flashforge/reforge/build/forgex-python-opts/arm-o3-v2/cc -c -Wsign-compare -DNDEBUG -DNDEBUG -fwrapv -Wall -marm -O3 -g0 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_FORTIFY_SOURCE=1   -std=c11 -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wstrict-prototypes -Werror=implicit-function-declaration -fvisibility=hidden  -I/home/maci/Desktop/Projects/flashforge/reforge/build/forgex-python-opts/Python-3.11.10/Include/internal -IObjects -IInclude -IPython -I. -I/home/maci/Desktop/Projects/flashforge/reforge/build/forgex-python-opts/Python-3.11.10/Include   -fPIC -DPy_BUILD_CORE -o Python/ceval.o /home/maci/Desktop/Projects/flashforge/reforge/build/forgex-python-opts/Python-3.11.10/Python/ceval.c"
+    },
+    "thumb-os": {
+      "variant": "thumb-os",
+      "source": "/home/maci/Desktop/Projects/flashforge/reforge/build/forgex-python-opts/Python-3.11.10",
+      "compiler": "arm-buildroot-linux-gnueabihf-gcc.br_real (Buildroot 2026.08.1) 15.3.0",
+      "artifacts": {
+        "artifacts/python3.11": {
+          "bytes": 5540,
+          "sha256": "8a9eeaf8ebd345dad024fc31a85b364bb581369cfc708dda10f06244c41db51b"
+        },
+        "artifacts/libpython3.11.so.1.0": {
+          "bytes": 2847808,
+          "sha256": "a1db8cf1154945e1b025e644d6a90cf6653d71e88a5615dc4cfa5fa975298d98"
+        }
+      },
+      "make_flags": [
+        "OPT=\t\t-DNDEBUG -DNDEBUG -fwrapv -Wall",
+        "CONFIGURE_CFLAGS=\t-mthumb -Os -g0 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_FORTIFY_SOURCE=1",
+        "CONFIGURE_CFLAGS_NODIST= -std=c11 -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wstrict-prototypes -Werror=implicit-function-declaration -fvisibility=hidden",
+        "CONFIGURE_LDFLAGS_NODIST=",
+        "PY_CFLAGS=\t$(BASECFLAGS) $(OPT) $(CONFIGURE_CFLAGS) $(CFLAGS) $(EXTRA_CFLAGS)",
+        "PY_LDFLAGS=\t$(CONFIGURE_LDFLAGS) $(LDFLAGS)",
+        "PY_CORE_CFLAGS=\t$(PY_STDMODULE_CFLAGS) -DPy_BUILD_CORE"
+      ],
+      "maximum_required_glibc": "GLIBC_2.38",
+      "ceval_compile_command": "/home/maci/Desktop/Projects/flashforge/reforge/build/forgex-python-opts/thumb-os-v3/cc -c -Wsign-compare -DNDEBUG -DNDEBUG -fwrapv -Wall -mthumb -Os -g0 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_FORTIFY_SOURCE=1   -std=c11 -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wstrict-prototypes -Werror=implicit-function-declaration -fvisibility=hidden  -I/home/maci/Desktop/Projects/flashforge/reforge/build/forgex-python-opts/Python-3.11.10/Include/internal -IObjects -IInclude -IPython -I. -I/home/maci/Desktop/Projects/flashforge/reforge/build/forgex-python-opts/Python-3.11.10/Include   -fPIC -DPy_BUILD_CORE -o Python/ceval.o /home/maci/Desktop/Projects/flashforge/reforge/build/forgex-python-opts/Python-3.11.10/Python/ceval.c"
+    },
+    "thumb-os-lto": {
+      "variant": "thumb-os-lto",
+      "source": "/home/maci/Desktop/Projects/flashforge/reforge/build/forgex-python-opts/Python-3.11.10",
+      "compiler": "arm-buildroot-linux-gnueabihf-gcc.br_real (Buildroot 2026.08.1) 15.3.0",
+      "artifacts": {
+        "artifacts/python3.11": {
+          "bytes": 5540,
+          "sha256": "c9e4af9db3cb724a6dbe4b1a0665a67639bbb7c0c58f26f930bbec27d38f0468"
+        },
+        "artifacts/libpython3.11.so.1.0": {
+          "bytes": 2826896,
+          "sha256": "6334b858a69b836ffcaec856d7917a27b25d688d13cc8232eddedd2014027056"
+        }
+      },
+      "make_flags": [
+        "OPT=\t\t-DNDEBUG -DNDEBUG -fwrapv -Wall",
+        "CONFIGURE_CFLAGS=\t-mthumb -Os -g0 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_FORTIFY_SOURCE=1",
+        "CONFIGURE_CFLAGS_NODIST= -flto -fuse-linker-plugin -ffat-lto-objects -flto-partition=none -g -std=c11 -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wstrict-prototypes -Werror=implicit-function-declaration -fvisibility=hidden",
+        "CONFIGURE_LDFLAGS_NODIST= -flto -fuse-linker-plugin -ffat-lto-objects -flto-partition=none -g",
+        "PY_CFLAGS=\t$(BASECFLAGS) $(OPT) $(CONFIGURE_CFLAGS) $(CFLAGS) $(EXTRA_CFLAGS)",
+        "PY_LDFLAGS=\t$(CONFIGURE_LDFLAGS) $(LDFLAGS)",
+        "PY_CORE_CFLAGS=\t$(PY_STDMODULE_CFLAGS) -DPy_BUILD_CORE"
+      ],
+      "maximum_required_glibc": "GLIBC_2.38",
+      "ceval_compile_command": "/home/maci/Desktop/Projects/flashforge/reforge/build/forgex-python-opts/thumb-os-lto-gcc/trial-gcc -c -Wsign-compare -DNDEBUG -DNDEBUG -fwrapv -Wall -mthumb -Os -g0 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_FORTIFY_SOURCE=1   -flto -fuse-linker-plugin -ffat-lto-objects -flto-partition=none -g -std=c11 -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wstrict-prototypes -Werror=implicit-function-declaration -fvisibility=hidden  -I/home/maci/Desktop/Projects/flashforge/reforge/build/forgex-python-opts/Python-3.11.10/Include/internal -IObjects -IInclude -IPython -I. -I/home/maci/Desktop/Projects/flashforge/reforge/build/forgex-python-opts/Python-3.11.10/Include   -fPIC -DPy_BUILD_CORE -o Python/ceval.o /home/maci/Desktop/Projects/flashforge/reforge/build/forgex-python-opts/Python-3.11.10/Python/ceval.c"
+    }
+  },
+  "fixture_library": {
+    "bytes": 4295036,
+    "sha256": "5f88108765138d11d69efc33407543c328f24bffe5b737d50a4be76e45bc6050"
+  },
+  "elf_section_bytes": {
+    "fixture": {
+      "text": 2466944,
+      "rodata": 520052,
+      "data": 706472,
+      "bss": 137792
+    },
+    "arm-o3": {
+      "text": 2641940,
+      "rodata": 547980,
+      "data": 710548,
+      "bss": 137812
+    },
+    "thumb-os": {
+      "text": 1033524,
+      "rodata": 504732,
+      "data": 706456,
+      "bss": 137792
+    },
+    "thumb-os-lto": {
+      "text": 1010380,
+      "rodata": 504520,
+      "data": 706160,
+      "bss": 137796
+    }
+  },
+  "workloads": {
+    "fixture": {
+      "version": "3.11.10 (main, Dec 10 2024, 08:16:44) [GCC 11.4.0]",
+      "json_roundtrips": 5000,
+      "seconds": [
+        1.2581584639847279,
+        1.243558996997308,
+        1.25020761101041
+      ],
+      "median_seconds": 1.25020761101041,
+      "openssl": "OpenSSL 3.2.3 3 Sep 2024",
+      "sqlite": "3.44.2",
+      "abi_checks": "passed"
+    },
+    "arm-o3-v2": {
+      "version": "3.11.10 (main, Oct 28 2026, 20:45:17) [GCC 15.3.0]",
+      "json_roundtrips": 5000,
+      "seconds": [
+        1.2439900590106845,
+        1.2452174980135169,
+        1.238745394977741
+      ],
+      "median_seconds": 1.2439900590106845,
+      "openssl": "OpenSSL 3.2.3 3 Sep 2024",
+      "sqlite": "3.44.2",
+      "abi_checks": "passed"
+    },
+    "thumb-os-v3": {
+      "version": "3.11.10 (main, Oct 28 2026, 20:45:11) [GCC 15.3.0]",
+      "json_roundtrips": 5000,
+      "seconds": [
+        1.5450348640151788,
+        1.542001710011391,
+        1.5376190770184621
+      ],
+      "median_seconds": 1.542001710011391,
+      "openssl": "OpenSSL 3.2.3 3 Sep 2024",
+      "sqlite": "3.44.2",
+      "abi_checks": "passed"
+    },
+    "thumb-os-lto-gcc": {
+      "version": "3.11.10 (main, Oct 28 2026, 20:47:52) [GCC 15.3.0]",
+      "json_roundtrips": 5000,
+      "seconds": [
+        1.6137043919879943,
+        1.7010621980007272,
+        1.6949031150143128
+      ],
+      "median_seconds": 1.6949031150143128,
+      "openssl": "OpenSSL 3.2.3 3 Sep 2024",
+      "sqlite": "3.44.2",
+      "abi_checks": "passed"
+    }
+  },
+  "runs": [
+    {
+      "cohort": "thumb",
+      "variant": "fixture",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-fixture-1.log",
+      "log_sha256": "53aa0e67f629bea0661d1c28cf91ddac7b693ffd6775c8afb95ce34a09aae5b4",
+      "pss_kib": {
+        "moonraker": 32021,
+        "klippy": 22919,
+        "httpd": 732
+      },
+      "all_process_pss_kib": 64046,
+      "mem_available_kib": 23144,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": false
+    },
+    {
+      "cohort": "thumb",
+      "variant": "arm-o3",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-arm-o3-v2-1.log",
+      "log_sha256": "fece68ee6c0aeb4d6ca1be0aae768476ffa141761cb54f7a5a77a56a2b9ecfbd",
+      "pss_kib": {
+        "moonraker": 31974,
+        "klippy": 22704,
+        "httpd": 727
+      },
+      "all_process_pss_kib": 63613,
+      "mem_available_kib": 22708,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": true
+    },
+    {
+      "cohort": "thumb",
+      "variant": "thumb-os",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-thumb-os-v3-1.log",
+      "log_sha256": "94076e0a1b25dfda2e0d2a10f556741112910db989eb651c7b5eef5d5267d069",
+      "pss_kib": {
+        "moonraker": 30544,
+        "klippy": 22755,
+        "httpd": 697
+      },
+      "all_process_pss_kib": 62298,
+      "mem_available_kib": 31816,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": true
+    },
+    {
+      "cohort": "lto",
+      "variant": "thumb-os",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-lto-control-1.log",
+      "log_sha256": "9da2aac81c42f4b3c646618bcc2d8afd9cd7e4b371521596d87e6d49d2ab4e17",
+      "pss_kib": {
+        "moonraker": 31154,
+        "klippy": 22855,
+        "httpd": 724
+      },
+      "all_process_pss_kib": 62970,
+      "mem_available_kib": 22340,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": true
+    },
+    {
+      "cohort": "lto",
+      "variant": "thumb-os-lto",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-thumb-os-lto-gcc-1.log",
+      "log_sha256": "5382c9845224d75c87d72528313838f21abc0161e8503de60282838a5d6416c5",
+      "pss_kib": {
+        "moonraker": 30500,
+        "klippy": 22879,
+        "httpd": 747
+      },
+      "all_process_pss_kib": 62354,
+      "mem_available_kib": 23944,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": true
+    },
+    {
+      "cohort": "thumb",
+      "variant": "fixture",
+      "run": 2,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-fixture-2.log",
+      "log_sha256": "5e9f4f3dba2b9cc129bce2c42c1b68c3bd9e27d9201b865349b7edacbe737e4e",
+      "pss_kib": {
+        "moonraker": 32862,
+        "klippy": 22865,
+        "httpd": 737
+      },
+      "all_process_pss_kib": 64817,
+      "mem_available_kib": 32248,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": false
+    },
+    {
+      "cohort": "thumb",
+      "variant": "arm-o3",
+      "run": 2,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-arm-o3-v2-2.log",
+      "log_sha256": "1ec753853df8f1b8c8ed6f7f505fc7ec53dc2d2198942d71b5db6c0580ff3fda",
+      "pss_kib": {
+        "moonraker": 33290,
+        "klippy": 22868,
+        "httpd": 735
+      },
+      "all_process_pss_kib": 65238,
+      "mem_available_kib": 31944,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": true
+    },
+    {
+      "cohort": "thumb",
+      "variant": "thumb-os",
+      "run": 2,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-thumb-os-v3-2.log",
+      "log_sha256": "a83e3b7384368bb6c2e413122b7f967a338ed57e7711c687b8c304908fa16662",
+      "pss_kib": {
+        "moonraker": 31820,
+        "klippy": 22891,
+        "httpd": 757
+      },
+      "all_process_pss_kib": 63775,
+      "mem_available_kib": 23056,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": true
+    },
+    {
+      "cohort": "lto",
+      "variant": "thumb-os",
+      "run": 2,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-lto-control-2.log",
+      "log_sha256": "28bac9082567541d5e7130e1adc41272ad8882b7ccb717e5f2e238bc1ae94805",
+      "pss_kib": {
+        "moonraker": 31214,
+        "klippy": 22833,
+        "httpd": 731
+      },
+      "all_process_pss_kib": 63100,
+      "mem_available_kib": 32132,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": true
+    },
+    {
+      "cohort": "lto",
+      "variant": "thumb-os-lto",
+      "run": 2,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-thumb-os-lto-gcc-2.log",
+      "log_sha256": "2fc4c4757a82b77a54f807720c175050f3a31507ebfe9add873b7c9f02d25060",
+      "pss_kib": {
+        "moonraker": 31378,
+        "klippy": 22806,
+        "httpd": 713
+      },
+      "all_process_pss_kib": 63182,
+      "mem_available_kib": 32176,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": true
+    },
+    {
+      "cohort": "thumb",
+      "variant": "fixture",
+      "run": 3,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-fixture-3.log",
+      "log_sha256": "833f27e85f201f71c8c154881c9c91507732ce13f7fd05b02aed9897e13f67fe",
+      "pss_kib": {
+        "moonraker": 31675,
+        "klippy": 22808,
+        "httpd": 712
+      },
+      "all_process_pss_kib": 63436,
+      "mem_available_kib": 22592,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": false
+    },
+    {
+      "cohort": "thumb",
+      "variant": "arm-o3",
+      "run": 3,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-arm-o3-v2-3.log",
+      "log_sha256": "bb6f615ed77cde8b68bf0bd04a44321e988f201289a13f19d6b756b7ccb303f0",
+      "pss_kib": {
+        "moonraker": 32259,
+        "klippy": 22937,
+        "httpd": 740
+      },
+      "all_process_pss_kib": 64214,
+      "mem_available_kib": 22628,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": true
+    },
+    {
+      "cohort": "thumb",
+      "variant": "thumb-os",
+      "run": 3,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-thumb-os-v3-3.log",
+      "log_sha256": "708ed1f486b61eacfaea2d91d52f809840e8032b160b4e146649fa6505b251f8",
+      "pss_kib": {
+        "moonraker": 34886,
+        "klippy": 22808,
+        "httpd": 711
+      },
+      "all_process_pss_kib": 66772,
+      "mem_available_kib": 32080,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": true
+    },
+    {
+      "cohort": "lto",
+      "variant": "thumb-os",
+      "run": 3,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-lto-control-3.log",
+      "log_sha256": "1fa6eb31ec24ef6f19a1abcfa86fbec69aab61f78733a31ce0c2151fd6228460",
+      "pss_kib": {
+        "moonraker": 32788,
+        "klippy": 22942,
+        "httpd": 714
+      },
+      "all_process_pss_kib": 64745,
+      "mem_available_kib": 31972,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": true
+    },
+    {
+      "cohort": "lto",
+      "variant": "thumb-os-lto",
+      "run": 3,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-thumb-os-lto-gcc-3.log",
+      "log_sha256": "0e2efad7481bac7d432a8bf2c230d83d97eda704ff3398c686cf563cc638374b",
+      "pss_kib": {
+        "moonraker": 31577,
+        "klippy": 22760,
+        "httpd": 718
+      },
+      "all_process_pss_kib": 63312,
+      "mem_available_kib": 22816,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": true
+    },
+    {
+      "cohort": "pages",
+      "variant": "arm-o3",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-pages-arm-o3-v2.log",
+      "log_sha256": "3f25aa69cfb60695901dffa2cc38ed1b9732d3e9afa2992393b5056a2e74cc15",
+      "pss_kib": {
+        "moonraker": 32090,
+        "klippy": 22903,
+        "httpd": 749
+      },
+      "all_process_pss_kib": 63773,
+      "mem_available_kib": 32096,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": true,
+      "libpython_kib": {
+        "rss": 3208,
+        "pss": 3208,
+        "private_clean": 2380,
+        "private_dirty": 828
+      },
+      "pss_rollup_breakdown_kib": {
+        "Pss_Anon": 25664,
+        "Pss_File": 6426,
+        "Pss_Shmem": 0
+      }
+    },
+    {
+      "cohort": "pages",
+      "variant": "thumb-os",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-pages-thumb-os-v3.log",
+      "log_sha256": "b55139951094fde3792df14ea3de812d900332c4a25f9e1b1b261f81e34a9a7f",
+      "pss_kib": {
+        "moonraker": 33420,
+        "klippy": 22934,
+        "httpd": 742
+      },
+      "all_process_pss_kib": 65395,
+      "mem_available_kib": 31936,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": true,
+      "libpython_kib": {
+        "rss": 2004,
+        "pss": 2004,
+        "private_clean": 1180,
+        "private_dirty": 824
+      },
+      "pss_rollup_breakdown_kib": {
+        "Pss_Anon": 25656,
+        "Pss_File": 7764,
+        "Pss_Shmem": 0
+      }
+    },
+    {
+      "cohort": "pages",
+      "variant": "thumb-os-lto",
+      "run": 1,
+      "log": "tests/qemu-harness/build/mem-probe-forgex-pyopts-pages-thumb-os-lto-gcc.log",
+      "log_sha256": "9d14a9b0ffa057ffab36b7fc64cf5138594bcc519895f688aded63e76dfd9c49",
+      "pss_kib": {
+        "moonraker": 32890,
+        "klippy": 22792,
+        "httpd": 760
+      },
+      "all_process_pss_kib": 64697,
+      "mem_available_kib": 31908,
+      "failed_components": [],
+      "warnings": [],
+      "updater_and_octoprint_loaded": true,
+      "loaded_core_hashes_verified": true,
+      "libpython_kib": {
+        "rss": 1992,
+        "pss": 1992,
+        "private_clean": 1168,
+        "private_dirty": 824
+      },
+      "pss_rollup_breakdown_kib": {
+        "Pss_Anon": 25660,
+        "Pss_File": 7230,
+        "Pss_Shmem": 0
+      }
+    }
+  ],
+  "summary": {
+    "thumb": {
+      "arm-o3": {
+        "moonraker_pss_kib": [
+          31974,
+          33290,
+          32259
+        ],
+        "mean_kib": 32507.666666666668,
+        "sample_sd_kib": 692.3440859380062
+      },
+      "fixture": {
+        "moonraker_pss_kib": [
+          32021,
+          32862,
+          31675
+        ],
+        "mean_kib": 32186,
+        "sample_sd_kib": 610.4596628770815
+      },
+      "thumb-os": {
+        "moonraker_pss_kib": [
+          30544,
+          31820,
+          34886
+        ],
+        "mean_kib": 32416.666666666668,
+        "sample_sd_kib": 2231.6472242120467
+      }
+    },
+    "lto": {
+      "thumb-os": {
+        "moonraker_pss_kib": [
+          31154,
+          31214,
+          32788
+        ],
+        "mean_kib": 31718.666666666668,
+        "sample_sd_kib": 926.5556288390532
+      },
+      "thumb-os-lto": {
+        "moonraker_pss_kib": [
+          30500,
+          31378,
+          31577
+        ],
+        "mean_kib": 31151.666666666668,
+        "sample_sd_kib": 573.0639871195305
+      }
+    },
+    "pages": {
+      "arm-o3": {
+        "moonraker_pss_kib": [
+          32090
+        ],
+        "mean_kib": 32090,
+        "sample_sd_kib": null
+      },
+      "thumb-os": {
+        "moonraker_pss_kib": [
+          33420
+        ],
+        "mean_kib": 33420,
+        "sample_sd_kib": null
+      },
+      "thumb-os-lto": {
+        "moonraker_pss_kib": [
+          32890
+        ],
+        "mean_kib": 32890,
+        "sample_sd_kib": null
+      }
+    }
+  },
+  "limitations": [
+    "Only CPython executable/shared library rebuilt; native extensions and all other libraries unchanged",
+    "Source-build ARM control accounts for shared compiler/configuration differences; fixture comparison also includes those differences",
+    "Exploratory idle measurements; background network/update work unsynchronized",
+    "QEMU user workload timings are not real printer performance",
+    "No printing, actual update installation or GUI test",
+    "Six LTO-cohort launchers exited 2 after host source editing during QEMU wait; raw guest logs independently verified complete snapshots, powerdown, clean API and artifact hashes",
+    "Initial non-LTO wrapper mistakenly accepted LTO flag without emitting -flto; excluded, corrected GCC wrapper checked in actual compile/link logs"
+  ]
+}

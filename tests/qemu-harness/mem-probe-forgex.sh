@@ -34,6 +34,7 @@
 #   FX_MOONRAKER_MALLOC=1  test glibc trimming + disabled tcache (Moonraker only)
 #   FX_MOONRAKER_JEMALLOC=PATH  preload source-built ARM library (Moonraker only)
 #   FX_MOONRAKER_LAZY_IMPORTS=1  defer unused updater backends in the mod only
+#   FX_PYTHON_ARTIFACTS=DIR  source-built python3.11 and libpython3.11.so.1.0
 #   KLIPPY_ARENA=N          export MALLOC_ARENA_MAX=N in /opt/klipper/start.sh
 #                           (every klippy launch path runs it). The snapshot
 #                           prints klippy's MALLOC_* environment as proof.
@@ -181,6 +182,14 @@ if [ "${FX_MOONRAKER_LAZY_IMPORTS:-0}" = 1 ]; then
     patch --batch --fuzz=0 "$TMP/update_manager.py" "$HARNESS_DIR/patches/forgex-lazy-update-backends.patch"
     debugfs_inject "$TMP/update_manager.py" "$updater" 100644
 fi
+# Replace only source-built CPython core artifacts in the disposable mod image.
+if [ -n "${FX_PYTHON_ARTIFACTS:-}" ]; then
+    for file in python3.11 libpython3.11.so.1.0; do
+        [ -f "$FX_PYTHON_ARTIFACTS/$file" ] || die "missing Python artifact: $file"
+    done
+    debugfs_inject "$FX_PYTHON_ARTIFACTS/python3.11" /.mod/.forge-x/usr/bin/python3.11 100755 "$DATA"
+    debugfs_inject "$FX_PYTHON_ARTIFACTS/libpython3.11.so.1.0" /.mod/.forge-x/usr/lib/libpython3.11.so.1.0 100755 "$DATA"
+fi
 # Only the stock UI (skipped above) launches klippy in STOCK mode.
 LAUNCH_KLIPPY=0
 [ "${DISPLAY_MODE}" = STOCK ] && LAUNCH_KLIPPY=1
@@ -252,6 +261,16 @@ cat > "${TMP}/S99forgex-probe" <<PROBE
     case "\$cmd" in *moonraker.py*)
       echo "MOONRAKER-ENV \$(tr '\0' '\n' < "\$p/environ" | grep -E '^(MALLOC|GLIBC_TUNABLES|LD_PRELOAD)' | tr '\n' ' ')" > /dev/console
       grep jemalloc "\$p/maps" > /dev/console
+      echo "MOONRAKER-PYTHON \$(readlink "\$p/exe")" > /dev/console
+      sha256sum "\$p/root/usr/bin/python3.11" "\$p/root/usr/lib/libpython3.11.so.1.0" > /dev/console
+      grep libpython "\$p/maps" > /dev/console
+      awk '/^[0-9a-f]+-/{selected=(\$0 ~ /libpython3[.]11/)}
+           selected && /^Rss:/{rss+=\$2}
+           selected && /^Pss:/{pss+=\$2}
+           selected && /^Private_Clean:/{clean+=\$2}
+           selected && /^Private_Dirty:/{dirty+=\$2}
+           END {printf "MOONRAKER-LIBPYTHON Rss=%d Pss=%d Private_Clean=%d Private_Dirty=%d\\n",rss,pss,clean,dirty}' "\$p/smaps" > /dev/console
+      grep -E '^(Pss_Anon|Pss_File|Pss_Shmem):' "\$p/smaps_rollup" > /dev/console
     ;; esac
     case "\$cmd" in *klippy.py*)
       echo "KLIPPY-ENV PID \${p#/proc/} \$(tr '\0' '\n' < "\$p/environ" | grep '^MALLOC_' | tr '\n' ' ')" > /dev/console
