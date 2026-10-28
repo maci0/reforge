@@ -1,16 +1,17 @@
 # Standalone SRAM standby reconstruction
 
-Coverage at 2026-10-28: **3,252 bytes of recovered function extents plus
-920 bytes of initialized data** from the original 8,400-byte SRAM image. Recovered
-modules cover memory helpers, counted delays, descriptor selection, PMIC setup/
-register/group operations, regulator policy, TWI, stack, the division runtime,
-and the secure-WFI primitive. Across these extents, comparisons match every bit
-outside twelve delay-branch bytes, sixteen data-pointer bytes and eighteen
-MOVW/MOVT address-immediate fields (288 bits). These require complete SRAM layout;
-they are not exceptions to the final whole-image gate. Complete function-byte
-comparisons cover 2,016 bytes. The connected 3,076-byte secure-WFI/PMIC/regulator/
-TWI/stack/runtime block resolves every branch and includes its exact stack literal.
-The 12-byte TWI state is zero-initialized BSS, outside initialized-data totals.
+Coverage at 2026-10-28: **3,668 bytes of recovered function extents plus
+1,004 bytes of initialized data** from the original 8,400-byte SRAM image.
+Recovered modules cover memory, delays, clock selection/entry/exit, PMIC setup/
+register/group operations, regulator policy, TWI, stack, division and secure WFI.
+Across these extents, every bit matches outside twenty-six real MOVW/MOVT
+address-immediate fields (416 bits) and four real data-pointer words (16 bytes).
+**All branch encodings now compare without masks**, including the delay wrappers.
+These address fields require the complete SRAM link; they are not final exceptions.
+Complete function-byte comparisons cover 2,080 bytes. The connected 4,556-byte
+code/data suffix has every initialized symbol at its original relative offset.
+Its 16 bytes of recovered zeroed BSS are separate from initialized-data totals;
+a preceding 444-byte BSS/layout gap remains unresolved.
 [Runtime source and recipe](runtime/README.md) document its public source origin
 and explicit standalone ABI adaptation. This is separate recovery work; the main
 OP-TEE recipe still has no reconstructed complete standby payload or integration.
@@ -336,3 +337,57 @@ records source and original hashes, exact masked fields, original device target,
 repeat builds and execution scope. Header/entry, earlier DRAM/clock routines,
 complete data/BSS placement and carrier integration remain open. No physical PMIC,
 CPU power transition or suspend/resume validation has run.
+
+## Clock sequence and complete initialized suffix (2026-10-28)
+
+`clock.S` reconstructs selection (96 bytes), low-power entry (208) and exit
+(112) at SRAM `0x20f04..0x210a3`. `clock-data.c` reconstructs eight PLL register
+addresses, six mutable eight-byte saved-clock records, the SRAM parameter-base
+word and one zeroed auxiliary-state word. All 84 new initialized-data bytes match
+completely. The four-byte auxiliary word and existing 12-byte TWI state form the
+recovered BSS tail; their four-byte relative spacing matches the original.
+
+Selection preserves low 29 bits and ORs `(mode << 31) | (mode << 30) | (mode << 29)`;
+it is not replaced with multiplication, which differs for some non-boolean inputs.
+Entry saves source/divider bytes only when a record's saved flag is zero, always
+sets that flag to one, writes each control twice, and executes the observed keyed
+and auxiliary-register sequence. Exit restores the auxiliary register and PLL
+selection but does not restore those record fields itself. Duplicate writes and
+the unused register read are retained.
+
+The ARM guest runs the **unmodified clock and real delay objects** against two
+4-KiB virtual MMIO banks. A SIGSEGV handler emulates only word loads/stores and
+records every address, direction, value and order. Tests use three seeded banks,
+ten mode values, mixed zero/nonzero saved flags and repeated entry, checking all
+untouched words. They assert exactly 16 operations per selection, 42 per entry
+and 24 per exit. Guest execution is not a measurement of physical clock/bus timing.
+
+`clock-control-runtime.lds` links **4,556 initialized bytes** covering original
+carrier `0x4f04..0x60cf`: a 3,556-byte text/literal block and all 1,000 following
+data bytes. Every branch compares directly, closing the previous delay-branch
+checks. Only 26 actual MOVW/MOVT address immediates and four actual ABS32 table
+pointers remain normalized; opcode/register bits and every other bit match.
+The table pointers additionally resolve to the exact original *relative* targets,
+and all nine initialized symbols have their original relative positions. The
+parameter-base word is a hardware SRAM-base value, not an executable pointer.
+
+The partial source link starts at zero, without fixed function addresses, reference
+payload or gap fill. Applying the original code-origin offset for comparison
+places the recovered BSS words 444 bytes earlier than their original positions.
+This is a constraint on missing declarations/alignment/linker inputs, not proof
+that all 444 bytes are variables. No arbitrary BSS padding is added. Recovering
+the preceding code/header and real BSS layout is required to compare absolute
+addresses and emit the complete initialized image.
+
+Two copied-source builds reproduce all objects and the linked ELF, with no
+undefined symbols. Earlier profiles retain their bounded individual checks.
+
+```sh
+python3 tests/release/test_stock_optee_standby_clock.py
+```
+
+[Clock/suffix proof](../../../docs/board-notes/stock-optee-standby-clock-proof.json)
+records exact fields, original targets, relative symbol positions, BSS constraint
+and repeat builds. Earlier header/entry/DRAM code, full BSS and secure-OS
+integration remain open. Secure WFI is still static-only; no physical clock
+stability, DRAM retention or suspend/resume validation was performed.

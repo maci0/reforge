@@ -1,0 +1,47 @@
+SECTIONS {
+ .text : {
+  *(.text.standby_clock_select)
+  *(.text.standby_clock_enter)
+  *(.text.standby_clock_leave)
+  *(.text.standby_delay_us)
+  *(.text.standby_delay_ms)
+  *(.text.standby_secure_wfi)
+  *(.text.standby_pmic_prepare)
+  *(.text.standby_pmic_group_control)
+  *(.text.standby_pmic_read_id)
+  *(.text.standby_pmic_initialize)
+  *(.text.standby_find_descriptor)
+  *(.text.standby_pmic_read)
+  *(.text.standby_pmic_write)
+  *(.text.standby_pmic_update)
+  *(.text.standby_regulator_set_voltage)
+  *(.text.standby_regulator_get_voltage)
+  *(.text.standby_regulator_set_enabled)
+  *(.text.standby_regulator_get_enabled)
+  *(.text.standby_twi_stop)
+  *(.text.standby_twi_init)
+  *(.text.standby_twi_set_divider)
+  *(.text.standby_twi_restore)
+  *(.text.standby_twi_transfer)
+  *(.text.standby_stack)
+  *(.text.standby_delay_repeat17)
+  *(.text.standby_delay_cycles)
+  *(.text.Ldiv0)
+  *(.text.__udivsi3)
+  *(.text.__divsi3)
+  *(.text.__aeabi_uidivmod)
+ }
+ .data : {
+  *(.rodata.standby_clock_registers)
+  *(.rodata.standby_pmic_ranges_3)
+  *(.rodata.standby_pmic_ranges_2)
+  *(.rodata.standby_pmic_ranges_1)
+  *twi.o(.rodata)
+  *(.rodata.standby_sram_parameters_address)
+  *(.data.standby_clock_contexts)
+  *(.data.standby_pmic_device)
+  *(.rodata.standby_pmic_entries)
+ }
+ .bss : { *(.bss*) *(COMMON) }
+ /DISCARD/ : { *(.text.__umodsi3) *(.text.__modsi3) }
+}

@@ -79,30 +79,32 @@ Remaining work:
   The entry clear loop writes `0x220d0` through `0x2229c` **inclusively**;
   original allocated BSS/linker-symbol bounds remain unverified.
   It performs DRAM/clock low-power transitions, optional memory checks,
-  PMIC/TWI operations, WFI and restore. Reconstructed extents now cover 3,252
-  function bytes plus 920 initialized-data bytes, separately from the unchanged
+  PMIC/TWI operations, WFI and restore. Reconstructed extents now cover 3,668
+  function bytes plus 1,004 initialized-data bytes, separately from the unchanged
   main carrier. C memory helpers, counted delays, selector, C PMIC helpers,
-  setup/group control, regulator policy, TWI, secure-WFI primitive, stack helpers
-  and a published-source ARM division
-  runtime are retained in the [source/recipes](../../vendor/optee/standby-src/README.md).
-  The extended [setup/WFI/PMIC/regulator/TWI/stack/runtime proof](stock-optee-standby-pmic-setup-proof.json)
-  verifies a continuous 3,076-byte source-linked block with no branch exclusions.
-  Only eighteen actual MOVW/MOVT address-immediate fields (288 bits) await full
-  layout: six identify the device record and twelve TWI state/table symbols.
-  Opcodes and register bits remain checked. Complete function comparisons total
-  2,016 bytes, including the register/regulator helpers, stack, selector, loops/
-  runtime, memory helpers, ID/init wrappers and secure-WFI body. The WFI body has
-  static byte verification only; privileged execution was not tested.
-  Outside that block, three delay branches (12 bytes) and four table pointers
-  (16 bytes) also need complete layout. These are not whole-image exceptions.
-  The 12-byte TWI state is source-defined zeroed BSS. Two copied-source builds
-  reproduce objects/ELF; no symbols are undefined in the connected block.
+  setup/group control, regulator policy, TWI, clocks, secure-WFI primitive, stack
+  helpers and a published-source ARM division runtime are retained in the [source/recipes](../../vendor/optee/standby-src/README.md).
+  The [clock/code/data suffix proof](stock-optee-standby-clock-proof.json) verifies
+  4,556 continuous initialized bytes with every branch compared, including the
+  formerly masked delay branches. All nine initialized symbols have the original
+  relative positions; four real table pointers also resolve to those relative
+  targets. Only 26 MOVW/MOVT address-immediate fields (416 bits) and four ABS32
+  pointer words (16 bytes) await the full link. Opcode/register bits remain
+  checked. Complete function comparisons cover 2,080 bytes. The secure-WFI body
+  remains static-only; privileged execution was not tested. The recovered
+  auxiliary/TWI BSS words span 16 bytes with correct relative spacing, but a
+  preceding 444-byte BSS/layout gap remains unresolved. This is not proof of
+  444 variable bytes: original declarations/alignment/linker inputs are needed;
+  no arbitrary BSS padding is inserted. Two copied-source builds reproduce
+  objects/ELF; no symbols are undefined in the connected suffix.
   ARM tests cover all 16 entries and 256 register codes, voltage/enable edge
   semantics, source division/stack behavior, original null reads and error
   propagation. [Reactive TWI tests](stock-optee-standby-twi-proof.json) execute
   all controller bases and full stop/transfer polling limits. The original
   table-count/inclusive-selector mismatch and driver quirks remain preserved.
-  Earlier DRAM/clock/entry code, header, full data/BSS placement and
+  Ordered simulated-MMIO tests also cover the clock sequence and save-once
+  metadata, using real delay loops without physical timing claims.
+  Earlier DRAM/entry code, header, full BSS placement and
   secure-OS integration remain unresolved. Complete source and whole-image
   equality are not established; no physical bringup or suspend/resume test ran.
   Supporting evidence: [memory](stock-optee-standby-memory-proof.json),

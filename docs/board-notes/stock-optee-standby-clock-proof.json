@@ -1,0 +1,331 @@
+{
+  "date": "2026-10-28",
+  "scope": "Standalone source-linked code/data suffix; main OP-TEE carrier unchanged",
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "new_function_bytes": 416,
+  "new_initialized_data_bytes": 84,
+  "new_zero_initialized_bss_bytes": 4,
+  "functions": [
+    {
+      "name": "standby_clock_select",
+      "original_sram_address": "0x20f04",
+      "length": 96
+    },
+    {
+      "name": "standby_clock_enter",
+      "original_sram_address": "0x20f64",
+      "length": 208
+    },
+    {
+      "name": "standby_clock_leave",
+      "original_sram_address": "0x21034",
+      "length": 112
+    }
+  ],
+  "connected_suffix": {
+    "original_carrier_offset": "0x4f04",
+    "original_sram_address": "0x20f04",
+    "length": 4556,
+    "text_bytes": 3556,
+    "function_bytes": 3552,
+    "text_literal_bytes": 4,
+    "data_section_bytes": 1000,
+    "normalized_sha256": "0aa1aeec12c64cea443c1e831733de7e32f93a87cca8c460c2468f6c24ec7582",
+    "raw_differing_byte_positions": [
+      4,
+      5,
+      6,
+      8,
+      100,
+      101,
+      102,
+      108,
+      220,
+      221,
+      222,
+      228,
+      360,
+      361,
+      362,
+      368,
+      580,
+      581,
+      582,
+      596,
+      692,
+      693,
+      694,
+      708,
+      788,
+      789,
+      790,
+      804,
+      2128,
+      2129,
+      2130,
+      2136,
+      2272,
+      2273,
+      2274,
+      2280,
+      2284,
+      2285,
+      2286,
+      2292,
+      2352,
+      2353,
+      2354,
+      2360,
+      2376,
+      2377,
+      2378,
+      2384,
+      2452,
+      2453,
+      2454,
+      2460,
+      3784,
+      3785,
+      3786,
+      3872,
+      3873,
+      3874,
+      3920,
+      3921,
+      3922,
+      3968,
+      3969,
+      3970
+    ],
+    "mov_immediate_offsets": [
+      4,
+      8,
+      100,
+      108,
+      220,
+      228,
+      360,
+      368,
+      580,
+      596,
+      692,
+      708,
+      788,
+      804,
+      2128,
+      2136,
+      2272,
+      2280,
+      2284,
+      2292,
+      2352,
+      2360,
+      2376,
+      2384,
+      2452,
+      2460
+    ],
+    "mask_per_actual_mov_relocation": "0x000f0fff",
+    "masked_immediate_bits": 416,
+    "data_pointer_fields": [
+      {
+        "offset": 3784,
+        "original_target": "0x21dd0",
+        "source_target_relative_position_verified": true
+      },
+      {
+        "offset": 3872,
+        "original_target": "0x21d58",
+        "source_target_relative_position_verified": true
+      },
+      {
+        "offset": 3920,
+        "original_target": "0x21d28",
+        "source_target_relative_position_verified": true
+      },
+      {
+        "offset": 3968,
+        "original_target": "0x21d08",
+        "source_target_relative_position_verified": true
+      }
+    ],
+    "masked_data_pointer_bytes": 16,
+    "branch_bytes_excluded": 0,
+    "all_other_bits_equal": true,
+    "undefined_symbols": []
+  },
+  "initialized_symbol_positions": [
+    {
+      "symbol": "standby_clock_registers",
+      "original_address": "0x21ce8",
+      "partial_link_address": "0xde4",
+      "relative_position_equal": true
+    },
+    {
+      "symbol": "standby_pmic_ranges_3",
+      "original_address": "0x21d08",
+      "partial_link_address": "0xe04",
+      "relative_position_equal": true
+    },
+    {
+      "symbol": "standby_pmic_ranges_2",
+      "original_address": "0x21d28",
+      "partial_link_address": "0xe24",
+      "relative_position_equal": true
+    },
+    {
+      "symbol": "standby_pmic_ranges_1",
+      "original_address": "0x21d58",
+      "partial_link_address": "0xe54",
+      "relative_position_equal": true
+    },
+    {
+      "symbol": "standby_twi_bases",
+      "original_address": "0x21d78",
+      "partial_link_address": "0xe74",
+      "relative_position_equal": true
+    },
+    {
+      "symbol": "standby_sram_parameters_address",
+      "original_address": "0x21d8c",
+      "partial_link_address": "0xe88",
+      "relative_position_equal": true
+    },
+    {
+      "symbol": "standby_clock_contexts",
+      "original_address": "0x21d90",
+      "partial_link_address": "0xe8c",
+      "relative_position_equal": true
+    },
+    {
+      "symbol": "standby_pmic_device",
+      "original_address": "0x21dc0",
+      "partial_link_address": "0xebc",
+      "relative_position_equal": true
+    },
+    {
+      "symbol": "standby_pmic_entries",
+      "original_address": "0x21dd0",
+      "partial_link_address": "0xecc",
+      "relative_position_equal": true
+    }
+  ],
+  "bss": {
+    "clock_saved_aux_bytes": 4,
+    "twi_state_bytes": 12,
+    "relative_spacing_equal": true,
+    "constraint": "Recover genuine preceding declarations/alignment/linker layout; no arbitrary BSS padding inserted",
+    "unresolved_preceding_layout_bytes": 444
+  },
+  "source_sha256": {
+    "vendor/optee/standby-src/clock.h": "410b0f030deba0c986bad76947c4d9e95510b8f08c7165c3123aaa3c8fa172ef",
+    "vendor/optee/standby-src/clock-control-runtime.lds": "173e831d114349dfe1bae262e7cd26b3d19cfe2c23287171ea4a41ce915bc529",
+    "vendor/optee/standby-src/pmic-setup.h": "207a96b0f17ec425742e6c4fdb0b03ff3c55f30aaae84659375d47a8d063c217",
+    "vendor/optee/standby-src/pmic.h": "28bde0bece26d1a6e5cdcb44399a831517566c53b935760f8fbf02ec5cebc858",
+    "vendor/optee/standby-src/pmic-data.h": "186c31c6b9bf609225e6eb189d7328bbde4e2aca65df3dc04c7ceb3adbfcaf4f",
+    "vendor/optee/standby-src/twi.h": "61d7ca29c39368edcd87f4ed57d834bcc593f803350d2999f88769546b6f334c",
+    "vendor/optee/standby-src/clock-data.c": "01abd6efb154949eacde156e8cd500f7dcc055f1e9d8ba46716815809bdefa54",
+    "vendor/optee/standby-src/pmic-setup.c": "f807e6ed46bf8dfae7807fd8a9600b45a81531597504bf30e3a0315425741a4c",
+    "vendor/optee/standby-src/pmic.c": "c69cecc1d082402f795df9faa83b116e43a89258bd0cdcae258b602ac141db6b",
+    "vendor/optee/standby-src/pmic-data.c": "cbda712f7187434963283204b8ca177900ece772477c949da9028f0e1d3e3dd7",
+    "vendor/optee/standby-src/twi.c": "e81995ef73c9664decfc72656f45fa67d69da5c717b11702b5945b76f45fc8aa",
+    "vendor/optee/standby-src/clock.S": "3272175617958ad525b26ee85837ca21988265f5a18f2f51c35a630665cbffc7",
+    "vendor/optee/standby-src/delay.S": "8a1ff16c602de741ee19b9b49276605e6b291567e658eb9456a0d6c5583de362",
+    "vendor/optee/standby-src/power.S": "7c6903c91b8fe00b4894aca1f505c08c1dc1a9e4d3c520e8c397ba7da3aa62e0",
+    "vendor/optee/standby-src/pmic-group.S": "12725f39c0440b3083be50ae457d3ca47ceba6a288b5a4fa9afb40996533211e",
+    "vendor/optee/standby-src/descriptor.S": "b13e8a2ce0f502feafb9e28d425289bb63f5b24a1de53ea3b08ce1b4bdc9b2ba",
+    "vendor/optee/standby-src/regulator.S": "4e99da4785f07d7ae5adf662632abad9c7b489bd774e94e058732e676130b86e",
+    "vendor/optee/standby-src/twi-transfer.S": "ae7660c2764ca98545e1554a296dce4037c1fbe9b0864cdf88ab925a0d60b6e3",
+    "vendor/optee/standby-src/stack.S": "d69d0e3b49d2b73816b371e55238cc70f89de392de0477f89358e8f081ee10c7",
+    "vendor/optee/standby-src/spin.S": "4a3dbb4cc1a4e183321c5f35f225f95d1288cabbb796436ac00b1f59e08ddec5",
+    "vendor/optee/standby-src/runtime/lib1funcs.S": "f7a729a1f16ce16de2e2a55781be5c8609fb71556eb96e0b1545af3842649097",
+    "vendor/optee/standby-src/runtime/standby-div0.patch": "5dd5ef26a98bc85ebb8185879de72b9fc1922087438197333f7d87abf2e7921e",
+    "vendor/optee/standby-src/runtime/abi/linux/linkage.h": "e5ef1404ea1e69857b044f2b00c2d5f30faa95bff2f3867bfcab675cc9ba1dcc",
+    "vendor/optee/standby-src/runtime/abi/asm/assembler.h": "0260bf3006b139f1e31ff4576e0915220a46fbe458e4b134f3f13505fbaa4446"
+  },
+  "compile_flags": [
+    "-O2",
+    "-marm",
+    "-march=armv7-a",
+    "-mtune=cortex-a9",
+    "-ffreestanding",
+    "-fno-builtin",
+    "-fno-unwind-tables",
+    "-ffunction-sections",
+    "-fno-section-anchors"
+  ],
+  "copied_source_directories": [
+    "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-standby-clock/copy-a",
+    "/tmp/reforge-standby-clock-copy-b-20261028"
+  ],
+  "all_objects_and_linked_elf_repeat_equal": true,
+  "linked_elf_sha256": "128f6a245ee7b5c8e02f899b76ae6afe76fe6bd28895617a157a7711e6ad3fdd",
+  "qemu_validation": {
+    "method": "Unmodified clock/data/delay objects execute; SIGSEGV handler emulates only guest virtual MMIO word accesses and records ordered operations",
+    "seeds": 3,
+    "select_modes": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      7,
+      8,
+      15,
+      "0xffffffff",
+      "0x80000000"
+    ],
+    "mmio_operations_per_select": 16,
+    "mmio_operations_per_enter": 42,
+    "mmio_operations_per_leave": 24,
+    "checks": [
+      "Every recorded read/write address, value and order",
+      "All untouched words across both 4-KiB banks preserved",
+      "Zero/nonzero saved flags and save-once metadata across repeated entry",
+      "Auxiliary state restore, duplicate keyed writes, unused read retained",
+      "Real delay loops execute; no physical timing claim"
+    ]
+  },
+  "limitations": [
+    "Earlier header/entry/DRAM code and full BSS allocations/layout remain unrecovered",
+    "All address relocations still require the complete SRAM link; no final whole-image exceptions",
+    "Secure WFI in suffix is compared statically and not executed by clock guest",
+    "No physical clock stability, CPU power transition, DRAM retention or suspend/resume tests",
+    "Data/function names are reconstruction names, not recovered debug identifiers"
+  ],
+  "new_address_pairs": [
+    {
+      "movw_offset": 4,
+      "movt_offset": 8,
+      "original_target": "0x21ce8",
+      "source_symbol": "standby_clock_registers"
+    },
+    {
+      "movw_offset": 100,
+      "movt_offset": 108,
+      "original_target": "0x21d90",
+      "source_symbol": "standby_clock_contexts"
+    },
+    {
+      "movw_offset": 220,
+      "movt_offset": 228,
+      "original_target": "0x2228c",
+      "source_symbol": "standby_clock_saved_aux"
+    },
+    {
+      "movw_offset": 360,
+      "movt_offset": 368,
+      "original_target": "0x2228c",
+      "source_symbol": "standby_clock_saved_aux"
+    }
+  ],
+  "validation": {
+    "full_unit_suite": "passed, no skips",
+    "log": "build/unit-optee-standby-clock.log",
+    "test_sha256": {
+      "tests/release/test_stock_optee_standby_clock.py": "2e043e764ca97716bbdad70dd772754e2dd087fbf8e10c3ef3d78d02526741cc",
+      "tests/release/stock_optee_standby_clock_guest.c": "228f9371e82b9e66eb4b10a41263c9e0ef7ab8e940c2bbe4d4084a8d42a9ffd3"
+    },
+    "physical_hardware": false
+  }
+}

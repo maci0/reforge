@@ -238,3 +238,16 @@ The secure-WFI body matches all bytes but has no privileged execution validation
 source-copy repeats and the exact comparison/execution boundary. The main carrier
 and its strict comparison remain unchanged; header/earlier code/layout/integration
 are still unfinished.
+
+## Clock sequence and initialized suffix (2026-10-28)
+
+The [clock recovery](../standby-src/README.md#clock-sequence-and-complete-initialized-suffix-2026-10-28)
+adds three routines and typed clock data. Source now links a continuous 4,556-byte
+code/data suffix with every branch checked, including delays, and every initialized
+symbol at the original relative offset. Only 26 true address-immediate fields and
+four table-pointer words await full link. ARM tests verify ordered virtual MMIO,
+save-once records and real delay execution. [Proof](../../../docs/board-notes/stock-optee-standby-clock-proof.json)
+records the field-level comparison and unresolved 444-byte BSS/layout constraint.
+This adds no arbitrary BSS padding. Earlier code/header, full BSS and carrier
+integration remain open; the main carrier and strict comparison are unchanged.
+No physical timing, clock stability or DRAM-retention test has run.
