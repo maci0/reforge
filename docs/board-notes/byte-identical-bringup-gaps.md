@@ -5,6 +5,7 @@ machine image and complete original boot chain are not yet reproducible byte
 for byte from source.** This is the current gap ledger; the longer
 [build/status record](stock-bringup-rebuild.md) contains recipes and history.
 Reference offsets and hashes are in [the artifact manifest](stock-boot-artifacts.json).
+TOC packing evidence below was updated on 2026-10-28.
 
 “Identical” means complete-file byte equality, including metadata and padding.
 A zero size delta, matching function shapes, a valid checksum or successful boot
@@ -170,22 +171,34 @@ Do not report the exact 2023 primary as proof of the 2025 binary.
 
 ## G05 — complete primary/backup TOC packaging
 
-Member reconstruction does not yet establish container equality. No complete
-source-built TOC package has passed the original whole-container comparison.
+**Container format is now reproduced; complete source payload closure remains open.**
+The source [TOC1 packer](../../tools/build/pack-stock-toc1.py) regenerates all headers,
+records, names, zero padding and the additive checksum without reading a reference
+container or copying any header bytes. Its structures agree with the BSP's
+`include/private_toc.h`; layout and padding are verified against both captures.
 
 - Primary: 1,343,488 bytes, SHA-256
   `9345c28b17c90b994e7688bf611ca275b5be230ce6e9a0e9e74b8c7983f1bc07`.
 - Golden backup: same length, SHA-256
   `8f6d733683e8e3bba479584983002be88fca56de01b08b4ddc8f0d84a9664849`.
 
-Known layout includes the 64-byte header, three 368-byte item records, 2-KiB
-member alignment, U-Boot at relative offset 2,048, OP-TEE at 968,704 and DTB at
-1,269,760, plus container alignment/checksum. A source packer must regenerate all
-records, names, unused fields, padding and checksums from verified inputs.
+Repacking extracted members reproduced **every byte in both containers**, with
+checksums `0x61492f60` and `0x22a79b32`. A second primary comparison uses our
+source-built U-Boot and source-built padded TOC DTB; it also matches every byte,
+but still uses reference OP-TEE **only to validate the packer**. This is not a
+source-built secure OS or complete source-only boot-package result.
+[Retained comparison evidence](stock-toc-format-proof.json) identifies those boundaries.
 
-**To close:** resolve G02, G04 where applicable, then prove complete primary and
-backup TOC equality. Copying original OP-TEE/TOC executable payloads is not a
-source-build solution.
+The generated layout has a 64-byte header, three 368-byte item records, 2-KiB
+member alignment and 16-KiB container alignment. Primary members begin at offsets
+2,048, 968,704 and 1,269,760. Offsets and lengths are computed from the supplied
+payloads, not restored from the capture; a different-size candidate naturally
+produces different records/layout.
+
+**To close:** resolve G02 and G04 where applicable, then feed those verified
+source outputs into the packer and prove complete primary/backup TOC equality.
+See [the recipe](../../tools/build/README-stock-toc1.md). No reference executable
+payload is vendored or automatically selected by the packer.
 
 ## G06 — boot-resource FAT filesystem and inactive Android carrier
 

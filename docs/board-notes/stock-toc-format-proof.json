@@ -1,0 +1,61 @@
+{
+  "scope": "Container-format reconstruction; OP-TEE reference bytes are validation-only, not source closure",
+  "comparisons": [
+    {
+      "slot": "primary",
+      "offset": 12582912,
+      "length": 1343488,
+      "sha256": "9345c28b17c90b994e7688bf611ca275b5be230ce6e9a0e9e74b8c7983f1bc07",
+      "whole_file_equal": true,
+      "checksum": "0x61492f60",
+      "members": [
+        {
+          "name": "u-boot",
+          "length": 966656,
+          "sha256": "31aaa8a085b4985dafdad87d97637fcc1d35a300101295edfaf51c826ff53019"
+        },
+        {
+          "name": "optee",
+          "length": 300248,
+          "sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99"
+        },
+        {
+          "name": "dtb",
+          "length": 59392,
+          "sha256": "2629b7fca484cad18a8a80094a6d3dcc544720637ea3ff0f28fb7ab385672c29"
+        }
+      ]
+    },
+    {
+      "slot": "backup",
+      "offset": 16793600,
+      "length": 1343488,
+      "sha256": "8f6d733683e8e3bba479584983002be88fca56de01b08b4ddc8f0d84a9664849",
+      "whole_file_equal": true,
+      "checksum": "0x22a79b32",
+      "members": [
+        {
+          "name": "u-boot",
+          "length": 966656,
+          "sha256": "b31940650d2072b403cd109b4def5e435abf1326f8fd1292d67c83d0898ecfe3"
+        },
+        {
+          "name": "optee",
+          "length": 300248,
+          "sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99"
+        },
+        {
+          "name": "dtb",
+          "length": 59392,
+          "sha256": "9cc6dbe97217514628c34741d905224e75e28c0958745cc552cbe438fc7f1e04"
+        }
+      ]
+    }
+  ],
+  "primary_source_member_check": {
+    "uboot": "build/stock-uboot-identical/u-boot.bin",
+    "dtb": "build/stock-board-data/toc-padded.dtb",
+    "optee": "reference-only validation payload; NOT source-built",
+    "whole_container_equal": true
+  }
+}
