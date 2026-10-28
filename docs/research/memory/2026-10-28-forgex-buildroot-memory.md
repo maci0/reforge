@@ -10,7 +10,7 @@ The Tina BSP, its libc/Python, stock Klippy and kernel remain outside this work.
 | **Thumb-2 + `-Os`, then LTO** | Rebuild the mod's Python, shared libraries and native extensions, retaining glibc and ARM hard-float ABI | Best next **build** experiment. Bundled Python 3.11.10 records `-O3`; its exported `Py_Initialize`, `PyObject_Malloc`, `PyEval_EvalCode` functions have ARM addresses. Reforge previously measured −4.9 MB stack PSS for its combined Thumb-2/size/purge change, but that includes stock-side Klippy and is **not a Forge-X savings estimate**. No new Forge-X compiler variant built here. |
 | **Tuned jemalloc for Moonraker** | Add source-built jemalloc to the mod and preload it in `S65moonraker` only | Runs and passes API checks; longer-run mean −1.64 MiB PSS, with substantial overlap/noise. Candidate for workload testing, not established production savings. |
 | **Remove unused optional Moonraker features** | Remove `[octoprint_compat]` and disabled `[webcam Example]` when unused | Longer-run mean −1.88 MiB PSS, the most consistent trim tested. Combined treatment; cannot attribute the entire difference to OctoPrint. Losing OctoPrint compatibility affects clients using that API. |
-| **Lazy updater imports** | Port Reforge's lazy `PackageDeploy` / `PythonDeploy` imports to Forge-X's older ZipDeploy implementation | Not tested here. System updates are disabled already, so PackageKit can potentially stay unloaded. Forge-X still uses a `git_repo` updater: lazy Git imports alone cannot avoid that backend. Preserve update functionality. |
+| **Lazy updater imports** | Port Reforge's deferred deployment imports to Forge-X's older ZipDeploy implementation | Six additional boots: mean −985 KiB Moonraker PSS, noisy overlapping samples. Updater remains loaded; Git stays eager because Forge-X uses it. See the new trial below. |
 | Newer GCC, same libc family | Rebuild only the mod's userspace with a newer toolchain | Reforge's old −10.16 MB result bundled compiler/library/build differences, including Klippy; cannot transfer that number to this mod. Measure after Thumb-2/`-Os`. |
 | Smaller native GUI build | Size-optimize GuppyScreen and its dependencies inside the mod | Valid build candidate; not measured in this Feather-mode test. Must check rendering and responsiveness. |
 
@@ -127,5 +127,48 @@ or advertise their deltas as guaranteed savings. Within the requested mod-only b
 the next useful build experiment remains Thumb-2/`-Os`, then separate LTO, keeping the
 existing libc/ABI and checking the actual Python optimization flags. Lazy updater imports
 are another source-level candidate, but require a patch for Forge-X's older Moonraker.
-Neither compiler variants nor that port were built in these trials. No Tina BSP source,
+Compiler variants were not built in these trials. The subsequent source-patch trial below tests the lazy-import port. No Tina BSP source,
 kernel, stock Python or production filesystem was changed.
+
+## Forge-X lazy updater port: six additional boots
+
+Ported the lazy-import idea to the fixture's older `ZipDeploy` API in
+[the trial patch](../../../tests/qemu-harness/patches/forgex-lazy-update-backends.patch).
+ZIP/web and Python backends import when selected; the system backend imports only when
+system updates are enabled. Git stays eager because the existing Forge-X configuration
+uses it and repository recovery checks its class. No configured updater was removed.
+This patch lives in the test harness; the Forge-X checkout and production OS are unchanged.
+
+Three controls and three patched boots ran concurrently with separate disposable images,
+128 MiB RAM, two Cortex-A7 CPUs, Feather mode, no swap and `SETTLE=180`. Same timing and
+network-noise limitations as the earlier cohorts apply. Compare this cohort internally.
+
+| Variant | Individual Moonraker PSS (KiB) | Mean ± sample SD (KiB) |
+|---|---|---|
+| Control | 32,136; 32,166; 35,601 | 33,301 ± 1,992 |
+| Lazy imports | 31,465; 31,784; 33,700 | 32,316 ± 1,209 |
+
+Mean difference: **−985 KiB (about 0.96 MiB)**. All three numbered differences favor the
+patch, but samples overlap and three runs do not establish a reliable saving. Do not add
+this delta to the earlier allocator/config deltas: combinations were not tested.
+All six `/server/info` responses had zero failed components and warnings, with
+`update_manager`, `feather_updates` and `octoprint_compat` still present. Backend selection
+was separately tested for default, Git, ZIP, web and Python paths; system import placement
+was checked under its enable flag. Actual update installations were not exercised.
+
+Reproduce one patched boot with:
+
+```sh
+FX_SET="display='FEATHER' use_swap='OFF'" SETTLE=180 \
+  FX_MOONRAKER_LAZY_IMPORTS=1 \
+  tests/qemu-harness/mem-probe-forgex.sh lazy-patched
+python3 tests/release/test_forgex_lazy_imports.py
+```
+
+Omit `FX_MOONRAKER_LAZY_IMPORTS` for the control. The patch applies with zero fuzz and
+aborts on failure. `bash -n`, ShellCheck and the backend test passed. The two original
+firmware fixture hashes were rechecked unchanged. Source hashes, raw log hashes, API
+components and measurements are in [the trial data](2026-10-28-forgex-lazy-imports.json).
+There are now **33 recorded fresh boots** across these separate cohorts. No Tina kernel,
+stock Python, stock Klippy, libc or production filesystem was changed. Compiler rebuilds,
+GUI responsiveness, real printing and workload stress remain untested in this trial.

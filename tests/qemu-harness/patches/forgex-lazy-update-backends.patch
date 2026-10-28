@@ -1,0 +1,51 @@
+--- a/update_manager.py
++++ b/update_manager.py
+@@ -15,9 +15,6 @@
+ from .base_deploy import BaseDeploy
+ from .app_deploy import AppDeploy
+ from .git_deploy import GitDeploy
+-from .zip_deploy import ZipDeploy
+-from .python_deploy import PythonDeploy
+-from .system_deploy import PackageDeploy
+ from ...common import RequestType
+ from ...utils.filelock import AsyncExclusiveFileLock, LockTimeout
+ 
+@@ -36,6 +33,7 @@
+     cast
+ )
+ if TYPE_CHECKING:
++    from .system_deploy import PackageDeploy
+     from ...server import Server
+     from ...confighelper import ConfigHelper
+     from ...common import WebRequest
+@@ -56,13 +54,15 @@
+     app_type: Union[AppType, str], default: _T
+ ) -> Union[Type[BaseDeploy], _T]:
+     key = AppType.from_string(app_type) if isinstance(app_type, str) else app_type
+-    _deployers = {
+-        AppType.WEB: ZipDeploy,
+-        AppType.GIT_REPO: GitDeploy,
+-        AppType.ZIP: ZipDeploy,
+-        AppType.PYTHON: PythonDeploy
+-    }
+-    return _deployers.get(key, default)
++    if key in (AppType.WEB, AppType.ZIP):
++        from .zip_deploy import ZipDeploy
++        return ZipDeploy
++    if key == AppType.GIT_REPO:
++        return GitDeploy
++    if key == AppType.PYTHON:
++        from .python_deploy import PythonDeploy
++        return PythonDeploy
++    return default
+ 
+ class UpdateManager:
+     def __init__(self, config: ConfigHelper) -> None:
+@@ -89,6 +89,7 @@
+         self.cmd_helper = CommandHelper(config, self.get_updaters)
+         self.updaters: Dict[str, BaseDeploy] = {}
+         if config.getboolean('enable_system_updates', True):
++            from .system_deploy import PackageDeploy
+             self.updaters['system'] = PackageDeploy(config, self.cmd_helper)
+         mcfg = self.app_config["moonraker"]
+         kcfg = self.app_config["klipper"]

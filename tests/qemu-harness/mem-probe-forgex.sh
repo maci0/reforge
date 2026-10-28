@@ -33,6 +33,7 @@
 #   FX_MOONRAKER_PROFILE=trim|lean  remove optional mod config sections
 #   FX_MOONRAKER_MALLOC=1  test glibc trimming + disabled tcache (Moonraker only)
 #   FX_MOONRAKER_JEMALLOC=PATH  preload source-built ARM library (Moonraker only)
+#   FX_MOONRAKER_LAZY_IMPORTS=1  defer unused updater backends in the mod only
 #   KLIPPY_ARENA=N          export MALLOC_ARENA_MAX=N in /opt/klipper/start.sh
 #                           (every klippy launch path runs it). The snapshot
 #                           prints klippy's MALLOC_* environment as proof.
@@ -172,6 +173,13 @@ if [ -n "${FX_MOONRAKER_JEMALLOC:-}" ]; then
     debugfs -R "dump /opt/config/mod/.root/S65moonraker ${TMP}/S65moonraker" "$ROOTFS" 2>/dev/null
     sed -i '/export MALLOC_ARENA_MAX=2/a\    export LD_PRELOAD=/usr/lib/libjemalloc-probe.so MALLOC_CONF=narenas:1,tcache:false,dirty_decay_ms:0,muzzy_decay_ms:0' "$TMP/S65moonraker"
     debugfs_inject "$TMP/S65moonraker" /opt/config/mod/.root/S65moonraker 100755
+fi
+# Source-only trial of Reforge's lazy updater imports on Forge-X's older backend.
+if [ "${FX_MOONRAKER_LAZY_IMPORTS:-0}" = 1 ]; then
+    updater=/opt/config/mod/.root/moonraker/components/update_manager/update_manager.py
+    debugfs -R "dump ${updater} ${TMP}/update_manager.py" "$ROOTFS" 2>/dev/null
+    patch --batch --fuzz=0 "$TMP/update_manager.py" "$HARNESS_DIR/patches/forgex-lazy-update-backends.patch"
+    debugfs_inject "$TMP/update_manager.py" "$updater" 100644
 fi
 # Only the stock UI (skipped above) launches klippy in STOCK mode.
 LAUNCH_KLIPPY=0
