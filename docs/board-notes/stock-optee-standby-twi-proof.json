@@ -1,0 +1,180 @@
+{
+  "date": "2026-10-28",
+  "scope": "Connected standalone TWI source recovery; main OP-TEE carrier unchanged",
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "original_carrier_offset": "0x5754",
+  "original_sram_address": "0x21754",
+  "linked_code_bytes": 932,
+  "raw_differing_byte_positions": [
+    0,
+    1,
+    2,
+    8,
+    144,
+    145,
+    146,
+    152,
+    156,
+    157,
+    158,
+    164,
+    224,
+    225,
+    226,
+    232,
+    248,
+    249,
+    250,
+    256,
+    324,
+    325,
+    326,
+    332
+  ],
+  "normalized_comparison": {
+    "equal": true,
+    "sha256": "074dbdd7b7e37cda4b0c3c8bb47771cba66f8d17c81b27e59e365086f1b358b4",
+    "mask_per_actual_mov_relocation": "0x000f0fff",
+    "masked_immediate_bits": 192,
+    "all_other_bits_including_opcodes_and_registers_equal": true,
+    "branch_bytes_excluded": 0
+  },
+  "address_relocation_pairs": [
+    {
+      "movw_offset": 0,
+      "movt_offset": 8,
+      "original_target": "0x22290",
+      "source_symbol": "standby_twi_state"
+    },
+    {
+      "movw_offset": 144,
+      "movt_offset": 152,
+      "original_target": "0x21d78",
+      "source_symbol": "standby_twi_bases"
+    },
+    {
+      "movw_offset": 156,
+      "movt_offset": 164,
+      "original_target": "0x22290",
+      "source_symbol": "standby_twi_state"
+    },
+    {
+      "movw_offset": 224,
+      "movt_offset": 232,
+      "original_target": "0x22290",
+      "source_symbol": "standby_twi_state"
+    },
+    {
+      "movw_offset": 248,
+      "movt_offset": 256,
+      "original_target": "0x22290",
+      "source_symbol": "standby_twi_state"
+    },
+    {
+      "movw_offset": 324,
+      "movt_offset": 332,
+      "original_target": "0x22290",
+      "source_symbol": "standby_twi_state"
+    }
+  ],
+  "resolved_branches": [
+    {
+      "block_offset": 320,
+      "original_target": "0x21754",
+      "source_target": "standby_twi_stop",
+      "linked_bytes_equal": true
+    },
+    {
+      "block_offset": 364,
+      "original_target": "0x21754",
+      "source_target": "standby_twi_stop",
+      "linked_bytes_equal": true
+    }
+  ],
+  "function_extents": [
+    {
+      "name": "standby_twi_stop",
+      "block_offset": 0,
+      "length": 144
+    },
+    {
+      "name": "standby_twi_init",
+      "block_offset": 144,
+      "length": 80
+    },
+    {
+      "name": "standby_twi_set_divider",
+      "block_offset": 224,
+      "length": 24
+    },
+    {
+      "name": "standby_twi_restore",
+      "block_offset": 248,
+      "length": 52
+    },
+    {
+      "name": "standby_twi_transfer",
+      "block_offset": 300,
+      "length": 632
+    }
+  ],
+  "controller_base_table": {
+    "original_carrier_offset": "0x5d78",
+    "length": 20,
+    "whole_bytes_equal": true,
+    "sha256": "50b8455ac1ee5b9978f5a53ced552f3a7f146408e7a00c099319bd169e930f20"
+  },
+  "zero_initialized_state_bytes": 12,
+  "source_sha256": {
+    "vendor/optee/standby-src/twi.c": "e81995ef73c9664decfc72656f45fa67d69da5c717b11702b5945b76f45fc8aa",
+    "vendor/optee/standby-src/twi.h": "61d7ca29c39368edcd87f4ed57d834bcc593f803350d2999f88769546b6f334c",
+    "vendor/optee/standby-src/twi-transfer.S": "ae7660c2764ca98545e1554a296dce4037c1fbe9b0864cdf88ab925a0d60b6e3",
+    "vendor/optee/standby-src/twi.lds": "9481482295ba16aa8dcd262f532bc96371cc9c0e26e737be7683ecb35d7b60dd"
+  },
+  "compile_flags": [
+    "-O2",
+    "-marm",
+    "-march=armv7-a",
+    "-mtune=cortex-a9",
+    "-ffreestanding",
+    "-fno-builtin",
+    "-fno-unwind-tables",
+    "-ffunction-sections",
+    "-fno-section-anchors"
+  ],
+  "copied_source_directories": [
+    "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-standby-twi/copy-a",
+    "/tmp/reforge-standby-twi-copy-b-20261028"
+  ],
+  "all_objects_and_linked_elf_repeat_equal": true,
+  "linked_elf_sha256": "20c05582a2d3f77a4fcbd01a81037e949f69bbdcc2207d944886ad618d00d4e8",
+  "undefined_symbols": [],
+  "qemu_validation": {
+    "method": "Unmodified source objects execute under ARM QEMU; a SIGSEGV handler emulates only trapped MMIO word accesses in guest virtual memory",
+    "checks": [
+      "All five controller bases, delayed reset completion, saved divider/control and restore without reset wait",
+      "Stop success and all three stop failures with full 327679-iteration limits",
+      "Read/write success; any operation other than one follows the read path",
+      "Every transfer status-error return and all seven transfer timeout codes with full polling limits",
+      "Final receive byte stored before final status rejection",
+      "Stop failures ignored by transfer",
+      "Status narrowed to byte; full-width register and repeated address writes retained",
+      "Actual PMIC read/write/masked-update helpers linked to the real TWI engine"
+    ]
+  },
+  "limitations": [
+    "Full SRAM entry, remaining routines, data/BSS placement and main secure-OS integration remain unfinished",
+    "MOVW/MOVT address immediates await full SRAM layout; these are not whole-image exceptions",
+    "No physical TWI/PMIC, bus timing or suspend/resume tests",
+    "Init reset wait is unbounded in the original and remains unbounded"
+  ],
+  "validation": {
+    "full_unit_suite": "passed, no skips",
+    "log": "build/unit-optee-standby-twi.log",
+    "test_sha256": {
+      "tests/release/test_stock_optee_standby_twi.py": "42bfa3d79ea76d796341cb8c78f0e5cb660d95409d6474a9ca39b763e962d153",
+      "tests/release/stock_optee_standby_twi_guest.c": "14501a24174e955a33a8c2bad07bf3ca800044409d110620e93a513ecc1038ce"
+    },
+    "physical_hardware": false
+  }
+}

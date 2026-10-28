@@ -1,13 +1,14 @@
 # Standalone SRAM standby reconstruction
 
-Coverage at 2026-10-28: **900 bytes of recovered function extents plus
-896 bytes of typed PMIC data** from the original 8,400-byte SRAM image. Functions
+Coverage at 2026-10-28: **1,832 bytes of recovered function extents plus
+916 bytes of initialized data** from the original 8,400-byte SRAM image. Functions
 include C memory helpers (116), ARM runtime (420), counted delays (116), descriptor
-selection (88), and C PMIC register helpers (160). Comparisons match all bytes
-outside 28 actual branch-relocation bytes in function bodies and 16
-bytes across four pointer relocations in the data. These require the complete SRAM link; they are not
-exceptions to the final whole-image gate. Complete function comparisons cover
-676 bytes, including the contiguous 472-byte loop/runtime block.
+selection (88), C PMIC register helpers (160), and the connected TWI engine (932).
+Comparisons match every bit outside 28 branch-relocation bytes, 16 data-pointer
+bytes and twelve MOVW/MOVT address-immediate fields (192 bits). These require
+the complete SRAM layout; they are not exceptions to the final whole-image gate.
+Complete function comparisons cover 676 bytes, including the contiguous 472-byte
+loop/runtime block. The connected TWI block also resolves all its internal branches.
 [Runtime source and recipe](runtime/README.md) document its public source origin
 and explicit standalone ABI adaptation. This is separate recovery work; the main
 OP-TEE recipe still has no reconstructed complete standby payload or integration.
@@ -168,13 +169,71 @@ reconstruction must not be deployed as a corrected driver.
 Two copied-source builds reproduce each object and the combined relocatable
 object. The link uses relative input paths so GNU ld's automatically generated
 `STT_FILE` symbol does not capture the build directory. The only undefined symbol
-in the combined PMIC/data/selector object is `standby_twi_transfer`.
+in that PMIC/data/selector-only object is `standby_twi_transfer`; the later
+TWI reconstruction supplies it.
 
 ```sh
 python3 tests/release/test_stock_optee_standby_pmic.py
 ```
 
 [PMIC proof](../../../docs/board-notes/stock-optee-standby-pmic-proof.json) records
-hashes, relocation fields and original branch/pointer targets. The TWI engine,
-remaining regulator consumers, full SRAM link and main carrier integration remain
+hashes, relocation fields and original branch/pointer targets. At this recovery
+stage the TWI engine was still unresolved; see the connected recovery below.
+Remaining regulator consumers, the full SRAM link and carrier integration are
 unfinished. No physical PMIC/TWI, calibrated timing or suspend/resume test was run.
+
+## Connected TWI engine (2026-10-28)
+
+`twi.c`, `twi-transfer.S`, and `twi.h` reconstruct all five functions in the
+contiguous 932-byte block at SRAM `0x21754..0x21af7` (carrier `0x5754..0x5af7`):
+
+| Function | Bytes | Source |
+|---|---:|---|
+| Stop and poll idle/status/line state | 144 | ARM assembly |
+| Save state, set divider and reset controller | 80 | C |
+| Set divider | 24 | C |
+| Restore saved divider/control | 52 | C |
+| Single-register read/write transaction | 632 | ARM assembly |
+
+The three C functions use the memory-helper compiler flags plus
+`-fno-section-anchors`, so their address relocations directly name the state and
+base-table symbols. Five genuine MMIO base addresses reproduce the original
+20-byte controller table; a normal zero-initialized 12-byte C state replaces no
+recorded executable address. No reference binary is a build input.
+
+`twi.lds` links the five source sections in observed order, without fixed
+addresses or gap fill. Both calls from transfer to stop then match their original
+four-byte branch encodings. The **entire block** matches after masking only the
+sixteen immediate bits in each of twelve genuine MOVW/MOVT address relocations
+(mask `0x000f0fff`). All remaining bits, including opcodes, register selections,
+internal branches and polling limits, match. Original address pairs refer to
+state at `0x22290` and the controller table at `0x21d78`. Their final values
+require the full SRAM data/BSS layout. The proof records raw byte differences;
+this partial link is not accepted as an identical SRAM image.
+
+Two separate copied-source builds reproduce the objects and linked ELF exactly,
+with no undefined symbols. ARM QEMU executes the production objects against a
+reactive peripheral model. A test-only SIGSEGV handler traps guest virtual MMIO
+and emulates unconditional ARM word loads/stores; it leaves all other execution
+to QEMU. It never maps physical hardware or changes production code. The test
+covers all five controllers, delayed reset completion, state restore, read/write
+success, every status-error return, all three stop failures and all seven
+transfer timeouts. Polling limits execute all 327,679 iterations; no counter is
+shortened. Actual PMIC read/write/update helpers also run through this engine.
+
+The test preserves observed quirks: only operation `1` writes; other operation
+values read. Transfer ignores stop errors. The final byte is copied before its
+status is rejected. Status is narrowed to eight bits, but register writes and
+the repeated-start address write retain their observed full-word values. Init
+waits indefinitely for reset; restore requests reset without waiting. These are
+reconstruction facts, not claims of robust driver behavior.
+
+```sh
+python3 tests/release/test_stock_optee_standby_twi.py
+```
+
+[TWI proof](../../../docs/board-notes/stock-optee-standby-twi-proof.json) retains
+source/reference hashes, the exact immediate fields, original symbol targets,
+resolved-call checks and copied-source repeatability. Remaining regulator,
+DRAM/clock, entry/stack code and full SRAM data/BSS layout still prevent a complete
+payload and carrier build. No physical bus timing, PMIC or suspend/resume test ran.

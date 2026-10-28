@@ -101,6 +101,15 @@ Remaining work:
   including the C helpers). The selector raises full byte coverage to 676 bytes;
   its [proof](stock-optee-standby-descriptor-proof.json) includes copied-source
   repeatability and ARM selection-boundary tests.
+  The connected [TWI engine](stock-optee-standby-twi-proof.json) now reconstructs
+  another 932 code bytes plus the 20-byte controller table and 12-byte zeroed
+  state. All internal branch encodings match after linking; only twelve actual
+  MOVW/MOVT address-immediate fields (192 bits) await the full SRAM layout.
+  Opcodes and register choices are compared, not masked. The linked engine has
+  no undefined symbols. ARM tests exercise reactive simulated MMIO, all controller
+  bases, full stop/transfer polling limits, error paths and real PMIC callers.
+  Total recovered extents are now 1,832 code and 916 initialized-data bytes;
+  remaining regulator/DRAM/clock/entry code and full layout/integration are open.
   Independent copied-source builds reproduce objects and runtime bytes, and
   ARM QEMU verifies memory and arithmetic edge behavior. This is partial
   recovery, separate from the current carrier.

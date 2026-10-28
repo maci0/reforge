@@ -200,3 +200,16 @@ link and physical timing remain open; no partial payload is inserted into the
 current OP-TEE carrier. The full unit suite passes with the pinned boot0 compiler
 supplied. [Proof](../../../docs/board-notes/stock-optee-standby-delay-proof.json)
 records the comparison boundary.
+
+## Connected standalone TWI engine (2026-10-28)
+
+The [standby reconstruction](../standby-src/README.md#connected-twi-engine-2026-10-28)
+now includes the full connected 932-byte TWI code block, its five-controller table
+and source-defined state. All internal branches match after linking; comparison
+masks only the address immediates of twelve actual MOVW/MOVT relocations, keeping
+opcodes and register bits checked. Reactive guest-MMIO tests run every stop and
+transfer timeout at its full limit, error paths, and real PMIC callers. Two copied
+source builds reproduce the linked ELF. [Proof](../../../docs/board-notes/stock-optee-standby-twi-proof.json)
+records the exact fields and original targets. The full unit suite passes without
+skips. Remaining SRAM code/layout and carrier integration are still open; the
+carrier artifact, size and strict-comparison failure above remain unchanged.
