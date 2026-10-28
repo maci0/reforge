@@ -67,7 +67,8 @@ patchdir="$repo/vendor/optee/stock-patches"
 patches=("$patchdir/0001-upstream-sm4.patch" "$patchdir/0002-upstream-sm3.patch"
          "$patchdir/0003-t113-reconstruction.patch"
          "$patchdir/0004-source-header-console-reset.patch"
-         "$patchdir/0005-source-hash-installer.patch")
+         "$patchdir/0005-source-hash-installer.patch"
+         "$patchdir/0006-source-smc-config.patch")
 for source_patch in "${patches[@]}"; do
     patch --batch --forward --fuzz=0 -s -p1 -d "$out/source-tree" < "$source_patch"
 done

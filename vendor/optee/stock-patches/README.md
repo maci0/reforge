@@ -11,7 +11,7 @@ The first two patches are published upstream implementations, unchanged:
 - [SM4](https://github.com/OP-TEE/optee_os/commit/ade6f848e084d7c63f1e3866d7c059b8a9f9e834).
 - [SM3](https://github.com/OP-TEE/optee_os/commit/47645577).
 
-The third patch contains reconstructed T113 C and a platform-specific boot hook. The current profile has nine platform/helper functions matching every original byte outside genuine object relocation fields (620 bytes in total); the CPU-interface initializer and early CPU-reset routine also match all their bytes without relocations. Other bodies are semantic drafts and remain unverified. No original opcodes, target objects, post-link metadata replacements or empty vendor-service implementations are used. Explicit diagnostic arguments preserve observed runtime error reports, rather than manufacturing source-line padding.
+The third patch contains reconstructed T113 C and a platform-specific boot hook. The current profile has eleven platform/helper functions matching every original byte outside genuine object relocation fields (1,192 bytes in total); the CPU-interface initializer and early CPU-reset routine also match all their bytes without relocations. Other bodies are semantic drafts and remain unverified. No original opcodes, target objects, post-link metadata replacements or empty vendor-service implementations are used. Explicit diagnostic arguments preserve observed runtime error reports, rather than manufacturing source-line padding.
 
 The fourth patch reconstructs the Allwinner image header as typed C data plus an ARM branch, with link-derived offsets to the genuine generated TA public key. The 4092-byte header and normal 8-KiB reset alignment reproduce all first-8192 bytes except the three public-key offset words, whose values correctly track this reconstruction's different symbol addresses. No header or executable bytes are imported from the original image.
 
@@ -66,7 +66,7 @@ four-byte ELF relocation fields match exactly. The generated unwind descriptor
 between neighboring unwind entries. ARM QEMU checks copied names and
 digests, cumulative count, trace arguments, allocation failure and zero entries.
 Ten other platform objects remain identical after removal of debug information.
-The verified platform/helper total is now ten bodies / 792 bytes outside genuine
+After this step the verified platform/helper total was ten bodies / 792 bytes outside genuine
 relocations; whole-program correspondence is still incomplete.
 
 A fresh recipe invocation at `build/stock-optee-vendor-recovery/source-build`
@@ -85,3 +85,48 @@ python3 tests/release/test_stock_optee_hash_installer.py
 
 The test uses the local pinned Linaro 5.3.1 compiler and `qemu-arm`; it explicitly
 skips if either is absent. No hardware was used.
+
+## Secure-memory-controller recovery (2026-10-28)
+
+Patch 0006 replaces the draft SMC C unit with readable Thumb source. The function
+still accepts a 64-bit start/size pair and implements the original algorithm:
+partition into at most sixteen aligned blocks (4 GiB maximum, 32 KiB minimum),
+find the first free SMC region, then write its high address, low address and
+secure attributes. It preserves original warnings and return behavior, including
+partial coverage on region exhaustion. MMIO numbers are hardware register
+constants; calls and diagnostic pointers are symbolic ELF relocations.
+
+Original `sunxi_smc_config` at `0x41b13adc` is 400 bytes. All 352 bytes outside its
+twelve four-byte relocation fields match, including every hardware constant.
+The automatically generated EHABI word `0x80063faf` matches the original table
+entry at file offset `0x46b60`: restore 284 local-stack bytes and registers
+r4-r11/lr. No executable opcode array, fixed code pointer, stock metadata or
+post-link substitution is used. Original C spelling remains unknown.
+
+A freestanding ARM QEMU test uses a simulated 16-region bank. It checks zero-size
+no-op behavior; the stock 4-MiB mapping and translation-call order; preserving an
+occupied first region while splitting a 32/64-KiB request; 64-bit address high
+words; minimum-size rounding with the exact warning payload; all registers busy
+without writes; generated-map exhaustion with the exact remaining-byte count;
+and untouched reserved register words. This is simulated MMIO, not a hardware
+validation or isolation certification.
+
+The fresh carrier is still 258,536 bytes, SHA-256
+`becab365f99411fee5de13460aa2fe2c4d7aa39f527b0920d9d1458d0fb4dc2e`.
+A second fresh build outside Reforge reproduces every raw carrier byte.
+Stock comparison correctly exits 1: delta −41,712 bytes, 244,833 differing byte
+positions in the shared extent, first difference at 252. The number of differing
+whole-file positions is not a measure of how many routines are recovered, because
+layout and relocated addresses also differ. All eleven other platform objects
+remain identical after debug removal; eleven bodies / 1,192 bytes now match
+outside real relocation fields. SRAM standby, hardware policy and complete
+service/layout/original-input reconstruction remain unfinished.
+[SMC proof](../../../docs/board-notes/stock-optee-smc-proof.json) records the exact
+comparison boundary and fresh build report.
+
+```sh
+python3 tests/release/test_stock_optee_smc.py
+```
+
+Validation: `make unit` passes, including the new QEMU register-policy test;
+`bash -n` and ShellCheck pass for the build recipe. No hardware was used.

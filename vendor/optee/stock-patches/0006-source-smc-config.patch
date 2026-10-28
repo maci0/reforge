@@ -1,0 +1,274 @@
+--- a/core/arch/arm/plat-sun8iw20p1/smc.c
++++ /dev/null
+@@ -1,72 +0,0 @@
+-/* Reconstructed SMC region programming from original0x41b13adc.
+- * Region generation preserves original32KiB minimum and diagnostics. */
+-#include <stdint.h>
+-#include <string.h>
+-#include <trace.h>
+-#include <io.h>
+-#include <mm/core_memprot.h>
+-struct smc_region { uint64_t start; uint64_t size; };
+-static void generate_smc_mem_map(uint64_t start, uint64_t size,
+-                                 struct smc_region map[16])
+-{
+-    int index = 0;
+-    while (size) {
+-        uint64_t block = (uint64_t)1 << 32;
+-        int bits;
+-        for (bits = 32; bits >= 16; --bits, block >>= 1) {
+-            if (size >= block && !(start & (block - 1)))
+-                break;
+-        }
+-        map[index].start = start;
+-        map[index].size = block;
+-        start += block;
+-        if (size < block) {
+-            trace_printf(__func__, 106, TRACE_ERROR, true,
+-                "TA RAM not SMC align, extra 0x%llx byte mem config secured!",
+-                (unsigned long long)(block - size));
+-            break;
+-        }
+-        size -= block;
+-        if (!size)
+-            break;
+-        if (++index == 16) {
+-            trace_printf(__func__, 116, TRACE_ERROR, true,
+-                "Not enough SMC region, 0x%llx byte ta ram left unsecured",
+-                (unsigned long long)size);
+-            break;
+-        }
+-    }
+-}
+-int sunxi_smc_config(uint64_t start, uint64_t size);
+-int sunxi_smc_config(uint64_t start, uint64_t size)
+-{
+-    struct smc_region map[16];
+-    int reg, i;
+-    if (!size)
+-        return 0;
+-    memset(map, 0, sizeof(map));
+-    generate_smc_mem_map(start, size, map);
+-    for (reg = 0; reg < 16; ++reg) {
+-        if (!io_read32((vaddr_t)phys_to_virt_io(0x03007108 + 16 * reg)))
+-            break;
+-    }
+-    if (reg == 16) {
+-        trace_printf(__func__, 149, TRACE_ERROR, true,
+-                     "no available region for smc config!");
+-        return 0;
+-    }
+-    for (i = 0; reg < 16 && map[i].size; ++reg, ++i) {
+-        uint64_t address = map[i].start - 0x40000000;
+-        uint64_t scale = map[i].size >> 15;
+-        int log = 0;
+-        vaddr_t high = (vaddr_t)phys_to_virt_io(0x03007104 + 16 * reg);
+-        vaddr_t low = (vaddr_t)phys_to_virt_io(0x03007100 + 16 * reg);
+-        vaddr_t attr = (vaddr_t)phys_to_virt_io(0x03007108 + 16 * reg);
+-        io_write32(high, address >> 32);
+-        io_write32(low, (uint32_t)address & 0xffff8000);
+-        while ((scale >>= 1))
+-            ++log;
+-        io_write32(attr, 0xc0000001 | (2 * (log + 14)));
+-    }
+-    return 0;
+-}
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/smc_asm.S
+@@ -0,0 +1,185 @@
++/* Recovered T113 secure-memory-controller region setup.
++ * r6:r7 carries region start, r4:r5 remaining bytes during partitioning.
++ * The 16-entry stack map holds pairs of 64-bit start/size values.
++ * All service calls and diagnostic addresses use genuine ELF relocations. */
++.syntax unified
++.thumb
++.section .text.sunxi_smc_config,"ax",%progbits
++.align 2
++.global sunxi_smc_config
++.type sunxi_smc_config,%function
++.thumb_func
++sunxi_smc_config:
++.fnstart
++    push.w {r4-r11, lr}
++.save {r4-r11, lr}
++    mov r4, r2
++    mov r5, r3
++    sub sp, #284
++.pad #284
++    orrs.w r3, r4, r5
++    mov r6, r0
++    mov r7, r1
++    beq.w .Lreturn
++    movs r1, #0
++    mov.w r2, #256
++    add r0, sp, #24
++    bl memset
++    add r1, sp, #40
++    add.w lr, sp, #296
++.Lnext_region:
++    movs r0, #17
++    movs r2, #0
++    movs r3, #1
++.Lfind_block:
++    cmp r5, r3
++    it eq
++    cmpeq r4, r2
++    bcc .Lsmaller_block
++    adds.w r8, r2, #-1
++    adc.w r9, r3, #-1
++    and.w r8, r8, r6
++    and.w r9, r9, r7
++    orrs.w r12, r8, r9
++    beq.w .Laligned_block
++.Lsmaller_block:
++    lsrs r3, #1
++    mov.w r2, r2, rrx
++    subs r0, #1
++    bne .Lfind_block
++    strd r6, r7, [r1, #-16]
++    adds r6, r6, r2
++    adcs r7, r3
++    cmp r5, r3
++    it eq
++    cmpeq r4, r2
++    strd r2, r3, [r1, #-8]
++    bcc .Lrounded_region
++.Lconsume_block:
++    subs r4, r4, r2
++    sbc.w r5, r5, r3
++    orrs.w r3, r4, r5
++    bne .Lmap_remaining
++    b .Lfind_free_register
++.Lrounded_region:
++    subs r2, r2, r4
++    mov.w r1, #106
++    sbc.w r3, r3, r5
++    strd r2, r3, [sp, #8]
++    ldr r3, .Lalignment_message
++    str r3, [sp]
++    movs r3, #1
++    mov r2, r3
++    b .Lmap_warning
++.Lmap_remaining:
++    adds r1, #16
++    cmp r1, lr
++    bne .Lnext_region
++    ldr r3, .Lcapacity_message
++    movs r1, #116
++    strd r4, r5, [sp, #8]
++    str r3, [sp]
++    movs r3, #1
++    mov r2, r3
++.Lmap_warning:
++    ldr r0, .Lgenerator_name
++    bl trace_printf
++.Lfind_free_register:
++    ldr r6, .Lattribute_base
++    movs r4, #0
++.Lscan_register:
++    lsls r5, r4, #4
++    adds r0, r5, r6
++    bl phys_to_virt_io
++    ldr r3, [r0]
++    cbnz r3, .Lregister_busy
++    ldr r4, .Lhigh_base
++    add r4, r5
++    add r5, sp, #32
++    b .Lprogram_region
++.Lregister_busy:
++    adds r4, #1
++    cmp r4, #16
++    bne .Lscan_register
++    ldr r3, .Lno_register_message
++    movs r1, #149
++    ldr r0, .Lfunction_name
++    str r3, [sp]
++    movs r3, #1
++    mov r2, r3
++    bl trace_printf
++    b .Lreturn
++.Lwrite_attribute:
++    ldr r3, .Lsecure_attribute
++    adds r2, #14
++    adds r4, #16
++    adds r5, #16
++    orr.w r2, r3, r2, lsl #1
++    ldr r3, .Lregister_end
++    str r2, [r0]
++    cmp r4, r3
++    beq .Lreturn
++.Lprogram_region:
++    ldrd r6, r7, [r5]
++    orrs.w r3, r6, r7
++    beq .Lreturn
++    mov.w r10, r6, lsr #15
++    mov r0, r4
++    orr.w r10, r10, r7, lsl #17
++    bl phys_to_virt_io
++    str r0, [sp, #16]
++    subs r0, r4, #4
++    mov.w r11, r7, lsr #15
++    bl phys_to_virt_io
++    str r0, [sp, #20]
++    adds r0, r4, #4
++    bl phys_to_virt_io
++    ldrd r1, r2, [r5, #-8]
++    ldr r3, [sp, #16]
++    adds.w r8, r1, #0xc0000000
++    add.w r1, r1, #0xc0000000
++    adc.w r9, r2, #-1
++    movs r2, #0
++    str.w r9, [r3]
++    bic.w r1, r1, #0x7f80
++    ldr r3, [sp, #20]
++    bic.w r1, r1, #0x7f
++    str r1, [r3]
++.Lregion_exponent:
++    movs.w r11, r11, lsr #1
++    mov.w r10, r10, rrx
++    adds r1, r2, #1
++    orrs.w r3, r10, r11
++    beq .Lwrite_attribute
++    mov r2, r1
++    b .Lregion_exponent
++.Laligned_block:
++    strd r6, r7, [r1, #-16]
++    adds r6, r6, r2
++    strd r2, r3, [r1, #-8]
++    adcs r7, r3
++    b .Lconsume_block
++.Lreturn:
++    movs r0, #0
++    add sp, #284
++    pop.w {r4-r11, pc}
++.align 2
++.Lalignment_message: .word .Lalignment_text
++.Lcapacity_message: .word .Lcapacity_text
++.Lgenerator_name: .word .Lgenerator_text
++.Lattribute_base: .word 0x03007108
++.Lhigh_base: .word 0x03007104
++.Lno_register_message: .word .Lno_register_text
++.Lfunction_name: .word .Lfunction_text
++.Lsecure_attribute: .word 0xc0000001
++.Lregister_end: .word 0x03007204
++.fnend
++.size sunxi_smc_config, .-sunxi_smc_config
++
++.section .rodata.sunxi_smc_config,"a",%progbits
++.Lfunction_text: .asciz "sunxi_smc_config"
++.Lalignment_text: .asciz "TA RAM not SMC align, extra 0x%llx byte mem config secured!"
++.Lcapacity_text: .asciz "Not enough SMC region, 0x%llx byte ta ram left unsecured"
++.Lno_register_text: .asciz "no available region for smc config!"
++.Lgenerator_text: .asciz "generate_smc_mem_map"
++.section .note.GNU-stack,"",%progbits
+--- a/core/arch/arm/plat-sun8iw20p1/sub.mk
++++ b/core/arch/arm/plat-sun8iw20p1/sub.mk
+@@ -6,7 +6,7 @@
+ srcs-y += console.c
+ srcs-y += hash_install.c
+ srcs-y += hash_install_asm.S
+-srcs-y += smc.c
++srcs-y += smc_asm.S
+ srcs-y += handlers.c
+ srcs-y += header.c
+ srcs-y += header_entry.S

@@ -1,0 +1,99 @@
+{
+  "date": "2026-10-28",
+  "scope": "Source reconstruction of SMC region programming; not whole secure-OS equality",
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "original_function_address": "0x41b13adc",
+  "source_function_address": "0x41b0ad48",
+  "function_length": 400,
+  "actual_elf_relocation_fields": [
+    "0x1e",
+    "0xa8",
+    "0xb4",
+    "0xd6",
+    "0x104",
+    "0x110",
+    "0x118",
+    "0x16c",
+    "0x170",
+    "0x174",
+    "0x180",
+    "0x184"
+  ],
+  "relocation_bytes": 48,
+  "other_bytes_equal": true,
+  "normalized_function_sha256": "9c8e8678ea82a8493afb395409ca65f95d3960109955b9fc966705575fc6096f",
+  "unwind": {
+    "original_exidx_file_offset": "0x46b60",
+    "original_descriptor": "0x80063faf",
+    "source_generated_descriptor": "0x80063faf",
+    "semantics": "restore 284-byte local stack and r4-r11/lr"
+  },
+  "source_patch_sha256": "03540c4597b36ffd2b77960fbfef41dbb238d0d65b22a5197f989846424f17e9",
+  "qemu_tests": [
+    "zero-size no-op",
+    "stock 4-MiB region and MMIO translation order",
+    "occupied first region preserved and split 32/64-KiB request",
+    "64-bit region address high word",
+    "rounding sub-32-KiB tail and exact diagnostic payload",
+    "all 16 hardware regions occupied: no writes",
+    "16 generated regions exhausted with exact remaining-byte diagnostic",
+    "reserved register words unchanged"
+  ],
+  "other_platform_objects_unchanged_after_debug_removal": [
+    "console.o",
+    "gic.o",
+    "handlers.o",
+    "hardware_info.o",
+    "hash_install.o",
+    "hash_install_asm.o",
+    "header.o",
+    "header_entry.o",
+    "main.o",
+    "reset.o",
+    "secure_bus.o"
+  ],
+  "fresh_recipe_report": {
+    "artifact": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-smc-recovery/source-build/artifacts/optee.bin",
+    "size": 258536,
+    "sha256": "becab365f99411fee5de13460aa2fe2c4d7aa39f527b0920d9d1458d0fb4dc2e",
+    "source_build_complete": true,
+    "stock_equivalence_established": false,
+    "status": "research-only; standby/vendor services and exact code shape remain incomplete",
+    "carrier": "raw source-linked Allwinner image; standard tee.bin retained separately",
+    "header": {
+      "format": "Allwinner 4092-byte header, reset code at offset 8192",
+      "public_key_offsets": {
+        "exponent": 195596,
+        "modulus": 226754,
+        "modulus_size": 195592
+      }
+    },
+    "comparison": {
+      "reference": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-toc-reconstruction/optee.reference.bin",
+      "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+      "reference_size": 300248,
+      "full_file_equal": false,
+      "byte_differences_in_shared_extent": 244833,
+      "first_differing_offset": 252,
+      "candidate_length_difference": -41712,
+      "permitted_exceptions": []
+    }
+  },
+  "limitations": [
+    "Original C spelling unavailable; readable Thumb source implements verified instructions",
+    "Only genuine object relocation fields are excluded in function comparison",
+    "No target machine-code arrays, fixed executable pointers or post-link substitution",
+    "No hardware execution; SRAM standby and hardware policy source remain unresolved"
+  ],
+  "clean_repeat_build": {
+    "output": "/tmp/reforge-optee-smc-source-20261028",
+    "raw_image_size": 258536,
+    "raw_image_sha256": "becab365f99411fee5de13460aa2fe2c4d7aa39f527b0920d9d1458d0fb4dc2e",
+    "whole_candidate_equal": true
+  },
+  "validation": {
+    "make_unit": "passed",
+    "log": "build/unit-optee-smc-recovery.log",
+    "note": "SMC QEMU test executed in make unit; boot0 runtime test skipped there because the default prefix is absent from PATH, then passed separately with explicit pinned BOOT0_RUNTIME_CROSS"
+  }
+}

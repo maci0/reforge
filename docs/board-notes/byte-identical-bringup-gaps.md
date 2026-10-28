@@ -1,11 +1,11 @@
 # Byte-identical bring-up: remaining gaps
 
-Status at 2026-10-26, implementation commit `2e5c7dd`. **The complete captured
+Updated 2026-10-28; original baseline implementation was `2e5c7dd`.
+**The complete captured
 machine image and complete original boot chain are not yet reproducible byte
 for byte from source.** This is the current gap ledger; the longer
 [build/status record](stock-bringup-rebuild.md) contains recipes and history.
 Reference offsets and hashes are in [the artifact manifest](stock-boot-artifacts.json).
-TOC packing evidence below was updated on 2026-10-28.
 
 “Identical” means complete-file byte equality, including metadata and padding.
 A zero size delta, matching function shapes, a valid checksum or successful boot
@@ -65,9 +65,9 @@ G09 separately records compiler-runtime source closure.
 300,248 bytes, SHA-256
 `7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99`.
 Current clean source candidate: 258,536 bytes, SHA-256
-`ed608f12a28dcf68edf33f6901a40d1d7c609cb283e4fee5bf44ed406e760bd0`
-(after the 2026-10-28 hash-installer reconstruction).
-The **size delta is −41,712 bytes**; **244,777 byte positions differ in the
+`becab365f99411fee5de13460aa2fe2c4d7aa39f527b0920d9d1458d0fb4dc2e`
+(after the 2026-10-28 SMC reconstruction).
+The **size delta is −41,712 bytes**; **244,833 byte positions differ in the
 shared extent**. Neither number means that exactly 41,712 instruction bytes are
 missing: section layout, data and alignment also contribute.
 
@@ -87,10 +87,15 @@ Remaining work:
   readable Thumb source with genuine symbolic relocations. All bytes outside its
   eleven real relocation fields match the original, and its unwind descriptor
   also matches. ARM QEMU verifies copying, count/log updates, allocation failure
-  and zero entries. Hardware-identification policy, secure-memory-controller
-  programming and their callers still contain unverified semantic drafts.
+  and zero entries. The 400-byte SMC routine is also reconstructed, including
+  its real MMIO constants, twelve symbolic relocation fields and exact unwind
+  descriptor. QEMU verifies region selection, split/rounded mappings, 64-bit
+  offsets and exhaustion against a simulated register bank.
+  Hardware-identification policy and remaining service integration still
+  contain unverified semantic drafts.
   Exact complete linked instruction/data comparison remains necessary.
-  [Installer evidence](stock-optee-hash-installer-proof.json) records the boundaries.
+  [Installer evidence](stock-optee-hash-installer-proof.json) and
+  [SMC evidence](stock-optee-smc-proof.json) record the boundaries.
 - **Complete core correspondence:** the pre-installer baseline mapped 913
   source/original functions covering 125,412 bytes, including normalized matches checked
   against 2,541 known-callee/string constraints with no contradictions. These
@@ -107,10 +112,10 @@ Remaining work:
   The recipe deliberately identifies itself as `3.7.0-reforge-reconstruction`.
 
 The typed vendor header, 48-byte early reset routine, actual UART console,
-log level 3 and physical mappings are now source-built. Ten platform/helper
-bodies, totalling 792 bytes, match outside genuine relocation fields. The other
-ten platform objects remain byte-identical after debug removal across the
-hash-installer change.
+log level 3 and physical mappings are now source-built. Eleven platform/helper
+bodies, totalling 1,192 bytes, match outside genuine relocation fields. The other
+eleven platform objects remain byte-identical after debug removal across the
+SMC change.
 The candidate remains **research-only and not a verified deployable secure OS**.
 
 A differential `-O2` core build approached the original size but lost 579
