@@ -76,7 +76,8 @@ patches=("$patchdir/0001-upstream-sm4.patch" "$patchdir/0002-upstream-sm3.patch"
          "$patchdir/0011-source-secondary-boot.patch"
          "$patchdir/0012-source-psci-identification.patch"
          "$patchdir/0013-source-cpu-control.patch"
-         "$patchdir/0014-source-system-reset.patch")
+         "$patchdir/0014-source-system-reset.patch"
+         "$patchdir/0015-source-cpu-off.patch")
 for source_patch in "${patches[@]}"; do
     patch --batch --forward --fuzz=0 -s -p1 -d "$out/source-tree" < "$source_patch"
 done
@@ -89,10 +90,12 @@ cp "$repo/vendor/optee/standby-host-src/reset-late.S" "$out/source-tree/core/arc
 cp "$repo/vendor/optee/standby-host-src/psci-identification.c" "$out/source-tree/core/arch/arm/plat-sun8iw20p1/psci_identification.c"
 cp "$repo/vendor/optee/standby-host-src/cpu-control.S" "$out/source-tree/core/arch/arm/plat-sun8iw20p1/cpu_control.S"
 cp "$repo/vendor/optee/standby-host-src/system-reset.S" "$out/source-tree/core/arch/arm/plat-sun8iw20p1/system_reset.S"
+cp "$repo/vendor/optee/standby-host-src/cpu-off.S" "$out/source-tree/core/arch/arm/plat-sun8iw20p1/cpu_off.S"
 sha256sum "$repo/vendor/optee/standby-host-src/reset-late.S" \
     "$repo/vendor/optee/standby-host-src/psci-identification.c" \
     "$repo/vendor/optee/standby-host-src/cpu-control.S" \
-    "$repo/vendor/optee/standby-host-src/system-reset.S" > "$out/host-sources.sha256"
+    "$repo/vendor/optee/standby-host-src/system-reset.S" \
+    "$repo/vendor/optee/standby-host-src/cpu-off.S" > "$out/host-sources.sha256"
 
 {
     "${cross}gcc" --version

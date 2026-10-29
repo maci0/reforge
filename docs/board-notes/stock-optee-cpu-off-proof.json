@@ -1,0 +1,214 @@
+{
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "source": "vendor/optee/standby-host-src/cpu-off.S",
+  "source_sha256": "e88ee8db3558a2be1ce66ebe554fe1c3bf1eb23ca32d0bb71e14dc730d36bc92",
+  "functions": [
+    {
+      "name": "psci_cpu_off",
+      "stock_address": "0x41b11210",
+      "source_address": "0x41b10fe8",
+      "bytes_with_literals": 60,
+      "source_unchanged_upstream": false,
+      "genuine_relocations": [
+        {
+          "offset": "0x2",
+          "type": "R_ARM_THM_CALL",
+          "target": "standby_cpu_get_core"
+        },
+        {
+          "offset": "0x18",
+          "type": "R_ARM_THM_CALL",
+          "target": "trace_printf"
+        },
+        {
+          "offset": "0x1c",
+          "type": "R_ARM_THM_CALL",
+          "target": "psci_armv7_cpu_off"
+        },
+        {
+          "offset": "0x22",
+          "type": "R_ARM_THM_CALL",
+          "target": "thread_mask_exceptions"
+        },
+        {
+          "offset": "0x34",
+          "type": "R_ARM_ABS32",
+          "target": ".rodata.psci_cpu_off"
+        },
+        {
+          "offset": "0x38",
+          "type": "R_ARM_ABS32",
+          "target": ".rodata.psci_cpu_off"
+        }
+      ],
+      "other_bytes": 36,
+      "other_bytes_equal": true,
+      "sha256_with_only_relocations_zeroed": "0a7f96fbba0f4efe7c6b465038bfefc6ce066cf1c66d3bca3ff688751bae6838",
+      "whole_instruction_body_equal": false
+    },
+    {
+      "name": "psci_armv7_cpu_off",
+      "stock_address": "0x41b119e8",
+      "source_address": "0x41b11374",
+      "bytes_with_literals": 52,
+      "source_unchanged_upstream": true,
+      "genuine_relocations": [
+        {
+          "offset": "0x8",
+          "type": "R_ARM_CALL",
+          "target": "dcache_op_all"
+        },
+        {
+          "offset": "0x24",
+          "type": "R_ARM_CALL",
+          "target": "dcache_op_all"
+        },
+        {
+          "offset": "0x2c",
+          "type": "R_ARM_CALL",
+          "target": "psci_disable_smp"
+        }
+      ],
+      "other_bytes": 40,
+      "other_bytes_equal": true,
+      "sha256_with_only_relocations_zeroed": "7ca95631e029637d891d5b7b2fbf61cdc2eaeb3272f63d9be15e8dcbb26b7fb4",
+      "whole_instruction_body_equal": false
+    },
+    {
+      "name": "psci_disable_smp",
+      "stock_address": "0x41b119d4",
+      "source_address": "0x41b11360",
+      "bytes_with_literals": 20,
+      "source_unchanged_upstream": true,
+      "genuine_relocations": [],
+      "other_bytes": 20,
+      "other_bytes_equal": true,
+      "sha256_with_only_relocations_zeroed": "bc29ce0db3efc5dc61147a572258fe325ec0e81b161093fe8c7ed69eda76611a",
+      "whole_instruction_body_equal": true
+    }
+  ],
+  "total_bytes_with_literals": 132,
+  "total_non_relocation_bytes_equal": 96,
+  "wrapper_unwind": {
+    "stock_entry_offset": "0x468f0",
+    "descriptor": "0x80028400",
+    "source_descriptor_equal": true
+  },
+  "runtime": {
+    "engine": "qemu-arm",
+    "invalid_cores": [
+      0,
+      2,
+      3,
+      "0x101",
+      "0xffffffff"
+    ],
+    "invalid_return": -2,
+    "accepted_core": 1,
+    "terminal_path_cases": 4,
+    "checks": [
+      "core query occurs first",
+      "invalid cores return without trace/cache/mask callbacks",
+      "original diagnostic name/line/level/prefix/format/value",
+      "cache-shutdown callback precedes interrupt-mask callback",
+      "mask value is 7",
+      "accepted core remains in original WFI/branch loop and does not return"
+    ],
+    "wait_model": "Signal at WFI/loop; timer or illegal-instruction trap terminates the emulated wait.",
+    "privileged_helper_execution": "cache shutdown and interrupt helpers are test providers, not physical operations"
+  },
+  "integration": {
+    "source_patch": "vendor/optee/stock-patches/0015-source-cpu-off.patch",
+    "strong_override_linked": true,
+    "upstream_cache_helpers_reused_without_source_changes": true,
+    "source_matches_both_build_copies": true
+  },
+  "artifacts": {
+    "optee.bin": {
+      "sizes": [
+        287208,
+        287208
+      ],
+      "sha256": [
+        "7cd2c855d88edf86e28db307d482803f94b19d555ba748d54886f4c12e624ff5",
+        "7cd2c855d88edf86e28db307d482803f94b19d555ba748d54886f4c12e624ff5"
+      ],
+      "repeat_equal": true
+    },
+    "tee.bin": {
+      "sizes": [
+        287236,
+        287236
+      ],
+      "sha256": [
+        "4e0df948ddba7ce6be418d2f5e628aa1e95af97567bdcaac5f5d738472c62a7a",
+        "4e0df948ddba7ce6be418d2f5e628aa1e95af97567bdcaac5f5d738472c62a7a"
+      ],
+      "repeat_equal": true
+    },
+    "tee.elf": {
+      "sizes": [
+        3402040,
+        3386864
+      ],
+      "sha256": [
+        "eb844c1e16a99ba017e2a23693e8f799b1ad178f28432e076ee0637017828a4c",
+        "0f88ccc7ca1115271f67518fb8bbf70dc0be56a0bfb09a630172b4d1373ef84b"
+      ],
+      "repeat_equal": false
+    }
+  },
+  "carrier_report": {
+    "artifact": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-cpu-off-a/artifacts/optee.bin",
+    "size": 287208,
+    "sha256": "7cd2c855d88edf86e28db307d482803f94b19d555ba748d54886f4c12e624ff5",
+    "source_build_complete": true,
+    "stock_equivalence_established": false,
+    "status": "research-only; source standby embedded, service integration/layout/original inputs incomplete",
+    "carrier": "raw source-linked Allwinner image; standard tee.bin retained separately",
+    "header": {
+      "format": "Allwinner 4092-byte header, reset code at offset 8192",
+      "public_key_offsets": {
+        "exponent": 224268,
+        "modulus": 255761,
+        "modulus_size": 224264
+      }
+    },
+    "standby": {
+      "source_built": true,
+      "payload_bytes": 8400,
+      "payload_sha256": "7f058be9ae2b5e7d94c2fa951e3a62bba8dd3db24de9860bcbe7e63d2946ad86",
+      "wrapper_offset": 16384,
+      "wrapper_bytes": 16384,
+      "service_integration_complete": false,
+      "comparison": {
+        "whole_wrapper_equal": false,
+        "byte_differences": 8,
+        "alignment_tail_equal": true,
+        "permitted_exceptions": []
+      }
+    },
+    "comparison": {
+      "reference": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-toc-reconstruction/optee.reference.bin",
+      "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+      "reference_size": 300248,
+      "full_file_equal": false,
+      "byte_differences_in_shared_extent": 244315,
+      "first_differing_offset": 252,
+      "candidate_length_difference": -13040,
+      "permitted_exceptions": []
+    }
+  },
+  "limitations": [
+    "No physical CPU shutdown, cache/MMU transition or interrupt masking ran.",
+    "CPU suspend remains an unrecovered PSCI body.",
+    "System-suspend wrapper, runtime configuration and full dispatcher/standby wiring remain incomplete.",
+    "Source repeats and isolated byte matching do not establish whole-image equality."
+  ],
+  "validation": {
+    "full_unit_suite": "make unit exited 0 with pinned BOOT0_RUNTIME_CROSS",
+    "two_clean_source_builds": "completed with expected strict stock-comparison exit 1",
+    "shell_syntax": "passed",
+    "physical_cpu_off_executed": false
+  }
+}

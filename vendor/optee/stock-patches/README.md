@@ -422,3 +422,27 @@ python3 tests/release/test_stock_optee_system_reset.py
 actual linked bytes and two clean deployable repeats. Whole-carrier comparison
 still fails. CPU suspend/off source and full system-suspend/dispatcher wiring
 remain unfinished; no physical reset or resume was tested.
+
+## CPU-off wrapper and reused cache shutdown
+
+Patch 0015 compiles `cpu-off.S` as the strong `psci_cpu_off`. Its 60-byte unit
+matches all 36 bytes outside six genuine relocations; unwind descriptor
+`0x80028400` matches too. The accepted CPU is exactly core 1; other cores return
+-2. The original diagnostic, ARM cache-shutdown call, exception mask 7 and
+non-returning WFI/branch loop retain their original order.
+
+The pinned upstream `psci_armv7_cpu_off` supplies 52 bytes matching outside
+three actual call relocations. Its `psci_disable_smp` dependency matches all
+20 bytes directly. Neither upstream function was rewritten. QEMU checks five
+invalid cores and four accepted terminal paths using cache/mask providers and
+signal-based wait-loop termination. No physical shutdown or privileged cache
+operation runs in these tests.
+
+```sh
+python3 tests/release/test_stock_optee_cpu_off.py
+```
+
+[Proof](../../../docs/board-notes/stock-optee-cpu-off-proof.json) records
+actual linked symbols, helper comparisons and two clean deployable repeats.
+CPU-suspend source and full system-suspend/configuration/dispatcher wiring
+remain unfinished; strict whole-carrier comparison still fails.
