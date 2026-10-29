@@ -154,7 +154,15 @@ Remaining work:
   no request mutation. The ten caller cases now use this actual reader.
   [Type-reader proof](stock-optee-host-type-proof.json) also identifies the
   resume pointer as an ARM branch to the separate routine at `0x41b0c52c`;
-  that routine and the request producer remain unfinished.
+  the request producer remains unfinished. The ARM resume vector and 156-byte
+  reset-style routine now have retained source: all 100 bytes outside fourteen
+  genuine body relocations match stock. Independent linking checks every ARM,
+  Thumb and conditional-park target. Three vendor setup bodies are unresolved;
+  no empty implementations are supplied. Four upstream helper bodies (92 bytes)
+  match stock directly and can be reused. `core_init_mmu_regs` still differs in
+  31 positions and needs configuration/relocation input verification.
+  [Resume evidence](stock-optee-host-resume-proof.json) records each binding
+  comparison. This path has not executed; full service integration remains open.
   Exact complete linked instruction/data comparison remains necessary.
   [Installer evidence](stock-optee-hash-installer-proof.json) and
   [SMC evidence](stock-optee-smc-proof.json) and

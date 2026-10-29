@@ -68,3 +68,28 @@ producer and full request layout remain unknown. The resume entry is an ARM
 branch at `0x41b0c0fc` to a separate reset-style routine at `0x41b0c52c`, beginning
 with the already reconstructed early CPU-reset hook. That body, runtime
 configuration setup and service dispatch still need source closure.
+
+## ARM resume entry and reset path
+
+`resume.S` retains the branch at `0x41b0c0fc` and the 156-byte ARM routine at
+`0x41b0c52c..0x41b0c5c7`, including its literal pool. All 100 bytes outside the
+fourteen genuine body relocation fields match stock. An independent link test
+checks ARM/Thumb call modes, the unsupported-CPU branch, vector branch and
+absence of unresolved symbols using link-only trap fixtures. It executes no
+privileged instructions.
+
+```sh
+python3 tests/release/test_stock_optee_host_resume.py
+```
+
+`__get_core_pos` and all three `cpu_mmu_enable*` bodies match the source-built
+upstream OP-TEE byte-for-byte (92 bytes total). The MMU-register initializer
+still differs in 31 positions; its original configuration and linked inputs
+need verification. Three vendor setup calls retain descriptive names rather
+than guessed original names. Their implementations, vector/stack symbol
+visibility and full production integration remain unfinished. No empty vendor
+implementations are included in the reconstruction.
+
+[Resume proof](../../../docs/board-notes/stock-optee-host-resume-proof.json)
+records every call/data relocation and the exact upstream comparison scope.
+No SMC, reset, MMU/cache transition or physical resume test has run.

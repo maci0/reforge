@@ -1,0 +1,166 @@
+{
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "source": "vendor/optee/standby-host-src/resume.S",
+  "source_sha256": "6bc85f627aef26a3e1c8c9a775df191bde6c2e09eaf1014b8bdcb4cc8cd38a5a",
+  "resume_entry": {
+    "address": "0x41b0c0fc",
+    "bytes": 4,
+    "target": "standby_host_resume",
+    "relocation": "R_ARM_JUMP24"
+  },
+  "resume_body": {
+    "start": "0x41b0c52c",
+    "end_exclusive": "0x41b0c5c8",
+    "bytes_including_literal_pool": 156,
+    "stock_sha256": "0e9929faad6553773c81b604879a6a7af77a5b403c45f68ae38933699d117dae",
+    "genuine_relocations": [
+      {
+        "offset": "0x0",
+        "type": "R_ARM_CALL",
+        "target": "plat_cpu_reset_early"
+      },
+      {
+        "offset": "0x2c",
+        "type": "R_ARM_CALL",
+        "target": "__get_core_pos"
+      },
+      {
+        "offset": "0x34",
+        "type": "R_ARM_JUMP24",
+        "target": "unhandled_cpu"
+      },
+      {
+        "offset": "0x50",
+        "type": "R_ARM_CALL",
+        "target": "standby_resume_platform_init"
+      },
+      {
+        "offset": "0x54",
+        "type": "R_ARM_CALL",
+        "target": "standby_resume_select_state"
+      },
+      {
+        "offset": "0x5c",
+        "type": "R_ARM_CALL",
+        "target": "dcache_op_level1"
+      },
+      {
+        "offset": "0x60",
+        "type": "R_ARM_CALL",
+        "target": "core_init_mmu_regs"
+      },
+      {
+        "offset": "0x64",
+        "type": "R_ARM_CALL",
+        "target": "cpu_mmu_enable"
+      },
+      {
+        "offset": "0x68",
+        "type": "R_ARM_CALL",
+        "target": "cpu_mmu_enable_icache"
+      },
+      {
+        "offset": "0x6c",
+        "type": "R_ARM_CALL",
+        "target": "cpu_mmu_enable_dcache"
+      },
+      {
+        "offset": "0x70",
+        "type": "R_ARM_CALL",
+        "target": "standby_resume_secondary_init"
+      },
+      {
+        "offset": "0x90",
+        "type": "R_ARM_ABS32",
+        "target": "reset_vect_table"
+      },
+      {
+        "offset": "0x94",
+        "type": "R_ARM_ABS32",
+        "target": "stack_tmp_stride"
+      },
+      {
+        "offset": "0x98",
+        "type": "R_ARM_ABS32",
+        "target": "stack_tmp_export"
+      }
+    ],
+    "non_relocation_bytes": 100,
+    "non_relocation_bytes_equal": true,
+    "sha256_after_zeroing_only_relocation_fields": "2230668d7c920ac6d795b0b50fea8a4ffe6d9542aa92120db6a33c485a313545"
+  },
+  "upstream_binding_comparisons": [
+    {
+      "name": "__get_core_pos",
+      "stock_address": "0x41b0b620",
+      "source_build_address": "0x41b0b998",
+      "bytes": 8,
+      "whole_body_equal": true,
+      "stock_sha256": "ed48ea2aa695c28af18bae48ecab8eb6e553df70bbf9df307b01a29ef0bf4d9c",
+      "source_build_sha256": "ed48ea2aa695c28af18bae48ecab8eb6e553df70bbf9df307b01a29ef0bf4d9c",
+      "differing_byte_positions": 0
+    },
+    {
+      "name": "cpu_mmu_enable",
+      "stock_address": "0x41b09840",
+      "source_build_address": "0x41b097d4",
+      "bytes": 28,
+      "whole_body_equal": true,
+      "stock_sha256": "f5b2cfbbfcf000eea99cfde85fc9f0144202aeaefdb48bb83d1605aca3d18037",
+      "source_build_sha256": "f5b2cfbbfcf000eea99cfde85fc9f0144202aeaefdb48bb83d1605aca3d18037",
+      "differing_byte_positions": 0
+    },
+    {
+      "name": "cpu_mmu_enable_icache",
+      "stock_address": "0x41b0985c",
+      "source_build_address": "0x41b097f0",
+      "bytes": 32,
+      "whole_body_equal": true,
+      "stock_sha256": "704cb7814597b8d63d780d096dc378340bc85b8fe1eb17a298319c85c1e8e4c1",
+      "source_build_sha256": "704cb7814597b8d63d780d096dc378340bc85b8fe1eb17a298319c85c1e8e4c1",
+      "differing_byte_positions": 0
+    },
+    {
+      "name": "cpu_mmu_enable_dcache",
+      "stock_address": "0x41b0987c",
+      "source_build_address": "0x41b09810",
+      "bytes": 24,
+      "whole_body_equal": true,
+      "stock_sha256": "12261b639aeaac72fec080a782e9ad918355db7bc16a9c7d670fbff7f956d9b4",
+      "source_build_sha256": "12261b639aeaac72fec080a782e9ad918355db7bc16a9c7d670fbff7f956d9b4",
+      "differing_byte_positions": 0
+    },
+    {
+      "name": "core_init_mmu_regs",
+      "stock_address": "0x41b0ec20",
+      "source_build_address": "0x41b0e96c",
+      "bytes": 104,
+      "whole_body_equal": false,
+      "stock_sha256": "f34a457ca8ce1ad0ae9c7f7982c1eb0c424e2d0138c1ad47c8a4e129627c1792",
+      "source_build_sha256": "a8fc7cac96815dcd9433ca087a27206d7144ed4806ca12c20a2fad0b76e4df81",
+      "differing_byte_positions": 31
+    }
+  ],
+  "unreconstructed_vendor_calls": [
+    {
+      "stock_address": "0x41b10cc0",
+      "descriptive_source_name": "standby_resume_platform_init"
+    },
+    {
+      "stock_address": "0x41b10e6c",
+      "descriptive_source_name": "standby_resume_select_state"
+    },
+    {
+      "stock_address": "0x41b0c038",
+      "descriptive_source_name": "standby_resume_secondary_init"
+    }
+  ],
+  "link_test": "Independent test layout; trap-only fixtures. All ARM, conditional park and ARM-to-Thumb branches resolve with no undefined symbols. No target execution.",
+  "limitations": [
+    "The three descriptive vendor symbols are unresolved production dependencies, not empty implementations.",
+    "core_init_mmu_regs differs in 31 byte positions in this comparison; exact configuration and linked input differences remain to verify.",
+    "Vector and temporary stack data symbols need source integration/visibility handling.",
+    "No privileged reset path, SMC, MMU enable or hardware suspend/resume was executed.",
+    "Whole linked carrier equality remains false."
+  ]
+}
