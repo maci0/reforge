@@ -1,0 +1,310 @@
+{
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "source": "vendor/optee/standby-host-src/cpu-control.S",
+  "source_sha256": "0739e000a53a39e2a6ab36cb5a95624a248b89df1d2be2ecf3ce5509a150fec7",
+  "functions": [
+    {
+      "name": "psci_cpu_on",
+      "stock_address": "0x41b1124c",
+      "bytes_with_literal_pool": 124,
+      "genuine_relocations": [
+        {
+          "offset": "0x1e",
+          "type": "R_ARM_THM_CALL",
+          "target": "trace_printf"
+        },
+        {
+          "offset": "0x2a",
+          "type": "R_ARM_THM_CALL",
+          "target": "generic_boot_set_core_ns_entry"
+        },
+        {
+          "offset": "0x4c",
+          "type": "R_ARM_THM_CALL",
+          "target": "udelay"
+        },
+        {
+          "offset": "0x68",
+          "type": "R_ARM_ABS32",
+          "target": ".rodata.standby_cpu_control"
+        },
+        {
+          "offset": "0x6c",
+          "type": "R_ARM_ABS32",
+          "target": ".rodata.standby_cpu_control"
+        },
+        {
+          "offset": "0x70",
+          "type": "R_ARM_ABS32",
+          "target": "cpucfg_base"
+        },
+        {
+          "offset": "0x74",
+          "type": "R_ARM_ABS32",
+          "target": "rtc_base"
+        },
+        {
+          "offset": "0x78",
+          "type": "R_ARM_ABS32",
+          "target": "tee_spare_head"
+        }
+      ],
+      "other_bytes": 92,
+      "other_bytes_equal": true,
+      "comparison_sha256_with_only_relocations_zeroed": "f9a6faa20035b7a59203ecf767ff70228cfbcfc1e33a0bb0b73187c20fdc872a",
+      "unwind": "0x8003aab0",
+      "source_unwind_payload_matches": true,
+      "source_carrier_address": "0x41b10ecc",
+      "linked_symbol_type": "T"
+    },
+    {
+      "name": "psci_affinity_info",
+      "stock_address": "0x41b112c8",
+      "bytes_with_literal_pool": 80,
+      "genuine_relocations": [
+        {
+          "offset": "0x4",
+          "type": "R_ARM_THM_CALL",
+          "target": "standby_cpu_get_core"
+        },
+        {
+          "offset": "0x18",
+          "type": "R_ARM_THM_CALL",
+          "target": "trace_printf"
+        },
+        {
+          "offset": "0x44",
+          "type": "R_ARM_ABS32",
+          "target": ".rodata.standby_cpu_control"
+        },
+        {
+          "offset": "0x48",
+          "type": "R_ARM_ABS32",
+          "target": ".rodata.standby_cpu_control"
+        },
+        {
+          "offset": "0x4c",
+          "type": "R_ARM_ABS32",
+          "target": "cpucfg_base"
+        }
+      ],
+      "other_bytes": 60,
+      "other_bytes_equal": true,
+      "comparison_sha256_with_only_relocations_zeroed": "8205bff7a8431dbfa9bcb6215ad245981b0c05ac68bac60b1d7ec7e5e09dc5a4",
+      "unwind": "0x8003a8b0",
+      "source_unwind_payload_matches": true,
+      "source_carrier_address": "0x41b10f48",
+      "linked_symbol_type": "T"
+    },
+    {
+      "name": "standby_cpu_get_core",
+      "stock_address": "0x41b11114",
+      "bytes_with_literal_pool": 48,
+      "genuine_relocations": [
+        {
+          "offset": "0x2",
+          "type": "R_ARM_THM_CALL",
+          "target": "thread_get_exceptions"
+        },
+        {
+          "offset": "0x12",
+          "type": "R_ARM_THM_CALL",
+          "target": "_assert_log"
+        },
+        {
+          "offset": "0x16",
+          "type": "R_ARM_THM_CALL",
+          "target": "_assert_break"
+        },
+        {
+          "offset": "0x1e",
+          "type": "R_ARM_THM_JUMP24",
+          "target": "__get_core_pos"
+        },
+        {
+          "offset": "0x24",
+          "type": "R_ARM_ABS32",
+          "target": ".rodata.standby_cpu_control"
+        },
+        {
+          "offset": "0x28",
+          "type": "R_ARM_ABS32",
+          "target": ".rodata.standby_cpu_control"
+        },
+        {
+          "offset": "0x2c",
+          "type": "R_ARM_ABS32",
+          "target": ".rodata.standby_cpu_control"
+        }
+      ],
+      "other_bytes": 20,
+      "other_bytes_equal": true,
+      "comparison_sha256_with_only_relocations_zeroed": "577cc18b4d44aef5089d2e10363303c3d014c2be4292c3a17cdec6f172076370",
+      "unwind": "extab 0x48a04",
+      "source_unwind_payload_matches": true,
+      "source_carrier_address": "0x41b10f98",
+      "linked_symbol_type": "T"
+    }
+  ],
+  "total_bytes_with_literals": 252,
+  "total_non_relocation_bytes_equal": 172,
+  "core_query_extab": {
+    "original_offset": "0x48a04",
+    "bytes": 12,
+    "sha256": "bf6657ed5acd89144122525436d25ed4a94b8bed46968b8c17b902934ccf8ba3",
+    "source_equal": true
+  },
+  "runtime": {
+    "engine": "qemu-arm",
+    "cpu_on_cases": 1024,
+    "accepted_cpu_ids": [
+      "0x1",
+      "0x101",
+      "0x80000001",
+      "0xffffff01"
+    ],
+    "cpu_on_rejected_cases": 1020,
+    "affinity_cases": 6288,
+    "assertion_cases": 1,
+    "test_register_banks": "Private arrays referenced by test global pointers; no physical MMIO addresses mapped.",
+    "checks": [
+      "CPU ID low-byte validation and invalid return -2 without side effects",
+      "Original diagnostic argument tuples",
+      "Monitor context publication precedes register writes",
+      "Entry register receives tee_spare_head address at byte offset 0x1c8",
+      "Control bits clear before udelay(20), release bit set afterward",
+      "Unrelated register words unchanged",
+      "Affinity status at offset 0x80 determines return and control-bit clearing",
+      "Ignored affinity-level argument and exact ARM variable-shift edge behavior",
+      "Current-core helper reaches original assertion log/break sequence when interrupt mask is absent"
+    ]
+  },
+  "limitations": [
+    "Physical base values and source binding are statically verified; no physical CPU or register action ran.",
+    "CPU suspend, CPU off and system reset remain unrecovered platform PSCI bodies.",
+    "System-suspend wrapper and full standby/resume dispatcher/configuration still need carrier integration.",
+    "Runtime uses private register banks and service models.",
+    "Whole linked stock identity remains false."
+  ],
+  "reused_upstream_helper": {
+    "name": "generic_boot_set_core_ns_entry",
+    "stock_address": "0x41b0c08c",
+    "source_address": "0x41b0c3bc",
+    "bytes": 24,
+    "genuine_relocation_offsets": [
+      "0x14"
+    ],
+    "other_bytes_equal": true,
+    "source_unchanged": true
+  },
+  "verified_bindings": {
+    "cpucfg_base": {
+      "stock_pointer_object": "0x41b49d00",
+      "physical_address": "0x09010000",
+      "physical_literal_offset": "0x10f8c",
+      "pointer_literal_offset": "0x10f90",
+      "map_call": "0x41b10f0c",
+      "pointer_store": "0x41b10f12",
+      "source": "existing plat_init assigns SUNXI_CPUCFG_BASE through phys_to_virt_io"
+    },
+    "rtc_base": {
+      "stock_pointer_object": "0x41b49d0c",
+      "physical_address": "0x07000400",
+      "physical_literal_offset": "0x10f88",
+      "pointer_literal_offset": "0x10f80",
+      "map_call": "0x41b10f04",
+      "pointer_store": "0x41b10f08",
+      "source": "existing plat_init assigns SUNXI_RTC_BASE through phys_to_virt_io"
+    }
+  },
+  "integration": {
+    "source_patch": "vendor/optee/stock-patches/0013-source-cpu-control.patch",
+    "strong_overrides_linked": [
+      "psci_cpu_on",
+      "psci_affinity_info"
+    ],
+    "source_matches_both_build_copies": true
+  },
+  "artifacts": {
+    "optee.bin": {
+      "sizes": [
+        287208,
+        287208
+      ],
+      "sha256": [
+        "5797c7a8ca5bd258c78d3212501adcf831ca8b48f17718622b959941dba9fcd9",
+        "5797c7a8ca5bd258c78d3212501adcf831ca8b48f17718622b959941dba9fcd9"
+      ],
+      "repeat_equal": true
+    },
+    "tee.bin": {
+      "sizes": [
+        287236,
+        287236
+      ],
+      "sha256": [
+        "5f6facae6d108d7d686b30a02e9d5980f6eb4c715b1a9555c488bfa83d613af4",
+        "5f6facae6d108d7d686b30a02e9d5980f6eb4c715b1a9555c488bfa83d613af4"
+      ],
+      "repeat_equal": true
+    },
+    "tee.elf": {
+      "sizes": [
+        3407216,
+        3387016
+      ],
+      "sha256": [
+        "38023567e65cf92049d30367227ef5e307c83947099bbeac42d28b3b4362ccd3",
+        "62f5ae642f00d92dfd45ed1e822fe83947c654b342de7d4833c5a93b14d8c7e5"
+      ],
+      "repeat_equal": false
+    }
+  },
+  "carrier_report": {
+    "artifact": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-cpu-control/source-build-a/artifacts/optee.bin",
+    "size": 287208,
+    "sha256": "5797c7a8ca5bd258c78d3212501adcf831ca8b48f17718622b959941dba9fcd9",
+    "source_build_complete": true,
+    "stock_equivalence_established": false,
+    "status": "research-only; source standby embedded, service integration/layout/original inputs incomplete",
+    "carrier": "raw source-linked Allwinner image; standard tee.bin retained separately",
+    "header": {
+      "format": "Allwinner 4092-byte header, reset code at offset 8192",
+      "public_key_offsets": {
+        "exponent": 224268,
+        "modulus": 255736,
+        "modulus_size": 224264
+      }
+    },
+    "standby": {
+      "source_built": true,
+      "payload_bytes": 8400,
+      "payload_sha256": "7f058be9ae2b5e7d94c2fa951e3a62bba8dd3db24de9860bcbe7e63d2946ad86",
+      "wrapper_offset": 16384,
+      "wrapper_bytes": 16384,
+      "service_integration_complete": false,
+      "comparison": {
+        "whole_wrapper_equal": false,
+        "byte_differences": 8,
+        "alignment_tail_equal": true,
+        "permitted_exceptions": []
+      }
+    },
+    "comparison": {
+      "reference": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-toc-reconstruction/optee.reference.bin",
+      "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+      "reference_size": 300248,
+      "full_file_equal": false,
+      "byte_differences_in_shared_extent": 244365,
+      "first_differing_offset": 252,
+      "candidate_length_difference": -13040,
+      "permitted_exceptions": []
+    }
+  },
+  "validation": {
+    "full_unit_suite": "make unit exited 0 with pinned BOOT0_RUNTIME_CROSS",
+    "two_clean_source_builds": "completed; expected strict stock-comparison exit 1",
+    "targeted_test_after_verified_binding_names": "passed",
+    "hardware_execution": false
+  }
+}

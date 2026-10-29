@@ -380,3 +380,22 @@ Six PSCI overrides remain unfinished: CPU suspend/off/on, affinity, system reset
 and system suspend. Advertised support is preserved exactly and does not imply
 those original implementations have been completed. Whole-image stock identity,
 full dispatcher/configuration integration and physical resume remain open.
+
+## CPU-on and affinity overrides
+
+Patch 0013 compiles the retained `cpu-control.S` into the carrier. Original
+platform-initializer data flow verifies both reused pointer bindings:
+`cpucfg_base` maps physical `0x09010000`, and `rtc_base` maps `0x07000400`.
+The resulting strong `psci_cpu_on` and `psci_affinity_info` replace upstream
+defaults. Their outlined core query is retained too: all 172 bytes outside
+twenty relocations in the 252-byte text/literal total match stock. Unwind
+metadata matches, and the upstream 24-byte context setter matches outside its
+sole pointer relocation without source changes.
+
+QEMU checks 7,312 normal and one assertion case against private register banks,
+including original low-byte ID aliases, ARM shift edges and affinity-query side
+effects. Two clean builds repeat deployable binaries; the full unit suite passes.
+[Proof](../../../docs/board-notes/stock-optee-cpu-control-proof.json) records
+the original producer instructions and current linked symbols. CPU suspend,
+CPU off, system reset and complete standby/dispatcher wiring remain open.
+No physical CPU release, power or status-register action ran.

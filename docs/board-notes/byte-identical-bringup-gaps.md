@@ -65,9 +65,9 @@ G09 separately records compiler-runtime source closure.
 300,248 bytes, SHA-256
 `7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99`.
 Current clean source candidate: 287,208 bytes, SHA-256
-`7b21094f8e5f9cedc37da04c4a3d21a4ff8bc512f39543e901dc3367e357f604`
-(after standby/MMU/reset reconstruction, secondary-boot/PSCI inputs and PSCI identification).
-The **size delta is −13,040 bytes**; **244,444 byte positions differ in the
+`5797c7a8ca5bd258c78d3212501adcf831ca8b48f17718622b959941dba9fcd9`
+(after standby/MMU/reset reconstruction and PSCI identification/CPU-control integration).
+The **size delta is −13,040 bytes**; **244,365 byte positions differ in the
 shared extent**. Neither number means that exactly 13,040 instruction bytes are
 missing: section layout, data and alignment also contribute.
 
@@ -216,9 +216,25 @@ Remaining work:
   before standby; only `mon_lr` changes in the monitor context. The observed
   two-byte return-only hook is retained exactly. [System-suspend proof](stock-optee-system-suspend-proof.json)
   records the checks. This wrapper is not linked into the carrier yet: runtime
-  configuration and dispatch remain incomplete. Five other PSCI bodies still
+  configuration and dispatch remain incomplete. Three other PSCI bodies still
   require recovery, and six carrier overrides remain unfinished including
   this wrapper's integration. No hardware suspend was attempted.
+  CPU-on and affinity-info now have retained Thumb source, together with their
+  outlined current-core query. The three units total 252 bytes; all 172 bytes
+  outside twenty genuine relocations match stock. Both compact unwind
+  descriptors and the twelve-byte current-core unwind payload match. QEMU
+  passes 1,024 CPU-on, 6,288 affinity and one assertion case using private
+  register banks. Tests preserve the low-byte CPU-ID check, ignored affinity
+  level, ARM shift edges and the affinity query's control-bit side effect.
+  [CPU-control proof](stock-optee-cpu-control-proof.json) records those exact
+  limits. Both base producers are now verified in original `plat_init`:
+  `cpucfg_base` maps `0x09010000`, and `rtc_base` maps `0x07000400`.
+  Existing source initializes both identically; patch 0013 links the two strong
+  overrides into the carrier. It also reuses the upstream 24-byte context setter,
+  matching outside its sole real pointer relocation. Two clean builds repeat
+  deployable bytes and the full unit suite passes. CPU suspend, CPU off and
+  system reset still need source recovery; system-suspend/full dispatcher
+  integration also remains open.
   Exact complete linked instruction/data comparison remains necessary.
   [Installer evidence](stock-optee-hash-installer-proof.json) and
   [SMC evidence](stock-optee-smc-proof.json) and

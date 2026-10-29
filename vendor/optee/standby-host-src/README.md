@@ -241,3 +241,33 @@ unit remains outside the carrier until the runtime configuration and dispatcher
 are reconstructed. Five other platform PSCI bodies remain unrecovered; the
 carrier still needs six overrides including this wrapper's wiring. No physical
 power, CPU release, reset or suspend/resume test ran.
+
+## CPU-on and affinity control
+
+`cpu-control.S` retains `psci_cpu_on`, `psci_affinity_info` and their outlined
+current-core query. The text/literal units total 252 bytes; all 172 bytes
+outside twenty genuine relocations match stock. Both compact unwind
+descriptors and the twelve-byte current-core unwind payload match too.
+
+QEMU passes 1,024 CPU-on cases, 6,288 affinity cases and an interrupt-mask
+assertion case. Register banks are private test arrays; no physical MMIO is
+mapped. Checks cover context publication, boot-vector writes, reset/power bit
+order at the delay boundary, unchanged unrelated words, diagnostics and
+returns. Original quirks are retained: CPU-on checks only the ID's low byte;
+affinity ignores its level argument, uses ARM register-shift behavior and can
+clear a control bit while reporting status.
+
+```sh
+python3 tests/release/test_stock_optee_cpu_control.py
+```
+
+[Proof](../../../docs/board-notes/stock-optee-cpu-control-proof.json) records
+all relocation fields, unwind and test boundaries. Original `plat_init` maps
+pointer object `0x41b49d00` to physical `0x09010000`, and `0x41b49d0c` to
+`0x07000400`. These match existing `cpucfg_base` and `rtc_base` source bindings.
+Patch 0013 and the builder now link the two strong PSCI overrides into the
+carrier. The existing upstream context setter is reused; its 24 bytes match
+outside one real pointer relocation. Two clean builds repeat deployable bytes,
+and the full unit suite passes. Three PSCI bodies remain unrecovered: CPU
+suspend, CPU off and system reset. System-suspend and full dispatcher wiring
+remain unfinished. No hardware CPU release, power or status query ran.
