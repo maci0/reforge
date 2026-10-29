@@ -1,6 +1,6 @@
 # OP-TEE reconstruction research
 
-This profile builds from source but **does not reproduce the original secure OS**. It is separate from the production firmware build. Its standby code, secure-service integration and several reconstructed function shapes remain incomplete; it is not ready for deployment.
+This profile builds from source but **does not reproduce the original secure OS**. It is separate from the production firmware build. Its standby BSS layout, secure-service integration and several reconstructed function shapes remain incomplete; it is not ready for deployment.
 
 Run `tools/build/build-stock-optee.sh SOURCE_TAR NEW_OUTPUT_DIR [ORIGINAL_OPTEE_REFERENCE]`. The optional original executable is hash-checked before building and used only for comparison; none of its bytes enter compilation. Comparison requires full byte identity, allows no exceptions, and currently exits 1 while retaining the built artifacts and report.
 
@@ -23,7 +23,7 @@ The vendor comparison candidate is `artifacts/optee.bin`, the raw source-linked 
 
 Validation on 2026-10-26: a fresh invocation of this recipe produced a 258,536-byte `optee.bin`, SHA-256 `ed4b751ceda60a2247debbbed463695ffc84b3d9ffaa8035e32472345c9f2915`. Generated configuration and the actual compiler command both select log level 3, and the observed common DEBUG/version messages are present. Full comparison correctly exits 1: the original is 300,248 bytes, the first differing position is offset 252 (a naturally linked public-key offset), and 244,839 positions differ within the shared extent. Nine function bodies (620 bytes) match outside actual relocations; the full runtime instruction stream does not yet match.
 
-The original also contains executable ARM standby/DRAM code and parameters between offsets `0x4000` and `0x6100`, referenced by its vendor standby service. Those sources and service integration remain unresolved; that region is not filled with copied target code. No hardware execution was performed.
+The original also contains executable ARM standby/DRAM code and parameters between offsets `0x4000` and `0x6100`, referenced by its vendor standby service. Those initialized bytes now build from retained source and are embedded by patch 0008; the BSS layout and service integration remain unresolved. That region is not filled with copied target code. No hardware execution was performed.
 
 
 ## Source export reproducibility and target-runtime audit (2026-10-28)
@@ -265,3 +265,23 @@ records exact differences and remaining inputs. No placeholder allocation or
 recorded-address override fixes BSS. The main carrier remains unchanged and its
 standby wrapper/service integration is still open; no privileged/full-resume or
 physical suspend/resume execution has been validated.
+
+## Source-built carrier wrapper integration (2026-10-30)
+
+Patch `0008-source-standby-wrapper.patch` embeds the freshly source-built SRAM
+image, retaining its own SRAM link addresses. Assembler alignment emits the
+observed 48-byte ARM NOP tail and 7,936 zero bytes. All alignment bytes match
+stock; eight payload byte positions remain different because the original BSS
+layout is unresolved. No reference executable is an input to compilation.
+
+Two independent builds produce identical `optee.bin` and `tee.bin`; debug ELFs
+are not identical, although every allocated section matches between the builds.
+The carrier is 283,112 bytes (stock 300,248), with 241,732 differing positions in
+the shared extent. The strict comparison still fails. The original suspend
+caller's copy/entry sequence is identified, but service/resume integration and
+physical suspend/resume validation remain incomplete.
+
+[Wrapper proof](../../../docs/board-notes/stock-optee-standby-wrapper-proof.json)
+records the exact artifact hashes and section comparisons. Run
+`python3 tests/release/test_stock_optee_standby_wrapper.py` to check the real
+source payload, complete alignment tail, exported bounds and absent relocations.

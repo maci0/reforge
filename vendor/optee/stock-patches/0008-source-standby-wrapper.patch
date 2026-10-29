@@ -1,0 +1,45 @@
+--- a/core/arch/arm/plat-sun8iw20p1/sub.mk
++++ b/core/arch/arm/plat-sun8iw20p1/sub.mk
+@@ -12,3 +12,4 @@
+ srcs-y += header_entry.S
+ 
+ srcs-y += reset.S
++srcs-y += standby_blob.S
+--- a/core/arch/arm/kernel/kern.ld.S
++++ b/core/arch/arm/kernel/kern.ld.S
+@@ -95,6 +95,9 @@
+ 		       .text.reset .text.reset_primary .text.unhandled_cpu \
+ 		       .text.__assert_flat_mapped_range))
+ 
++#ifdef CFG_SUN8IW20P1
++		KEEP(*(.text.sunxi_standby_wrapper))
++#endif
+ #ifdef CFG_WITH_PAGER
+ 		*(.text)
+ /* Include list of sections needed for paging */
+--- /dev/null
++++ b/core/arch/arm/plat-sun8iw20p1/standby_blob.S
+@@ -0,0 +1,23 @@
++/* This intermediate binary is compiled from the retained standby C/ARM sources.
++ * It is not imported from a factory image. Alignment reproduces the observed
++ * ARM NOP boundary followed by zero-filled wrapper alignment. */
++#ifndef SUNXI_STANDBY_BINARY
++#define SUNXI_STANDBY_BINARY "core/arch/arm/plat-sun8iw20p1/standby.bin"
++#endif
++.syntax unified
++.arch armv7-a
++.arm
++.section .text.sunxi_standby_wrapper,"ax",%progbits
++.balign 16384
++.global sunxi_standby_wrapper_start
++.global sunxi_standby_payload_end
++.global sunxi_standby_wrapper_end
++.type sunxi_standby_wrapper_start,%object
++sunxi_standby_wrapper_start:
++    .incbin SUNXI_STANDBY_BINARY
++sunxi_standby_payload_end:
++    .balign 256
++    .balign 16384, 0
++sunxi_standby_wrapper_end:
++.size sunxi_standby_wrapper_start, .-sunxi_standby_wrapper_start
++.section .note.GNU-stack,"",%progbits

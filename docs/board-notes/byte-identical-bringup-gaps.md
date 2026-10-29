@@ -64,11 +64,11 @@ G09 separately records compiler-runtime source closure.
 **Actual executable/source gaps remain.** Original Allwinner carrier:
 300,248 bytes, SHA-256
 `7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99`.
-Current clean source candidate: 258,536 bytes, SHA-256
-`e53b9b393bf567607263ebf4bec6db9626f33f1d5af0301a18491adccb9af53b`
-(after the 2026-10-28 hardware-policy reconstruction).
-The **size delta is −41,712 bytes**; **244,787 byte positions differ in the
-shared extent**. Neither number means that exactly 41,712 instruction bytes are
+Current clean source candidate: 283,112 bytes, SHA-256
+`8ff44fb7af4bffc2dae99e3263bcdda45e1eaf8963912f824e45a249a35d2c81`
+(after source-built standby wrapper integration).
+The **size delta is −17,136 bytes**; **241,732 byte positions differ in the
+shared extent**. Neither number means that exactly 17,136 instruction bytes are
 missing: section layout, data and alignment also contribute.
 
 Remaining work:
@@ -98,16 +98,21 @@ Remaining work:
   ARM tests exercise snapshot/write/restore behavior in four virtual MMIO banks,
   prior clock/TWI/register/regulator paths and real source division/stack helpers.
   Entry, privileged CP15/WFI, PLL lock and full DRAM resume execution remain
-  untested. The source SRAM image is not integrated into the main secure-OS
-  carrier, whose hash/strict-comparison failure above are unchanged. Complete
-  SRAM and whole-bringup equality are not established; no physical bringup or
-  suspend/resume test ran. [Source and detailed history](../../vendor/optee/standby-src/README.md)
-  retain the individual instruction/data/relocation proofs and limitations.
-  The following 12 ARM NOPs
-  through carrier offset `0x60ff` are consistent with 256-byte wrapper alignment;
-  zeroes then extend to `0x8000`. The exact wrapper/linker recipe still needs
-  proof. This executable region must not be replaced with padding or copied
-  reference code.
+  untested. The source SRAM image is now embedded in the main secure-OS
+  carrier through a source assembly wrapper. Its 12 ARM NOPs arise from
+  256-byte alignment, followed by zero alignment to the 16 KiB boundary.
+  All 7,984 alignment-tail bytes match stock exactly. The complete wrapper
+  differs at only the eight unresolved payload positions; no stock executable
+  bytes are used as build inputs. Two independent source builds produce identical
+  `optee.bin` and `tee.bin`. Their debug ELFs differ; every allocated section's
+  content and attributes (excluding file offset) match between builds.
+  The stock caller's SRAM copy and entry sequence is identified, but its service
+  bindings/resume integration are unfinished. Whole carrier equality remains
+  false. No physical suspend/resume test ran.
+  [Wrapper proof](stock-optee-standby-wrapper-proof.json) records hashes,
+  section-level repeat checks and the unnormalized stock comparison.
+  [Source history](../../vendor/optee/standby-src/README.md) retains the
+  instruction/data/relocation proofs and limitations.
 - **Vendor services:** the 172-byte hash-list installer is now reconstructed as
   readable Thumb source with genuine symbolic relocations. All bytes outside its
   eleven real relocation fields match the original, and its unwind descriptor

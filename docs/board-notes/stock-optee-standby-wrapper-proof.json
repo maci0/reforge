@@ -1,0 +1,170 @@
+{
+  "scope": "Source-built standby wrapper integration; whole stock OP-TEE equivalence is not established",
+  "artifacts": {
+    "optee.bin": {
+      "sizes": [
+        283112,
+        283112
+      ],
+      "sha256": [
+        "8ff44fb7af4bffc2dae99e3263bcdda45e1eaf8963912f824e45a249a35d2c81",
+        "8ff44fb7af4bffc2dae99e3263bcdda45e1eaf8963912f824e45a249a35d2c81"
+      ],
+      "repeat_identical": true
+    },
+    "tee.bin": {
+      "sizes": [
+        283140,
+        283140
+      ],
+      "sha256": [
+        "4b3953cd12b010211f40a8d440db61edbcbbc53869771e98d15c5fea16de3d56",
+        "4b3953cd12b010211f40a8d440db61edbcbbc53869771e98d15c5fea16de3d56"
+      ],
+      "repeat_identical": true
+    },
+    "tee.elf": {
+      "sizes": [
+        3378644,
+        3361396
+      ],
+      "sha256": [
+        "b7375bd9593d68aa6c20e3e15ac2ddb731bf0582642df55546c42e88a96a31ae",
+        "87a49db5aa1f39492dd806619828d4c526b6847326ab5136c100854bb1c22e9e"
+      ],
+      "repeat_identical": false
+    }
+  },
+  "stock_comparison": {
+    "artifact": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-standby-integration/source-build/artifacts/optee.bin",
+    "size": 283112,
+    "sha256": "8ff44fb7af4bffc2dae99e3263bcdda45e1eaf8963912f824e45a249a35d2c81",
+    "source_build_complete": true,
+    "stock_equivalence_established": false,
+    "status": "research-only; source standby embedded, service integration/layout/original inputs incomplete",
+    "carrier": "raw source-linked Allwinner image; standard tee.bin retained separately",
+    "header": {
+      "format": "Allwinner 4092-byte header, reset code at offset 8192",
+      "public_key_offsets": {
+        "exponent": 220172,
+        "modulus": 251330,
+        "modulus_size": 220168
+      }
+    },
+    "standby": {
+      "source_built": true,
+      "payload_bytes": 8400,
+      "payload_sha256": "7f058be9ae2b5e7d94c2fa951e3a62bba8dd3db24de9860bcbe7e63d2946ad86",
+      "wrapper_offset": 16384,
+      "wrapper_bytes": 16384,
+      "service_integration_complete": false,
+      "comparison": {
+        "whole_wrapper_equal": false,
+        "byte_differences": 8,
+        "alignment_tail_equal": true,
+        "permitted_exceptions": []
+      }
+    },
+    "comparison": {
+      "reference": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-toc-reconstruction/optee.reference.bin",
+      "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+      "reference_size": 300248,
+      "full_file_equal": false,
+      "byte_differences_in_shared_extent": 241732,
+      "first_differing_offset": 252,
+      "candidate_length_difference": -17136,
+      "permitted_exceptions": []
+    }
+  },
+  "hardware_tested": false,
+  "elf_sections": {
+    "": {
+      "equal_content_and_attributes_excluding_file_offset": true,
+      "allocated": false
+    },
+    ".text": {
+      "equal_content_and_attributes_excluding_file_offset": true,
+      "allocated": true
+    },
+    ".rodata": {
+      "equal_content_and_attributes_excluding_file_offset": true,
+      "allocated": true
+    },
+    ".ARM.exidx": {
+      "equal_content_and_attributes_excluding_file_offset": true,
+      "allocated": true
+    },
+    ".ARM.extab": {
+      "equal_content_and_attributes_excluding_file_offset": true,
+      "allocated": true
+    },
+    ".data": {
+      "equal_content_and_attributes_excluding_file_offset": true,
+      "allocated": true
+    },
+    ".bss": {
+      "equal_content_and_attributes_excluding_file_offset": true,
+      "allocated": true
+    },
+    ".heap1": {
+      "equal_content_and_attributes_excluding_file_offset": true,
+      "allocated": true
+    },
+    ".nozi": {
+      "equal_content_and_attributes_excluding_file_offset": true,
+      "allocated": true
+    },
+    ".debug_info": {
+      "equal_content_and_attributes_excluding_file_offset": false,
+      "allocated": false
+    },
+    ".debug_abbrev": {
+      "equal_content_and_attributes_excluding_file_offset": true,
+      "allocated": false
+    },
+    ".debug_loc": {
+      "equal_content_and_attributes_excluding_file_offset": false,
+      "allocated": false
+    },
+    ".debug_aranges": {
+      "equal_content_and_attributes_excluding_file_offset": false,
+      "allocated": false
+    },
+    ".debug_ranges": {
+      "equal_content_and_attributes_excluding_file_offset": true,
+      "allocated": false
+    },
+    ".debug_macro": {
+      "equal_content_and_attributes_excluding_file_offset": false,
+      "allocated": false
+    },
+    ".debug_line": {
+      "equal_content_and_attributes_excluding_file_offset": false,
+      "allocated": false
+    },
+    ".debug_str": {
+      "equal_content_and_attributes_excluding_file_offset": false,
+      "allocated": false
+    },
+    ".ARM.attributes": {
+      "equal_content_and_attributes_excluding_file_offset": true,
+      "allocated": false
+    },
+    ".debug_frame": {
+      "equal_content_and_attributes_excluding_file_offset": true,
+      "allocated": false
+    },
+    ".shstrtab": {
+      "equal_content_and_attributes_excluding_file_offset": true,
+      "allocated": false
+    },
+    ".symtab": {
+      "equal_content_and_attributes_excluding_file_offset": false,
+      "allocated": false
+    },
+    ".strtab": {
+      "equal_content_and_attributes_excluding_file_offset": false,
+      "allocated": false
+    }
+  }
+}

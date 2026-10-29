@@ -462,3 +462,23 @@ Entry/secure CP15/WFI, PLL-lock polling and complete DRAM resume execution remai
 untested. No physical retention, clock stability or suspend/resume test has run.
 Original C/debug inputs and some parameter meanings remain unrecovered. Complete
 SRAM and whole-bringup equality are still **not achieved**.
+
+## Source-built carrier wrapper integration (2026-10-30)
+
+Patch `0008-source-standby-wrapper.patch` embeds the freshly source-built SRAM
+image, retaining its own SRAM link addresses. Assembler alignment emits the
+observed 48-byte ARM NOP tail and 7,936 zero bytes. All alignment bytes match
+stock; eight payload byte positions remain different because the original BSS
+layout is unresolved. No reference executable is an input to compilation.
+
+Two independent builds produce identical `optee.bin` and `tee.bin`; debug ELFs
+are not identical, although every allocated section matches between the builds.
+The carrier is 283,112 bytes (stock 300,248), with 241,732 differing positions in
+the shared extent. The strict comparison still fails. The original suspend
+caller's copy/entry sequence is identified, but service/resume integration and
+physical suspend/resume validation remain incomplete.
+
+[Wrapper proof](../../../docs/board-notes/stock-optee-standby-wrapper-proof.json)
+records the exact artifact hashes and section comparisons. Run
+`python3 tests/release/test_stock_optee_standby_wrapper.py` to check the real
+source payload, complete alignment tail, exported bounds and absent relocations.
