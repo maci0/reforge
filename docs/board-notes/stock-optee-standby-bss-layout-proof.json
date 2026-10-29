@@ -1,0 +1,128 @@
+{
+  "reference_sha256": "4b3d43d353d9419e107d556a2e4ded905ad658a59816ae0c18097b8b67decdca",
+  "observations": {
+    "bss_start": {
+      "address": "0x220d0",
+      "movw_image_offset": "0xf0",
+      "movt_image_offset": "0xfc",
+      "instruction_words": [
+        "0xe30230d0",
+        "0xe3403002"
+      ]
+    },
+    "clear_bound": {
+      "address": "0x2229c",
+      "movw_image_offset": "0xf4",
+      "movt_image_offset": "0x100",
+      "instruction_words": [
+        "0xe302229c",
+        "0xe3402002"
+      ]
+    },
+    "dram_snapshot": {
+      "address": "0x220d4",
+      "movw_image_offset": "0x4f8",
+      "movt_image_offset": "0x500",
+      "instruction_words": [
+        "0xe30230d4",
+        "0xe3403002"
+      ]
+    },
+    "clock_auxiliary": {
+      "address": "0x2228c",
+      "movw_image_offset": "0xfe0",
+      "movt_image_offset": "0xfe8",
+      "instruction_words": [
+        "0xe302228c",
+        "0xe3402002"
+      ]
+    },
+    "twi_state": {
+      "address": "0x22290",
+      "movw_image_offset": "0x1754",
+      "movt_image_offset": "0x175c",
+      "instruction_words": [
+        "0xe3023290",
+        "0xe3403002"
+      ]
+    }
+  },
+  "current_snapshot_declared_bytes": 424,
+  "current_snapshot_end": "0x2227c",
+  "next_stock_state_address": "0x2228c",
+  "unexplained_span_bytes": 16,
+  "power_of_two_alignment_trials": [
+    {
+      "alignment": 1,
+      "aligned_address": "0x2227c"
+    },
+    {
+      "alignment": 2,
+      "aligned_address": "0x2227c"
+    },
+    {
+      "alignment": 4,
+      "aligned_address": "0x2227c"
+    },
+    {
+      "alignment": 8,
+      "aligned_address": "0x22280"
+    },
+    {
+      "alignment": 16,
+      "aligned_address": "0x22280"
+    },
+    {
+      "alignment": 32,
+      "aligned_address": "0x22280"
+    },
+    {
+      "alignment": 64,
+      "aligned_address": "0x22280"
+    },
+    {
+      "alignment": 128,
+      "aligned_address": "0x22280"
+    },
+    {
+      "alignment": 256,
+      "aligned_address": "0x22300"
+    },
+    {
+      "alignment": 512,
+      "aligned_address": "0x22400"
+    },
+    {
+      "alignment": 1024,
+      "aligned_address": "0x22400"
+    },
+    {
+      "alignment": 2048,
+      "aligned_address": "0x22800"
+    },
+    {
+      "alignment": 4096,
+      "aligned_address": "0x23000"
+    },
+    {
+      "alignment": 8192,
+      "aligned_address": "0x24000"
+    },
+    {
+      "alignment": 16384,
+      "aligned_address": "0x24000"
+    },
+    {
+      "alignment": 32768,
+      "aligned_address": "0x28000"
+    }
+  ],
+  "alignment_only_hypothesis": false,
+  "conclusion": "A single ordinary power-of-two alignment after the 106-word snapshot cannot produce the observed next address. A larger original allocation, omitted object(s), or a more complex linker layout remains necessary. This does not establish a 110-word array.",
+  "limitations": [
+    "No original declaration, symbol table, or debug input was recovered.",
+    "The 106-word extent is the currently observed access minimum, not a proven original allocation size.",
+    "This rules out only alignment of the next object directly after that minimum extent; it does not exclude padding around unknown intervening objects."
+  ],
+  "source_changed": false
+}

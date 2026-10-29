@@ -90,7 +90,13 @@ Remaining work:
   (424), clock auxiliary word (4) and TWI state (12): 444 bytes versus the recorded
   clear-bound span of 460. The remaining **16-byte layout gap** is unexplained;
   original declarations/object extents/alignment are needed. No placeholder
-  tail, recorded-address override or post-link substitution closes it.
+  tail, recorded-address override or post-link substitution closes it. Ordinary power-of-two
+  alignment of the next object directly after the 424-byte snapshot is ruled
+  out: snapshot end `0x2227c` cannot round up to stock auxiliary address
+  `0x2228c` for any power-of-two alignment. A larger original allocation,
+  omitted object or more complex linker layout remains necessary; this does
+  not prove a 110-word array. [BSS address/alignment audit](stock-optee-standby-bss-layout-proof.json)
+  decodes the reference MOVW/MOVT pairs and records the bounded calculation.
   The 240-byte initialized parameter area matches all bytes. Its DRAM prefix
   follows the BSP type; some extension meanings and original debug names remain
   unknown. Both copied-source builds reproduce every object and the ELF/bin,
