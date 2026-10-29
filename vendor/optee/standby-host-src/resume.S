@@ -1,5 +1,5 @@
 /* ARM resume vector and reset-style path; no privileged runtime validation yet.
- * The secondary initialization call has a descriptive name pending recovery. */
+ * All setup calls now use their recovered source identities. */
 .syntax unified
 .arch armv7-a
 .arch_extension sec
@@ -45,7 +45,7 @@ standby_host_resume:
     bl cpu_mmu_enable
     bl cpu_mmu_enable_icache
     bl cpu_mmu_enable_dcache
-    blx standby_resume_secondary_init
+    blx generic_boot_resume_primary
     mov r0, #0xbe000000
     mov r1, #0
     mov r2, #0

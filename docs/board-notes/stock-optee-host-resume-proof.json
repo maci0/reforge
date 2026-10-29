@@ -1,7 +1,7 @@
 {
   "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
   "source": "vendor/optee/standby-host-src/resume.S",
-  "source_sha256": "7a943b6e257a592ce7eecea64cfc21a6119cbd9248625203abc860d467f1d2e8",
+  "source_sha256": "68913c4a86cf0ed0c62ced6dceba178dbaad42a457c4725bd1b6176b006d5876",
   "resume_entry": {
     "address": "0x41b0c0fc",
     "bytes": 4,
@@ -67,7 +67,7 @@
       {
         "offset": "0x70",
         "type": "R_ARM_CALL",
-        "target": "standby_resume_secondary_init"
+        "target": "generic_boot_resume_primary"
       },
       {
         "offset": "0x90",
@@ -141,15 +141,10 @@
       "differing_byte_positions": 31
     }
   ],
-  "unreconstructed_vendor_calls": [
-    {
-      "stock_address": "0x41b0c038",
-      "descriptive_source_name": "standby_resume_secondary_init"
-    }
-  ],
+  "unreconstructed_vendor_calls": [],
   "link_test": "Independent test layout; trap-only fixtures. All ARM, conditional park and ARM-to-Thumb branches resolve with no undefined symbols. No target execution.",
   "limitations": [
-    "The remaining descriptive secondary-init symbol is an unresolved production dependency, not an empty implementation.",
+    "All three setup call bodies are now identified/reconstructed; saved-entry producer and full dispatcher integration remain unfinished.",
     "The binding snapshot predates the MMU split correction; see stock-optee-mmu-split-proof.json for the current six-relocation plus one source-line difference.",
     "Vector and temporary stack data symbols need source integration/visibility handling.",
     "No privileged reset path, SMC, MMU enable or hardware suspend/resume was executed.",
@@ -165,6 +160,11 @@
       "stock_address": "0x41b10e6c",
       "name": "console_init",
       "status": "existing reconstructed C implementation; behavior tested"
+    },
+    {
+      "stock_address": "0x41b0c038",
+      "name": "generic_boot_resume_primary",
+      "status": "source reconstructed, sixteen modeled runtime cases; carrier wiring pending"
     }
   ],
   "upstream_binding_snapshot_artifact_sha256": "8ff44fb7af4bffc2dae99e3263bcdda45e1eaf8963912f824e45a249a35d2c81"

@@ -60,7 +60,7 @@ class HostResumeTests(unittest.TestCase):
                         (0x54,'R_ARM_CALL','console_init'), (0x5c,'R_ARM_CALL','dcache_op_level1'),
                         (0x60,'R_ARM_CALL','core_init_mmu_regs'), (0x64,'R_ARM_CALL','cpu_mmu_enable'),
                         (0x68,'R_ARM_CALL','cpu_mmu_enable_icache'), (0x6c,'R_ARM_CALL','cpu_mmu_enable_dcache'),
-                        (0x70,'R_ARM_CALL','standby_resume_secondary_init'),
+                        (0x70,'R_ARM_CALL','generic_boot_resume_primary'),
                         (0x90,'R_ARM_ABS32','reset_vect_table'), (0x94,'R_ARM_ABS32','stack_tmp_stride'),
                         (0x98,'R_ARM_ABS32','stack_tmp_export')]
             self.assertEqual([(int(o,16), k, n) for o,k,n in rows], expected)
@@ -69,7 +69,7 @@ class HostResumeTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256(code).hexdigest(),
                              '2230668d7c920ac6d795b0b50fea8a4ffe6d9542aa92120db6a33c485a313545')
             thumb = {'plat_cpu_reset_late', 'console_init',
-                     'core_init_mmu_regs', 'standby_resume_secondary_init'}
+                     'core_init_mmu_regs', 'generic_boot_resume_primary'}
             # Link-only traps validate interworking without executing privileged reset code.
             fixture = ['.syntax unified', '.arch armv7-a', '.text']
             for _, kind, name in expected:

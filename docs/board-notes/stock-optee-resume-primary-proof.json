@@ -1,0 +1,123 @@
+{
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "source": "vendor/optee/standby-host-src/resume-primary.S",
+  "source_sha256": "3a85c2c6c90a1c8a14176478b0c205b0f4f6521c43ff63403fde28a492a72f95",
+  "identity": "generic_boot_resume_primary, established by original diagnostic string at 0x41b3e101; earlier secondary-init description corrected",
+  "comparison": {
+    "start": "0x41b0c038",
+    "end_exclusive": "0x41b0c08c",
+    "bytes": 84,
+    "genuine_relocations": [
+      {
+        "offset": "0x6",
+        "target": "thread_set_exceptions"
+      },
+      {
+        "offset": "0xa",
+        "target": "thread_init_per_cpu"
+      },
+      {
+        "offset": "0x10",
+        "target": "init_sec_mon"
+      },
+      {
+        "offset": "0x14",
+        "target": "main_init_gic"
+      },
+      {
+        "offset": "0x36",
+        "target": "trace_printf"
+      },
+      {
+        "offset": "0x3a",
+        "target": "standby_resume_hook_before_return"
+      },
+      {
+        "offset": "0x44",
+        "target": "standby_resume_hook_tail"
+      },
+      {
+        "offset": "0x48",
+        "target": "standby_ns_resume_entry"
+      },
+      {
+        "offset": "0x4c",
+        "target": ".rodata.generic_boot_resume_primary"
+      },
+      {
+        "offset": "0x50",
+        "target": ".rodata.generic_boot_resume_primary"
+      }
+    ],
+    "non_relocation_bytes": 44,
+    "non_relocation_bytes_identical": true,
+    "sha256_with_only_relocation_fields_zeroed": "306c859a8a45efc5a062c061eec6946c40ad6c1991df8b6667a97c2067e419cc",
+    "whole_linked_identity_established": false
+  },
+  "unwind": {
+    "stock_entry_offset": "0x46470",
+    "stock_covered_start": "0x41b0bff4",
+    "stock_covered_end_exclusive": "0x41b0c08c",
+    "descriptor": "0x8001a8b0",
+    "source_descriptor_matches": true
+  },
+  "return_hooks": {
+    "original_addresses": [
+      "0x41b2c172",
+      "0x41b2c176"
+    ],
+    "original_and_source_body_bytes_each": 2,
+    "instruction": "bx lr",
+    "original_symbol_names": "unknown",
+    "source_role_names": [
+      "standby_resume_hook_before_return",
+      "standby_resume_hook_tail"
+    ],
+    "observed_return_only_bodies_not_placeholder_implementations": true
+  },
+  "modeled_runtime": {
+    "engine": "qemu-arm",
+    "cases": 16,
+    "resume_entry_values": [
+      "0x1",
+      "0x40000000",
+      "0x80000001",
+      "0xdead0000"
+    ],
+    "nsacr_initial_values": [
+      "0",
+      "0xffffffff",
+      "0x80000000",
+      "0x40000400"
+    ],
+    "cp15_handling": "SIGILL handler accepts only the exact NSACR MRC/MCR encodings and models r3 read/write; all other instructions execute unchanged",
+    "checks": [
+      "exception mask 7 before per-CPU initialization",
+      "saved entry passed to monitor initialization",
+      "GIC initialization follows monitor setup",
+      "NSACR gets bits 10 and 11 while other bits are preserved",
+      "original trace name/line/level/prefix/format/value",
+      "both original two-byte return-only hook bodies execute",
+      "saved entry unchanged and stack/return intact"
+    ]
+  },
+  "producer_observation": {
+    "dispatcher_entry": "0x41b108dc: ldr r3, [r0] (operation word)",
+    "operation_literal_offset": "0x10b94",
+    "operation": "0xb2000214",
+    "compare_branch": "0x41b109c2..0x41b109c6 branches to 0x41b10b4e",
+    "case": "0x41b10b4e..0x41b10b5e",
+    "input": "word at argument block +4",
+    "saved_global_address": "0x41b49cf0",
+    "response": "argument block word 0 receives secure entry 0x41b0c0fc",
+    "cache_call": "dcache_op_all(1)",
+    "producer_source_recovered": false
+  },
+  "limitations": [
+    "Privileged CP15 effects are a deterministic test model, not hardware execution.",
+    "Thread, monitor and GIC calls use test recorders in runtime cases.",
+    "The routine is retained source; it is not wired into the secure-OS carrier yet.",
+    "Saved-entry producer and full service dispatch still need source reconstruction/integration.",
+    "Original full request/configuration layout and whole-image equality remain unfinished."
+  ]
+}

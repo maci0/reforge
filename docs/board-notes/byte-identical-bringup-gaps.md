@@ -157,7 +157,7 @@ Remaining work:
   the request producer remains unfinished. The ARM resume vector and 156-byte
   reset-style routine now have retained source: all 100 bytes outside fourteen
   genuine body relocations match stock. Independent linking checks every ARM,
-  Thumb and conditional-park target. One vendor setup body remains unresolved;
+  Thumb and conditional-park target. All three setup bodies are now identified/reconstructed;
   no empty implementations are supplied. Four upstream helper bodies (92 bytes)
   match stock directly and can be reused. Restoring stock `TTBCR_N_VALUE=5`
   (upstream uses 7) reduces `core_init_mmu_regs` raw differences from 31 to 11.
@@ -175,9 +175,20 @@ Remaining work:
   default; the primary reset path calls the real implementation. Existing
   console C source is reused, with 128 host test cases for UART selection,
   diagnostic arguments and registration. Its instruction shape is not yet
-  identical. The secondary-init body and full suspend dispatch remain open.
+  identical. Primary resume source is now recovered; full suspend dispatch remains open.
   [Late reset and console evidence](stock-optee-late-reset-proof.json) records
   two clean deployable repeats and the exact execution/identity limits.
+  The final call is `generic_boot_resume_primary`, established by its own
+  diagnostic (the earlier secondary-init description was incorrect). Its
+  84-byte unit matches all 44 bytes outside ten genuine relocations; unwind
+  policy also matches. Sixteen QEMU cases exercise its instructions with an
+  explicit NSACR model and thread/monitor/GIC recorders, preserving other bits,
+  call order, diagnostic arguments and return. Two return-only hook bodies
+  match their original two-byte instructions; original hook names are unknown.
+  [Primary-resume evidence](stock-optee-resume-primary-proof.json) also records
+  operation `0xb2000214`, whose dispatcher case supplies the saved resume entry.
+  That producer and dispatcher are not yet reconstructed or wired into the
+  carrier. No privileged hardware resume execution is claimed.
   Exact complete linked instruction/data comparison remains necessary.
   [Installer evidence](stock-optee-hash-installer-proof.json) and
   [SMC evidence](stock-optee-smc-proof.json) and

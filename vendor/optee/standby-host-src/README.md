@@ -142,3 +142,30 @@ source hashes, actual linked symbol, original caller evidence and byte checks.
 The late-reset privileged/MMIO sequence has not executed. Resume secondary
 initialization, full suspend dispatch, original source/layout and whole-image
 identity remain unfinished. No hardware boot or suspend/resume was tested.
+
+## Primary resume initialization
+
+The remaining setup call is `generic_boot_resume_primary`, as established by
+its own diagnostic string; the earlier secondary-init description was incorrect.
+`resume-primary.S` retains its 84-byte text/literal unit. All 44 bytes outside
+ten genuine relocations match stock, as does unwind descriptor `0x8001a8b0`.
+The two called return-only hooks retain their observed `bx lr` bodies. Their
+original symbol names are unknown; the source names describe call placement.
+They are recovered bodies, not invented empty implementations.
+
+Sixteen QEMU cases run the unmodified Thumb sequence with a SIGILL handler that
+models exactly the NSACR read/write instructions. Other instructions, including
+the VFP-access bit operation and actual return-only hooks, execute normally.
+Thread/monitor/GIC functions are test recorders. The cases verify call order,
+masking, saved entry, preservation of other NSACR bits, diagnostics and return.
+No real privileged register is changed and no hardware resume is claimed.
+
+```sh
+python3 tests/release/test_stock_optee_resume_primary.py
+```
+
+[Proof](../../../docs/board-notes/stock-optee-resume-primary-proof.json)
+also identifies the saved-entry producer in operation `0xb2000214`: it stores
+argument word one, returns the secure resume vector in word zero and cleans/invalidates the
+data cache. Its full dispatcher/source integration remains unfinished. The
+primary-resume unit remains separate from the carrier until that path is wired.
