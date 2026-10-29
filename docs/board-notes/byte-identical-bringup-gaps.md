@@ -145,9 +145,16 @@ Remaining work:
   outside its 38 genuine call/data relocations matching. Ten QEMU cases verify
   parameter/header/wrapper copies, twelve diagnostics and entry/return order
   using explicit test substitutes for the SRAM program and privileged services.
-  This does not exercise actual DRAM or CP15 behavior. Resume/configuration/type
-  reader recovery and production wiring are still open.
+  This does not exercise actual DRAM or CP15 behavior. Resume/configuration
+  recovery and production wiring are still open.
   [Caller evidence](stock-optee-host-suspend-proof.json) records the boundary.
+  The 52-byte standby-type reader is now source-built too: 36 bytes match
+  outside four genuine relocations. All 1,024 tested flag combinations confirm
+  only request bit 3 selects audio standby, with its original diagnostic and
+  no request mutation. The ten caller cases now use this actual reader.
+  [Type-reader proof](stock-optee-host-type-proof.json) also identifies the
+  resume pointer as an ARM branch to the separate routine at `0x41b0c52c`;
+  that routine and the request producer remain unfinished.
   Exact complete linked instruction/data comparison remains necessary.
   [Installer evidence](stock-optee-hash-installer-proof.json) and
   [SMC evidence](stock-optee-smc-proof.json) and

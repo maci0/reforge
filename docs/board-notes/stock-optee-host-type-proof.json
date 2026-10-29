@@ -1,0 +1,63 @@
+{
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "range": {
+    "start": "0x41b11354",
+    "end_exclusive": "0x41b11388",
+    "bytes": 52,
+    "sha256": "aa9a9d7c020aea76c722499c3ca81e88ae6397c59ac09442bb0521e09d2f3619"
+  },
+  "source": "vendor/optee/standby-host-src/type.S",
+  "source_sha256": "e136edadbcf7db4aa78dafdea9c7feee88107e2434611b7ce82c93cb0f78474f",
+  "comparison": {
+    "genuine_relocation_offsets": [
+      "0x16",
+      "0x28",
+      "0x2c",
+      "0x30"
+    ],
+    "non_relocation_bytes": 36,
+    "non_relocation_bytes_identical": true,
+    "sha256_with_relocation_fields_zeroed": "f05d2d09e6a71401ebcb9ecd4874b2ceb312f93d5af3c819cda47a69579eb0c6",
+    "whole_linked_stock_identity_established": false
+  },
+  "behavior": {
+    "request_pointer_stock_address": "0x41b49d24",
+    "flag_word_offset": 4,
+    "flag_mask": 8,
+    "clear_result": 1,
+    "set_result": 2,
+    "set_diagnostic": {
+      "function": "standby_type",
+      "line": 72,
+      "level": 3,
+      "prefix": 1,
+      "message": "AUDIO_STANDBY\n"
+    }
+  },
+  "runtime_tests": {
+    "engine": "qemu-arm",
+    "flag_cases": 1024,
+    "low_bytes": "0..255",
+    "upper_word_patterns": [
+      "0",
+      "0xffffff00",
+      "0x80000000",
+      "0x40000000"
+    ],
+    "request_words_unchanged": true,
+    "caller_cases_using_real_reader": 10,
+    "caller_fixture_reader_substitute_removed": true
+  },
+  "resume_discovery": {
+    "caller_parameter_target": "0x41b0c0fc",
+    "instruction": "b 0x41b0c52c",
+    "branch_word": "0xea00010a",
+    "target_first_call": "bl 0x41b02178 (already reconstructed plat_cpu_reset_early)",
+    "remaining_reset_style_body_recovered": false
+  },
+  "limitations": [
+    "Request structure extent and its producer still need recovery.",
+    "Resume target, runtime configuration objects and service dispatch remain unfinished.",
+    "No privileged or physical execution was performed."
+  ]
+}

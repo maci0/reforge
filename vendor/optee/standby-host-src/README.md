@@ -46,5 +46,25 @@ python3 tests/release/test_stock_optee_host_suspend.py
 
 [Caller evidence](../../../docs/board-notes/stock-optee-host-suspend-proof.json)
 records every relocation and the runtime boundary. The resume entry, original
-configuration objects, standby-type reader and complete service binding remain
+configuration objects and complete service binding remain
 unfinished; this caller is not wired into the secure-OS build yet.
+
+## Standby-type reader
+
+`type.S` reconstructs the 52-byte reader at `0x41b11354`. All 36 bytes outside
+one call and three data relocations match stock. Request flags at offset four
+select type 2 when bit 3 is set, otherwise type 1. The audio branch preserves
+its original diagnostic. QEMU checks all 256 low-byte combinations with four
+upper-word patterns (1,024 cases), including unchanged request words. The ten
+caller cases now link this reader directly rather than substituting it.
+
+```sh
+python3 tests/release/test_stock_optee_host_type.py
+```
+
+[Reader proof](../../../docs/board-notes/stock-optee-host-type-proof.json)
+records the address/flag evidence and resume-entry discovery. The request
+producer and full request layout remain unknown. The resume entry is an ARM
+branch at `0x41b0c0fc` to a separate reset-style routine at `0x41b0c52c`, beginning
+with the already reconstructed early CPU-reset hook. That body, runtime
+configuration setup and service dispatch still need source closure.

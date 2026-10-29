@@ -232,12 +232,14 @@
       "Every wrapper byte after parameter header remains unchanged",
       "All twelve log argument/name/line/format tuples",
       "Indirect ARM entry at hardware SRAM address uses a test-only recorder",
-      "Observed return ordering: MMU enable then MMU disable"
-    ]
+      "Observed return ordering: MMU enable then MMU disable",
+      "Audio diagnostic emitted only when request bit 3 is set; request words unchanged"
+    ],
+    "standby_type_reader": "actual recovered type.S; no reader substitute"
   },
   "limitations": [
     "The wrapper and privileged services are test substitutes, not original DRAM/CP15 execution.",
-    "Resume entry, configuration objects and standby-type reader still require reconstruction/integration.",
+    "Resume entry and configuration objects still require reconstruction/integration.",
     "No hardware execution or secure-OS production wiring was performed.",
     "Original full linked identity remains unproven; relocation fields were excluded only from the object-level comparison."
   ]

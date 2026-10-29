@@ -42,6 +42,7 @@ class HostSuspendTests(unittest.TestCase):
                             '-fno-builtin', '-Wall', '-Wextra', '-Wl,-Ttext-segment=0x400000',
                             ROOT / 'tests/release/stock_optee_host_suspend_guest.c',
                             ROOT / 'tests/release/stock_optee_host_suspend_fixture.S', SOURCE,
+                            ROOT / 'vendor/optee/standby-host-src/type.S',
                             '-o', out / 'guest'], check=True)
             subprocess.run(['qemu-arm', out / 'guest'], check=True, timeout=15)
 

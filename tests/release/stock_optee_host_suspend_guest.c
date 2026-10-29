@@ -8,16 +8,16 @@
 extern void standby_host_suspend(void);
 extern const unsigned char sunxi_standby_wrapper_start[], sunxi_standby_wrapper_end[];
 uint32_t standby_host_settings[4];
+uint32_t standby_host_request[2];
 uint32_t standby_host_configuration[52];
 unsigned char tee_spare_head[172];
 static unsigned char expected[240];
-static unsigned stage, logs, copies, kind, failure;
+static unsigned stage, logs, copies, kind, failure, audio_logs;
 static uint32_t word(const void *p) { uint32_t v; __builtin_memcpy(&v, p, 4); return v; }
 static void put(unsigned off, uint32_t v) { __builtin_memcpy(expected + off, &v, 4); }
 static void require(int condition) { if (!condition) _exit(90); }
 void standby_host_resume_entry(void) { _exit(91); }
 void standby_host_dcache_disable(void) { require(stage == 0); stage = 1; }
-unsigned standby_host_get_type(void) { require(stage == 2); stage = 3; return kind; }
 void standby_host_mmu_enable(void) { require(stage == 5); stage = 6; }
 void standby_host_mmu_disable(void) { require(stage == 6); stage = 7; }
 void *memcpy(void *dst, const void *src, unsigned n) {
@@ -26,7 +26,7 @@ void *memcpy(void *dst, const void *src, unsigned n) {
         if (stage == 1) {
             require(src == sunxi_standby_wrapper_start && n == 16384); stage = 2;
         } else {
-            require(stage == 3 && src == tee_spare_head + 44 && n == 128); stage = 4;
+            require(stage == 2 && src == tee_spare_head + 44 && n == 128); stage = 4;
         }
         ++copies;
     }
@@ -40,6 +40,12 @@ void trace_printf(const char *name, int line, int level, int prefix, const char 
         "vdd_pll: 0x%8.8x\n", "pmu_port: 0x%8.8x\n", "pmu_addr: 0x%8.8x\n",
         "time_to_wakeup_ms: 0x%8.8x\n"};
     va_list args;
+    if (!strcmp(name, "standby_type")) {
+        require(stage == 2 && kind == 2 && line == 72 && level == 3 && prefix == 1);
+        require(!strcmp(format, "AUDIO_STANDBY\n"));
+        ++audio_logs;
+        return;
+    }
     require(level == 3 && prefix == 1 && logs < 12);
     va_start(args, format);
     if (logs < 9) {
@@ -78,7 +84,9 @@ int main(void) {
         for (i = 0; i < 52; ++i) standby_host_configuration[i] = 0x11223300 + i + n;
         for (i = 0; i < 4; ++i) standby_host_settings[i] = 0xaabbcc00 + i + n;
         standby_host_configuration[0xbc/4] = n;
-        kind = k; stage = logs = copies = failure = 0;
+        kind = k; stage = logs = copies = failure = audio_logs = 0;
+        standby_host_request[0] = 0x12345678;
+        standby_host_request[1] = (k == 2 ? 8 : 0);
         for (i = 0; i < 240; ++i) expected[i] = 0;
         for (i = 0; i < 128; ++i) expected[i] = tee_spare_head[i + 44];
         put(0x80, (uintptr_t)standby_host_resume_entry);
@@ -93,7 +101,8 @@ int main(void) {
             expected[0xcc+i] = ((unsigned char *)standby_host_configuration)[0xcc+i];
         }
         standby_host_suspend();
-        require(stage == 7 && logs == 12 && copies == 2 && !failure);
+        require(stage == 7 && logs == 12 && copies == 2 && !failure && audio_logs == k - 1);
+        require(standby_host_request[0] == 0x12345678 && standby_host_request[1] == (k == 2 ? 8 : 0));
     }
     return 0;
 }
