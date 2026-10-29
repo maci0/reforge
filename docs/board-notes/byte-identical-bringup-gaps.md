@@ -141,6 +141,13 @@ Remaining work:
   MMU disable on return; this observed order is retained for further caller
   reconstruction, not silently rearranged. [Host helper proof](stock-optee-host-mmu-proof.json)
   records addresses, source hash, relocation checks and execution limits.
+  The 532-byte suspend caller now also has retained source, with all 380 bytes
+  outside its 38 genuine call/data relocations matching. Ten QEMU cases verify
+  parameter/header/wrapper copies, twelve diagnostics and entry/return order
+  using explicit test substitutes for the SRAM program and privileged services.
+  This does not exercise actual DRAM or CP15 behavior. Resume/configuration/type
+  reader recovery and production wiring are still open.
+  [Caller evidence](stock-optee-host-suspend-proof.json) records the boundary.
   Exact complete linked instruction/data comparison remains necessary.
   [Installer evidence](stock-optee-hash-installer-proof.json) and
   [SMC evidence](stock-optee-smc-proof.json) and

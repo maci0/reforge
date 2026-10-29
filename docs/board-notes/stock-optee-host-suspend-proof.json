@@ -1,0 +1,244 @@
+{
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "reference_range": {
+    "start": "0x41b11450",
+    "end_exclusive": "0x41b11664",
+    "bytes": 532,
+    "sha256": "db6047bf6a9c6fb3a12ad51664dbfb3fdfdec65aa23436fb25848b63bd633603"
+  },
+  "source": "vendor/optee/standby-host-src/suspend.S",
+  "source_sha256": "6643fbeea87cd52fbb529ba650039ff1ae9703a7ea861b594938279db70fc325",
+  "relocations": [
+    {
+      "offset": "0x2",
+      "type": "R_ARM_THM_CALL",
+      "target": "standby_host_dcache_disable"
+    },
+    {
+      "offset": "0x12",
+      "type": "R_ARM_THM_CALL",
+      "target": "memcpy"
+    },
+    {
+      "offset": "0x36",
+      "type": "R_ARM_THM_CALL",
+      "target": "standby_host_get_type"
+    },
+    {
+      "offset": "0xa6",
+      "type": "R_ARM_THM_CALL",
+      "target": "memcpy"
+    },
+    {
+      "offset": "0xb8",
+      "type": "R_ARM_THM_CALL",
+      "target": "trace_printf"
+    },
+    {
+      "offset": "0xce",
+      "type": "R_ARM_THM_CALL",
+      "target": "trace_printf"
+    },
+    {
+      "offset": "0xe4",
+      "type": "R_ARM_THM_CALL",
+      "target": "trace_printf"
+    },
+    {
+      "offset": "0xfa",
+      "type": "R_ARM_THM_CALL",
+      "target": "trace_printf"
+    },
+    {
+      "offset": "0x110",
+      "type": "R_ARM_THM_CALL",
+      "target": "trace_printf"
+    },
+    {
+      "offset": "0x126",
+      "type": "R_ARM_THM_CALL",
+      "target": "trace_printf"
+    },
+    {
+      "offset": "0x13c",
+      "type": "R_ARM_THM_CALL",
+      "target": "trace_printf"
+    },
+    {
+      "offset": "0x152",
+      "type": "R_ARM_THM_CALL",
+      "target": "trace_printf"
+    },
+    {
+      "offset": "0x168",
+      "type": "R_ARM_THM_CALL",
+      "target": "trace_printf"
+    },
+    {
+      "offset": "0x184",
+      "type": "R_ARM_THM_CALL",
+      "target": "trace_printf"
+    },
+    {
+      "offset": "0x196",
+      "type": "R_ARM_THM_CALL",
+      "target": "trace_printf"
+    },
+    {
+      "offset": "0x19e",
+      "type": "R_ARM_THM_CALL",
+      "target": "standby_host_mmu_enable"
+    },
+    {
+      "offset": "0x1a2",
+      "type": "R_ARM_THM_CALL",
+      "target": "standby_host_mmu_disable"
+    },
+    {
+      "offset": "0x1b2",
+      "type": "R_ARM_THM_CALL",
+      "target": "trace_printf"
+    },
+    {
+      "offset": "0x1bc",
+      "type": "R_ARM_ABS32",
+      "target": "sunxi_standby_wrapper_start"
+    },
+    {
+      "offset": "0x1c0",
+      "type": "R_ARM_ABS32",
+      "target": "sunxi_standby_wrapper_end"
+    },
+    {
+      "offset": "0x1c4",
+      "type": "R_ARM_ABS32",
+      "target": "standby_host_settings"
+    },
+    {
+      "offset": "0x1c8",
+      "type": "R_ARM_ABS32",
+      "target": "standby_host_resume_entry"
+    },
+    {
+      "offset": "0x1cc",
+      "type": "R_ARM_ABS32",
+      "target": "standby_host_configuration"
+    },
+    {
+      "offset": "0x1d4",
+      "type": "R_ARM_ABS32",
+      "target": "tee_spare_head"
+    },
+    {
+      "offset": "0x1d8",
+      "type": "R_ARM_ABS32",
+      "target": ".rodata.standby_host_suspend"
+    },
+    {
+      "offset": "0x1dc",
+      "type": "R_ARM_ABS32",
+      "target": ".rodata.standby_host_suspend"
+    },
+    {
+      "offset": "0x1e0",
+      "type": "R_ARM_ABS32",
+      "target": ".rodata.standby_host_suspend"
+    },
+    {
+      "offset": "0x1e4",
+      "type": "R_ARM_ABS32",
+      "target": ".rodata.standby_host_suspend"
+    },
+    {
+      "offset": "0x1e8",
+      "type": "R_ARM_ABS32",
+      "target": ".rodata.standby_host_suspend"
+    },
+    {
+      "offset": "0x1ec",
+      "type": "R_ARM_ABS32",
+      "target": ".rodata.standby_host_suspend"
+    },
+    {
+      "offset": "0x1f0",
+      "type": "R_ARM_ABS32",
+      "target": ".rodata.standby_host_suspend"
+    },
+    {
+      "offset": "0x1f4",
+      "type": "R_ARM_ABS32",
+      "target": ".rodata.standby_host_suspend"
+    },
+    {
+      "offset": "0x1f8",
+      "type": "R_ARM_ABS32",
+      "target": ".rodata.standby_host_suspend"
+    },
+    {
+      "offset": "0x1fc",
+      "type": "R_ARM_ABS32",
+      "target": ".rodata.standby_host_suspend"
+    },
+    {
+      "offset": "0x200",
+      "type": "R_ARM_ABS32",
+      "target": ".rodata.standby_host_suspend"
+    },
+    {
+      "offset": "0x204",
+      "type": "R_ARM_ABS32",
+      "target": ".rodata.standby_host_suspend"
+    },
+    {
+      "offset": "0x208",
+      "type": "R_ARM_ABS32",
+      "target": ".rodata.standby_host_suspend"
+    },
+    {
+      "offset": "0x210",
+      "type": "R_ARM_ABS32",
+      "target": ".rodata.standby_host_suspend"
+    }
+  ],
+  "comparison": {
+    "relocation_fields": 38,
+    "relocation_bytes": 152,
+    "other_bytes": 380,
+    "other_bytes_identical": true,
+    "sha256_with_only_relocation_fields_zeroed": "f1578c88d781ac9d9bf3787bd268507c6de0d76ea93a7956fec52e7415b8e296",
+    "whole_linked_stock_identity_established": false
+  },
+  "runtime_test": {
+    "engine": "qemu-arm",
+    "cases": 10,
+    "standby_types": [
+      1,
+      2
+    ],
+    "per_type_copy_counts": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "checks": [
+      "Initial cache-disable call precedes the wrapper copy",
+      "Full 16384-byte wrapper copy",
+      "Settings and voltage/PMU parameter initialization",
+      "Paired byte-copy loop for each count",
+      "128-byte secure-OS header to DRAM parameter copy",
+      "All 240 parameter bytes at SRAM entry",
+      "Every wrapper byte after parameter header remains unchanged",
+      "All twelve log argument/name/line/format tuples",
+      "Indirect ARM entry at hardware SRAM address uses a test-only recorder",
+      "Observed return ordering: MMU enable then MMU disable"
+    ]
+  },
+  "limitations": [
+    "The wrapper and privileged services are test substitutes, not original DRAM/CP15 execution.",
+    "Resume entry, configuration objects and standby-type reader still require reconstruction/integration.",
+    "No hardware execution or secure-OS production wiring was performed.",
+    "Original full linked identity remains unproven; relocation fields were excluded only from the object-level comparison."
+  ]
+}

@@ -25,3 +25,26 @@ into the source secure-OS service. Whole carrier identity remains unfinished.
 
 [Evidence](../../../docs/board-notes/stock-optee-host-mmu-proof.json) records
 reference/source hashes, comparison scope and remaining boundaries.
+
+## Suspend caller
+
+`suspend.S` retains the original caller's instructions, local branches, literal
+references and diagnostic strings as source. Its 532-byte text/literal unit
+matches all 380 bytes outside 38 genuine call/data relocation fields. This is
+an object-level comparison, not whole linked-image equality.
+
+Ten QEMU cases execute this caller with a test-only 16 KiB wrapper and service
+recorders. They cover both standby types and zero through four paired PMU-byte
+copies, compare all 240 parameter bytes, check the copied wrapper suffix, all
+twelve diagnostic calls, and the exact cache/copy/entry/return order. The ARM
+entry recorder replaces actual DRAM/CP15 behavior. The test ELF is linked away
+from SRAM so its fixed-address test mapping cannot overwrite the harness.
+
+```sh
+python3 tests/release/test_stock_optee_host_suspend.py
+```
+
+[Caller evidence](../../../docs/board-notes/stock-optee-host-suspend-proof.json)
+records every relocation and the runtime boundary. The resume entry, original
+configuration objects, standby-type reader and complete service binding remain
+unfinished; this caller is not wired into the secure-OS build yet.
