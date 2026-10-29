@@ -1,0 +1,980 @@
+{
+  "status": "partial correspondence evidence; output remains different",
+  "stock_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "source_build": "build/stock-optee-arisc-wakeup/source-b",
+  "routines": [
+    {
+      "source_object": "core/arch/arm/mm/tee_mmu.o",
+      "section": ".text.tee_mmu_map_param",
+      "stock_offset": "0xe518",
+      "bytes": 492,
+      "relocations": [
+        {
+          "offset": 34,
+          "arm_relocation_type": 10,
+          "symbol": "memset"
+        },
+        {
+          "offset": 56,
+          "arm_relocation_type": 10,
+          "symbol": "mobj_get_phys_offs.constprop.17"
+        },
+        {
+          "offset": 118,
+          "arm_relocation_type": 10,
+          "symbol": "qsort"
+        },
+        {
+          "offset": 192,
+          "arm_relocation_type": 10,
+          "symbol": "_core_is_buffer_intersect"
+        },
+        {
+          "offset": 266,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_log"
+        },
+        {
+          "offset": 270,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_break"
+        },
+        {
+          "offset": 326,
+          "arm_relocation_type": 10,
+          "symbol": "vm_map_pad.part.16"
+        },
+        {
+          "offset": 400,
+          "arm_relocation_type": 10,
+          "symbol": "mobj_get_phys_offs.constprop.17"
+        },
+        {
+          "offset": 440,
+          "arm_relocation_type": 10,
+          "symbol": "alloc_pgt"
+        },
+        {
+          "offset": 452,
+          "arm_relocation_type": 10,
+          "symbol": "tee_mmu_clean_param"
+        },
+        {
+          "offset": 468,
+          "arm_relocation_type": 2,
+          "symbol": "cmp_param_mem"
+        },
+        {
+          "offset": 472,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 476,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 480,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        260
+      ],
+      "source_instruction": "movw r2, #0x22d",
+      "stock_instruction": "movw r2, #0x22e",
+      "instruction_offset": 258,
+      "matching_other_unmasked_bytes": 435,
+      "source_relocation_masked_sha256": "707ff341d82c7d240c731f06c5357380cb07c8c5840351eb68a2f5bb3c533d98",
+      "stock_relocation_masked_sha256": "3be2bae027db70dfb5ff3840034308caedfb1dd11447601011778975461d1e99"
+    },
+    {
+      "source_object": "core/arch/arm/tee/entry_std.o",
+      "section": ".text.copy_in_params",
+      "stock_offset": "0x10320",
+      "bytes": 440,
+      "relocations": [
+        {
+          "offset": 36,
+          "arm_relocation_type": 10,
+          "symbol": "memset"
+        },
+        {
+          "offset": 192,
+          "arm_relocation_type": 10,
+          "symbol": "msg_param_mobj_from_noncontig"
+        },
+        {
+          "offset": 226,
+          "arm_relocation_type": 10,
+          "symbol": "__do_panic"
+        },
+        {
+          "offset": 274,
+          "arm_relocation_type": 10,
+          "symbol": "_core_is_buffer_inside"
+        },
+        {
+          "offset": 312,
+          "arm_relocation_type": 10,
+          "symbol": "mobj_reg_shm_get_by_cookie"
+        },
+        {
+          "offset": 416,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 420,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 424,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 428,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        220
+      ],
+      "source_instruction": "movs r1, #0x33",
+      "stock_instruction": "movs r1, #0x34",
+      "instruction_offset": 220,
+      "matching_other_unmasked_bytes": 403,
+      "source_relocation_masked_sha256": "275c9b3175c17249ef91ef1bd2abbf80a0c60446bc63aa947f2d0593671394e2",
+      "stock_relocation_masked_sha256": "1293fc5fa07737187ce313f99772a576056c4232a07257d2c6240091462a9d05"
+    },
+    {
+      "source_object": "core/arch/arm/mm/core_mmu_v7.o",
+      "section": ".text.core_mmu_entry_to_finer_grained",
+      "stock_offset": "0xedc0",
+      "bytes": 260,
+      "relocations": [
+        {
+          "offset": 38,
+          "arm_relocation_type": 10,
+          "symbol": "desc_to_mattr"
+        },
+        {
+          "offset": 50,
+          "arm_relocation_type": 10,
+          "symbol": "get_desc_type"
+        },
+        {
+          "offset": 106,
+          "arm_relocation_type": 10,
+          "symbol": "trace_printf"
+        },
+        {
+          "offset": 130,
+          "arm_relocation_type": 10,
+          "symbol": "memset"
+        },
+        {
+          "offset": 184,
+          "arm_relocation_type": 10,
+          "symbol": "get_desc_type"
+        },
+        {
+          "offset": 210,
+          "arm_relocation_type": 10,
+          "symbol": "mattr_to_desc"
+        },
+        {
+          "offset": 244,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 248,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 252,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 256,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        92
+      ],
+      "source_instruction": "movw r1, #0x111",
+      "stock_instruction": "movw r1, #0x117",
+      "instruction_offset": 90,
+      "matching_other_unmasked_bytes": 219,
+      "source_relocation_masked_sha256": "539404a9c0260897a7db35d8cbc96ca979d370224389f386e272ddbf5e76550b",
+      "stock_relocation_masked_sha256": "49cec9c065851a3e757922917f42937eaca4c15e4c76b906d122b69b30b31870"
+    },
+    {
+      "source_object": "core/arch/arm/kernel/thread_optee_smc.o",
+      "section": ".text.thread_rpc_alloc.constprop.2",
+      "stock_offset": "0xa9f8",
+      "bytes": 240,
+      "relocations": [
+        {
+          "offset": 16,
+          "arm_relocation_type": 10,
+          "symbol": "memset"
+        },
+        {
+          "offset": 66,
+          "arm_relocation_type": 10,
+          "symbol": "get_rpc_arg"
+        },
+        {
+          "offset": 84,
+          "arm_relocation_type": 10,
+          "symbol": "thread_rpc"
+        },
+        {
+          "offset": 126,
+          "arm_relocation_type": 10,
+          "symbol": "mobj_shm_alloc"
+        },
+        {
+          "offset": 162,
+          "arm_relocation_type": 10,
+          "symbol": "msg_param_mobj_from_noncontig"
+        },
+        {
+          "offset": 178,
+          "arm_relocation_type": 10,
+          "symbol": "thread_rpc_free"
+        },
+        {
+          "offset": 186,
+          "arm_relocation_type": 10,
+          "symbol": "mobj_matches"
+        },
+        {
+          "offset": 202,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_log"
+        },
+        {
+          "offset": 206,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_break"
+        },
+        {
+          "offset": 228,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 232,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 236,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        196
+      ],
+      "source_instruction": "movw r2, #0x227",
+      "stock_instruction": "movw r2, #0x22e",
+      "instruction_offset": 194,
+      "matching_other_unmasked_bytes": 191,
+      "source_relocation_masked_sha256": "ab1f878e9a44115f0388005e6287215b6694ba41e9d7a511f959bbecdf00a156",
+      "stock_relocation_masked_sha256": "40424916f9af91ee654c3c3965aaae6c99f1b8c6db8fc61268ab71e0ac312d7f"
+    },
+    {
+      "source_object": "core/arch/arm/kernel/abort.o",
+      "section": ".text.abort_print_error",
+      "stock_offset": "0xb290",
+      "bytes": 220,
+      "relocations": [
+        {
+          "offset": 6,
+          "arm_relocation_type": 10,
+          "symbol": "abort_is_user_exception"
+        },
+        {
+          "offset": 14,
+          "arm_relocation_type": 10,
+          "symbol": "__abort_print.part.4"
+        },
+        {
+          "offset": 22,
+          "arm_relocation_type": 10,
+          "symbol": "__print_abort_info"
+        },
+        {
+          "offset": 32,
+          "arm_relocation_type": 10,
+          "symbol": "memset"
+        },
+        {
+          "offset": 46,
+          "arm_relocation_type": 10,
+          "symbol": "abort_is_user_exception"
+        },
+        {
+          "offset": 60,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_log"
+        },
+        {
+          "offset": 64,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_break"
+        },
+        {
+          "offset": 80,
+          "arm_relocation_type": 10,
+          "symbol": "read_mode_sp"
+        },
+        {
+          "offset": 88,
+          "arm_relocation_type": 10,
+          "symbol": "read_mode_lr"
+        },
+        {
+          "offset": 100,
+          "arm_relocation_type": 10,
+          "symbol": "memset"
+        },
+        {
+          "offset": 162,
+          "arm_relocation_type": 10,
+          "symbol": "thread_stack_start"
+        },
+        {
+          "offset": 168,
+          "arm_relocation_type": 10,
+          "symbol": "thread_stack_size"
+        },
+        {
+          "offset": 188,
+          "arm_relocation_type": 10,
+          "symbol": "print_stack_arm32"
+        },
+        {
+          "offset": 196,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 200,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 204,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 208,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 212,
+          "arm_relocation_type": 2,
+          "symbol": "__exidx_end"
+        },
+        {
+          "offset": 216,
+          "arm_relocation_type": 2,
+          "symbol": "__exidx_start"
+        }
+      ],
+      "different_unmasked_offsets": [
+        54
+      ],
+      "source_instruction": "movs r2, #0x2c",
+      "stock_instruction": "movs r2, #0x31",
+      "instruction_offset": 54,
+      "matching_other_unmasked_bytes": 143,
+      "source_relocation_masked_sha256": "dc83139f6ac5117065b74dfdd09a55988df5d42879f73fd715396f4f38d79752",
+      "stock_relocation_masked_sha256": "6a11534b95af060c57a90b6eb3a1a89c0305eb8820756dfe07cb178febb1f676"
+    },
+    {
+      "source_object": "core/arch/arm/mm/tee_mmu.o",
+      "section": ".text.tee_mmu_user_pa2va_helper",
+      "stock_offset": "0xe260",
+      "bytes": 180,
+      "relocations": [
+        {
+          "offset": 54,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_log"
+        },
+        {
+          "offset": 58,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_break"
+        },
+        {
+          "offset": 104,
+          "arm_relocation_type": 10,
+          "symbol": "mobj_get_pa"
+        },
+        {
+          "offset": 120,
+          "arm_relocation_type": 10,
+          "symbol": "_core_is_buffer_inside"
+        },
+        {
+          "offset": 164,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 168,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 172,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        48
+      ],
+      "source_instruction": "movw r2, #0x381",
+      "stock_instruction": "movw r2, #0x382",
+      "instruction_offset": 46,
+      "matching_other_unmasked_bytes": 151,
+      "source_relocation_masked_sha256": "bd955cb85b176dae52d2fbc8e34b939e628ffc04b3cbbb3b10d4598e3d038ed9",
+      "stock_relocation_masked_sha256": "f3fbe25ffed292435d02ca02d20e75a776697715b2479c63fbf8a9046df3eab9"
+    },
+    {
+      "source_object": "core/arch/arm/mm/tee_mmu.o",
+      "section": ".text.select_va_in_range",
+      "stock_offset": "0xdee8",
+      "bytes": 176,
+      "relocations": [
+        {
+          "offset": 150,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_log"
+        },
+        {
+          "offset": 154,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_break"
+        },
+        {
+          "offset": 164,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 168,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 172,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        144
+      ],
+      "source_instruction": "movs r2, #0x60",
+      "stock_instruction": "movs r2, #0x61",
+      "instruction_offset": 144,
+      "matching_other_unmasked_bytes": 155,
+      "source_relocation_masked_sha256": "1c0ef3fe2ffeebb3e4569b306aeffe615fccb3759cce4508388bdcce037e0dab",
+      "stock_relocation_masked_sha256": "582207de9ee40303387fb82b43a508e7bc6b79217c2e879e265143f5950f7a9e"
+    },
+    {
+      "source_object": "core/arch/arm/kernel/abort.o",
+      "section": ".text.abort_print_current_ta",
+      "stock_offset": "0xb218",
+      "bytes": 120,
+      "relocations": [
+        {
+          "offset": 6,
+          "arm_relocation_type": 10,
+          "symbol": "thread_get_tsd"
+        },
+        {
+          "offset": 18,
+          "arm_relocation_type": 10,
+          "symbol": "memset"
+        },
+        {
+          "offset": 28,
+          "arm_relocation_type": 10,
+          "symbol": "tee_ta_get_current_session"
+        },
+        {
+          "offset": 42,
+          "arm_relocation_type": 10,
+          "symbol": "__do_panic"
+        },
+        {
+          "offset": 78,
+          "arm_relocation_type": 10,
+          "symbol": "__print_abort_info"
+        },
+        {
+          "offset": 108,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 112,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 116,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        40
+      ],
+      "source_instruction": "movs r1, #0xf7",
+      "stock_instruction": "movs r1, #0xfc",
+      "instruction_offset": 40,
+      "matching_other_unmasked_bytes": 87,
+      "source_relocation_masked_sha256": "9959fdf40f9558225c68e958f4f1b50b1f54ae26c90366e2a7cb79ba9266ad2e",
+      "stock_relocation_masked_sha256": "c0d90cc8c28a77c57b1a275eed3ed3c6b72a0df6d11607537606157cb617e6f6"
+    },
+    {
+      "source_object": "core/arch/arm/mm/core_mmu.o",
+      "section": ".text.core_mmu_type_to_attr",
+      "stock_offset": "0xccec",
+      "bytes": 116,
+      "relocations": [
+        {
+          "offset": 86,
+          "arm_relocation_type": 10,
+          "symbol": "__do_panic"
+        },
+        {
+          "offset": 104,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 108,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 112,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        80
+      ],
+      "source_instruction": "movw r1, #0x2a3",
+      "stock_instruction": "movw r1, #0x2b3",
+      "instruction_offset": 78,
+      "matching_other_unmasked_bytes": 99,
+      "source_relocation_masked_sha256": "19ceeef5f38be472656d78ad8d03be824892711eefca9260af133cdb37fdea67",
+      "stock_relocation_masked_sha256": "b60ecb33e1b05e143c8d70b0340c91fb62696f5a47c7afbc215216ab52f213dd"
+    },
+    {
+      "source_object": "core/arch/arm/mm/core_mmu_v7.o",
+      "section": ".text.core_init_mmu_regs",
+      "stock_offset": "0xec20",
+      "bytes": 104,
+      "relocations": [
+        {
+          "offset": 6,
+          "arm_relocation_type": 10,
+          "symbol": "virt_to_phys"
+        },
+        {
+          "offset": 24,
+          "arm_relocation_type": 10,
+          "symbol": "__do_panic"
+        },
+        {
+          "offset": 84,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 88,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 92,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 96,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        18
+      ],
+      "source_instruction": "movs r1, #0xf9",
+      "stock_instruction": "movs r1, #0xfd",
+      "instruction_offset": 18,
+      "matching_other_unmasked_bytes": 79,
+      "source_relocation_masked_sha256": "9d984bf8cce4b638d01462783d0eef04d00ff2d26411b92d2d2465cb0d512ce2",
+      "stock_relocation_masked_sha256": "a0a40bbad9e1c0e3fd68efa200720ece78a4975dddf95f25469be157e21d8598"
+    },
+    {
+      "source_object": "core/arch/arm/mm/tee_mmu.o",
+      "section": ".text.alloc_pgt",
+      "stock_offset": "0xe0d8",
+      "bytes": 104,
+      "relocations": [
+        {
+          "offset": 10,
+          "arm_relocation_type": 10,
+          "symbol": "core_mmu_get_user_va_range"
+        },
+        {
+          "offset": 72,
+          "arm_relocation_type": 10,
+          "symbol": "trace_printf"
+        },
+        {
+          "offset": 92,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 96,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        60
+      ],
+      "source_instruction": "movs r1, #0x8a",
+      "stock_instruction": "movs r1, #0x8b",
+      "instruction_offset": 60,
+      "matching_other_unmasked_bytes": 87,
+      "source_relocation_masked_sha256": "83998f3e2cf024d5f7cba07c45e324f37b5d9a6d6f79e11bc2363ad214d9c9d6",
+      "stock_relocation_masked_sha256": "885c49fa62c56f0fb9271bc38542e9675399d571ff99362691c31f85769174f5"
+    },
+    {
+      "source_object": "core/arch/arm/mm/core_mmu_v7.o",
+      "section": ".text.get_desc_type",
+      "stock_offset": "0xebc0",
+      "bytes": 96,
+      "relocations": [
+        {
+          "offset": 18,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_log"
+        },
+        {
+          "offset": 22,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_break"
+        },
+        {
+          "offset": 84,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 88,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 92,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        12
+      ],
+      "source_instruction": "movw r2, #0x11d",
+      "stock_instruction": "movw r2, #0x123",
+      "instruction_offset": 10,
+      "matching_other_unmasked_bytes": 75,
+      "source_relocation_masked_sha256": "82b4e2a8153abb94269c4f42cc3bcc4cfddeda73fbe8cea711764cf336388331",
+      "stock_relocation_masked_sha256": "d480e1fd1873f68dae6260fa217af8e55a1f9d5235f2d4013ed3764972917416"
+    },
+    {
+      "source_object": "core/arch/arm/tee/entry_std.o",
+      "section": ".text.default_mobj_init",
+      "stock_offset": "0x104d8",
+      "bytes": 80,
+      "relocations": [
+        {
+          "offset": 12,
+          "arm_relocation_type": 10,
+          "symbol": "core_mmu_type_to_attr"
+        },
+        {
+          "offset": 26,
+          "arm_relocation_type": 10,
+          "symbol": "mobj_phys_alloc"
+        },
+        {
+          "offset": 46,
+          "arm_relocation_type": 10,
+          "symbol": "__do_panic"
+        },
+        {
+          "offset": 56,
+          "arm_relocation_type": 2,
+          "symbol": "default_nsec_shm_paddr"
+        },
+        {
+          "offset": 60,
+          "arm_relocation_type": 2,
+          "symbol": "default_nsec_shm_size"
+        },
+        {
+          "offset": 64,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 68,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 72,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 76,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        40
+      ],
+      "source_instruction": "movw r1, #0x20e",
+      "stock_instruction": "movw r1, #0x20f",
+      "instruction_offset": 38,
+      "matching_other_unmasked_bytes": 43,
+      "source_relocation_masked_sha256": "451458bb3622cff53878d5e536385cfabd259e4af4fe86c5e40fa6f5302c56eb",
+      "stock_relocation_masked_sha256": "2d77a18f96d14a9c960e59f198c350a66f1a391239f148fee64f21eb4e0d845b"
+    },
+    {
+      "source_object": "core/arch/arm/mm/core_mmu_v7.o",
+      "section": ".text.core_mmu_set_info_table",
+      "stock_offset": "0xec88",
+      "bytes": 68,
+      "relocations": [
+        {
+          "offset": 22,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_log"
+        },
+        {
+          "offset": 26,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_break"
+        },
+        {
+          "offset": 56,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 60,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 64,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        16
+      ],
+      "source_instruction": "movw r2, #0x1d7",
+      "stock_instruction": "movw r2, #0x1dd",
+      "instruction_offset": 14,
+      "matching_other_unmasked_bytes": 47,
+      "source_relocation_masked_sha256": "cae20b8fed1642617f768e4689bba60aab65ff3a50c99c0e95bf386bab29008b",
+      "stock_relocation_masked_sha256": "fcef6b55160b9c0662b2a076d80f6f4c32e51981078cd3c8ad1323b5c57d178b"
+    },
+    {
+      "source_object": "core/arch/arm/mm/core_mmu.o",
+      "section": ".text.core_mmu_set_entry",
+      "stock_offset": "0xd630",
+      "bytes": 56,
+      "relocations": [
+        {
+          "offset": 18,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_log"
+        },
+        {
+          "offset": 22,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_break"
+        },
+        {
+          "offset": 36,
+          "arm_relocation_type": 10,
+          "symbol": "core_mmu_set_entry_primitive"
+        },
+        {
+          "offset": 44,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 48,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 52,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        12
+      ],
+      "source_instruction": "movw r2, #0x522",
+      "stock_instruction": "movw r2, #0x54b",
+      "instruction_offset": 10,
+      "matching_other_unmasked_bytes": 31,
+      "source_relocation_masked_sha256": "cdc8f81a1850a4bcd956ee74b9e9a4187146728573296f472b19b2744c19d402",
+      "stock_relocation_masked_sha256": "74d7eb1663d653f407ab0dee66280024a75ef4ede7d2a3a082b004145411b147"
+    },
+    {
+      "source_object": "core/arch/arm/mm/core_mmu.o",
+      "section": ".text.core_mmu_get_entry",
+      "stock_offset": "0xd630",
+      "bytes": 56,
+      "relocations": [
+        {
+          "offset": 18,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_log"
+        },
+        {
+          "offset": 22,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_break"
+        },
+        {
+          "offset": 36,
+          "arm_relocation_type": 10,
+          "symbol": "core_mmu_get_entry_primitive"
+        },
+        {
+          "offset": 44,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 48,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 52,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        12
+      ],
+      "source_instruction": "movw r2, #0x52a",
+      "stock_instruction": "movw r2, #0x54b",
+      "instruction_offset": 10,
+      "matching_other_unmasked_bytes": 31,
+      "source_relocation_masked_sha256": "7f11dd2a65b8e68f5ebc1610160a27077c540846ed01e6be830d4a26852ffd7f",
+      "stock_relocation_masked_sha256": "74d7eb1663d653f407ab0dee66280024a75ef4ede7d2a3a082b004145411b147"
+    },
+    {
+      "source_object": "core/arch/arm/kernel/generic_boot.o",
+      "section": ".text.init_sec_mon",
+      "stock_offset": "0xbe88",
+      "bytes": 52,
+      "relocations": [
+        {
+          "offset": 16,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_log"
+        },
+        {
+          "offset": 20,
+          "arm_relocation_type": 10,
+          "symbol": "_assert_break"
+        },
+        {
+          "offset": 24,
+          "arm_relocation_type": 10,
+          "symbol": "sm_get_nsec_ctx"
+        },
+        {
+          "offset": 40,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 44,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        },
+        {
+          "offset": 48,
+          "arm_relocation_type": 2,
+          "symbol": ""
+        }
+      ],
+      "different_unmasked_offsets": [
+        10
+      ],
+      "source_instruction": "movs r2, #0x76",
+      "stock_instruction": "movs r2, #0x92",
+      "instruction_offset": 10,
+      "matching_other_unmasked_bytes": 27,
+      "source_relocation_masked_sha256": "5034d92a32c68a9e4bc70679f81f4911f2cb01d3a72ec58fd40bde52c06574a2",
+      "stock_relocation_masked_sha256": "ff96fa8b7bd390a02c9bdafb180733d58b3870903b87e7bbe60978b35d50bf12"
+    }
+  ],
+  "routines_count": 17,
+  "total_compared_bytes": 2860,
+  "method": "Compare entire named object text sections at discovered stock offsets; mask only actual 4-byte ELF relocation fields; assert exactly one remaining byte difference and decode its complete containing instruction.",
+  "limitations": [
+    "Relocation target equivalence is not established by this comparison",
+    "Immediate differences remain real output differences; no metadata/line overrides applied",
+    "Sections are not certified stock symbol boundaries; original symbol table is unavailable",
+    "This is neither whole-core correspondence nor whole-image equality"
+  ]
+}

@@ -287,6 +287,15 @@ Remaining work:
   partial mappings are not whole-program equality; the complete correspondence
   graph has not been regenerated after these service reconstructions. Unmatched MMU, TA/syscall,
   thread and vendor code still needs explanation.
+  A fresh object-section comparison identifies 17 sections (2,860 bytes)
+  whose sole remaining nonrelocation difference is one byte in a MOV/MOVW
+  immediate. For example `tee_mmu_map_param` has 557 versus 558 and
+  `copy_in_params` has 51 versus 52. These remain actual differences;
+  source-line/build metadata overrides are not applied.
+  [Immediate comparison](stock-optee-core-immediates-proof.json) records each
+  section, real relocation fields and full decoded instruction. It does not
+  certify relocation targets or original function boundaries. Larger unmatched
+  core routines remain separate source/configuration work.
 - **Layout and integration:** all 16 recovered physical-map records match their
   names, types, addresses and lengths, but record order is not certified. The
   first 8,192 header bytes match except three genuine link-derived public-key
