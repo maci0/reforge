@@ -344,3 +344,14 @@ platform PSCI override bodies now have retained source. Seven are linked into
 the carrier; system suspend remains staged until full configuration and
 standby/dispatcher wiring is recovered. Whole-image equality, the SRAM BSS gap
 and physical resume validation remain unfinished.
+
+### ARISC wake configuration
+
+Patch 0017 links `arisc-wakeup.S` and typed `standby-state.c` through the
+OEM fast-call route and restores the observed four-thread configuration.
+Commands 0x83000025/26 clear/set wake IRQs below 1024, or configure/clear
+the timeout when the top two argument bits are set. Command 0x83000064
+normalizes the enable byte and stores two arguments. IRQ 35 selects audio
+standby through the existing type reader. The separate suspend configuration
+buffer remains unrecovered. See the ARISC proof for comparison and modeled
+execution scope; no physical wake configuration was changed.

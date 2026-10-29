@@ -64,10 +64,10 @@ G09 separately records compiler-runtime source closure.
 **Actual executable/source gaps remain.** Original Allwinner carrier:
 300,248 bytes, SHA-256
 `7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99`.
-Current clean source candidate: 287,208 bytes, SHA-256
-`811552b5beac7254da62247fc92d0f27a26421567d6edde59bf676690bbae57f`
+Current clean source candidate: 287,224 bytes, SHA-256
+`04432a9cce7eb85e897eb518889d3caacaf1be3d0c51b4e9bc316c9a437ba983`
 (after standby/MMU/reset reconstruction and PSCI identification/CPU-control/reset/off/suspend integration).
-The **size delta is −13,040 bytes**; **244,377 byte positions differ in the
+The **size delta is −13,024 bytes**; **244,573 byte positions differ in the
 shared extent**. Neither number means that exactly 13,040 instruction bytes are
 missing: section layout, data and alignment also contribute.
 
@@ -261,6 +261,15 @@ Remaining work:
   source; seven are linked, while the system-suspend wrapper still needs full
   configuration/standby/dispatcher integration. Whole-image identity and
   physical suspend/resume remain unproven.
+  The OEM ARISC wake handler is now source-linked through the fast dispatcher.
+  Its 200-byte unit matches all 180 bytes outside five real relocations;
+  its unwind record and original 16-byte settings initializer also match.
+  The complete 1,024-IRQ bitmap is restored, including IRQ 35 selecting audio
+  standby. The stock thread-count query establishes four threads, now restored
+  as a real configuration input. The compiled dispatcher passes the wake
+  domain replay and four-thread query under QEMU.
+  [ARISC proof](stock-optee-arisc-wakeup-proof.json) records clean deployable
+  repeats. The separate voltage/configuration buffer producer remains missing.
   Exact complete linked instruction/data comparison remains necessary.
   [Installer evidence](stock-optee-hash-installer-proof.json) and
   [SMC evidence](stock-optee-smc-proof.json) and

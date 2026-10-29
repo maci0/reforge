@@ -1,0 +1,53 @@
+{
+  "status": "partial source reconstruction; whole image not identical",
+  "original_handler_address": "0x41b11388",
+  "handler_bytes": 200,
+  "relocation_offsets": [
+    118,
+    184,
+    188,
+    192,
+    196
+  ],
+  "other_bytes_matching": 180,
+  "compact_unwind": "8001aab0",
+  "settings_initializer_hex": "01000000000000400001000000000000",
+  "wake_bitmap_bytes": 128,
+  "wake_irq_count": 1024,
+  "audio_wake_irq": 35,
+  "configured_threads": 4,
+  "tests": {
+    "standalone": "tests/release/test_stock_optee_arisc_wakeup.py",
+    "command_cases": 2077,
+    "type_queries": 2048,
+    "compiled_dispatcher_replay": "build/stock-optee-arisc-wakeup/root-replay",
+    "compiled_dispatcher_exit": 0,
+    "thread_count_query_verified": true,
+    "full_unit_suite": {
+      "log": "build/unit-optee-arisc-wakeup-full.log",
+      "exit": 0
+    }
+  },
+  "clean_builds": [
+    "build/stock-optee-arisc-wakeup/source-b",
+    "build/stock-optee-arisc-wakeup/source-c"
+  ],
+  "deployable_optee_and_tee_identical_between_builds": true,
+  "candidate_sha256": "04432a9cce7eb85e897eb518889d3caacaf1be3d0c51b4e9bc316c9a437ba983",
+  "candidate_bytes": 287224,
+  "stock_bytes": 300248,
+  "shared_extent_different_positions": 244573,
+  "whole_stock_equal": false,
+  "permitted_exceptions": [],
+  "remaining": [
+    "Separate voltage/configuration buffer producer and extent",
+    "System suspend and ARM resume integration",
+    "Complete runtime, layout and original source/build inputs"
+  ],
+  "physical_hardware_tested": false,
+  "source_sha256": {
+    "vendor/optee/standby-host-src/arisc-wakeup.S": "f32868e3331ca6f4427b43ded7e6d09ca4249caa4e08a2073fe9b0907fefbf71",
+    "vendor/optee/standby-host-src/standby-state.h": "f89710ff6a9d93fd7db28c23095391582234a6563af36ffa1438c1ca5111ca26",
+    "vendor/optee/standby-host-src/standby-state.c": "fdf8b921fde53b6ce3ddccbe8e3d673d75e226f7801bc35eee0164ba21c46a84"
+  }
+}

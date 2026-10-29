@@ -78,7 +78,8 @@ patches=("$patchdir/0001-upstream-sm4.patch" "$patchdir/0002-upstream-sm3.patch"
          "$patchdir/0013-source-cpu-control.patch"
          "$patchdir/0014-source-system-reset.patch"
          "$patchdir/0015-source-cpu-off.patch"
-         "$patchdir/0016-source-cpu-suspend.patch")
+         "$patchdir/0016-source-cpu-suspend.patch"
+         "$patchdir/0017-source-arisc-wakeup.patch")
 for source_patch in "${patches[@]}"; do
     patch --batch --forward --fuzz=0 -s -p1 -d "$out/source-tree" < "$source_patch"
 done
@@ -93,12 +94,18 @@ cp "$repo/vendor/optee/standby-host-src/cpu-control.S" "$out/source-tree/core/ar
 cp "$repo/vendor/optee/standby-host-src/system-reset.S" "$out/source-tree/core/arch/arm/plat-sun8iw20p1/system_reset.S"
 cp "$repo/vendor/optee/standby-host-src/cpu-off.S" "$out/source-tree/core/arch/arm/plat-sun8iw20p1/cpu_off.S"
 cp "$repo/vendor/optee/standby-host-src/cpu-suspend.S" "$out/source-tree/core/arch/arm/plat-sun8iw20p1/cpu_suspend.S"
+cp "$repo/vendor/optee/standby-host-src/arisc-wakeup.S" "$out/source-tree/core/arch/arm/plat-sun8iw20p1/arisc_wakeup.S"
+cp "$repo/vendor/optee/standby-host-src/standby-state.c" "$out/source-tree/core/arch/arm/plat-sun8iw20p1/standby_state.c"
+cp "$repo/vendor/optee/standby-host-src/standby-state.h" "$out/source-tree/core/arch/arm/plat-sun8iw20p1/standby-state.h"
 sha256sum "$repo/vendor/optee/standby-host-src/reset-late.S" \
     "$repo/vendor/optee/standby-host-src/psci-identification.c" \
     "$repo/vendor/optee/standby-host-src/cpu-control.S" \
     "$repo/vendor/optee/standby-host-src/system-reset.S" \
     "$repo/vendor/optee/standby-host-src/cpu-off.S" \
-    "$repo/vendor/optee/standby-host-src/cpu-suspend.S" > "$out/host-sources.sha256"
+    "$repo/vendor/optee/standby-host-src/cpu-suspend.S" \
+    "$repo/vendor/optee/standby-host-src/arisc-wakeup.S" \
+    "$repo/vendor/optee/standby-host-src/standby-state.c" \
+    "$repo/vendor/optee/standby-host-src/standby-state.h" > "$out/host-sources.sha256"
 
 {
     "${cross}gcc" --version
