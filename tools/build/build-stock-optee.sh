@@ -73,7 +73,8 @@ patches=("$patchdir/0001-upstream-sm4.patch" "$patchdir/0002-upstream-sm3.patch"
          "$patchdir/0008-source-standby-wrapper.patch"
          "$patchdir/0009-source-mmu-table-split.patch"
          "$patchdir/0010-source-late-reset-hook.patch"
-         "$patchdir/0011-source-secondary-boot.patch")
+         "$patchdir/0011-source-secondary-boot.patch"
+         "$patchdir/0012-source-psci-identification.patch")
 for source_patch in "${patches[@]}"; do
     patch --batch --forward --fuzz=0 -s -p1 -d "$out/source-tree" < "$source_patch"
 done
@@ -83,7 +84,9 @@ CROSS_COMPILE="$cross" "$repo/tools/build/build-stock-optee-standby.sh" "$out/st
     > "$out/standby-build.log"
 cp "$out/standby-build/standby.bin" "$out/source-tree/core/arch/arm/plat-sun8iw20p1/standby.bin"
 cp "$repo/vendor/optee/standby-host-src/reset-late.S" "$out/source-tree/core/arch/arm/plat-sun8iw20p1/reset_late.S"
-sha256sum "$repo/vendor/optee/standby-host-src/reset-late.S" > "$out/host-sources.sha256"
+cp "$repo/vendor/optee/standby-host-src/psci-identification.c" "$out/source-tree/core/arch/arm/plat-sun8iw20p1/psci_identification.c"
+sha256sum "$repo/vendor/optee/standby-host-src/reset-late.S" \
+    "$repo/vendor/optee/standby-host-src/psci-identification.c" > "$out/host-sources.sha256"
 
 {
     "${cross}gcc" --version

@@ -190,3 +190,28 @@ system reset, features and system suspend. Enabling the framework does not
 complete those platform implementations. The vendor dispatcher and full
 standby service integration also remain unfinished. No physical CPU release,
 power, reset or suspend/resume action was executed.
+
+## PSCI version and advertised feature responses
+
+`psci-identification.c` supplies strong platform overrides for `psci_version`
+and `psci_features`. The original reports PSCI 1.0 and advertises only VERSION,
+SYSTEM_RESET, FEATURES and SYSTEM_SUSPEND. A C switch naturally compiles to
+all 42 original instruction bytes with the pinned compiler and production
+`-Os` flags. No relocation fields, metadata normalization, padding or post-link
+substitution is needed. The unwind descriptors also match.
+
+Patch 0012 and the builder compile these into the carrier. Two clean builds
+repeat the deployable binaries. QEMU checks 262,148 IDs across normal, wrong-owner
+and 64-bit namespaces plus boundary values, and verifies the version response.
+These are query operations; no power or hardware action runs.
+
+```sh
+python3 tests/release/test_stock_optee_psci_identification.py
+```
+
+[Proof](../../../docs/board-notes/stock-optee-psci-identification-proof.json)
+records exact function hashes, strong linked symbols and whole-carrier failure.
+Six PSCI overrides remain unfinished: CPU suspend/off/on, affinity, system reset
+and system suspend. Advertised support is preserved exactly and does not imply
+those original implementations have been completed. Whole-image stock identity,
+full dispatcher/configuration integration and physical resume remain open.

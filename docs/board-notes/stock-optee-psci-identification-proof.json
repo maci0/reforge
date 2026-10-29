@@ -1,0 +1,165 @@
+{
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "source": "vendor/optee/standby-host-src/psci-identification.c",
+  "source_sha256": "1a8df3e2db9a9aa254257d1a38c76b3132f9be76e8eea6ab9b8f7ca95fbcb18f",
+  "source_patch": "vendor/optee/stock-patches/0012-source-psci-identification.patch",
+  "functions": [
+    {
+      "name": "psci_version",
+      "stock_address": "0x41b2c93c",
+      "source_address": "0x41b2931c",
+      "bytes": 6,
+      "sha256": "083194d6c4f13830a936b3de3d77125ad414635c9620df52a72db7c8a47691c4",
+      "whole_instruction_body_equal": true,
+      "relocations": [],
+      "permitted_exceptions": []
+    },
+    {
+      "name": "psci_features",
+      "stock_address": "0x41b2c942",
+      "source_address": "0x41b29322",
+      "bytes": 36,
+      "sha256": "29952bc370cd13b59d7fd61ccad1c40de7a90b1aa2d930c65b1e0c2f2221449c",
+      "whole_instruction_body_equal": true,
+      "relocations": [],
+      "permitted_exceptions": []
+    }
+  ],
+  "whole_instruction_bytes_equal": 42,
+  "output_modified_after_compilation": false,
+  "c_reconstruction": "A four-case PSCI feature switch compiles naturally to the original 0x4601 membership test with pinned Linaro 5.3.1 and production -Os flags.",
+  "unwind": {
+    "stock_entry_offset": "0x47be0",
+    "stock_covered_range": [
+      "0x41b2c920",
+      "0x41b2c966"
+    ],
+    "descriptor": "0x80b0b0b0",
+    "both_source_function_descriptors_equal": true
+  },
+  "behavior": {
+    "version": "PSCI 1.0 (0x00010000)",
+    "accepted_function_ids": [
+      "0x84000000",
+      "0x84000009",
+      "0x8400000a",
+      "0x8400000e"
+    ],
+    "all_other_function_ids": "PSCI_RET_NOT_SUPPORTED (-1)"
+  },
+  "runtime": {
+    "engine": "qemu-arm",
+    "function_ids_checked": 262148,
+    "exhaustive_low_16_bits_for_bases": [
+      "0x00000000",
+      "0x84000000",
+      "0x84010000",
+      "0xc4000000"
+    ],
+    "additional_edges": [
+      "0xffffffff",
+      "0x83ffffff",
+      "0x8400000f",
+      "0x84000010"
+    ],
+    "version_response_checked": true,
+    "hardware_or_privileged_operations": false
+  },
+  "artifacts": {
+    "optee.bin": {
+      "sizes": [
+        287208,
+        287208
+      ],
+      "sha256": [
+        "7b21094f8e5f9cedc37da04c4a3d21a4ff8bc512f39543e901dc3367e357f604",
+        "7b21094f8e5f9cedc37da04c4a3d21a4ff8bc512f39543e901dc3367e357f604"
+      ],
+      "repeat_equal": true
+    },
+    "tee.bin": {
+      "sizes": [
+        287236,
+        287236
+      ],
+      "sha256": [
+        "c969ae41555944d69dd1148ebe94ac80919c242dfec0127522a48e6eff998bde",
+        "c969ae41555944d69dd1148ebe94ac80919c242dfec0127522a48e6eff998bde"
+      ],
+      "repeat_equal": true
+    },
+    "tee.elf": {
+      "sizes": [
+        3409524,
+        3389420
+      ],
+      "sha256": [
+        "178817de45900fa1c5ad7553dc2c65fb597e83337a907510b3680b40891bf4ce",
+        "dabd499afff1678fc7d802f511d335bb75dea1f7f2212587e6fe250b2355228e"
+      ],
+      "repeat_equal": false
+    }
+  },
+  "carrier_report": {
+    "artifact": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-psci-identification/source-build-a/artifacts/optee.bin",
+    "size": 287208,
+    "sha256": "7b21094f8e5f9cedc37da04c4a3d21a4ff8bc512f39543e901dc3367e357f604",
+    "source_build_complete": true,
+    "stock_equivalence_established": false,
+    "status": "research-only; source standby embedded, service integration/layout/original inputs incomplete",
+    "carrier": "raw source-linked Allwinner image; standard tee.bin retained separately",
+    "header": {
+      "format": "Allwinner 4092-byte header, reset code at offset 8192",
+      "public_key_offsets": {
+        "exponent": 224268,
+        "modulus": 255539,
+        "modulus_size": 224264
+      }
+    },
+    "standby": {
+      "source_built": true,
+      "payload_bytes": 8400,
+      "payload_sha256": "7f058be9ae2b5e7d94c2fa951e3a62bba8dd3db24de9860bcbe7e63d2946ad86",
+      "wrapper_offset": 16384,
+      "wrapper_bytes": 16384,
+      "service_integration_complete": false,
+      "comparison": {
+        "whole_wrapper_equal": false,
+        "byte_differences": 8,
+        "alignment_tail_equal": true,
+        "permitted_exceptions": []
+      }
+    },
+    "comparison": {
+      "reference": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-toc-reconstruction/optee.reference.bin",
+      "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+      "reference_size": 300248,
+      "full_file_equal": false,
+      "byte_differences_in_shared_extent": 244444,
+      "first_differing_offset": 252,
+      "candidate_length_difference": -13040,
+      "permitted_exceptions": []
+    }
+  },
+  "remaining_platform_psci_overrides": [
+    "psci_cpu_suspend",
+    "psci_cpu_off",
+    "psci_cpu_on",
+    "psci_affinity_info",
+    "psci_system_reset",
+    "psci_system_suspend"
+  ],
+  "limitations": [
+    "The advertised reset and suspend calls still require their original platform implementations; this change does not complete those services.",
+    "Vendor dispatcher, runtime configuration and standby/resume wiring remain unfinished.",
+    "Exact isolated function bodies and deployable repeatability do not establish whole-image stock identity.",
+    "No physical PSCI power, CPU release, reset or suspend/resume action ran."
+  ],
+  "validation": {
+    "full_unit_suite": "make unit exited 0 with pinned BOOT0_RUNTIME_CROSS",
+    "two_clean_builds": "completed with expected strict whole-stock comparison exit 1",
+    "targeted_query_test": "passed 262148 function-ID checks and version response",
+    "shell_syntax": "passed",
+    "hardware_execution": false
+  }
+}

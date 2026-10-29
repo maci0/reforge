@@ -1,0 +1,7 @@
+--- a/core/arch/arm/plat-sun8iw20p1/sub.mk
++++ b/core/arch/arm/plat-sun8iw20p1/sub.mk
+@@ -14,3 +14,4 @@
+ srcs-y += reset.S
+ srcs-y += standby_blob.S
+ srcs-y += reset_late.S
++srcs-y += psci_identification.c

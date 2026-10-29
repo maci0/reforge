@@ -65,9 +65,9 @@ G09 separately records compiler-runtime source closure.
 300,248 bytes, SHA-256
 `7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99`.
 Current clean source candidate: 287,208 bytes, SHA-256
-`f43626024502c551cb4bc8b83c41c78c5301540fa47cc34ac2c75ce802da088d`
-(after standby/MMU/reset reconstruction and secondary-boot/PSCI inputs).
-The **size delta is −13,040 bytes**; **244,449 byte positions differ in the
+`7b21094f8e5f9cedc37da04c4a3d21a4ff8bc512f39543e901dc3367e357f604`
+(after standby/MMU/reset reconstruction, secondary-boot/PSCI inputs and PSCI identification).
+The **size delta is −13,040 bytes**; **244,444 byte positions differ in the
 shared extent**. Neither number means that exactly 13,040 instruction bytes are
 missing: section layout, data and alignment also contribute.
 
@@ -196,10 +196,18 @@ Remaining work:
   source write was manually removed; the compiler eliminates it naturally
   when PSCI removes its last reader. Two clean builds repeat deployable bytes.
   [Secondary boot proof](stock-optee-secondary-boot-proof.json) records each
-  relocation and all thirteen PSCI target bindings. Eight platform overrides
-  remain different from upstream defaults: version, CPU suspend/off/on,
-  affinity, system reset, features and system suspend. They are not complete
+  relocation and all thirteen PSCI target bindings. Six platform overrides
+  remain different from upstream defaults: CPU suspend/off/on, affinity,
+  system reset and system suspend. They are not complete
   platform implementations yet; no physical secondary/power action ran.
+  PSCI version and feature reporting now have C platform overrides. All 42
+  instruction bytes match stock directly, without normalization or relocation
+  exclusions, as do their unwind descriptors. The original response is PSCI
+  1.0 and only four advertised IDs (VERSION, SYSTEM_RESET, FEATURES and
+  SYSTEM_SUSPEND). QEMU checks 262,148 function IDs and the version response.
+  [Identification proof](stock-optee-psci-identification-proof.json) records
+  exact function hashes and two clean deployable repeats. The advertised
+  power operations are still among the unresolved implementations.
   Exact complete linked instruction/data comparison remains necessary.
   [Installer evidence](stock-optee-hash-installer-proof.json) and
   [SMC evidence](stock-optee-smc-proof.json) and
