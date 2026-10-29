@@ -270,6 +270,13 @@ Remaining work:
   domain replay and four-thread query under QEMU.
   [ARISC proof](stock-optee-arisc-wakeup-proof.json) records clean deployable
   repeats. The separate voltage/configuration buffer producer remains missing.
+  The generic copy command `0xb2000213` maps both addresses through
+  `phys_to_virt_io`, which searches secure/nonsecure IO regions; it does not
+  establish a general secure-BSS writer. The mapper matches 28 bytes outside
+  four call relocations. No direct ARM B/BL callers of the two kernel copy/
+  resume wrappers occur in the verified kernel text; indirect callers and
+  other images remain unchecked. [Producer investigation](stock-optee-config-producer-proof.json)
+  records this limit. The configuration allocation extent remains unproven.
   Exact complete linked instruction/data comparison remains necessary.
   [Installer evidence](stock-optee-hash-installer-proof.json) and
   [SMC evidence](stock-optee-smc-proof.json) and
