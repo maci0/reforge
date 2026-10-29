@@ -1,0 +1,70 @@
+{
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "reference_range": {
+    "start": "0x41b2c966",
+    "end_exclusive": "0x41b2ca2c",
+    "bytes": 198,
+    "sha256": "f41589910d21954a111137fcb300a82db85c0dbad65f3a3bfa377f1223ff5eed"
+  },
+  "source": "vendor/optee/standby-host-src/mmu.S",
+  "source_sha256": "3b00a0318bb380bf13fec091295cf2f382a5b05c5d0148e4a8c5dccb714d3e3c",
+  "independent_test_link": {
+    "text_base": "0x10000",
+    "dcache_op_all": "0x20000",
+    "different_external_call_fields": [
+      {
+        "offset": "0x36",
+        "bytes": 4
+      },
+      {
+        "offset": "0x5c",
+        "bytes": 4
+      }
+    ],
+    "remaining_190_bytes_identical": true,
+    "comparison_sha256_after_zeroing_only_two_external_call_fields": "08d4f7b2ca2e8fdde087e2537b4583159d5b452dbb747b2302e9648ff311ebda"
+  },
+  "functions": [
+    {
+      "offset": "0x0",
+      "name": "standby_host_delay"
+    },
+    {
+      "offset": "0x18",
+      "name": "standby_host_disable_sctlr_bits"
+    },
+    {
+      "offset": "0x6a",
+      "name": "standby_host_mmu_disable"
+    },
+    {
+      "offset": "0xa0",
+      "name": "standby_host_mmu_enable"
+    },
+    {
+      "offset": "0xc0",
+      "name": "standby_host_dcache_disable"
+    }
+  ],
+  "dcache_op_all_entry_body": {
+    "stock_address": "0x41b09ad8",
+    "source_build_address": "0x41b09a6c",
+    "bytes": 20,
+    "exact_bytes_equal": true
+  },
+  "caller_observations": {
+    "initial_call": "0x41b11452 -> standby_host_dcache_disable",
+    "sram_entry": "0x41b115ec -> ARM 0x200f0",
+    "return_calls": [
+      "0x41b115ee -> standby_host_mmu_enable",
+      "0x41b115f2 -> standby_host_mmu_disable"
+    ]
+  },
+  "runtime_check": "qemu-arm executes delay for six arguments; privileged paths trap if called by test",
+  "limitations": [
+    "Privileged CP15/cache operations have not executed in emulation or on hardware.",
+    "Observed helper names describe register operations; original debug/source names are unknown.",
+    "Complete suspend caller, resume service bindings and production integration remain unfinished.",
+    "198-byte original region is not claimed identical at unrelated test link addresses: two genuine external relocations differ."
+  ]
+}

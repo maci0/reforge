@@ -132,6 +132,15 @@ Remaining work:
   preserve original acceptance/rejection, diagnostics and edge behavior.
   Remaining service integration still requires complete instruction/data
   verification, especially SRAM standby and its callers.
+  The suspend caller's five host cache/MMU helpers now have retained Thumb
+  source: 198 bytes, with all 190 non-external-call bytes matching directly
+  under an independent test link. Two external `dcache_op_all` call fields
+  are genuine relocations. Its 20-byte upstream entry body matches stock.
+  Six QEMU cases execute the real delay; privileged paths remain unexecuted.
+  The caller invokes D-cache disable before SRAM, then MMU enable followed by
+  MMU disable on return; this observed order is retained for further caller
+  reconstruction, not silently rearranged. [Host helper proof](stock-optee-host-mmu-proof.json)
+  records addresses, source hash, relocation checks and execution limits.
   Exact complete linked instruction/data comparison remains necessary.
   [Installer evidence](stock-optee-hash-installer-proof.json) and
   [SMC evidence](stock-optee-smc-proof.json) and
