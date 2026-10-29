@@ -1,0 +1,146 @@
+{
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "source": "vendor/optee/standby-host-src/system-reset.S",
+  "source_sha256": "59e64bcd5cf88843af00a2b445269f8031bac3895808ff8b1e34da0620ef4a5e",
+  "comparison": {
+    "stock_address": "0x41b11318",
+    "source_address": "0x41b10fc8",
+    "bytes_with_literal_pool": 32,
+    "genuine_relocation_fields": [
+      {
+        "offset": "0x4",
+        "bytes": 4,
+        "type": "R_ARM_THM_CALL",
+        "target": "phys_to_virt_io"
+      }
+    ],
+    "other_bytes": 28,
+    "other_bytes_equal": true,
+    "sha256_with_only_call_relocation_zeroed": "5143bfe56f0d239d33b6ce28a7f2a5bae308097bab2b291bb9f5cca5cf22654a",
+    "whole_linked_stock_identity_established": false
+  },
+  "unwind": {
+    "stock_entry_offset": "0x46908",
+    "stock_payload_offset": "0x48a10",
+    "bytes": 12,
+    "source_payload_equal": true,
+    "payload_hex": "08b10181b0b0008400000000"
+  },
+  "register_operations": {
+    "physical_base": "0x07020800",
+    "source_io_region_declared": true,
+    "writes": [
+      {
+        "offset": "0x10",
+        "value": "0x203"
+      },
+      {
+        "offset": "0x14",
+        "value": "0x0d140001"
+      }
+    ],
+    "after_writes": "non-returning WFI/branch loop"
+  },
+  "runtime_test": {
+    "engine": "qemu-arm",
+    "private_register_patterns": 4,
+    "physical_io_mapped": false,
+    "mapping_argument_checked": true,
+    "all_unrelated_words_unchanged": true,
+    "loop_stop": "Signal at the modeled WFI/branch loop: illegal-instruction trap or one-second alarm; no hardware wait/reset.",
+    "unexpected_return_fails": true
+  },
+  "integration": {
+    "source_patch": "vendor/optee/stock-patches/0014-source-system-reset.patch",
+    "strong_symbol_linked": true,
+    "source_equals_both_build_copies": true
+  },
+  "artifacts": {
+    "optee.bin": {
+      "sizes": [
+        287208,
+        287208
+      ],
+      "sha256": [
+        "e3ad86ea231c02c40072ab4202773a62676f98569ff9bc23366dcd6387538aa6",
+        "e3ad86ea231c02c40072ab4202773a62676f98569ff9bc23366dcd6387538aa6"
+      ],
+      "repeat_equal": true
+    },
+    "tee.bin": {
+      "sizes": [
+        287236,
+        287236
+      ],
+      "sha256": [
+        "80ce03bbe7c704a6eceb6d74fc28cad027a423f92f538079b4a82ac1e3786d0d",
+        "80ce03bbe7c704a6eceb6d74fc28cad027a423f92f538079b4a82ac1e3786d0d"
+      ],
+      "repeat_equal": true
+    },
+    "tee.elf": {
+      "sizes": [
+        3402896,
+        3387876
+      ],
+      "sha256": [
+        "0cfe9a4a76c30b7c39d5fb461909035fd9511aca1ad3a9d31128c1f5691277e7",
+        "ac36cecc9509150fec9f0ae459e9cc4e01be33f122d2cffe4d138ff9e4834277"
+      ],
+      "repeat_equal": false
+    }
+  },
+  "carrier_report": {
+    "artifact": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-system-reset-a/artifacts/optee.bin",
+    "size": 287208,
+    "sha256": "e3ad86ea231c02c40072ab4202773a62676f98569ff9bc23366dcd6387538aa6",
+    "source_build_complete": true,
+    "stock_equivalence_established": false,
+    "status": "research-only; source standby embedded, service integration/layout/original inputs incomplete",
+    "carrier": "raw source-linked Allwinner image; standard tee.bin retained separately",
+    "header": {
+      "format": "Allwinner 4092-byte header, reset code at offset 8192",
+      "public_key_offsets": {
+        "exponent": 224268,
+        "modulus": 255736,
+        "modulus_size": 224264
+      }
+    },
+    "standby": {
+      "source_built": true,
+      "payload_bytes": 8400,
+      "payload_sha256": "7f058be9ae2b5e7d94c2fa951e3a62bba8dd3db24de9860bcbe7e63d2946ad86",
+      "wrapper_offset": 16384,
+      "wrapper_bytes": 16384,
+      "service_integration_complete": false,
+      "comparison": {
+        "whole_wrapper_equal": false,
+        "byte_differences": 8,
+        "alignment_tail_equal": true,
+        "permitted_exceptions": []
+      }
+    },
+    "comparison": {
+      "reference": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-toc-reconstruction/optee.reference.bin",
+      "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+      "reference_size": 300248,
+      "full_file_equal": false,
+      "byte_differences_in_shared_extent": 244426,
+      "first_differing_offset": 252,
+      "candidate_length_difference": -13040,
+      "permitted_exceptions": []
+    }
+  },
+  "limitations": [
+    "No physical watchdog or host/printer reset operation was executed.",
+    "CPU suspend and CPU off remain unrecovered PSCI bodies.",
+    "System-suspend wrapper, runtime configuration and full dispatcher/standby wiring remain incomplete.",
+    "Isolated function matching and source repeatability do not establish whole-image equality."
+  ],
+  "validation": {
+    "full_unit_suite": "make unit exited 0 with pinned BOOT0_RUNTIME_CROSS",
+    "two_clean_source_builds": "completed with expected strict stock-comparison exit 1",
+    "shell_syntax": "passed",
+    "hardware_reset_executed": false
+  }
+}

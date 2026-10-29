@@ -1,0 +1,7 @@
+--- a/core/arch/arm/plat-sun8iw20p1/sub.mk
++++ b/core/arch/arm/plat-sun8iw20p1/sub.mk
+@@ -16,3 +16,4 @@
+ srcs-y += reset_late.S
+ srcs-y += psci_identification.c
+ srcs-y += cpu_control.S
++srcs-y += system_reset.S

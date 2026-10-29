@@ -399,3 +399,26 @@ effects. Two clean builds repeat deployable binaries; the full unit suite passes
 the original producer instructions and current linked symbols. CPU suspend,
 CPU off, system reset and complete standby/dispatcher wiring remain open.
 No physical CPU release, power or status-register action ran.
+
+## Watchdog system reset
+
+Patch 0014 compiles `system-reset.S` as the strong `psci_system_reset` override.
+Its 32-byte text/literal unit matches all 28 bytes outside the single genuine
+`phys_to_virt_io` call relocation. The twelve-byte unwind payload matches too.
+The existing source IO map includes the original `0x07020800` region. The
+routine writes `0x203` at offset `0x10`, then `0x0d140001` at `0x14`, and enters
+the original non-returning WFI/branch loop.
+
+Four QEMU cases substitute a private register bank and terminate the emulated
+wait loop by signal. They verify the mapping argument, writes, unchanged
+unrelated words and failure on unexpected return. No hardware watchdog, host
+or printer reset operation runs.
+
+```sh
+python3 tests/release/test_stock_optee_system_reset.py
+```
+
+[Proof](../../../docs/board-notes/stock-optee-system-reset-proof.json) records
+actual linked bytes and two clean deployable repeats. Whole-carrier comparison
+still fails. CPU suspend/off source and full system-suspend/dispatcher wiring
+remain unfinished; no physical reset or resume was tested.
