@@ -1,0 +1,80 @@
+{
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "source": "vendor/optee/standby-host-src/system-suspend.c",
+  "source_sha256": "b8a99375e28efa4a3c52dfe65cb087193f1b2ebdc958ec347b091ebfdcc73df3",
+  "comparison": {
+    "stock_address": "0x41b11338",
+    "bytes_with_literal_pool": 28,
+    "genuine_relocations": [
+      {
+        "offset": "0x6",
+        "kind": "R_ARM_THM_CALL",
+        "target": "standby_system_suspend_hook"
+      },
+      {
+        "offset": "0x10",
+        "kind": "R_ARM_THM_CALL",
+        "target": "standby_host_suspend"
+      },
+      {
+        "offset": "0x18",
+        "kind": "R_ARM_ABS32",
+        "target": "standby_ns_resume_entry"
+      }
+    ],
+    "other_bytes": 16,
+    "other_bytes_equal": true,
+    "sha256_with_only_relocations_zeroed": "74695e7c022a44e39e670b6d8bc752fbd3181c9bec05c3a6fa5433c75f5fbecd",
+    "whole_linked_stock_identity_established": false
+  },
+  "unwind": {
+    "stock_entry_offset": "0x46910",
+    "stock_address": "0x41b11338",
+    "descriptor": "0x80b108a9",
+    "source_descriptor_equal": true
+  },
+  "platform_hook": {
+    "stock_address": "0x41b2c174",
+    "instruction": "bx lr",
+    "bytes": 2,
+    "source_body_equal": true,
+    "original_symbol_name": "unknown; descriptive source name used",
+    "implementation_is_observed_return_only_body_not_placeholder": true
+  },
+  "abi": {
+    "real_upstream_headers_compiled": true,
+    "production_compile_flags_reused": true,
+    "monitor_return_field": "sm_nsec_ctx.mon_lr",
+    "offset": "0x7c",
+    "configuration": "CFG_SM_NO_CYCLE_COUNTING=y, CFG_TA_FTRACE_SUPPORT=n",
+    "compile_time_offset_assertion": true,
+    "context_id": "ignored, as in original instructions"
+  },
+  "runtime": {
+    "engine": "qemu-arm",
+    "cases": 10,
+    "chain": [
+      "actual system-suspend C wrapper",
+      "actual retained standby caller",
+      "actual retained type reader",
+      "test-only ARM SRAM entry recorder",
+      "test-only privileged cache/MMU services"
+    ],
+    "checks": [
+      "monitor mon_lr and saved resume global updated before first cache callback",
+      "only mon_lr changes in the complete monitor-context object",
+      "return value zero and ignored context ID",
+      "both standby types and paired-copy counts 0..4",
+      "all 240 SRAM parameter bytes and unchanged wrapper suffix",
+      "all caller diagnostics including conditional audio diagnostic",
+      "entry and return-service ordering preserved"
+    ]
+  },
+  "integration_status": "Retained source and composed runtime test; not linked into the carrier while runtime configuration/dispatcher dependencies remain incomplete.",
+  "limitations": [
+    "The SRAM/privileged services are explicit test substitutes, not physical suspend/resume execution.",
+    "Original vendor dispatcher resume producer remains unreconstructed.",
+    "Five additional platform PSCI bodies still need recovery.",
+    "Carrier still uses the upstream weak system-suspend default until complete service integration; whole-image identity remains false."
+  ]
+}

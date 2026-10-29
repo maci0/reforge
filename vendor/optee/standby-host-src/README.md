@@ -215,3 +215,29 @@ Six PSCI overrides remain unfinished: CPU suspend/off/on, affinity, system reset
 and system suspend. Advertised support is preserved exactly and does not imply
 those original implementations have been completed. Whole-image stock identity,
 full dispatcher/configuration integration and physical resume remain open.
+
+## PSCI system-suspend wrapper
+
+`system-suspend.c` reconstructs the wrapper at `0x41b11338`. Its 28-byte unit
+matches all 16 bytes outside three genuine relocations. The unwind descriptor
+matches `0x80b108a9`. A compile using the real pinned production headers/flags
+confirms `sm_nsec_ctx.mon_lr` at offset `0x7c`, also asserted in source. The
+pre-suspend hook retains its observed two-byte return-only body; its original
+name remains unknown.
+
+Ten composed QEMU cases execute this C wrapper, the retained standby caller
+and the retained type reader together. They verify the saved global and
+monitor return field before standby, all other monitor fields unchanged,
+ignored context ID, zero return and the complete parameter-copy/diagnostic
+path. Privileged cache/MMU calls and the ARM SRAM program are test substitutes.
+
+```sh
+python3 tests/release/test_stock_optee_system_suspend.py
+```
+
+[Proof](../../../docs/board-notes/stock-optee-system-suspend-proof.json)
+records production-ABI compilation and the composed runtime boundary. This
+unit remains outside the carrier until the runtime configuration and dispatcher
+are reconstructed. Five other platform PSCI bodies remain unrecovered; the
+carrier still needs six overrides including this wrapper's wiring. No physical
+power, CPU release, reset or suspend/resume test ran.

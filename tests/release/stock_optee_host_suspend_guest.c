@@ -6,6 +6,12 @@
 #include <sys/mman.h>
 #include <unistd.h>
 extern void standby_host_suspend(void);
+#ifdef TEST_PSCI_WRAPPER
+#include <sm/psci.h>
+uint32_t standby_ns_resume_entry;
+static struct sm_nsec_ctx test_nsec, expected_nsec;
+static uint32_t test_entry;
+#endif
 extern const unsigned char sunxi_standby_wrapper_start[], sunxi_standby_wrapper_end[];
 uint32_t standby_host_settings[4];
 uint32_t standby_host_request[2];
@@ -17,7 +23,13 @@ static uint32_t word(const void *p) { uint32_t v; __builtin_memcpy(&v, p, 4); re
 static void put(unsigned off, uint32_t v) { __builtin_memcpy(expected + off, &v, 4); }
 static void require(int condition) { if (!condition) _exit(90); }
 void standby_host_resume_entry(void) { _exit(91); }
-void standby_host_dcache_disable(void) { require(stage == 0); stage = 1; }
+void standby_host_dcache_disable(void) {
+    require(stage == 0);
+#ifdef TEST_PSCI_WRAPPER
+    require(test_nsec.mon_lr == test_entry && standby_ns_resume_entry == test_entry);
+#endif
+    stage = 1;
+}
 void standby_host_mmu_enable(void) { require(stage == 5); stage = 6; }
 void standby_host_mmu_disable(void) { require(stage == 6); stage = 7; }
 void *memcpy(void *dst, const void *src, unsigned n) {
@@ -100,7 +112,17 @@ int main(void) {
             expected[0xc8+i] = ((unsigned char *)standby_host_configuration)[0xc8+i];
             expected[0xcc+i] = ((unsigned char *)standby_host_configuration)[0xcc+i];
         }
+#ifdef TEST_PSCI_WRAPPER
+        for (i = 0; i < sizeof(test_nsec); ++i)
+            ((unsigned char *)&test_nsec)[i] = ((unsigned char *)&expected_nsec)[i] = (i * 3 + n) & 255;
+        test_entry = 0x40000001 + 0x10000000 * k + n * 4;
+        expected_nsec.mon_lr = test_entry;
+        standby_ns_resume_entry = 0xdeadbeef;
+        require(psci_system_suspend(test_entry, 0xdeadc000 + n, &test_nsec) == 0);
+        require(!memcmp(&test_nsec, &expected_nsec, sizeof(test_nsec)) && standby_ns_resume_entry == test_entry);
+#else
         standby_host_suspend();
+#endif
         require(stage == 7 && logs == 12 && copies == 2 && !failure && audio_logs == k - 1);
         require(standby_host_request[0] == 0x12345678 && standby_host_request[1] == (k == 2 ? 8 : 0));
     }

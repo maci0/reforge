@@ -208,6 +208,17 @@ Remaining work:
   [Identification proof](stock-optee-psci-identification-proof.json) records
   exact function hashes and two clean deployable repeats. The advertised
   power operations are still among the unresolved implementations.
+  The `psci_system_suspend` wrapper is now retained C source. Its 28-byte unit
+  matches all 16 bytes outside three real relocations and has the original
+  unwind descriptor. Production headers confirm the monitor return-field ABI.
+  Ten composed QEMU cases run wrapper → actual caller → actual type reader,
+  with test-only privileged/SRAM services. Both saved resume fields are updated
+  before standby; only `mon_lr` changes in the monitor context. The observed
+  two-byte return-only hook is retained exactly. [System-suspend proof](stock-optee-system-suspend-proof.json)
+  records the checks. This wrapper is not linked into the carrier yet: runtime
+  configuration and dispatch remain incomplete. Five other PSCI bodies still
+  require recovery, and six carrier overrides remain unfinished including
+  this wrapper's integration. No hardware suspend was attempted.
   Exact complete linked instruction/data comparison remains necessary.
   [Installer evidence](stock-optee-hash-installer-proof.json) and
   [SMC evidence](stock-optee-smc-proof.json) and
