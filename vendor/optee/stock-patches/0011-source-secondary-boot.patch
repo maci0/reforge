@@ -1,0 +1,11 @@
+--- a/core/arch/arm/plat-sun8iw20p1/conf.mk
++++ b/core/arch/arm/plat-sun8iw20p1/conf.mk
+@@ -1,6 +1,8 @@
+ $(call force,CFG_SUN8IW20P1,y)
+ include core/arch/arm/cpu/cortex-a7.mk
+ $(call force,CFG_GENERIC_BOOT,y)
++$(call force,CFG_BOOT_SECONDARY_REQUEST,y)
++$(call force,CFG_PSCI_ARM32,y)
+ $(call force,CFG_ARM32_core,y)
+ $(call force,CFG_GIC,y)
+ $(call force,CFG_WITH_LPAE,n)

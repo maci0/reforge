@@ -1,0 +1,377 @@
+{
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "source_patch": "vendor/optee/stock-patches/0011-source-secondary-boot.patch",
+  "patch_sha256": "3bb9f6c74b6d9d35f705f543e3e3fa38748d5e917290b6320e8beac2b1ae3bcd",
+  "restored_inputs": {
+    "CFG_BOOT_SECONDARY_REQUEST": "y",
+    "CFG_PSCI_ARM32": "y",
+    "actual_generated_configuration_verified": true
+  },
+  "functions": [
+    {
+      "name": "generic_boot_core_release",
+      "stock_address": "0x41b0c0a4",
+      "source_address": "0x41b0c3bc",
+      "bytes": 32,
+      "raw_differing_positions": 2,
+      "genuine_relocations": [
+        {
+          "offset": "0x1c",
+          "type": "R_ARM_ABS32",
+          "target": ".bss.ns_entry_contexts"
+        }
+      ],
+      "non_relocation_bytes": 28,
+      "non_relocation_bytes_equal": true,
+      "comparison_sha256_with_only_relocations_zeroed": "28d374e2477e90e4e76d502730674df1bd0e1ead1ed318ef78184c65a3a22605"
+    },
+    {
+      "name": "generic_boot_core_hpen",
+      "stock_address": "0x41b0c0c4",
+      "source_address": "0x41b0c3dc",
+      "bytes": 56,
+      "raw_differing_positions": 18,
+      "genuine_relocations": [
+        {
+          "offset": "0x2",
+          "type": "R_ARM_THM_CALL",
+          "target": "thread_get_exceptions"
+        },
+        {
+          "offset": "0x12",
+          "type": "R_ARM_THM_CALL",
+          "target": "_assert_log"
+        },
+        {
+          "offset": "0x16",
+          "type": "R_ARM_THM_CALL",
+          "target": "_assert_break"
+        },
+        {
+          "offset": "0x1a",
+          "type": "R_ARM_THM_CALL",
+          "target": "__get_core_pos"
+        },
+        {
+          "offset": "0x28",
+          "type": "R_ARM_ABS32",
+          "target": ".rodata.__func__.6310"
+        },
+        {
+          "offset": "0x2c",
+          "type": "R_ARM_ABS32",
+          "target": ".rodata.str1.1.core/arch/arm/kernel/generic_boot.c"
+        },
+        {
+          "offset": "0x30",
+          "type": "R_ARM_ABS32",
+          "target": ".rodata.str1.1.core/arch/arm/kernel/generic_boot.c"
+        },
+        {
+          "offset": "0x34",
+          "type": "R_ARM_ABS32",
+          "target": ".bss.ns_entry_contexts"
+        }
+      ],
+      "non_relocation_bytes": 24,
+      "non_relocation_bytes_equal": true,
+      "comparison_sha256_with_only_relocations_zeroed": "0d46ccae536c15bbea63aa14d8e8647370b1a522f3cbec459e7c69893ef23f29"
+    },
+    {
+      "name": "smc_std_handler",
+      "stock_address": "0x41b11964",
+      "source_address": "0x41b11180",
+      "bytes": 112,
+      "raw_differing_positions": 2,
+      "genuine_relocations": [
+        {
+          "offset": "0x10",
+          "type": "R_ARM_THM_JUMP24",
+          "target": "tee_psci_handler"
+        }
+      ],
+      "non_relocation_bytes": 108,
+      "non_relocation_bytes_equal": true,
+      "comparison_sha256_with_only_relocations_zeroed": "b8d2363b6633d7bd5da02ae32c3bd50d87a4c2a3ac41bd6af8116fe926cf7a42"
+    },
+    {
+      "name": "tee_psci_handler",
+      "stock_address": "0x41b2ca46",
+      "source_address": "0x41b29360",
+      "bytes": 130,
+      "raw_differing_positions": 25,
+      "genuine_relocations": [
+        {
+          "offset": "0x28",
+          "type": "R_ARM_THM_CALL",
+          "target": "psci_version"
+        },
+        {
+          "offset": "0x2e",
+          "type": "R_ARM_THM_CALL",
+          "target": "psci_cpu_suspend"
+        },
+        {
+          "offset": "0x34",
+          "type": "R_ARM_THM_CALL",
+          "target": "psci_cpu_off"
+        },
+        {
+          "offset": "0x3a",
+          "type": "R_ARM_THM_CALL",
+          "target": "psci_cpu_on"
+        },
+        {
+          "offset": "0x40",
+          "type": "R_ARM_THM_CALL",
+          "target": "psci_affinity_info"
+        },
+        {
+          "offset": "0x46",
+          "type": "R_ARM_THM_CALL",
+          "target": "psci_migrate"
+        },
+        {
+          "offset": "0x4c",
+          "type": "R_ARM_THM_CALL",
+          "target": "psci_migrate_info_type"
+        },
+        {
+          "offset": "0x52",
+          "type": "R_ARM_THM_CALL",
+          "target": "psci_migrate_info_up_cpu"
+        },
+        {
+          "offset": "0x58",
+          "type": "R_ARM_THM_CALL",
+          "target": "psci_system_off"
+        },
+        {
+          "offset": "0x5e",
+          "type": "R_ARM_THM_CALL",
+          "target": "psci_system_reset"
+        },
+        {
+          "offset": "0x64",
+          "type": "R_ARM_THM_CALL",
+          "target": "psci_features"
+        },
+        {
+          "offset": "0x6a",
+          "type": "R_ARM_THM_CALL",
+          "target": "psci_node_hw_state"
+        },
+        {
+          "offset": "0x72",
+          "type": "R_ARM_THM_CALL",
+          "target": "psci_system_suspend"
+        }
+      ],
+      "non_relocation_bytes": 78,
+      "non_relocation_bytes_equal": true,
+      "comparison_sha256_with_only_relocations_zeroed": "88e5fa4955359767c24d26c7ed8789e7da5862806034285ebfee8cae5a3593f5"
+    }
+  ],
+  "total_function_bytes": 330,
+  "total_non_relocation_bytes_equal": 238,
+  "upstream_source_unchanged_for_these_functions": true,
+  "spin_table": {
+    "symbol_retained": false,
+    "release_write_source_manually_removed": false,
+    "explanation": "With PSCI selected, the static spin table has no reader. The compiler removes its unused store naturally; the emitted release function matches stock outside its actual context-table pointer."
+  },
+  "psci_platform_bindings": [
+    {
+      "name": "psci_version",
+      "stock_address": "0x41b2c93c",
+      "upstream_source_address": "0x41b2931c",
+      "upstream_body_bytes": 4,
+      "body_matches": false,
+      "status": "original platform override still requires source recovery"
+    },
+    {
+      "name": "psci_cpu_suspend",
+      "stock_address": "0x41b11144",
+      "upstream_source_address": "0x41b29320",
+      "upstream_body_bytes": 6,
+      "body_matches": false,
+      "status": "original platform override still requires source recovery"
+    },
+    {
+      "name": "psci_cpu_off",
+      "stock_address": "0x41b11210",
+      "upstream_source_address": "0x41b29326",
+      "upstream_body_bytes": 6,
+      "body_matches": false,
+      "status": "original platform override still requires source recovery"
+    },
+    {
+      "name": "psci_cpu_on",
+      "stock_address": "0x41b1124c",
+      "upstream_source_address": "0x41b2932c",
+      "upstream_body_bytes": 6,
+      "body_matches": false,
+      "status": "original platform override still requires source recovery"
+    },
+    {
+      "name": "psci_affinity_info",
+      "stock_address": "0x41b112c8",
+      "upstream_source_address": "0x41b29332",
+      "upstream_body_bytes": 6,
+      "body_matches": false,
+      "status": "original platform override still requires source recovery"
+    },
+    {
+      "name": "psci_migrate",
+      "stock_address": "0x41b2ca2c",
+      "upstream_source_address": "0x41b29338",
+      "upstream_body_bytes": 6,
+      "body_matches": true,
+      "status": "matching original upstream default"
+    },
+    {
+      "name": "psci_migrate_info_type",
+      "stock_address": "0x41b2ca32",
+      "upstream_source_address": "0x41b2933e",
+      "upstream_body_bytes": 6,
+      "body_matches": true,
+      "status": "matching original upstream default"
+    },
+    {
+      "name": "psci_migrate_info_up_cpu",
+      "stock_address": "0x41b2ca38",
+      "upstream_source_address": "0x41b29344",
+      "upstream_body_bytes": 6,
+      "body_matches": true,
+      "status": "matching original upstream default"
+    },
+    {
+      "name": "psci_system_off",
+      "stock_address": "0x41b2ca3e",
+      "upstream_source_address": "0x41b2934a",
+      "upstream_body_bytes": 2,
+      "body_matches": true,
+      "status": "matching original upstream default"
+    },
+    {
+      "name": "psci_system_reset",
+      "stock_address": "0x41b11318",
+      "upstream_source_address": "0x41b2934c",
+      "upstream_body_bytes": 2,
+      "body_matches": false,
+      "status": "original platform override still requires source recovery"
+    },
+    {
+      "name": "psci_features",
+      "stock_address": "0x41b2c942",
+      "upstream_source_address": "0x41b2934e",
+      "upstream_body_bytes": 6,
+      "body_matches": false,
+      "status": "original platform override still requires source recovery"
+    },
+    {
+      "name": "psci_node_hw_state",
+      "stock_address": "0x41b2ca40",
+      "upstream_source_address": "0x41b29354",
+      "upstream_body_bytes": 6,
+      "body_matches": true,
+      "status": "matching original upstream default"
+    },
+    {
+      "name": "psci_system_suspend",
+      "stock_address": "0x41b11338",
+      "upstream_source_address": "0x41b2935a",
+      "upstream_body_bytes": 6,
+      "body_matches": false,
+      "status": "original platform override still requires source recovery"
+    }
+  ],
+  "artifacts": {
+    "optee.bin": {
+      "sizes": [
+        287208,
+        287208
+      ],
+      "sha256": [
+        "f43626024502c551cb4bc8b83c41c78c5301540fa47cc34ac2c75ce802da088d",
+        "f43626024502c551cb4bc8b83c41c78c5301540fa47cc34ac2c75ce802da088d"
+      ],
+      "repeat_equal": true
+    },
+    "tee.bin": {
+      "sizes": [
+        287236,
+        287236
+      ],
+      "sha256": [
+        "c4325f2186f6d2813b5dd11d7f40dcd6e13269aca95eb4da7b7aec51b9dc3f6e",
+        "c4325f2186f6d2813b5dd11d7f40dcd6e13269aca95eb4da7b7aec51b9dc3f6e"
+      ],
+      "repeat_equal": true
+    },
+    "tee.elf": {
+      "sizes": [
+        3399316,
+        3384912
+      ],
+      "sha256": [
+        "98a9ec8c97c2b0b2f2e8a3898bd64ad4de6978ff00d3ba1c15d76596acffae4b",
+        "dc53c0222f1c9941a3013f48332758f7226f606288983b58699842f9556f4e7e"
+      ],
+      "repeat_equal": false
+    }
+  },
+  "carrier_report": {
+    "artifact": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-secondary-boot-trial/artifacts/optee.bin",
+    "size": 287208,
+    "sha256": "f43626024502c551cb4bc8b83c41c78c5301540fa47cc34ac2c75ce802da088d",
+    "source_build_complete": true,
+    "stock_equivalence_established": false,
+    "status": "research-only; source standby embedded, service integration/layout/original inputs incomplete",
+    "carrier": "raw source-linked Allwinner image; standard tee.bin retained separately",
+    "header": {
+      "format": "Allwinner 4092-byte header, reset code at offset 8192",
+      "public_key_offsets": {
+        "exponent": 224268,
+        "modulus": 255539,
+        "modulus_size": 224264
+      }
+    },
+    "standby": {
+      "source_built": true,
+      "payload_bytes": 8400,
+      "payload_sha256": "7f058be9ae2b5e7d94c2fa951e3a62bba8dd3db24de9860bcbe7e63d2946ad86",
+      "wrapper_offset": 16384,
+      "wrapper_bytes": 16384,
+      "service_integration_complete": false,
+      "comparison": {
+        "whole_wrapper_equal": false,
+        "byte_differences": 8,
+        "alignment_tail_equal": true,
+        "permitted_exceptions": []
+      }
+    },
+    "comparison": {
+      "reference": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-toc-reconstruction/optee.reference.bin",
+      "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+      "reference_size": 300248,
+      "full_file_equal": false,
+      "byte_differences_in_shared_extent": 244449,
+      "first_differing_offset": 252,
+      "candidate_length_difference": -13040,
+      "permitted_exceptions": []
+    }
+  },
+  "validation": {
+    "two_clean_source_builds": "completed; expected strict stock-comparison exit 1",
+    "shell_syntax": "passed",
+    "build_input_rejection_tests": "2 passed"
+  },
+  "limitations": [
+    "Eight platform PSCI overrides still differ from upstream defaults and require recovery.",
+    "Vendor fast-call dispatcher, saved-resume producer and complete standby service wiring remain unfinished.",
+    "Full-image shared-extent differences increase with restored code/layout despite the four exact function reconstructions.",
+    "Deployable source repeats do not establish stock identity or debug ELF identity.",
+    "No secondary CPU release, PSCI power action or physical boot/resume was executed."
+  ]
+}

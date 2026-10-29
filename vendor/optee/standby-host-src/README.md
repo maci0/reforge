@@ -169,3 +169,24 @@ also identifies the saved-entry producer in operation `0xb2000214`: it stores
 argument word one, returns the secure resume vector in word zero and cleans/invalidates the
 data cache. Its full dispatcher/source integration remains unfinished. The
 primary-resume unit remains separate from the carrier until that path is wired.
+
+## Secondary-boot and PSCI source inputs
+
+Patch 0011 enables `CFG_BOOT_SECONDARY_REQUEST=y` and `CFG_PSCI_ARM32=y`.
+Together they reproduce four original functions from unchanged upstream C:
+`generic_boot_core_release`, `generic_boot_core_hpen`, `smc_std_handler` and
+`tee_psci_handler`. All 238 bytes outside 23 real relocation fields in their
+330-byte total match stock. The release spin-table store disappears naturally
+because the selected PSCI path no longer reads that private table; no source
+statement, output byte or recorded address is overridden to obtain the match.
+
+Both clean builds generate identical deployable binaries. The carrier is
+287,208 bytes, versus stock 300,248, and still fails strict whole-file equality.
+[Proof](../../../docs/board-notes/stock-optee-secondary-boot-proof.json) records
+actual configuration, compiler relocation tables, byte comparisons and all
+thirteen PSCI target bindings. Five upstream default bodies match; eight
+platform overrides remain different: version, CPU suspend/off/on, affinity,
+system reset, features and system suspend. Enabling the framework does not
+complete those platform implementations. The vendor dispatcher and full
+standby service integration also remain unfinished. No physical CPU release,
+power, reset or suspend/resume action was executed.

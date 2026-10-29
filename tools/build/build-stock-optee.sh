@@ -72,7 +72,8 @@ patches=("$patchdir/0001-upstream-sm4.patch" "$patchdir/0002-upstream-sm3.patch"
          "$patchdir/0007-source-hardware-policy.patch"
          "$patchdir/0008-source-standby-wrapper.patch"
          "$patchdir/0009-source-mmu-table-split.patch"
-         "$patchdir/0010-source-late-reset-hook.patch")
+         "$patchdir/0010-source-late-reset-hook.patch"
+         "$patchdir/0011-source-secondary-boot.patch")
 for source_patch in "${patches[@]}"; do
     patch --batch --forward --fuzz=0 -s -p1 -d "$out/source-tree" < "$source_patch"
 done

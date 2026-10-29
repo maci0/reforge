@@ -64,11 +64,11 @@ G09 separately records compiler-runtime source closure.
 **Actual executable/source gaps remain.** Original Allwinner carrier:
 300,248 bytes, SHA-256
 `7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99`.
-Current clean source candidate: 283,112 bytes, SHA-256
-`a92b2a4545f8d881a4ab7184ba09c95d33dd785ed10bcc67285ec5a9ef9df331`
-(after source-built standby wrapper, stock MMU split and late-reset hook integration).
-The **size delta is −17,136 bytes**; **241,897 byte positions differ in the
-shared extent**. Neither number means that exactly 17,136 instruction bytes are
+Current clean source candidate: 287,208 bytes, SHA-256
+`f43626024502c551cb4bc8b83c41c78c5301540fa47cc34ac2c75ce802da088d`
+(after standby/MMU/reset reconstruction and secondary-boot/PSCI inputs).
+The **size delta is −13,040 bytes**; **244,449 byte positions differ in the
+shared extent**. Neither number means that exactly 13,040 instruction bytes are
 missing: section layout, data and alignment also contribute.
 
 Remaining work:
@@ -189,6 +189,17 @@ Remaining work:
   operation `0xb2000214`, whose dispatcher case supplies the saved resume entry.
   That producer and dispatcher are not yet reconstructed or wired into the
   carrier. No privileged hardware resume execution is claimed.
+  Enabling the observed secondary-boot/PSCI input combination recovers four
+  original functions directly from unmodified upstream source: core release,
+  core entry lookup, standard SMC dispatch and PSCI dispatch. Their 330 bytes
+  match outside 23 real relocation fields (238 other bytes). No spin-table
+  source write was manually removed; the compiler eliminates it naturally
+  when PSCI removes its last reader. Two clean builds repeat deployable bytes.
+  [Secondary boot proof](stock-optee-secondary-boot-proof.json) records each
+  relocation and all thirteen PSCI target bindings. Eight platform overrides
+  remain different from upstream defaults: version, CPU suspend/off/on,
+  affinity, system reset, features and system suspend. They are not complete
+  platform implementations yet; no physical secondary/power action ran.
   Exact complete linked instruction/data comparison remains necessary.
   [Installer evidence](stock-optee-hash-installer-proof.json) and
   [SMC evidence](stock-optee-smc-proof.json) and
