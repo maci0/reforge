@@ -1,0 +1,13 @@
+--- a/core/arch/arm/mm/core_mmu_v7.c
++++ b/core/arch/arm/mm/core_mmu_v7.c
+@@ -155,8 +155,8 @@
+ #define L1_ALIGNMENT		L1_TBL_SIZE
+ #define L2_ALIGNMENT		L2_TBL_SIZE
+ 
+-/* Defined to the smallest possible secondary L1 MMU table */
+-#define TTBCR_N_VALUE		7
++/* Original T113 initializer writes N=5: 128 MiB TTBR0, 128 user L1 entries. */
++#define TTBCR_N_VALUE		5
+ 
+ /* Number of sections in ttbr0 when user mapping activated */
+ #define NUM_UL1_ENTRIES         (1 << (12 - TTBCR_N_VALUE))

@@ -1,0 +1,126 @@
+{
+  "source_patch": "vendor/optee/stock-patches/0009-source-mmu-table-split.patch",
+  "patch_sha256": "f53179e3d831f14248935f46917ea623fd7e5087f356aa2047b8bb4a62fd7f5e",
+  "functional_input": {
+    "stock_ttbcr_n": 5,
+    "prior_source_ttbcr_n": 7,
+    "restored_ttbcr_n": 5,
+    "ttbr0_address_span_bytes": 134217728,
+    "user_l1_entries": 128,
+    "user_l1_table_bytes_per_thread": 512
+  },
+  "initializer_comparison": {
+    "bytes": 104,
+    "stock_address": "0x41b0ec20",
+    "source_address": "0x41b0e96c",
+    "prior_raw_differing_positions": 31,
+    "new_raw_differing_positions": 11,
+    "relocation_field_offsets": [
+      "0x6",
+      "0x18",
+      "0x54",
+      "0x58",
+      "0x5c",
+      "0x60"
+    ],
+    "relocations": "at offset 0x28b7c contains 6 entries:\n Offset     Info    Type                Sym. Value  Symbol's Name\n00000006  0001280a R_ARM_THM_CALL         00000000   virt_to_phys\n00000018  0001290a R_ARM_THM_CALL         00000000   __do_panic\n00000054  00008102 R_ARM_ABS32            00000000   .data.default_partition\n00000058  00008802 R_ARM_ABS32            00000000   .rodata.str1.1.core/arch/arm/mm/core_mmu_v7.c\n0000005c  00007f02 R_ARM_ABS32            00000000   .rodata.__func__.6281\n00000060  00008802 R_ARM_ABS32            00000000   .rodata.str1.1.core/arch/arm/mm/core_mmu_v7.c",
+    "remaining_non_relocation_differences": [
+      {
+        "offset": "0x12",
+        "stock": 253,
+        "source": 249
+      }
+    ],
+    "remaining_cause": "panic __LINE__: stock 253, retained upstream source 249; no source-line override or padding applied",
+    "whole_function_equal": false
+  },
+  "artifacts": {
+    "optee.bin": {
+      "sizes": [
+        283112,
+        283112
+      ],
+      "sha256": [
+        "0a57774956c27533e390c26346fb0cdd89d9b15af9ae60947ef82e78d3241510",
+        "0a57774956c27533e390c26346fb0cdd89d9b15af9ae60947ef82e78d3241510"
+      ],
+      "repeat_equal": true
+    },
+    "tee.bin": {
+      "sizes": [
+        283140,
+        283140
+      ],
+      "sha256": [
+        "895019b2453cf43045e8461b0c1f12202ec6d63ba32b4557b120fd74d303a766",
+        "895019b2453cf43045e8461b0c1f12202ec6d63ba32b4557b120fd74d303a766"
+      ],
+      "repeat_equal": true
+    },
+    "tee.elf": {
+      "sizes": [
+        3370416,
+        3358652
+      ],
+      "sha256": [
+        "33976b516fac3b29e4d182a58e680b3b67437ae4c4407902b26997bb78471910",
+        "8f6cc8ce771abc2ac13064134afc2b2632909188d9517da274ebd36a49398f77"
+      ],
+      "repeat_equal": false
+    }
+  },
+  "current_carrier_report": {
+    "artifact": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-mmu-split-5/artifacts/optee.bin",
+    "size": 283112,
+    "sha256": "0a57774956c27533e390c26346fb0cdd89d9b15af9ae60947ef82e78d3241510",
+    "source_build_complete": true,
+    "stock_equivalence_established": false,
+    "status": "research-only; source standby embedded, service integration/layout/original inputs incomplete",
+    "carrier": "raw source-linked Allwinner image; standard tee.bin retained separately",
+    "header": {
+      "format": "Allwinner 4092-byte header, reset code at offset 8192",
+      "public_key_offsets": {
+        "exponent": 220172,
+        "modulus": 251330,
+        "modulus_size": 220168
+      }
+    },
+    "standby": {
+      "source_built": true,
+      "payload_bytes": 8400,
+      "payload_sha256": "7f058be9ae2b5e7d94c2fa951e3a62bba8dd3db24de9860bcbe7e63d2946ad86",
+      "wrapper_offset": 16384,
+      "wrapper_bytes": 16384,
+      "service_integration_complete": false,
+      "comparison": {
+        "whole_wrapper_equal": false,
+        "byte_differences": 8,
+        "alignment_tail_equal": true,
+        "permitted_exceptions": []
+      }
+    },
+    "comparison": {
+      "reference": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-toc-reconstruction/optee.reference.bin",
+      "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+      "reference_size": 300248,
+      "full_file_equal": false,
+      "byte_differences_in_shared_extent": 241772,
+      "first_differing_offset": 252,
+      "candidate_length_difference": -17136,
+      "permitted_exceptions": []
+    }
+  },
+  "limitations": [
+    "Independent source builds repeat deployable binaries, not debug ELF bytes.",
+    "The larger TTBR0 table changes source data/layout beyond this one function; total shared-extent raw differences increased from 241732 to 241772 despite the corrected MMU semantics.",
+    "Original panic/debug source layout remains unrecovered.",
+    "Host suspend/resume source units are not wired into the carrier yet.",
+    "No physical MMU, reset or suspend/resume execution was tested."
+  ],
+  "validation": {
+    "two_clean_source_builds": "completed; expected strict stock-comparison exit 1 for both",
+    "full_unit_suite": "make unit exited 0 with pinned BOOT0_RUNTIME_CROSS",
+    "shell_syntax": "bash -n tools/build/build-stock-optee.sh passed",
+    "hardware_execution": false
+  }
+}

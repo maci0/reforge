@@ -93,3 +93,23 @@ implementations are included in the reconstruction.
 [Resume proof](../../../docs/board-notes/stock-optee-host-resume-proof.json)
 records every call/data relocation and the exact upstream comparison scope.
 No SMC, reset, MMU/cache transition or physical resume test has run.
+
+## Stock MMU split restored
+
+Patch `0009-source-mmu-table-split.patch` restores `TTBCR_N_VALUE=5`, directly
+observed in the stock initializer. The upstream constant 7 selected a different
+TTBR0 split and smaller user tables. N=5 selects 128 MiB and 128 L1 entries
+(512 bytes per thread). This is a functional MMU input, not a metadata change.
+
+The source initializer now has the stock instruction layout. Raw differences
+fall from 31 to 11; outside six genuine relocation fields only the panic source
+line differs (253 versus 249). No source-line override or comment padding was
+introduced. Two independent full builds produce identical deployable binaries;
+their debug ELFs differ. The carrier remains 283,112 bytes and is not stock-equal.
+Its shared-extent differences increase by 40 positions as the corrected table
+size changes other layout/data, despite fixing this MMU operation.
+
+[MMU proof](../../../docs/board-notes/stock-optee-mmu-split-proof.json) records
+artifact hashes, actual compiler relocations and strict stock comparison.
+Original source/debug layout, service integration and privileged runtime
+validation remain unfinished.

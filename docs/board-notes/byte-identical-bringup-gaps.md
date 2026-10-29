@@ -65,9 +65,9 @@ G09 separately records compiler-runtime source closure.
 300,248 bytes, SHA-256
 `7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99`.
 Current clean source candidate: 283,112 bytes, SHA-256
-`8ff44fb7af4bffc2dae99e3263bcdda45e1eaf8963912f824e45a249a35d2c81`
-(after source-built standby wrapper integration).
-The **size delta is −17,136 bytes**; **241,732 byte positions differ in the
+`0a57774956c27533e390c26346fb0cdd89d9b15af9ae60947ef82e78d3241510`
+(after source-built standby wrapper integration and the stock MMU table split).
+The **size delta is −17,136 bytes**; **241,772 byte positions differ in the
 shared extent**. Neither number means that exactly 17,136 instruction bytes are
 missing: section layout, data and alignment also contribute.
 
@@ -159,8 +159,13 @@ Remaining work:
   genuine body relocations match stock. Independent linking checks every ARM,
   Thumb and conditional-park target. Three vendor setup bodies are unresolved;
   no empty implementations are supplied. Four upstream helper bodies (92 bytes)
-  match stock directly and can be reused. `core_init_mmu_regs` still differs in
-  31 positions and needs configuration/relocation input verification.
+  match stock directly and can be reused. Restoring stock `TTBCR_N_VALUE=5`
+  (upstream uses 7) reduces `core_init_mmu_regs` raw differences from 31 to 11.
+  Outside its six genuine relocation fields only the panic-line immediate
+  differs: stock 253 versus upstream 249. No line-number override is applied.
+  This restores the 128 MiB TTBR0 split and 512-byte per-thread user L1 tables.
+  [MMU split proof](stock-optee-mmu-split-proof.json) records two matching
+  deployable builds and the whole-carrier comparison, which still fails.
   [Resume evidence](stock-optee-host-resume-proof.json) records each binding
   comparison. This path has not executed; full service integration remains open.
   Exact complete linked instruction/data comparison remains necessary.
