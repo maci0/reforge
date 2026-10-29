@@ -65,9 +65,9 @@ G09 separately records compiler-runtime source closure.
 300,248 bytes, SHA-256
 `7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99`.
 Current clean source candidate: 287,208 bytes, SHA-256
-`7cd2c855d88edf86e28db307d482803f94b19d555ba748d54886f4c12e624ff5`
-(after standby/MMU/reset reconstruction and PSCI identification/CPU-control/reset/off integration).
-The **size delta is −13,040 bytes**; **244,315 byte positions differ in the
+`811552b5beac7254da62247fc92d0f27a26421567d6edde59bf676690bbae57f`
+(after standby/MMU/reset reconstruction and PSCI identification/CPU-control/reset/off/suspend integration).
+The **size delta is −13,040 bytes**; **244,377 byte positions differ in the
 shared extent**. Neither number means that exactly 13,040 instruction bytes are
 missing: section layout, data and alignment also contribute.
 
@@ -196,8 +196,8 @@ Remaining work:
   source write was manually removed; the compiler eliminates it naturally
   when PSCI removes its last reader. Two clean builds repeat deployable bytes.
   [Secondary boot proof](stock-optee-secondary-boot-proof.json) records each
-  relocation and all thirteen PSCI target bindings. Two carrier overrides
-  remain different from stock: CPU suspend and system suspend. They are not complete
+  relocation and all thirteen PSCI target bindings. One carrier override
+  remains different from stock: system suspend, whose recovered wrapper still needs integration. They are not complete
   platform implementations yet; no physical secondary/power action ran.
   PSCI version and feature reporting now have C platform overrides. All 42
   instruction bytes match stock directly, without normalization or relocation
@@ -215,8 +215,7 @@ Remaining work:
   before standby; only `mon_lr` changes in the monitor context. The observed
   two-byte return-only hook is retained exactly. [System-suspend proof](stock-optee-system-suspend-proof.json)
   records the checks. This wrapper is not linked into the carrier yet: runtime
-  configuration and dispatch remain incomplete. One other PSCI body still
-  requires recovery, and two carrier overrides remain unfinished including
+  configuration and dispatch remain incomplete. No PSCI override body remains unrecovered, but one carrier override remains unfinished including
   this wrapper's integration. No hardware suspend was attempted.
   CPU-on and affinity-info now have retained Thumb source, together with their
   outlined current-core query. The three units total 252 bytes; all 172 bytes
@@ -251,6 +250,17 @@ Remaining work:
   explicit cache/mask providers and signal-based wait termination.
   [CPU-off proof](stock-optee-cpu-off-proof.json) records two clean deployable
   repeats and the remaining whole-carrier mismatch. No physical CPU-off ran.
+  CPU suspend is now a strong linked override too. Its 204-byte unit matches
+  all 152 bytes outside thirteen real relocations, and its compact unwind
+  descriptor matches. The associated 14-byte GIC-disable helper matches all
+  instruction bytes directly. Ten rejected-state and eight terminal-path QEMU
+  cases check both cores, all four affinity levels, RTC/GIC state and original
+  call ordering using private register banks and explicit service models.
+  [CPU-suspend proof](stock-optee-cpu-suspend-proof.json) records two clean
+  deployable repeats. All eight platform PSCI override bodies are now retained
+  source; seven are linked, while the system-suspend wrapper still needs full
+  configuration/standby/dispatcher integration. Whole-image identity and
+  physical suspend/resume remain unproven.
   Exact complete linked instruction/data comparison remains necessary.
   [Installer evidence](stock-optee-hash-installer-proof.json) and
   [SMC evidence](stock-optee-smc-proof.json) and

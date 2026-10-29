@@ -446,3 +446,29 @@ python3 tests/release/test_stock_optee_cpu_off.py
 actual linked symbols, helper comparisons and two clean deployable repeats.
 CPU-suspend source and full system-suspend/configuration/dispatcher wiring
 remain unfinished; strict whole-carrier comparison still fails.
+
+## CPU-suspend handshake
+
+Patch 0016 compiles `cpu-suspend.S` as the strong `psci_cpu_suspend`. Its
+204-byte text/literal unit matches all 152 bytes outside thirteen genuine
+relocations; unwind descriptor `0x8003acb0` matches too. The 14-byte retained
+GIC CPU-interface disable helper matches all instructions directly. RTC/GIC
+bindings reuse the existing verified platform IO mappings.
+
+Ten invalid-state and eight terminal QEMU cases cover both cores and four
+affinity levels. They check original diagnostics, state-ID rejection, RTC
+magic/vector/power fields, context publication, GIC control, call order,
+unchanged words/context and ARM shift behavior. Register banks and privileged
+services are explicit models; signals stop the emulated wait loop. No physical
+CPU suspend, GIC/RTC write or cache/interrupt transition runs.
+
+```sh
+python3 tests/release/test_stock_optee_cpu_suspend.py
+```
+
+[Proof](../../../docs/board-notes/stock-optee-cpu-suspend-proof.json) records
+exact linked comparisons and two clean deployable repeats. All eight original
+platform PSCI override bodies now have retained source. Seven are linked into
+the carrier; system suspend remains staged until full configuration and
+standby/dispatcher wiring is recovered. Whole-image equality, the SRAM BSS gap
+and physical resume validation remain unfinished.

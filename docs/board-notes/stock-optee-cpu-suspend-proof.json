@@ -1,0 +1,238 @@
+{
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "source": "vendor/optee/standby-host-src/cpu-suspend.S",
+  "source_sha256": "00c814ad20b81010a1855032b53af155bd83ad2fcc380e6b13f7d46ad4a130dc",
+  "functions": [
+    {
+      "name": "psci_cpu_suspend",
+      "stock_address": "0x41b11144",
+      "source_address": "0x41b11024",
+      "bytes_with_literals": 204,
+      "genuine_relocations": [
+        {
+          "offset": "0xe",
+          "type": "R_ARM_THM_CALL",
+          "target": "standby_cpu_get_core"
+        },
+        {
+          "offset": "0x26",
+          "type": "R_ARM_THM_CALL",
+          "target": "trace_printf"
+        },
+        {
+          "offset": "0x38",
+          "type": "R_ARM_THM_CALL",
+          "target": "trace_printf"
+        },
+        {
+          "offset": "0x5c",
+          "type": "R_ARM_THM_CALL",
+          "target": "generic_boot_set_core_ns_entry"
+        },
+        {
+          "offset": "0x6c",
+          "type": "R_ARM_THM_CALL",
+          "target": "phys_to_virt_io"
+        },
+        {
+          "offset": "0x70",
+          "type": "R_ARM_THM_CALL",
+          "target": "standby_gic_cpuif_disable"
+        },
+        {
+          "offset": "0x74",
+          "type": "R_ARM_THM_CALL",
+          "target": "psci_armv7_cpu_off"
+        },
+        {
+          "offset": "0x7a",
+          "type": "R_ARM_THM_CALL",
+          "target": "thread_mask_exceptions"
+        },
+        {
+          "offset": "0xb0",
+          "type": "R_ARM_ABS32",
+          "target": ".rodata.psci_cpu_suspend"
+        },
+        {
+          "offset": "0xb4",
+          "type": "R_ARM_ABS32",
+          "target": ".rodata.psci_cpu_suspend"
+        },
+        {
+          "offset": "0xb8",
+          "type": "R_ARM_ABS32",
+          "target": ".rodata.psci_cpu_suspend"
+        },
+        {
+          "offset": "0xbc",
+          "type": "R_ARM_ABS32",
+          "target": "rtc_base"
+        },
+        {
+          "offset": "0xc8",
+          "type": "R_ARM_ABS32",
+          "target": "tee_spare_head"
+        }
+      ],
+      "other_bytes": 152,
+      "other_bytes_equal": true,
+      "sha256_with_only_relocations_zeroed": "3c687765788d7439e91490097caf306160d0c6b6de3c01dd051d14e92bc1037c",
+      "whole_instruction_body_equal": false
+    },
+    {
+      "name": "standby_gic_cpuif_disable",
+      "stock_address": "0x41b2d6e0",
+      "source_address": "0x41b295ca",
+      "bytes_with_literals": 14,
+      "genuine_relocations": [],
+      "other_bytes": 14,
+      "other_bytes_equal": true,
+      "sha256_with_only_relocations_zeroed": "547136a34ec863069ba9a8b9baf971fc23d5db0cb52c75cfae1f088add020d9e",
+      "whole_instruction_body_equal": true
+    }
+  ],
+  "total_text_literal_bytes": 218,
+  "total_non_relocation_bytes_equal": 166,
+  "wrapper_unwind": {
+    "stock_entry_offset": "0x468e8",
+    "descriptor": "0x8003acb0",
+    "source_descriptor_equal": true
+  },
+  "bindings": {
+    "rtc_base": "Original pointer at 0x41b49d0c maps physical 0x07000400; existing source binding verified in CPU-control proof.",
+    "GIC_CPU_interface": "0x03022000 mapped through phys_to_virt_io; existing source IO region 0x03020000 + 0x3000 includes it.",
+    "boot_vector": "tee_spare_head; actual link-derived source header address"
+  },
+  "behavior": {
+    "state_id": "low 16 bits must be zero; otherwise return -2 after diagnostics",
+    "affinity_level": "bits 24..25",
+    "monitor_context_argument": "unused as in original instructions",
+    "conditional_magic": "core 0 and level <= 1 write 0xfa50392f at RTC offset 0x1c0",
+    "resume_vector": "RTC word 0x71+core receives tee_spare_head before and after cache/mask calls",
+    "power_flag": "RTC word 0xb8+core gets 1 shifted by level*16 with original ARM register-shift semantics",
+    "GIC_control": "clear bits 0..1 and set 0x1e0",
+    "terminal_sequence": "cache shutdown, exception mask 7, RTC writes, ISB/DSB/CLREX, WFI loop"
+  },
+  "runtime": {
+    "engine": "qemu-arm",
+    "invalid_state_cases": 10,
+    "valid_terminal_cases": 8,
+    "cores": [
+      0,
+      1
+    ],
+    "levels": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "checks": [
+      "original two diagnostic tuples",
+      "invalid state returns after diagnostics without RTC/GIC writes or the context-setter callback",
+      "conditional RTC magic and exact context publication order",
+      "resume-vector writes before GIC mapping",
+      "actual retained GIC helper operates on private register bank",
+      "cache/mask callbacks occur in original order",
+      "final power flags including level 2/3 zero-shift result",
+      "all unrelated RTC/GIC words and monitor context preserved",
+      "signal terminates only the expected WFI/branch loop"
+    ],
+    "physical_io_mapped": false,
+    "cache_interrupt_services": "explicit test providers"
+  },
+  "integration": {
+    "source_patch": "vendor/optee/stock-patches/0016-source-cpu-suspend.patch",
+    "strong_override_linked": true,
+    "source_matches_both_copies": true
+  },
+  "artifacts": {
+    "optee.bin": {
+      "sizes": [
+        287208,
+        287208
+      ],
+      "sha256": [
+        "811552b5beac7254da62247fc92d0f27a26421567d6edde59bf676690bbae57f",
+        "811552b5beac7254da62247fc92d0f27a26421567d6edde59bf676690bbae57f"
+      ],
+      "repeat_equal": true
+    },
+    "tee.bin": {
+      "sizes": [
+        287236,
+        287236
+      ],
+      "sha256": [
+        "9e03636bd62a2f111e09021ad78439ec05144f911abf7f4da02f03301d8a35e0",
+        "9e03636bd62a2f111e09021ad78439ec05144f911abf7f4da02f03301d8a35e0"
+      ],
+      "repeat_equal": true
+    },
+    "tee.elf": {
+      "sizes": [
+        3404384,
+        3389136
+      ],
+      "sha256": [
+        "f5168686b8d6f5160f0e11156bbfdbf47db6735a85da6633a3a629428f1a83a2",
+        "dfa0db9ba65adfccb4f199fcea4a556c8779bcb7d1b8e3d60b0fc2edd614d20a"
+      ],
+      "repeat_equal": false
+    }
+  },
+  "carrier_report": {
+    "artifact": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-cpu-suspend-a/artifacts/optee.bin",
+    "size": 287208,
+    "sha256": "811552b5beac7254da62247fc92d0f27a26421567d6edde59bf676690bbae57f",
+    "source_build_complete": true,
+    "stock_equivalence_established": false,
+    "status": "research-only; source standby embedded, service integration/layout/original inputs incomplete",
+    "carrier": "raw source-linked Allwinner image; standard tee.bin retained separately",
+    "header": {
+      "format": "Allwinner 4092-byte header, reset code at offset 8192",
+      "public_key_offsets": {
+        "exponent": 224268,
+        "modulus": 255821,
+        "modulus_size": 224264
+      }
+    },
+    "standby": {
+      "source_built": true,
+      "payload_bytes": 8400,
+      "payload_sha256": "7f058be9ae2b5e7d94c2fa951e3a62bba8dd3db24de9860bcbe7e63d2946ad86",
+      "wrapper_offset": 16384,
+      "wrapper_bytes": 16384,
+      "service_integration_complete": false,
+      "comparison": {
+        "whole_wrapper_equal": false,
+        "byte_differences": 8,
+        "alignment_tail_equal": true,
+        "permitted_exceptions": []
+      }
+    },
+    "comparison": {
+      "reference": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-toc-reconstruction/optee.reference.bin",
+      "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+      "reference_size": 300248,
+      "full_file_equal": false,
+      "byte_differences_in_shared_extent": 244377,
+      "first_differing_offset": 252,
+      "candidate_length_difference": -13040,
+      "permitted_exceptions": []
+    }
+  },
+  "limitations": [
+    "No physical CPU/GIC/RTC/cache/interrupt or suspend/resume action ran.",
+    "System-suspend wrapper remains outside the carrier pending full runtime configuration and standby/resume dispatcher integration.",
+    "Standalone SRAM BSS gap and original full-image source/layout inputs remain unresolved.",
+    "Two matching source builds and per-function identity do not establish whole stock-image equality."
+  ],
+  "validation": {
+    "full_unit_suite": "make unit exited 0 with pinned BOOT0_RUNTIME_CROSS",
+    "two_clean_source_builds": "completed with expected strict stock-comparison exit 1",
+    "shell_syntax": "passed",
+    "physical_suspend_executed": false
+  }
+}
