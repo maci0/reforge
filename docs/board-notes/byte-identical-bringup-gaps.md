@@ -65,9 +65,9 @@ G09 separately records compiler-runtime source closure.
 300,248 bytes, SHA-256
 `7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99`.
 Current clean source candidate: 283,112 bytes, SHA-256
-`0a57774956c27533e390c26346fb0cdd89d9b15af9ae60947ef82e78d3241510`
-(after source-built standby wrapper integration and the stock MMU table split).
-The **size delta is −17,136 bytes**; **241,772 byte positions differ in the
+`a92b2a4545f8d881a4ab7184ba09c95d33dd785ed10bcc67285ec5a9ef9df331`
+(after source-built standby wrapper, stock MMU split and late-reset hook integration).
+The **size delta is −17,136 bytes**; **241,897 byte positions differ in the
 shared extent**. Neither number means that exactly 17,136 instruction bytes are
 missing: section layout, data and alignment also contribute.
 
@@ -157,7 +157,7 @@ Remaining work:
   the request producer remains unfinished. The ARM resume vector and 156-byte
   reset-style routine now have retained source: all 100 bytes outside fourteen
   genuine body relocations match stock. Independent linking checks every ARM,
-  Thumb and conditional-park target. Three vendor setup bodies are unresolved;
+  Thumb and conditional-park target. One vendor setup body remains unresolved;
   no empty implementations are supplied. Four upstream helper bodies (92 bytes)
   match stock directly and can be reused. Restoring stock `TTBCR_N_VALUE=5`
   (upstream uses 7) reduces `core_init_mmu_regs` raw differences from 31 to 11.
@@ -168,6 +168,16 @@ Remaining work:
   deployable builds and the whole-carrier comparison, which still fails.
   [Resume evidence](stock-optee-host-resume-proof.json) records each binding
   comparison. This path has not executed; full service integration remains open.
+  Two vendor calls are now identified as `plat_cpu_reset_late` and `console_init`.
+  The late-reset hook has 232 retained source bytes; all 196 bytes outside nine
+  real relocations match, including a matching compact unwind descriptor.
+  It is integrated as a strong platform hook, replacing the upstream weak
+  default; the primary reset path calls the real implementation. Existing
+  console C source is reused, with 128 host test cases for UART selection,
+  diagnostic arguments and registration. Its instruction shape is not yet
+  identical. The secondary-init body and full suspend dispatch remain open.
+  [Late reset and console evidence](stock-optee-late-reset-proof.json) records
+  two clean deployable repeats and the exact execution/identity limits.
   Exact complete linked instruction/data comparison remains necessary.
   [Installer evidence](stock-optee-hash-installer-proof.json) and
   [SMC evidence](stock-optee-smc-proof.json) and

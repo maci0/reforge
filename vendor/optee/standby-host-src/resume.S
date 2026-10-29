@@ -1,5 +1,5 @@
 /* ARM resume vector and reset-style path; no privileged runtime validation yet.
- * Three vendor setup calls have descriptive names pending their recovery. */
+ * The secondary initialization call has a descriptive name pending recovery. */
 .syntax unified
 .arch armv7-a
 .arch_extension sec
@@ -37,8 +37,8 @@ standby_host_resume:
     ldr r0, .Lstack_top
     ldr r0, [r0]
     add sp, r1, r0
-    blx standby_resume_platform_init
-    blx standby_resume_select_state
+    blx plat_cpu_reset_late
+    blx console_init
     mov r0, #0
     bl dcache_op_level1
     blx core_init_mmu_regs

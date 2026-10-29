@@ -113,3 +113,32 @@ size changes other layout/data, despite fixing this MMU operation.
 artifact hashes, actual compiler relocations and strict stock comparison.
 Original source/debug layout, service integration and privileged runtime
 validation remain unfinished.
+
+## Late-reset hook and console binding
+
+The original primary reset and resume paths both call `plat_cpu_reset_late`
+followed by `console_init`. The latter matches the console C source already
+retained in patch 0004: it reads the UART clock bits, chooses the first enabled
+port among six and initializes/registers an 8250 console. A host test exercises
+all 64 port masks with two upper-bit patterns (128 cases) using test-only IO,
+UART and trace providers. It preserves the original no-port diagnostic/path.
+Its compiled instruction shape is still different and is not claimed identical.
+
+`reset-late.S` now supplies the missing strong `plat_cpu_reset_late`: primary
+counter/CCU initialization and secondary CNTFRQ restoration. All 196 bytes
+outside nine relocations in its 232-byte text/literal unit match stock. Its
+compact unwind descriptor also matches `0x80a8b0b0`. Patch 0010 and the build
+recipe compile this source into the carrier, replacing the upstream weak
+default; there is no empty vendor implementation. Two full source builds
+repeat the deployable binaries; whole stock comparison still fails.
+
+```sh
+python3 tests/release/test_stock_optee_console.py
+python3 tests/release/test_stock_optee_host_resume.py
+```
+
+[Proof](../../../docs/board-notes/stock-optee-late-reset-proof.json) records
+source hashes, actual linked symbol, original caller evidence and byte checks.
+The late-reset privileged/MMIO sequence has not executed. Resume secondary
+initialization, full suspend dispatch, original source/layout and whole-image
+identity remain unfinished. No hardware boot or suspend/resume was tested.

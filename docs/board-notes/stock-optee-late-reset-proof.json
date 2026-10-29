@@ -1,0 +1,154 @@
+{
+  "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "source": "vendor/optee/standby-host-src/reset-late.S",
+  "source_sha256": "5f8c78c244ec4aeed8b1a9ce6678b51879ab5653a6cd82f272a0b1cf0dac75ba",
+  "late_hook": {
+    "stock_address": "0x41b10cc0",
+    "source_build_address": "0x41b10d4c",
+    "linked_symbol": "41b10d4c 000000a4 T plat_cpu_reset_late",
+    "code_and_literals_bytes": 232,
+    "genuine_relocation_offsets": [
+      "0x2",
+      "0x12",
+      "0x16",
+      "0x1a",
+      "0x7c",
+      "0xa4",
+      "0xa8",
+      "0xac",
+      "0xb0"
+    ],
+    "non_relocation_bytes": 196,
+    "non_relocation_bytes_equal": true,
+    "comparison_sha256_with_only_relocations_zeroed": "9f4c9d95aeaf0080d30b0d187b5f4cc664bec76752456c68e62d545e077c11c5",
+    "stock_unwind_entry_offset": "0x46890",
+    "stock_unwind_descriptor": "0x80a8b0b0",
+    "source_unwind_descriptor_equal": true,
+    "bss_counter_frequency_bytes": 4,
+    "whole_linked_identity_established": false
+  },
+  "identity_evidence": {
+    "primary_reset_calls": [
+      "0x41b020e8 -> plat_cpu_reset_late at 0x41b10cc0",
+      "0x41b020ec -> console_init at 0x41b10e6c"
+    ],
+    "resume_calls": [
+      "0x41b0c57c -> plat_cpu_reset_late",
+      "0x41b0c580 -> console_init"
+    ],
+    "upstream_source_order": "generic_entry_a32.S reset_primary calls plat_cpu_reset_late immediately before console_init",
+    "console_evidence": [
+      "try_uart_port and console_init diagnostics",
+      "CCU UART clock bits at 0x0200190c",
+      "serial8250 initialization: 24 MHz and 115200 baud",
+      "register_serial_console tail call"
+    ]
+  },
+  "console_validation": {
+    "implementation": "existing C source retained in patches 0003 and 0004; no duplicate implementation",
+    "host_test_cases": 128,
+    "low_port_masks": "0..63",
+    "upper_flag_patterns": [
+      "0",
+      "0xffffffc0"
+    ],
+    "checks": [
+      "First enabled UART among ports 0..5",
+      "No-port error diagnostic and observed -1-based address retained",
+      "Read count and exact register address",
+      "Diagnostic name/line/level/format/value tuples",
+      "UART device, address, clock, baud and registration order"
+    ],
+    "test_hardware_access": false,
+    "stock_instruction_shape_equal": false
+  },
+  "artifacts": {
+    "optee.bin": {
+      "sizes": [
+        283112,
+        283112
+      ],
+      "sha256": [
+        "a92b2a4545f8d881a4ab7184ba09c95d33dd785ed10bcc67285ec5a9ef9df331",
+        "a92b2a4545f8d881a4ab7184ba09c95d33dd785ed10bcc67285ec5a9ef9df331"
+      ],
+      "repeat_equal": true
+    },
+    "tee.bin": {
+      "sizes": [
+        283140,
+        283140
+      ],
+      "sha256": [
+        "40f324698a079dcc323190d7cd92417a97d1a2d01db0a77f04930b21aef71e29",
+        "40f324698a079dcc323190d7cd92417a97d1a2d01db0a77f04930b21aef71e29"
+      ],
+      "repeat_equal": true
+    },
+    "tee.elf": {
+      "sizes": [
+        3378968,
+        3364320
+      ],
+      "sha256": [
+        "9cc1ab77d4aa3b0458346204170cf301f4307380621e3c6bd3709dfcf9f922bc",
+        "27c60bdc708a39b9faaf6edfe64c2be622e20dfaf92b1ac191376da77d244124"
+      ],
+      "repeat_equal": false
+    }
+  },
+  "carrier_report": {
+    "artifact": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-late-reset-unwind-a/artifacts/optee.bin",
+    "size": 283112,
+    "sha256": "a92b2a4545f8d881a4ab7184ba09c95d33dd785ed10bcc67285ec5a9ef9df331",
+    "source_build_complete": true,
+    "stock_equivalence_established": false,
+    "status": "research-only; source standby embedded, service integration/layout/original inputs incomplete",
+    "carrier": "raw source-linked Allwinner image; standard tee.bin retained separately",
+    "header": {
+      "format": "Allwinner 4092-byte header, reset code at offset 8192",
+      "public_key_offsets": {
+        "exponent": 220172,
+        "modulus": 251430,
+        "modulus_size": 220168
+      }
+    },
+    "standby": {
+      "source_built": true,
+      "payload_bytes": 8400,
+      "payload_sha256": "7f058be9ae2b5e7d94c2fa951e3a62bba8dd3db24de9860bcbe7e63d2946ad86",
+      "wrapper_offset": 16384,
+      "wrapper_bytes": 16384,
+      "service_integration_complete": false,
+      "comparison": {
+        "whole_wrapper_equal": false,
+        "byte_differences": 8,
+        "alignment_tail_equal": true,
+        "permitted_exceptions": []
+      }
+    },
+    "comparison": {
+      "reference": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-toc-reconstruction/optee.reference.bin",
+      "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+      "reference_size": 300248,
+      "full_file_equal": false,
+      "byte_differences_in_shared_extent": 241897,
+      "first_differing_offset": 252,
+      "candidate_length_difference": -17136,
+      "permitted_exceptions": []
+    }
+  },
+  "limitations": [
+    "Reset-late CP15, clock and MMIO operations are byte-compared, not executed.",
+    "The full suspend/resume service remains unwired; only the late reset hook is integrated in the carrier.",
+    "Resume secondary initialization is still an unresolved body.",
+    "Existing console C behavior is exercised but its compiled control-flow shape is not claimed stock-identical.",
+    "Whole carrier identity remains false; no hardware boot or suspend/resume ran."
+  ],
+  "validation": {
+    "two_clean_source_builds": "completed with expected strict stock-comparison exit 1",
+    "retained_source_equals_both_build_copies": true,
+    "full_unit_suite": "make unit exited 0 with pinned BOOT0_RUNTIME_CROSS",
+    "hardware_execution": false
+  }
+}

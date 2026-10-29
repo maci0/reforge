@@ -1,7 +1,7 @@
 {
   "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
   "source": "vendor/optee/standby-host-src/resume.S",
-  "source_sha256": "6bc85f627aef26a3e1c8c9a775df191bde6c2e09eaf1014b8bdcb4cc8cd38a5a",
+  "source_sha256": "7a943b6e257a592ce7eecea64cfc21a6119cbd9248625203abc860d467f1d2e8",
   "resume_entry": {
     "address": "0x41b0c0fc",
     "bytes": 4,
@@ -32,12 +32,12 @@
       {
         "offset": "0x50",
         "type": "R_ARM_CALL",
-        "target": "standby_resume_platform_init"
+        "target": "plat_cpu_reset_late"
       },
       {
         "offset": "0x54",
         "type": "R_ARM_CALL",
-        "target": "standby_resume_select_state"
+        "target": "console_init"
       },
       {
         "offset": "0x5c",
@@ -143,24 +143,29 @@
   ],
   "unreconstructed_vendor_calls": [
     {
-      "stock_address": "0x41b10cc0",
-      "descriptive_source_name": "standby_resume_platform_init"
-    },
-    {
-      "stock_address": "0x41b10e6c",
-      "descriptive_source_name": "standby_resume_select_state"
-    },
-    {
       "stock_address": "0x41b0c038",
       "descriptive_source_name": "standby_resume_secondary_init"
     }
   ],
   "link_test": "Independent test layout; trap-only fixtures. All ARM, conditional park and ARM-to-Thumb branches resolve with no undefined symbols. No target execution.",
   "limitations": [
-    "The three descriptive vendor symbols are unresolved production dependencies, not empty implementations.",
-    "core_init_mmu_regs differs in 31 byte positions in this comparison; exact configuration and linked input differences remain to verify.",
+    "The remaining descriptive secondary-init symbol is an unresolved production dependency, not an empty implementation.",
+    "The binding snapshot predates the MMU split correction; see stock-optee-mmu-split-proof.json for the current six-relocation plus one source-line difference.",
     "Vector and temporary stack data symbols need source integration/visibility handling.",
     "No privileged reset path, SMC, MMU enable or hardware suspend/resume was executed.",
     "Whole linked carrier equality remains false."
-  ]
+  ],
+  "resolved_vendor_calls": [
+    {
+      "stock_address": "0x41b10cc0",
+      "name": "plat_cpu_reset_late",
+      "status": "source-reconstructed and integrated in carrier"
+    },
+    {
+      "stock_address": "0x41b10e6c",
+      "name": "console_init",
+      "status": "existing reconstructed C implementation; behavior tested"
+    }
+  ],
+  "upstream_binding_snapshot_artifact_sha256": "8ff44fb7af4bffc2dae99e3263bcdda45e1eaf8963912f824e45a249a35d2c81"
 }
