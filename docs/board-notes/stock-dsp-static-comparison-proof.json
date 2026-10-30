@@ -1,0 +1,649 @@
+{
+  "status": "static inspection only; externally produced candidate, build not executed or certified by this agent",
+  "stock_size": 261240,
+  "candidate_size": 257240,
+  "size_delta": -4000,
+  "stock_sha256": "61ed4f199ca3b15f96c245a709282e1a4798b14d0f23a5e2930577487ebd20d1",
+  "candidate_sha256": "9253a505c6499599fb4e65ec3f5fa8e073db996196118379c881ab4457e63ad6",
+  "sections": [
+    {
+      "name": "",
+      "stock_size": 0,
+      "candidate_size": 0,
+      "size_delta": 0,
+      "same_bytes": true,
+      "stock_address": "0x0",
+      "candidate_address": "0x0",
+      "allocated": false,
+      "nobits": false
+    },
+    {
+      "name": ".oemhead.text",
+      "stock_size": 932,
+      "candidate_size": 944,
+      "size_delta": 12,
+      "same_bytes": false,
+      "stock_address": "0x400000",
+      "candidate_address": "0x400000",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".ResetVector.text",
+      "stock_size": 364,
+      "candidate_size": 364,
+      "size_delta": 0,
+      "same_bytes": false,
+      "stock_address": "0x400660",
+      "candidate_address": "0x400660",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".WindowVectors.text",
+      "stock_size": 364,
+      "candidate_size": 364,
+      "size_delta": 0,
+      "same_bytes": true,
+      "stock_address": "0x401000",
+      "candidate_address": "0x401000",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".Level2InterruptVector.literal",
+      "stock_size": 4,
+      "candidate_size": 4,
+      "size_delta": 0,
+      "same_bytes": false,
+      "stock_address": "0x40116c",
+      "candidate_address": "0x40116c",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".Level2InterruptVector.text",
+      "stock_size": 12,
+      "candidate_size": 12,
+      "size_delta": 0,
+      "same_bytes": true,
+      "stock_address": "0x40117c",
+      "candidate_address": "0x40117c",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".Level3InterruptVector.literal",
+      "stock_size": 4,
+      "candidate_size": 4,
+      "size_delta": 0,
+      "same_bytes": false,
+      "stock_address": "0x401188",
+      "candidate_address": "0x401188",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".Level3InterruptVector.text",
+      "stock_size": 12,
+      "candidate_size": 12,
+      "size_delta": 0,
+      "same_bytes": true,
+      "stock_address": "0x40119c",
+      "candidate_address": "0x40119c",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".DebugExceptionVector.literal",
+      "stock_size": 4,
+      "candidate_size": 4,
+      "size_delta": 0,
+      "same_bytes": false,
+      "stock_address": "0x4011a8",
+      "candidate_address": "0x4011a8",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".DebugExceptionVector.text",
+      "stock_size": 12,
+      "candidate_size": 12,
+      "size_delta": 0,
+      "same_bytes": true,
+      "stock_address": "0x4011bc",
+      "candidate_address": "0x4011bc",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".NMIExceptionVector.literal",
+      "stock_size": 4,
+      "candidate_size": 4,
+      "size_delta": 0,
+      "same_bytes": false,
+      "stock_address": "0x4011c8",
+      "candidate_address": "0x4011c8",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".NMIExceptionVector.text",
+      "stock_size": 12,
+      "candidate_size": 12,
+      "size_delta": 0,
+      "same_bytes": true,
+      "stock_address": "0x4011dc",
+      "candidate_address": "0x4011dc",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".KernelExceptionVector.literal",
+      "stock_size": 4,
+      "candidate_size": 4,
+      "size_delta": 0,
+      "same_bytes": false,
+      "stock_address": "0x4011e8",
+      "candidate_address": "0x4011e8",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".KernelExceptionVector.text",
+      "stock_size": 12,
+      "candidate_size": 12,
+      "size_delta": 0,
+      "same_bytes": true,
+      "stock_address": "0x4011fc",
+      "candidate_address": "0x4011fc",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".UserExceptionVector.literal",
+      "stock_size": 4,
+      "candidate_size": 4,
+      "size_delta": 0,
+      "same_bytes": false,
+      "stock_address": "0x401208",
+      "candidate_address": "0x401208",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".UserExceptionVector.text",
+      "stock_size": 12,
+      "candidate_size": 12,
+      "size_delta": 0,
+      "same_bytes": true,
+      "stock_address": "0x40121c",
+      "candidate_address": "0x40121c",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".DoubleExceptionVector.literal",
+      "stock_size": 4,
+      "candidate_size": 4,
+      "size_delta": 0,
+      "same_bytes": false,
+      "stock_address": "0x401228",
+      "candidate_address": "0x401228",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".DoubleExceptionVector.text",
+      "stock_size": 12,
+      "candidate_size": 12,
+      "size_delta": 0,
+      "same_bytes": true,
+      "stock_address": "0x40123c",
+      "candidate_address": "0x40123c",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".clib.rodata",
+      "stock_size": 2768,
+      "candidate_size": 2768,
+      "size_delta": 0,
+      "same_bytes": false,
+      "stock_address": "0x32000000",
+      "candidate_address": "0x32000030",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".rtos.rodata",
+      "stock_size": 48,
+      "candidate_size": 48,
+      "size_delta": 0,
+      "same_bytes": true,
+      "stock_address": "0x32000ad0",
+      "candidate_address": "0x32000000",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".rodata",
+      "stock_size": 24384,
+      "candidate_size": 22684,
+      "size_delta": -1700,
+      "same_bytes": false,
+      "stock_address": "0x32000b00",
+      "candidate_address": "0x32000b00",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".clib.data",
+      "stock_size": 772,
+      "candidate_size": 772,
+      "size_delta": 0,
+      "same_bytes": false,
+      "stock_address": "0x32006a40",
+      "candidate_address": "0x320063a0",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".FSymTab",
+      "stock_size": 80,
+      "candidate_size": 160,
+      "size_delta": 80,
+      "same_bytes": false,
+      "stock_address": "0x32006d50",
+      "candidate_address": "0x320066b0",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".data",
+      "stock_size": 16948,
+      "candidate_size": 17400,
+      "size_delta": 452,
+      "same_bytes": false,
+      "stock_address": "0x32006da0",
+      "candidate_address": "0x32006750",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".text",
+      "stock_size": 92784,
+      "candidate_size": 89692,
+      "size_delta": -3092,
+      "same_bytes": false,
+      "stock_address": "0x3200afe0",
+      "candidate_address": "0x3200ab50",
+      "allocated": true,
+      "nobits": false
+    },
+    {
+      "name": ".bss",
+      "stock_size": 281832,
+      "candidate_size": 282656,
+      "size_delta": 824,
+      "same_bytes": false,
+      "stock_address": "0x32021a50",
+      "candidate_address": "0x320209b0",
+      "allocated": true,
+      "nobits": true
+    },
+    {
+      "name": ".xt.prop",
+      "stock_size": 92892,
+      "candidate_size": 91884,
+      "size_delta": -1008,
+      "same_bytes": false,
+      "stock_address": "0x0",
+      "candidate_address": "0x0",
+      "allocated": false,
+      "nobits": false
+    },
+    {
+      "name": ".xt.lit",
+      "stock_size": 1584,
+      "candidate_size": 1840,
+      "size_delta": 256,
+      "same_bytes": false,
+      "stock_address": "0x0",
+      "candidate_address": "0x0",
+      "allocated": false,
+      "nobits": false
+    },
+    {
+      "name": ".xtensa.info",
+      "stock_size": 488,
+      "candidate_size": 488,
+      "size_delta": 0,
+      "same_bytes": true,
+      "stock_address": "0x0",
+      "candidate_address": "0x0",
+      "allocated": false,
+      "nobits": false
+    },
+    {
+      "name": ".comment",
+      "stock_size": 24464,
+      "candidate_size": 25337,
+      "size_delta": 873,
+      "same_bytes": false,
+      "stock_address": "0x0",
+      "candidate_address": "0x0",
+      "allocated": false,
+      "nobits": false
+    },
+    {
+      "name": ".shstrtab",
+      "stock_size": 554,
+      "candidate_size": 554,
+      "size_delta": 0,
+      "same_bytes": false,
+      "stock_address": "0x0",
+      "candidate_address": "0x0",
+      "allocated": false,
+      "nobits": false
+    }
+  ],
+  "stock_program_headers": [
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 436,
+      "p_vaddr": 4194304,
+      "p_paddr": 4194304,
+      "p_filesz": 932,
+      "p_memsz": 932,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 1368,
+      "p_vaddr": 4195936,
+      "p_paddr": 4195936,
+      "p_filesz": 364,
+      "p_memsz": 364,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 1732,
+      "p_vaddr": 4198400,
+      "p_paddr": 4198400,
+      "p_filesz": 368,
+      "p_memsz": 368,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2100,
+      "p_vaddr": 4198780,
+      "p_paddr": 4198780,
+      "p_filesz": 16,
+      "p_memsz": 16,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2116,
+      "p_vaddr": 4198812,
+      "p_paddr": 4198812,
+      "p_filesz": 16,
+      "p_memsz": 16,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2132,
+      "p_vaddr": 4198844,
+      "p_paddr": 4198844,
+      "p_filesz": 16,
+      "p_memsz": 16,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2148,
+      "p_vaddr": 4198876,
+      "p_paddr": 4198876,
+      "p_filesz": 16,
+      "p_memsz": 16,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2164,
+      "p_vaddr": 4198908,
+      "p_paddr": 4198908,
+      "p_filesz": 16,
+      "p_memsz": 16,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2180,
+      "p_vaddr": 4198940,
+      "p_paddr": 4198940,
+      "p_filesz": 16,
+      "p_memsz": 16,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2196,
+      "p_vaddr": 4198972,
+      "p_paddr": 4198972,
+      "p_filesz": 12,
+      "p_memsz": 12,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2208,
+      "p_vaddr": 838860800,
+      "p_paddr": 838860800,
+      "p_filesz": 137808,
+      "p_memsz": 137808,
+      "p_flags": 7,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 140016,
+      "p_vaddr": 838998608,
+      "p_paddr": 838998608,
+      "p_filesz": 0,
+      "p_memsz": 281832,
+      "p_flags": 6,
+      "p_align": 1
+    }
+  ],
+  "candidate_program_headers": [
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 564,
+      "p_vaddr": 4194304,
+      "p_paddr": 4194304,
+      "p_filesz": 944,
+      "p_memsz": 944,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 1508,
+      "p_vaddr": 4195936,
+      "p_paddr": 4195936,
+      "p_filesz": 364,
+      "p_memsz": 364,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 1872,
+      "p_vaddr": 4198400,
+      "p_paddr": 4198400,
+      "p_filesz": 368,
+      "p_memsz": 368,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2240,
+      "p_vaddr": 4198780,
+      "p_paddr": 4198780,
+      "p_filesz": 16,
+      "p_memsz": 16,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2256,
+      "p_vaddr": 4198812,
+      "p_paddr": 4198812,
+      "p_filesz": 16,
+      "p_memsz": 16,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2272,
+      "p_vaddr": 4198844,
+      "p_paddr": 4198844,
+      "p_filesz": 16,
+      "p_memsz": 16,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2288,
+      "p_vaddr": 4198876,
+      "p_paddr": 4198876,
+      "p_filesz": 16,
+      "p_memsz": 16,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2304,
+      "p_vaddr": 4198908,
+      "p_paddr": 4198908,
+      "p_filesz": 16,
+      "p_memsz": 16,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2320,
+      "p_vaddr": 4198940,
+      "p_paddr": 4198940,
+      "p_filesz": 16,
+      "p_memsz": 16,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2336,
+      "p_vaddr": 4198972,
+      "p_paddr": 4198972,
+      "p_filesz": 12,
+      "p_memsz": 12,
+      "p_flags": 5,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2348,
+      "p_vaddr": 0,
+      "p_paddr": 0,
+      "p_filesz": 0,
+      "p_memsz": 0,
+      "p_flags": 0,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2348,
+      "p_vaddr": 0,
+      "p_paddr": 0,
+      "p_filesz": 0,
+      "p_memsz": 0,
+      "p_flags": 0,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2348,
+      "p_vaddr": 0,
+      "p_paddr": 0,
+      "p_filesz": 0,
+      "p_memsz": 0,
+      "p_flags": 0,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2348,
+      "p_vaddr": 0,
+      "p_paddr": 0,
+      "p_filesz": 0,
+      "p_memsz": 0,
+      "p_flags": 0,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 2348,
+      "p_vaddr": 838860800,
+      "p_paddr": 838860800,
+      "p_filesz": 133548,
+      "p_memsz": 133548,
+      "p_flags": 7,
+      "p_align": 1
+    },
+    {
+      "p_type": "PT_LOAD",
+      "p_offset": 135896,
+      "p_vaddr": 838994352,
+      "p_paddr": 838994352,
+      "p_filesz": 0,
+      "p_memsz": 282656,
+      "p_flags": 6,
+      "p_align": 1
+    }
+  ],
+  "summary": {
+    "file_backed_allocated_section_size_delta": -4248,
+    "nonallocated_section_size_delta": 121,
+    "bss_runtime_allocation_delta": 824,
+    "whole_file_byte_identity": false,
+    "no_toolchain_or_license_check_bypass_executed": true,
+    "candidate_provenance": "User supplied artifact, reported as built with a checkout-bypassed compiler; not accepted as independently verified source-build closure",
+    "limits": [
+      "Section size deltas are not instruction-level differences",
+      "Different addresses introduce relocation differences",
+      "NOBITS bss size does not add file payload bytes",
+      "Source/configuration identity and DSP partition tail remain unresolved"
+    ]
+  }
+}

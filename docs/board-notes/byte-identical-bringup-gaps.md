@@ -346,7 +346,7 @@ compare every byte with no permitted exceptions. See [the OP-TEE recipe](../../v
 
 ## G03 — DSP0 license, source cohort and complete partition
 
-**Compile blocked and original source identity unresolved.** The active boot
+**Authorized compiler checkout and original source identity remain unresolved.** The active boot
 command loads this firmware; exclusion from the current build does not remove
 it from a complete original bring-up target.
 
@@ -363,6 +363,20 @@ it from a complete original bring-up target.
   filenames (`notifier.c`, `sunxi_dma_core.c`); filename correspondence is not
   source equivalence. Original configuration, compile cohort and runtime-library
   source-build closure remain unverified.
+- A user-supplied candidate is now available for static comparison: stripped
+  ELF 257,240 bytes, SHA-256
+  `9253a505c6499599fb4e65ec3f5fa8e073db996196118379c881ab4457e63ad6`.
+  Its reported build used a license-check bypass; that toolchain was not run
+  by this audit and does not close authorized source-build provenance.
+  Against the hash-verified golden ELF, the file is 4,000 bytes smaller:
+  `.text` is 3,092 bytes smaller, `.rodata` 1,700 smaller, `.data` 452 larger,
+  `.FSymTab` 80 larger and `.oemhead.text` 12 larger. The BSS runtime allocation
+  is 824 bytes larger (NOBITS, not file payload). `.clib.rodata` and
+  `.rtos.rodata` have different placement/order. Eight small vector text
+  sections and the window vectors match individually; literal tables and
+  reset code still differ. Section-size deltas are not instruction bindiffs.
+  [Static candidate comparison](stock-dsp-static-comparison-proof.json) records
+  all sections and program headers without executing target code or compiler.
 - The whole 1-MiB DSP partition has SHA-256
   `3ce7c4ff5b9953986c63193acde1ca8783fe6a0a1ef12df9f8983cbdc018efb1`.
   A 904-byte residual tail follows the ELF through the 256-KiB boundary, then
