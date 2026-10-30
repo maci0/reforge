@@ -296,15 +296,17 @@ Remaining work:
   section, real relocation fields and full decoded instruction. It does not
   certify relocation targets or original function boundaries. Larger unmatched
   core routines remain separate source/configuration work.
-  The subsequent [target audit](stock-optee-core-targets-proof.json) checks
-  135 relocation targets: 54 direct callee bodies match outside their own
-  relocations and 49 strings match. Crucially, it rejects the apparent
-  `core_mmu_get_entry` correspondence: that stock body names `core_mmu_set_entry`
-  and calls a different primitive. The 17-section shape result therefore
-  includes one rejected identity candidate. Ten callee bodies differ, eleven
-  definitions are ambiguous/missing and ten data targets remain unresolved.
-  The read-only verifier and counterexample regression retain these limits;
-  no production build inputs changed.
+  The [target audit](stock-optee-core-targets-proof.json) checks 135 relocation
+  targets: 55 direct callee bodies match outside their own relocations and 50
+  strings match. It rejects the initial apparent `core_mmu_get_entry` mapping
+  at `0x41b0d630` (actually the setter), then locates the real getter at
+  `0x41b0d700` by its function-name string. All three getter callee bodies and
+  all three strings match. Its stock assertion line 1363 versus source 1322
+  has the same +41 shift as the setter. The single immediate-byte difference
+  remains; original source edits must explain it. Nine other callee bodies
+  differ, eleven definitions are ambiguous/missing and ten data targets remain
+  unresolved. The regression checks both the correct identity and rejected
+  lookalike. No production build inputs changed.
 - **Layout and integration:** all 16 recovered physical-map records match their
   names, types, addresses and lengths, but record order is not certified. The
   first 8,192 header bytes match except three genuine link-derived public-key

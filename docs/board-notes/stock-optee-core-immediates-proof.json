@@ -876,7 +876,7 @@
     {
       "source_object": "core/arch/arm/mm/core_mmu.o",
       "section": ".text.core_mmu_get_entry",
-      "stock_offset": "0xd630",
+      "stock_offset": "0xd700",
       "bytes": 56,
       "relocations": [
         {
@@ -914,12 +914,13 @@
         12
       ],
       "source_instruction": "movw r2, #0x52a",
-      "stock_instruction": "movw r2, #0x54b",
+      "stock_instruction": "movw r2, #0x553",
       "instruction_offset": 10,
       "matching_other_unmasked_bytes": 31,
       "source_relocation_masked_sha256": "7f11dd2a65b8e68f5ebc1610160a27077c540846ed01e6be830d4a26852ffd7f",
-      "stock_relocation_masked_sha256": "74d7eb1663d653f407ab0dee66280024a75ef4ede7d2a3a082b004145411b147",
-      "target_audit_status": "rejected correspondence: stock string names core_mmu_set_entry and callee differs"
+      "stock_relocation_masked_sha256": "ea168002a72ede89c9bbb928d762643803cb918e39c20259e294ff17a1b24791",
+      "target_audit_status": "corrected candidate located by original function-name string",
+      "rejected_previous_stock_offset": "0xd630"
     },
     {
       "source_object": "core/arch/arm/kernel/generic_boot.o",
@@ -977,6 +978,6 @@
     "Immediate differences remain real output differences; no metadata/line overrides applied",
     "Sections are not certified stock symbol boundaries; original symbol table is unavailable",
     "This is neither whole-core correspondence nor whole-image equality",
-    "Subsequent relocation audit rejects the core_mmu_get_entry candidate; its shape comparison remains recorded but is not a function correspondence."
+    "The initial core_mmu_get_entry candidate at 0xd630 was rejected by relocation targets; the corrected candidate at 0xd700 is located by its original function-name string."
   ]
 }

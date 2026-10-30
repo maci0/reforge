@@ -1046,17 +1046,17 @@
       "caller": "core_mmu_get_entry",
       "offset": 36,
       "symbol": "core_mmu_get_entry_primitive",
-      "stock_target": "0x41b2c5d4",
+      "stock_target": "0x41b0eec4",
       "callee_bytes": 72,
-      "different_nonrelocation_bytes": 58,
-      "status": "callee-body-differs"
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
     },
     {
       "caller": "core_mmu_get_entry",
       "offset": 44,
       "symbol": "",
-      "stock_target": "0x41b3e2ac",
-      "status": "string-differs",
+      "stock_target": "0x41b3e193",
+      "status": "string-match",
       "source_string": "core_mmu_get_entry"
     },
     {
@@ -1127,18 +1127,28 @@
       "source_string": "nsec_entry != PADDR_INVALID"
     }
   ],
-  "status": "partial target audit; one near-match candidate rejected",
+  "status": "partial target audit; false candidate replaced by string-located getter",
   "summary": {
     "callee-definition-ambiguous-or-missing": 11,
-    "callee-body-match": 54,
-    "callee-body-differs": 10,
+    "callee-body-match": 55,
+    "callee-body-differs": 9,
     "data-target-unresolved": 10,
-    "string-match": 49,
-    "string-differs": 1
+    "string-match": 50
   },
   "rejected_candidate": {
     "source_section": ".text.core_mmu_get_entry",
     "stock_offset": "0xd630",
     "reason": "Stock function-name string is core_mmu_set_entry and helper body differs; instruction shape is insufficient for identity"
+  },
+  "corrected_candidate": {
+    "source_section": ".text.core_mmu_get_entry",
+    "stock_offset": "0xd700",
+    "stock_assertion_line": 1363,
+    "source_assertion_line": 1322,
+    "setter_source_to_stock_line_delta": 41,
+    "getter_source_to_stock_line_delta": 41,
+    "all_three_direct_callee_bodies_match": true,
+    "all_three_strings_match": true,
+    "remaining_nonrelocation_byte_differences": 1
   }
 }
