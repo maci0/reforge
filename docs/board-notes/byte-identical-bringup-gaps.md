@@ -372,7 +372,7 @@ it from a complete original bring-up target.
   `.text` is 3,092 bytes smaller, `.rodata` 1,700 smaller, `.data` 452 larger,
   `.FSymTab` 80 larger and `.oemhead.text` 12 larger. The BSS runtime allocation
   is 824 bytes larger (NOBITS, not file payload). `.clib.rodata` and
-  `.rtos.rodata` have different placement/order. Eight small vector text
+  `.rtos.rodata` have different placement/order. Seven small vector text
   sections and the window vectors match individually; literal tables and
   reset code still differ. Section-size deltas are not instruction bindiffs.
   [Static candidate comparison](stock-dsp-static-comparison-proof.json) records
