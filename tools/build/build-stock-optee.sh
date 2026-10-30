@@ -79,7 +79,8 @@ patches=("$patchdir/0001-upstream-sm4.patch" "$patchdir/0002-upstream-sm3.patch"
          "$patchdir/0014-source-system-reset.patch"
          "$patchdir/0015-source-cpu-off.patch"
          "$patchdir/0016-source-cpu-suspend.patch"
-         "$patchdir/0017-source-arisc-wakeup.patch")
+         "$patchdir/0017-source-arisc-wakeup.patch"
+         "$patchdir/0018-runtime-memory-bounds.patch")
 for source_patch in "${patches[@]}"; do
     patch --batch --forward --fuzz=0 -s -p1 -d "$out/source-tree" < "$source_patch"
 done

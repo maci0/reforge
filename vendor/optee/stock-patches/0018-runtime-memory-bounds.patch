@@ -1,0 +1,42 @@
+--- a/core/arch/arm/plat-sun8iw20p1/conf.mk
++++ b/core/arch/arm/plat-sun8iw20p1/conf.mk
+@@ -4,6 +4,7 @@
+ $(call force,CFG_BOOT_SECONDARY_REQUEST,y)
+ $(call force,CFG_PSCI_ARM32,y)
+ $(call force,CFG_NUM_THREADS,4)
++$(call force,CFG_TEE_RAM_VA_SIZE,0x80000)
+ $(call force,CFG_ARM32_core,y)
+ $(call force,CFG_GIC,y)
+ $(call force,CFG_WITH_LPAE,n)
+--- a/core/arch/arm/mm/core_mmu.c
++++ b/core/arch/arm/mm/core_mmu.c
+@@ -23,6 +23,7 @@
+ #include <mm/core_mmu.h>
+ #include <mm/mobj.h>
+ #include <mm/pgt_cache.h>
++#include <mm/tee_mm.h>
+ #include <mm/tee_mmu.h>
+ #include <mm/tee_pager.h>
+ #include <platform_config.h>
+@@ -1104,11 +1105,21 @@
+ 		return core_is_buffer_inside(pbuf, len, TEE_RAM_START,
+ 							TEE_RAM_PH_SIZE);
+ 	case CORE_MEM_TA_RAM:
++		#ifdef CFG_SUN8IW20P1
++		return core_is_buffer_inside(pbuf, len, tee_mm_sec_ddr.lo,
++					tee_mm_sec_ddr.hi - tee_mm_sec_ddr.lo);
++#else
+ 		return core_is_buffer_inside(pbuf, len, TA_RAM_START,
+ 							TA_RAM_SIZE);
++#endif
+ 	case CORE_MEM_NSEC_SHM:
++		#ifdef CFG_SUN8IW20P1
++		return core_is_buffer_inside(pbuf, len, default_nsec_shm_paddr,
++					default_nsec_shm_size);
++#else
+ 		return core_is_buffer_inside(pbuf, len, TEE_SHMEM_START,
+ 							TEE_SHMEM_SIZE);
++#endif
+ 	case CORE_MEM_SDP_MEM:
+ 		return pbuf_is_sdp_mem(pbuf, len);
+ 	case CORE_MEM_CACHED:

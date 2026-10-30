@@ -1,0 +1,170 @@
+{
+  "status": "partial reconstruction; whole stock image remains different",
+  "patch": "vendor/optee/stock-patches/0018-runtime-memory-bounds.patch",
+  "stock_function_address": "0x41b0d4cc",
+  "function_bytes": 228,
+  "relocations": [
+    {
+      "offset": 38,
+      "type": 10,
+      "symbol": "_pbuf_is_inside.constprop.23"
+    },
+    {
+      "offset": 72,
+      "type": 10,
+      "symbol": "_core_is_buffer_inside"
+    },
+    {
+      "offset": 126,
+      "type": 10,
+      "symbol": "find_map_by_pa"
+    },
+    {
+      "offset": 142,
+      "type": 10,
+      "symbol": "_core_is_buffer_inside"
+    },
+    {
+      "offset": 178,
+      "type": 10,
+      "symbol": "scattered_array_relax_ptr"
+    },
+    {
+      "offset": 188,
+      "type": 2,
+      "symbol": ""
+    },
+    {
+      "offset": 192,
+      "type": 2,
+      "symbol": ""
+    },
+    {
+      "offset": 196,
+      "type": 2,
+      "symbol": ""
+    },
+    {
+      "offset": 200,
+      "type": 2,
+      "symbol": ""
+    },
+    {
+      "offset": 208,
+      "type": 2,
+      "symbol": "tee_mm_sec_ddr"
+    },
+    {
+      "offset": 212,
+      "type": 2,
+      "symbol": ""
+    },
+    {
+      "offset": 216,
+      "type": 2,
+      "symbol": ""
+    },
+    {
+      "offset": 220,
+      "type": 2,
+      "symbol": ""
+    },
+    {
+      "offset": 224,
+      "type": 2,
+      "symbol": ""
+    },
+    {
+      "offset": 32,
+      "type": 30,
+      "symbol": "_pbuf_is_inside.constprop.23"
+    },
+    {
+      "offset": 120,
+      "type": 30,
+      "symbol": "_core_is_buffer_inside"
+    }
+  ],
+  "matching_nonrelocation_bytes": 164,
+  "relocation_masked_sha256": "131bc81eb3e71dabb3dfae46fdb79f94ee22188fba08807a4fde538a6fadc45d",
+  "functional_inputs": {
+    "core_ram_size": 524288,
+    "ta_ram": "tee_mm_sec_ddr.lo through tee_mm_sec_ddr.hi",
+    "nonsecure_shared_ram": "default_nsec_shm_paddr and default_nsec_shm_size"
+  },
+  "original_pool_evidence": {
+    "global_address": "0x41b49c2c",
+    "lo_offset": 4,
+    "hi_offset": 8,
+    "consumer": "core_pbuf_is TA case",
+    "initializer": "teecore_init_ta_ram at 0x41b0e994 passes this object to tee_mm_init at 0x41b0ea22"
+  },
+  "tests": {
+    "regression": "tests/release/test_stock_optee_memory_bounds.py",
+    "production_objects": [
+      "core/arch/arm/mm/core_mmu.o",
+      "core/kernel/tee_misc.o"
+    ],
+    "runtime": "QEMU ARM user mode",
+    "moving_pool_cases": 8,
+    "range_samples_per_pool": 1205,
+    "core_upper_boundary_checked": true,
+    "empty_and_unknown_attributes_checked": true,
+    "enum": "copied verbatim from production core_memprot.h for compilation",
+    "modeled_boundary": "scattered-array fallback traps if reached; no physical MMIO or privileged code executes",
+    "full_unit_log": "build/unit-optee-memory-bounds-full.log",
+    "full_unit_exit": 0
+  },
+  "clean_builds": [
+    "build/stock-optee-memory-bounds/source-a",
+    "build/stock-optee-memory-bounds/source-b"
+  ],
+  "optee_and_tee_deployable_bytes_repeat": true,
+  "candidate": {
+    "artifact": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-optee-memory-bounds/source-a/artifacts/optee.bin",
+    "size": 287224,
+    "sha256": "fefa6c2400a7f92449eecbecb8e35dd8ff8070514ad31d82d0d837de0e01d4c1",
+    "source_build_complete": true,
+    "stock_equivalence_established": false,
+    "status": "research-only; source standby embedded, service integration/layout/original inputs incomplete",
+    "carrier": "raw source-linked Allwinner image; standard tee.bin retained separately",
+    "header": {
+      "format": "Allwinner 4092-byte header, reset code at offset 8192",
+      "public_key_offsets": {
+        "exponent": 224268,
+        "modulus": 255854,
+        "modulus_size": 224264
+      }
+    },
+    "standby": {
+      "source_built": true,
+      "payload_bytes": 8400,
+      "payload_sha256": "7f058be9ae2b5e7d94c2fa951e3a62bba8dd3db24de9860bcbe7e63d2946ad86",
+      "wrapper_offset": 16384,
+      "wrapper_bytes": 16384,
+      "service_integration_complete": false,
+      "comparison": {
+        "whole_wrapper_equal": false,
+        "byte_differences": 8,
+        "alignment_tail_equal": true,
+        "permitted_exceptions": []
+      }
+    },
+    "comparison": {
+      "reference": "/home/maci/Desktop/Projects/flashforge/reforge/build/stock-toc-reconstruction/optee.reference.bin",
+      "reference_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+      "reference_size": 300248,
+      "full_file_equal": false,
+      "byte_differences_in_shared_extent": 244563,
+      "first_differing_offset": 252,
+      "candidate_length_difference": -13024,
+      "permitted_exceptions": []
+    }
+  },
+  "physical_hardware_tested": false,
+  "limitations": [
+    "Callee/data relocation target equivalence is not proved by normalized section comparison",
+    "Generic RAM layout also changes through CFG_TEE_RAM_VA_SIZE; whole runtime and map order remain unverified",
+    "Candidate remains research-only, not a verified deployable secure OS"
+  ]
+}

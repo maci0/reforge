@@ -65,9 +65,9 @@ G09 separately records compiler-runtime source closure.
 300,248 bytes, SHA-256
 `7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99`.
 Current clean source candidate: 287,224 bytes, SHA-256
-`04432a9cce7eb85e897eb518889d3caacaf1be3d0c51b4e9bc316c9a437ba983`
+`fefa6c2400a7f92449eecbecb8e35dd8ff8070514ad31d82d0d837de0e01d4c1`
 (after standby/MMU/reset reconstruction and PSCI identification/CPU-control/reset/off/suspend integration).
-The **size delta is −13,024 bytes**; **244,573 byte positions differ in the
+The **size delta is −13,024 bytes**; **244,563 byte positions differ in the
 shared extent**. Neither number means that exactly 13,040 instruction bytes are
 missing: section layout, data and alignment also contribute.
 
@@ -307,6 +307,17 @@ Remaining work:
   differ, eleven definitions are ambiguous/missing and ten data targets remain
   unresolved. The regression checks both the correct identity and rejected
   lookalike. No production build inputs changed.
+  Runtime memory-bound inputs are now restored in `core_pbuf_is`: core RAM
+  spans 512 KiB, TA bounds use `tee_mm_sec_ddr.lo/hi`, and shared-memory bounds
+  use the runtime shared-memory globals. All 164 bytes outside sixteen real
+  relocation fields match the original 228-byte section. QEMU executes the
+  production core function and buffer helper across 19,280 range samples,
+  checks both sides of the core upper bound and empty/unknown attributes.
+  The enum is taken verbatim from the production header. Two clean builds
+  repeat deployable bytes and the full unit suite passes. The core VA size
+  input also affects derived generic RAM layout; full map ordering and runtime
+  integration still require comparison. [Memory-bounds proof](stock-optee-memory-bounds-proof.json)
+  records the exact limits; no hardware memory mappings were changed.
 - **Layout and integration:** all 16 recovered physical-map records match their
   names, types, addresses and lengths, but record order is not certified. The
   first 8,192 header bytes match except three genuine link-derived public-key
