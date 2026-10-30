@@ -918,7 +918,8 @@
       "instruction_offset": 10,
       "matching_other_unmasked_bytes": 31,
       "source_relocation_masked_sha256": "7f11dd2a65b8e68f5ebc1610160a27077c540846ed01e6be830d4a26852ffd7f",
-      "stock_relocation_masked_sha256": "74d7eb1663d653f407ab0dee66280024a75ef4ede7d2a3a082b004145411b147"
+      "stock_relocation_masked_sha256": "74d7eb1663d653f407ab0dee66280024a75ef4ede7d2a3a082b004145411b147",
+      "target_audit_status": "rejected correspondence: stock string names core_mmu_set_entry and callee differs"
     },
     {
       "source_object": "core/arch/arm/kernel/generic_boot.o",
@@ -975,6 +976,7 @@
     "Relocation target equivalence is not established by this comparison",
     "Immediate differences remain real output differences; no metadata/line overrides applied",
     "Sections are not certified stock symbol boundaries; original symbol table is unavailable",
-    "This is neither whole-core correspondence nor whole-image equality"
+    "This is neither whole-core correspondence nor whole-image equality",
+    "Subsequent relocation audit rejects the core_mmu_get_entry candidate; its shape comparison remains recorded but is not a function correspondence."
   ]
 }

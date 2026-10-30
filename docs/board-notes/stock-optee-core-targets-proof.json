@@ -1,0 +1,1144 @@
+{
+  "source_build": "build/stock-optee-arisc-wakeup/source-b",
+  "stock_sha256": "7ccd7a54ae2142f68d6bac60e3e2b36ccbfa2ec677aa6ce84342cc6f1b821c99",
+  "scope": "Direct callee bodies and string contents only; callee relocation targets and other data remain unproven",
+  "checks": [
+    {
+      "caller": "tee_mmu_map_param",
+      "offset": 34,
+      "symbol": "memset",
+      "stock_target": "0x41b33778",
+      "status": "callee-definition-ambiguous-or-missing"
+    },
+    {
+      "caller": "tee_mmu_map_param",
+      "offset": 56,
+      "symbol": "mobj_get_phys_offs.constprop.17",
+      "stock_target": "0x41b2c3d4",
+      "callee_bytes": 20,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "tee_mmu_map_param",
+      "offset": 118,
+      "symbol": "qsort",
+      "stock_target": "0x41b3347e",
+      "status": "callee-definition-ambiguous-or-missing"
+    },
+    {
+      "caller": "tee_mmu_map_param",
+      "offset": 192,
+      "symbol": "_core_is_buffer_intersect",
+      "stock_target": "0x41b2dab2",
+      "callee_bytes": 44,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "tee_mmu_map_param",
+      "offset": 266,
+      "symbol": "_assert_log",
+      "stock_target": "0x41b1518c",
+      "callee_bytes": 36,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "tee_mmu_map_param",
+      "offset": 270,
+      "symbol": "_assert_break",
+      "stock_target": "0x41b151b0",
+      "callee_bytes": 24,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "tee_mmu_map_param",
+      "offset": 326,
+      "symbol": "vm_map_pad.part.16",
+      "stock_target": "0x41b0e41c",
+      "callee_bytes": 224,
+      "different_nonrelocation_bytes": 55,
+      "status": "callee-body-differs"
+    },
+    {
+      "caller": "tee_mmu_map_param",
+      "offset": 400,
+      "symbol": "mobj_get_phys_offs.constprop.17",
+      "stock_target": "0x41b2c3d4",
+      "callee_bytes": 20,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "tee_mmu_map_param",
+      "offset": 440,
+      "symbol": "alloc_pgt",
+      "stock_target": "0x41b0e0d8",
+      "callee_bytes": 104,
+      "different_nonrelocation_bytes": 1,
+      "status": "callee-body-differs"
+    },
+    {
+      "caller": "tee_mmu_map_param",
+      "offset": 452,
+      "symbol": "tee_mmu_clean_param",
+      "stock_target": "0x41b2c472",
+      "callee_bytes": 40,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "tee_mmu_map_param",
+      "offset": 468,
+      "symbol": "cmp_param_mem",
+      "stock_target": "0x41b2c3fb",
+      "status": "data-target-unresolved"
+    },
+    {
+      "caller": "tee_mmu_map_param",
+      "offset": 472,
+      "symbol": "",
+      "stock_target": "0x41b3eda4",
+      "status": "string-match",
+      "source_string": "check_param_map_empty"
+    },
+    {
+      "caller": "tee_mmu_map_param",
+      "offset": 476,
+      "symbol": "",
+      "stock_target": "0x41b3ebca",
+      "status": "string-match",
+      "source_string": "core/arch/arm/mm/tee_mmu.c"
+    },
+    {
+      "caller": "tee_mmu_map_param",
+      "offset": 480,
+      "symbol": "",
+      "stock_target": "0x41b3ec48",
+      "status": "string-match",
+      "source_string": "!(r->flags & VM_FLAG_EPHEMERAL)"
+    },
+    {
+      "caller": "copy_in_params",
+      "offset": 36,
+      "symbol": "memset",
+      "stock_target": "0x41b33778",
+      "status": "callee-definition-ambiguous-or-missing"
+    },
+    {
+      "caller": "copy_in_params",
+      "offset": 192,
+      "symbol": "msg_param_mobj_from_noncontig",
+      "stock_target": "0x41b15298",
+      "callee_bytes": 292,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "copy_in_params",
+      "offset": 226,
+      "symbol": "__do_panic",
+      "stock_target": "0x41b153bc",
+      "callee_bytes": 200,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "copy_in_params",
+      "offset": 274,
+      "symbol": "_core_is_buffer_inside",
+      "stock_target": "0x41b2da56",
+      "callee_bytes": 44,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "copy_in_params",
+      "offset": 312,
+      "symbol": "mobj_reg_shm_get_by_cookie",
+      "stock_target": "0x41b0fdf0",
+      "callee_bytes": 96,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "copy_in_params",
+      "offset": 416,
+      "symbol": "",
+      "stock_target": "0x41b49cec",
+      "status": "data-target-unresolved"
+    },
+    {
+      "caller": "copy_in_params",
+      "offset": 420,
+      "symbol": "",
+      "stock_target": "0x41b3f4d0",
+      "status": "string-match",
+      "source_string": "mobj_get_pa failed"
+    },
+    {
+      "caller": "copy_in_params",
+      "offset": 424,
+      "symbol": "",
+      "stock_target": "0x41b3f568",
+      "status": "string-match",
+      "source_string": "param_mem_from_mobj"
+    },
+    {
+      "caller": "copy_in_params",
+      "offset": 428,
+      "symbol": "",
+      "stock_target": "0x41b3f4e3",
+      "status": "string-match",
+      "source_string": "core/arch/arm/tee/entry_std.c"
+    },
+    {
+      "caller": "core_mmu_entry_to_finer_grained",
+      "offset": 38,
+      "symbol": "desc_to_mattr",
+      "stock_target": "0x41b2c532",
+      "callee_bytes": 162,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "core_mmu_entry_to_finer_grained",
+      "offset": 50,
+      "symbol": "get_desc_type",
+      "stock_target": "0x41b0ebc0",
+      "callee_bytes": 96,
+      "different_nonrelocation_bytes": 1,
+      "status": "callee-body-differs"
+    },
+    {
+      "caller": "core_mmu_entry_to_finer_grained",
+      "offset": 106,
+      "symbol": "trace_printf",
+      "stock_target": "0x41b338da",
+      "status": "callee-definition-ambiguous-or-missing"
+    },
+    {
+      "caller": "core_mmu_entry_to_finer_grained",
+      "offset": 130,
+      "symbol": "memset",
+      "stock_target": "0x41b33778",
+      "status": "callee-definition-ambiguous-or-missing"
+    },
+    {
+      "caller": "core_mmu_entry_to_finer_grained",
+      "offset": 184,
+      "symbol": "get_desc_type",
+      "stock_target": "0x41b0ebc0",
+      "callee_bytes": 96,
+      "different_nonrelocation_bytes": 1,
+      "status": "callee-body-differs"
+    },
+    {
+      "caller": "core_mmu_entry_to_finer_grained",
+      "offset": 210,
+      "symbol": "mattr_to_desc",
+      "stock_target": "0x41b0eabc",
+      "callee_bytes": 260,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "core_mmu_entry_to_finer_grained",
+      "offset": 244,
+      "symbol": "",
+      "stock_target": "0x41b49018",
+      "status": "data-target-unresolved"
+    },
+    {
+      "caller": "core_mmu_entry_to_finer_grained",
+      "offset": 248,
+      "symbol": "",
+      "stock_target": "0x41b3eed5",
+      "status": "string-match",
+      "source_string": "core_mmu_alloc_l2"
+    },
+    {
+      "caller": "core_mmu_entry_to_finer_grained",
+      "offset": 252,
+      "symbol": "",
+      "stock_target": "0x41b3ee80",
+      "status": "string-match",
+      "source_string": "L2 table used: %d/%d"
+    },
+    {
+      "caller": "core_mmu_entry_to_finer_grained",
+      "offset": 256,
+      "symbol": "",
+      "stock_target": "0x41b3eee7",
+      "status": "data-target-unresolved"
+    },
+    {
+      "caller": "thread_rpc_alloc.constprop.2",
+      "offset": 16,
+      "symbol": "memset",
+      "stock_target": "0x41b33778",
+      "status": "callee-definition-ambiguous-or-missing"
+    },
+    {
+      "caller": "thread_rpc_alloc.constprop.2",
+      "offset": 66,
+      "symbol": "get_rpc_arg",
+      "stock_target": "0x41b0a778",
+      "callee_bytes": 540,
+      "different_nonrelocation_bytes": 11,
+      "status": "callee-body-differs"
+    },
+    {
+      "caller": "thread_rpc_alloc.constprop.2",
+      "offset": 84,
+      "symbol": "thread_rpc",
+      "stock_target": "0x41b0af98",
+      "callee_bytes": 84,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "thread_rpc_alloc.constprop.2",
+      "offset": 126,
+      "symbol": "mobj_shm_alloc",
+      "stock_target": "0x41b0f948",
+      "callee_bytes": 52,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "thread_rpc_alloc.constprop.2",
+      "offset": 162,
+      "symbol": "msg_param_mobj_from_noncontig",
+      "stock_target": "0x41b15298",
+      "callee_bytes": 292,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "thread_rpc_alloc.constprop.2",
+      "offset": 178,
+      "symbol": "thread_rpc_free",
+      "stock_target": "0x41b0a994",
+      "callee_bytes": 100,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "thread_rpc_alloc.constprop.2",
+      "offset": 186,
+      "symbol": "mobj_matches",
+      "stock_target": "0x41b2c07e",
+      "callee_bytes": 16,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "thread_rpc_alloc.constprop.2",
+      "offset": 202,
+      "symbol": "_assert_log",
+      "stock_target": "0x41b1518c",
+      "callee_bytes": 36,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "thread_rpc_alloc.constprop.2",
+      "offset": 206,
+      "symbol": "_assert_break",
+      "stock_target": "0x41b151b0",
+      "callee_bytes": 24,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "thread_rpc_alloc.constprop.2",
+      "offset": 228,
+      "symbol": "",
+      "stock_target": "0x41b3d87f",
+      "status": "string-match",
+      "source_string": "get_rpc_alloc_res"
+    },
+    {
+      "caller": "thread_rpc_alloc.constprop.2",
+      "offset": 232,
+      "symbol": "",
+      "stock_target": "0x41b3d891",
+      "status": "string-match",
+      "source_string": "core/arch/arm/kernel/thread_optee_smc.c"
+    },
+    {
+      "caller": "thread_rpc_alloc.constprop.2",
+      "offset": 236,
+      "symbol": "",
+      "stock_target": "0x41b3d920",
+      "status": "string-match",
+      "source_string": "mobj_is_nonsec(mobj)"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 6,
+      "symbol": "abort_is_user_exception",
+      "stock_target": "0x41b2c10a",
+      "callee_bytes": 18,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 14,
+      "symbol": "__abort_print.part.4",
+      "stock_target": "0x41b0b1f8",
+      "status": "callee-definition-ambiguous-or-missing"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 22,
+      "symbol": "__print_abort_info",
+      "stock_target": "0x41b0b040",
+      "callee_bytes": 440,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 32,
+      "symbol": "memset",
+      "stock_target": "0x41b33778",
+      "status": "callee-definition-ambiguous-or-missing"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 46,
+      "symbol": "abort_is_user_exception",
+      "stock_target": "0x41b2c10a",
+      "callee_bytes": 18,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 60,
+      "symbol": "_assert_log",
+      "stock_target": "0x41b1518c",
+      "callee_bytes": 36,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 64,
+      "symbol": "_assert_break",
+      "stock_target": "0x41b151b0",
+      "callee_bytes": 24,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 80,
+      "symbol": "read_mode_sp",
+      "stock_target": "0x41b0b658",
+      "callee_bytes": 28,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 88,
+      "symbol": "read_mode_lr",
+      "stock_target": "0x41b0b674",
+      "callee_bytes": 28,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 100,
+      "symbol": "memset",
+      "stock_target": "0x41b33778",
+      "status": "callee-definition-ambiguous-or-missing"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 162,
+      "symbol": "thread_stack_start",
+      "stock_target": "0x41b0a29c",
+      "callee_bytes": 36,
+      "different_nonrelocation_bytes": 21,
+      "status": "callee-body-differs"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 168,
+      "symbol": "thread_stack_size",
+      "stock_target": "0x41b2c03e",
+      "callee_bytes": 6,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 188,
+      "symbol": "print_stack_arm32",
+      "stock_target": "0x41b0c918",
+      "callee_bytes": 84,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 196,
+      "symbol": "",
+      "stock_target": "0x41b3db6f",
+      "status": "string-match",
+      "source_string": "Core"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 200,
+      "symbol": "",
+      "stock_target": "0x41b3d94c",
+      "status": "string-match",
+      "source_string": "__print_stack_unwind"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 204,
+      "symbol": "",
+      "stock_target": "0x41b3db2d",
+      "status": "string-match",
+      "source_string": "core/arch/arm/kernel/abort.c"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 208,
+      "symbol": "",
+      "stock_target": "0x41b3db4a",
+      "status": "string-match",
+      "source_string": "!abort_is_user_exception(ai)"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 212,
+      "symbol": "__exidx_end",
+      "stock_target": "0x41b48758",
+      "status": "data-target-unresolved"
+    },
+    {
+      "caller": "abort_print_error",
+      "offset": 216,
+      "symbol": "__exidx_start",
+      "stock_target": "0x41b460f0",
+      "status": "data-target-unresolved"
+    },
+    {
+      "caller": "tee_mmu_user_pa2va_helper",
+      "offset": 54,
+      "symbol": "_assert_log",
+      "stock_target": "0x41b1518c",
+      "callee_bytes": 36,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "tee_mmu_user_pa2va_helper",
+      "offset": 58,
+      "symbol": "_assert_break",
+      "stock_target": "0x41b151b0",
+      "callee_bytes": 24,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "tee_mmu_user_pa2va_helper",
+      "offset": 104,
+      "symbol": "mobj_get_pa",
+      "stock_target": "0x41b0decc",
+      "callee_bytes": 28,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "tee_mmu_user_pa2va_helper",
+      "offset": 120,
+      "symbol": "_core_is_buffer_inside",
+      "stock_target": "0x41b2da56",
+      "callee_bytes": 44,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "tee_mmu_user_pa2va_helper",
+      "offset": 164,
+      "symbol": "",
+      "stock_target": "0x41b3ed81",
+      "status": "string-match",
+      "source_string": "tee_mmu_user_pa2va_helper"
+    },
+    {
+      "caller": "tee_mmu_user_pa2va_helper",
+      "offset": 168,
+      "symbol": "",
+      "stock_target": "0x41b3ebca",
+      "status": "string-match",
+      "source_string": "core/arch/arm/mm/tee_mmu.c"
+    },
+    {
+      "caller": "tee_mmu_user_pa2va_helper",
+      "offset": 172,
+      "symbol": "",
+      "stock_target": "0x41b3ec23",
+      "status": "string-match",
+      "source_string": "!granule || IS_POWER_OF_TWO(granule)"
+    },
+    {
+      "caller": "select_va_in_range",
+      "offset": 150,
+      "symbol": "_assert_log",
+      "stock_target": "0x41b1518c",
+      "callee_bytes": 36,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "select_va_in_range",
+      "offset": 154,
+      "symbol": "_assert_break",
+      "stock_target": "0x41b151b0",
+      "callee_bytes": 24,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "select_va_in_range",
+      "offset": 164,
+      "symbol": "",
+      "stock_target": "0x41b3eb78",
+      "status": "string-match",
+      "source_string": "select_va_in_range"
+    },
+    {
+      "caller": "select_va_in_range",
+      "offset": 168,
+      "symbol": "",
+      "stock_target": "0x41b3ebca",
+      "status": "string-match",
+      "source_string": "core/arch/arm/mm/tee_mmu.c"
+    },
+    {
+      "caller": "select_va_in_range",
+      "offset": 172,
+      "symbol": "",
+      "stock_target": "0x41b3ebe5",
+      "status": "string-match",
+      "source_string": "!reg->va || reg->va == begin_va"
+    },
+    {
+      "caller": "abort_print_current_ta",
+      "offset": 6,
+      "symbol": "thread_get_tsd",
+      "stock_target": "0x41b0a5b4",
+      "callee_bytes": 28,
+      "different_nonrelocation_bytes": 17,
+      "status": "callee-body-differs"
+    },
+    {
+      "caller": "abort_print_current_ta",
+      "offset": 18,
+      "symbol": "memset",
+      "stock_target": "0x41b33778",
+      "status": "callee-definition-ambiguous-or-missing"
+    },
+    {
+      "caller": "abort_print_current_ta",
+      "offset": 28,
+      "symbol": "tee_ta_get_current_session",
+      "stock_target": "0x41b15eb8",
+      "callee_bytes": 28,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "abort_print_current_ta",
+      "offset": 42,
+      "symbol": "__do_panic",
+      "stock_target": "0x41b153bc",
+      "callee_bytes": 200,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "abort_print_current_ta",
+      "offset": 78,
+      "symbol": "__print_abort_info",
+      "stock_target": "0x41b0b040",
+      "callee_bytes": 440,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "abort_print_current_ta",
+      "offset": 108,
+      "symbol": "",
+      "stock_target": "0x41b3dce8",
+      "status": "string-match",
+      "source_string": "abort_print_current_ta"
+    },
+    {
+      "caller": "abort_print_current_ta",
+      "offset": 112,
+      "symbol": "",
+      "stock_target": "0x41b3db2d",
+      "status": "string-match",
+      "source_string": "core/arch/arm/kernel/abort.c"
+    },
+    {
+      "caller": "abort_print_current_ta",
+      "offset": 116,
+      "symbol": "",
+      "stock_target": "0x41b3db67",
+      "status": "string-match",
+      "source_string": "User TA"
+    },
+    {
+      "caller": "core_mmu_type_to_attr",
+      "offset": 86,
+      "symbol": "__do_panic",
+      "stock_target": "0x41b153bc",
+      "callee_bytes": 200,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "core_mmu_type_to_attr",
+      "offset": 104,
+      "symbol": "",
+      "stock_target": "0x41b3e3d2",
+      "status": "string-match",
+      "source_string": "invalid type"
+    },
+    {
+      "caller": "core_mmu_type_to_attr",
+      "offset": 108,
+      "symbol": "",
+      "stock_target": "0x41b3e27f",
+      "status": "string-match",
+      "source_string": "core_mmu_type_to_attr"
+    },
+    {
+      "caller": "core_mmu_type_to_attr",
+      "offset": 112,
+      "symbol": "",
+      "stock_target": "0x41b3e353",
+      "status": "string-match",
+      "source_string": "core/arch/arm/mm/core_mmu.c"
+    },
+    {
+      "caller": "core_init_mmu_regs",
+      "offset": 6,
+      "symbol": "virt_to_phys",
+      "stock_target": "0x41b0db80",
+      "callee_bytes": 312,
+      "different_nonrelocation_bytes": 13,
+      "status": "callee-body-differs"
+    },
+    {
+      "caller": "core_init_mmu_regs",
+      "offset": 24,
+      "symbol": "__do_panic",
+      "stock_target": "0x41b153bc",
+      "callee_bytes": 200,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "core_init_mmu_regs",
+      "offset": 84,
+      "symbol": "",
+      "stock_target": "0x41b49018",
+      "status": "data-target-unresolved"
+    },
+    {
+      "caller": "core_init_mmu_regs",
+      "offset": 88,
+      "symbol": "",
+      "stock_target": "0x41b3ee54",
+      "status": "string-match",
+      "source_string": "invalid core l1 table"
+    },
+    {
+      "caller": "core_init_mmu_regs",
+      "offset": 92,
+      "symbol": "",
+      "stock_target": "0x41b3eeec",
+      "status": "string-match",
+      "source_string": "core_mmu_get_main_ttb_pa"
+    },
+    {
+      "caller": "core_init_mmu_regs",
+      "offset": 96,
+      "symbol": "",
+      "stock_target": "0x41b3ee1c",
+      "status": "string-match",
+      "source_string": "core/arch/arm/mm/core_mmu_v7.c"
+    },
+    {
+      "caller": "alloc_pgt",
+      "offset": 10,
+      "symbol": "core_mmu_get_user_va_range",
+      "stock_target": "0x41b2c5ec",
+      "callee_bytes": 18,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "alloc_pgt",
+      "offset": 72,
+      "symbol": "trace_printf",
+      "stock_target": "0x41b338da",
+      "status": "callee-definition-ambiguous-or-missing"
+    },
+    {
+      "caller": "alloc_pgt",
+      "offset": 92,
+      "symbol": "",
+      "stock_target": "0x41b3ec05",
+      "status": "string-match",
+      "source_string": "%zu page tables not available"
+    },
+    {
+      "caller": "alloc_pgt",
+      "offset": 96,
+      "symbol": "",
+      "stock_target": "0x41b3ebc0",
+      "status": "string-match",
+      "source_string": "alloc_pgt"
+    },
+    {
+      "caller": "get_desc_type",
+      "offset": 18,
+      "symbol": "_assert_log",
+      "stock_target": "0x41b1518c",
+      "callee_bytes": 36,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "get_desc_type",
+      "offset": 22,
+      "symbol": "_assert_break",
+      "stock_target": "0x41b151b0",
+      "callee_bytes": 24,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "get_desc_type",
+      "offset": 84,
+      "symbol": "",
+      "stock_target": "0x41b3edf6",
+      "status": "string-match",
+      "source_string": "get_desc_type"
+    },
+    {
+      "caller": "get_desc_type",
+      "offset": 88,
+      "symbol": "",
+      "stock_target": "0x41b3ee1c",
+      "status": "string-match",
+      "source_string": "core/arch/arm/mm/core_mmu_v7.c"
+    },
+    {
+      "caller": "get_desc_type",
+      "offset": 92,
+      "symbol": "",
+      "stock_target": "0x41b3ee3b",
+      "status": "string-match",
+      "source_string": "level >= 1 && level <= 2"
+    },
+    {
+      "caller": "default_mobj_init",
+      "offset": 12,
+      "symbol": "core_mmu_type_to_attr",
+      "stock_target": "0x41b0ccec",
+      "callee_bytes": 116,
+      "different_nonrelocation_bytes": 1,
+      "status": "callee-body-differs"
+    },
+    {
+      "caller": "default_mobj_init",
+      "offset": 26,
+      "symbol": "mobj_phys_alloc",
+      "stock_target": "0x41b0f7ec",
+      "callee_bytes": 164,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "default_mobj_init",
+      "offset": 46,
+      "symbol": "__do_panic",
+      "stock_target": "0x41b153bc",
+      "callee_bytes": 200,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "default_mobj_init",
+      "offset": 56,
+      "symbol": "default_nsec_shm_paddr",
+      "stock_target": "0x41b499c0",
+      "status": "data-target-unresolved"
+    },
+    {
+      "caller": "default_mobj_init",
+      "offset": 60,
+      "symbol": "default_nsec_shm_size",
+      "stock_target": "0x41b499c4",
+      "status": "data-target-unresolved"
+    },
+    {
+      "caller": "default_mobj_init",
+      "offset": 64,
+      "symbol": "",
+      "stock_target": "0x41b49cec",
+      "status": "data-target-unresolved"
+    },
+    {
+      "caller": "default_mobj_init",
+      "offset": 68,
+      "symbol": "",
+      "stock_target": "0x41b3f501",
+      "status": "string-match",
+      "source_string": "Failed to register shared memory"
+    },
+    {
+      "caller": "default_mobj_init",
+      "offset": 72,
+      "symbol": "",
+      "stock_target": "0x41b3f57c",
+      "status": "string-match",
+      "source_string": "default_mobj_init"
+    },
+    {
+      "caller": "default_mobj_init",
+      "offset": 76,
+      "symbol": "",
+      "stock_target": "0x41b3f4e3",
+      "status": "string-match",
+      "source_string": "core/arch/arm/tee/entry_std.c"
+    },
+    {
+      "caller": "core_mmu_set_info_table",
+      "offset": 22,
+      "symbol": "_assert_log",
+      "stock_target": "0x41b1518c",
+      "callee_bytes": 36,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "core_mmu_set_info_table",
+      "offset": 26,
+      "symbol": "_assert_break",
+      "stock_target": "0x41b151b0",
+      "callee_bytes": 24,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "core_mmu_set_info_table",
+      "offset": 56,
+      "symbol": "",
+      "stock_target": "0x41b3ef05",
+      "status": "string-match",
+      "source_string": "core_mmu_set_info_table"
+    },
+    {
+      "caller": "core_mmu_set_info_table",
+      "offset": 60,
+      "symbol": "",
+      "stock_target": "0x41b3ee1c",
+      "status": "string-match",
+      "source_string": "core/arch/arm/mm/core_mmu_v7.c"
+    },
+    {
+      "caller": "core_mmu_set_info_table",
+      "offset": 64,
+      "symbol": "",
+      "stock_target": "0x41b3ee49",
+      "status": "string-match",
+      "source_string": "level <= 2"
+    },
+    {
+      "caller": "core_mmu_set_entry",
+      "offset": 18,
+      "symbol": "_assert_log",
+      "stock_target": "0x41b1518c",
+      "callee_bytes": 36,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "core_mmu_set_entry",
+      "offset": 22,
+      "symbol": "_assert_break",
+      "stock_target": "0x41b151b0",
+      "callee_bytes": 24,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "core_mmu_set_entry",
+      "offset": 36,
+      "symbol": "core_mmu_set_entry_primitive",
+      "stock_target": "0x41b2c5d4",
+      "callee_bytes": 24,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "core_mmu_set_entry",
+      "offset": 44,
+      "symbol": "",
+      "stock_target": "0x41b3e2ac",
+      "status": "string-match",
+      "source_string": "core_mmu_set_entry"
+    },
+    {
+      "caller": "core_mmu_set_entry",
+      "offset": 48,
+      "symbol": "",
+      "stock_target": "0x41b3e353",
+      "status": "string-match",
+      "source_string": "core/arch/arm/mm/core_mmu.c"
+    },
+    {
+      "caller": "core_mmu_set_entry",
+      "offset": 52,
+      "symbol": "",
+      "stock_target": "0x41b3e6b1",
+      "status": "string-match",
+      "source_string": "idx < tbl_info->num_entries"
+    },
+    {
+      "caller": "core_mmu_get_entry",
+      "offset": 18,
+      "symbol": "_assert_log",
+      "stock_target": "0x41b1518c",
+      "callee_bytes": 36,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "core_mmu_get_entry",
+      "offset": 22,
+      "symbol": "_assert_break",
+      "stock_target": "0x41b151b0",
+      "callee_bytes": 24,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "core_mmu_get_entry",
+      "offset": 36,
+      "symbol": "core_mmu_get_entry_primitive",
+      "stock_target": "0x41b2c5d4",
+      "callee_bytes": 72,
+      "different_nonrelocation_bytes": 58,
+      "status": "callee-body-differs"
+    },
+    {
+      "caller": "core_mmu_get_entry",
+      "offset": 44,
+      "symbol": "",
+      "stock_target": "0x41b3e2ac",
+      "status": "string-differs",
+      "source_string": "core_mmu_get_entry"
+    },
+    {
+      "caller": "core_mmu_get_entry",
+      "offset": 48,
+      "symbol": "",
+      "stock_target": "0x41b3e353",
+      "status": "string-match",
+      "source_string": "core/arch/arm/mm/core_mmu.c"
+    },
+    {
+      "caller": "core_mmu_get_entry",
+      "offset": 52,
+      "symbol": "",
+      "stock_target": "0x41b3e6b1",
+      "status": "string-match",
+      "source_string": "idx < tbl_info->num_entries"
+    },
+    {
+      "caller": "init_sec_mon",
+      "offset": 16,
+      "symbol": "_assert_log",
+      "stock_target": "0x41b1518c",
+      "callee_bytes": 36,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "init_sec_mon",
+      "offset": 20,
+      "symbol": "_assert_break",
+      "stock_target": "0x41b151b0",
+      "callee_bytes": 24,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "init_sec_mon",
+      "offset": 24,
+      "symbol": "sm_get_nsec_ctx",
+      "stock_target": "0x41b118fc",
+      "callee_bytes": 20,
+      "different_nonrelocation_bytes": 0,
+      "status": "callee-body-match"
+    },
+    {
+      "caller": "init_sec_mon",
+      "offset": 40,
+      "symbol": "",
+      "stock_target": "0x41b3df9a",
+      "status": "string-match",
+      "source_string": "init_sec_mon"
+    },
+    {
+      "caller": "init_sec_mon",
+      "offset": 44,
+      "symbol": "",
+      "stock_target": "0x41b3dfcc",
+      "status": "string-match",
+      "source_string": "core/arch/arm/kernel/generic_boot.c"
+    },
+    {
+      "caller": "init_sec_mon",
+      "offset": 48,
+      "symbol": "",
+      "stock_target": "0x41b3dff0",
+      "status": "string-match",
+      "source_string": "nsec_entry != PADDR_INVALID"
+    }
+  ],
+  "status": "partial target audit; one near-match candidate rejected",
+  "summary": {
+    "callee-definition-ambiguous-or-missing": 11,
+    "callee-body-match": 54,
+    "callee-body-differs": 10,
+    "data-target-unresolved": 10,
+    "string-match": 49,
+    "string-differs": 1
+  },
+  "rejected_candidate": {
+    "source_section": ".text.core_mmu_get_entry",
+    "stock_offset": "0xd630",
+    "reason": "Stock function-name string is core_mmu_set_entry and helper body differs; instruction shape is insufficient for identity"
+  }
+}
