@@ -1,0 +1,57 @@
+{
+  "status": "not-byte-identical",
+  "rebrew_version": "6.9.0",
+  "rebrew_toolchain_smoke": "passed",
+  "rebrew_project_blocker": "Full firmware source/config/layout reconstruction remains incomplete; native function linking and disassembly work",
+  "ida_version": "9.4",
+  "source_commit": "91148809209fa0d5eb4591273fd08233cf9cc48f",
+  "artifacts": {
+    "stock": {
+      "sha256": "61ed4f199ca3b15f96c245a709282e1a4798b14d0f23a5e2930577487ebd20d1",
+      "size": 261240,
+      "sections": {
+        ".text": 92784,
+        ".rodata": 24384,
+        ".data": 16948,
+        ".bss": 281832
+      }
+    },
+    "candidate": {
+      "sha256": "b0efd0e7d076543d99db5da5d16ab4ce8194123f44f4651d6c71f6aea0b8ad97",
+      "size": 250552,
+      "sections": {
+        ".text": 87232,
+        ".rodata": 23912,
+        ".data": 16680,
+        ".bss": 281840
+      }
+    }
+  },
+  "full_file_equal": false,
+  "rebrew_support": {
+    "regression_tests_passed": 13338,
+    "native_xcc_linker_parity": [
+      "CALL8",
+      "L32R"
+    ],
+    "wrong_binding_controls": "rejected",
+    "upstream_branch": "feat/xtensa-relocations",
+    "upstream_pr": "https://github.com/maci0/rebrew/pull/56",
+    "full_upstream_pre_push_suite": "passed",
+    "upstream_release": "https://github.com/maci0/rebrew/releases/tag/v6.9.0",
+    "upstream_pr_status": "merged",
+    "native_function_proofs": {
+      "fls": {
+        "va": "0x32020b10",
+        "size": 95,
+        "status": "EXACT"
+      },
+      "main": {
+        "va": "0x3200bb60",
+        "size": 28,
+        "status": "EXACT",
+        "wrong_callee_control": "NEAR_MATCHING"
+      }
+    }
+  }
+}

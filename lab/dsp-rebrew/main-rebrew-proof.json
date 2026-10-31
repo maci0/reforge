@@ -1,0 +1,16 @@
+{
+  "status": "EXACT",
+  "size": 28,
+  "target_hex": "364100e58308ae3701db0fe0252d0a251102a135fde5c80b0c121df0",
+  "candidate_hex": "364100e58308ae3701db0fe0252d0a251102a135fde5c80b0c121df0",
+  "bindings": {
+    "sunxi_soundcard_init": 838943648,
+    "vUARTCommandConsoleStart": 838950464,
+    "vTaskStartScheduler": 838917248,
+    "printf": 838957060,
+    ".literal.main": 838905924,
+    ".rodata.str1.4": 838869728
+  },
+  "scope": "function bytes only; referenced data and full firmware layout are separate",
+  "wrong_callee_control": "NEAR_MATCHING"
+}

@@ -1,0 +1,18 @@
+[project]
+name = "stock-freertos-dsp"
+default_target = "dsp0"
+shared_dir = ""
+
+[targets.dsp0]
+binary = "../../build/stock-dsp-static-comparison/stock.elf"
+format = "elf"
+arch = "xtensa"
+module = "DSP0"
+reversed_dir = "src/dsp0"
+bin_dir = "bin/dsp0"
+raw_link = "../../build/stock-dsp-rebuild/source/freertos/dsp0.elf"
+
+[compiler]
+profile = "xtensa-xcc-14.04-aw_axi_cfg0"
+cflags = "-O3 -g -ffunction-sections -fdata-sections -mlongcalls"
+base_cflags = ""

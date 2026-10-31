@@ -1,0 +1,9 @@
+["xtensa-xcc-14.04-aw_axi_cfg0"]
+image = "reforge/xtensa-xcc:14.04-ri2020.4-aw_axi_cfg0"
+binary = "xt-xcc"
+image_entrypoint = "xt-xcc"
+runtime = "native"
+flags_style = "posix"
+obj_ext = ".o"
+bits = 32
+description = "Cadence RI-2020.4 XCC 14.04, Allwinner aw_axi_cfg0 DSP"
