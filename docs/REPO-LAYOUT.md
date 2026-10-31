@@ -61,6 +61,7 @@ manually only for fallback/porting diffs. See `vendor/README.md`.
 | path | what |
 |---|---|
 | `lab/` | Investigations and reproducible experiments, indexed in [lab/README.md](../lab/README.md). |
+| `lab/dsp-rebrew/` | Stock DSP kernel C component reconstruction: pinned Rebrew/XCC recipe, recovered layout, complete-range proof and remaining firmware gaps. Generated binaries stay under ignored `build/`. |
 | `lab/scratch/` | Loose junk. Gitignored. |
 
 ## Reference captures

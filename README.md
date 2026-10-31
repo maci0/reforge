@@ -28,7 +28,7 @@ real Klipper reaches `ready` on a Linux host MCU, the stock home screen renders 
 ## Layout
 
 Three trees — **product** (what we author), **vendor** (third-party, pinned), **lab**
-(throwaway). Full map: [`docs/REPO-LAYOUT.md`](docs/REPO-LAYOUT.md).
+(investigations and reproducible experiments). Full map: [`docs/REPO-LAYOUT.md`](docs/REPO-LAYOUT.md).
 
 ```
 br-external/  the firmware (Buildroot BR2_EXTERNAL tree)
@@ -65,6 +65,7 @@ third-party trees at exactly those pins. The [Makefile](Makefile) lists build an
 |---|---|
 | [Architecture](docs/architecture.md) | the overlay-on-stock chroot model + the runtime stack + data flow |
 | [Build process](docs/build-process.md) | pins → vendor fetch → Buildroot → image → `.tgz` |
+| [Stock DSP reconstruction](lab/dsp-rebrew/README.md) | verified FreeRTOS kernel C component; recipe, proof and remaining firmware gaps |
 | [Boot flow](docs/boot.md) | power-on → `reforge-boot` → service chain → up (with `SKIP_MOD`) |
 | [Updates / OTA](docs/ota.md) | git-free in-place updates + the last-known-good rollback (designed) |
 | [Live mode](docs/live-mode.md) | run the whole stack from USB, zero eMMC writes — brick-free hardware trials |

@@ -1,0 +1,1512 @@
+{
+  "component": "FreeRTOS kernel C core and heap_4, as retained in stock DSP0",
+  "scope": "Seven upstream kernel modules compiled; event_groups and stream_buffer have no retained allocation. Xtensa port and C runtime are external dependencies, not reconstructed payload.",
+  "stock_sha256": "61ed4f199ca3b15f96c245a709282e1a4798b14d0f23a5e2930577487ebd20d1",
+  "source_repository": "https://github.com/pdscomp/oc-freertos-dsp-xt",
+  "source_commit": "91148809209fa0d5eb4591273fd08233cf9cc48f",
+  "image": "reforge/xtensa-xcc:14.04-ri2020.4-aw_axi_cfg0",
+  "image_id": "sha256:c398e497143e99013d9dd5e677cbc2f06e1ad446d74ab37eb9961c0fb5222165",
+  "config_sha256": "9a5ccb13d75eff7f64c71df86cecf5254e35481b4d1dce968c9168aef8b4865e",
+  "literal_order": [
+    4,
+    1,
+    2,
+    3,
+    0
+  ],
+  "literal_address": "0x3200b07c",
+  "literal_size": 184,
+  "objects": [
+    {
+      "source": "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/list.c",
+      "sha256": "efe2d7cfbd6012ce6802d6d653f0d1485c1f4447d0680af8781bb068670fe184",
+      "functions": [
+        {
+          "name": "vListInitialise",
+          "address": "0x32020160",
+          "size": 28
+        },
+        {
+          "name": "vListInitialiseItem",
+          "address": "0x32020180",
+          "size": 9
+        },
+        {
+          "name": "vListInsertEnd",
+          "address": "0x32020190",
+          "size": 33
+        },
+        {
+          "name": "vListInsert",
+          "address": "0x320201c0",
+          "size": 114
+        },
+        {
+          "name": "uxListRemove",
+          "address": "0x32020240",
+          "size": 73
+        }
+      ],
+      "sections": [
+        {
+          "name": ".text.vListInitialise",
+          "size": 28,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x32020160"
+        },
+        {
+          "name": ".text.vListInitialiseItem",
+          "size": 9,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x32020180"
+        },
+        {
+          "name": ".text.vListInsertEnd",
+          "size": 33,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x32020190"
+        },
+        {
+          "name": ".text.vListInsert",
+          "size": 114,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x320201c0"
+        },
+        {
+          "name": ".text.uxListRemove",
+          "size": 73,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x32020240"
+        }
+      ]
+    },
+    {
+      "source": "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/queue.c",
+      "sha256": "642483ffa88d8594e7a927ac520a9a59f5e26f925e5319701d0b1c784374e30c",
+      "functions": [
+        {
+          "name": "prvUnlockQueue",
+          "address": "0x3200d3f0",
+          "size": 345
+        },
+        {
+          "name": "prvCopyDataToQueue",
+          "address": "0x3200d320",
+          "size": 202
+        },
+        {
+          "name": "prvNotifyQueueSetContainer",
+          "address": "0x3200d700",
+          "size": 222
+        },
+        {
+          "name": "xQueueGenericReset",
+          "address": "0x3200c9c0",
+          "size": 132
+        },
+        {
+          "name": "xQueueGenericCreateStatic",
+          "address": "0x3200ca50",
+          "size": 49
+        },
+        {
+          "name": "xQueueGenericCreate",
+          "address": "0x3200ca90",
+          "size": 71
+        },
+        {
+          "name": "xQueueCreateMutex",
+          "address": "0x3200cae0",
+          "size": 50
+        },
+        {
+          "name": "xQueueGenericSend",
+          "address": "0x3200cba0",
+          "size": 700
+        },
+        {
+          "name": "xQueueGiveMutexRecursive",
+          "address": "0x3200cb20",
+          "size": 52
+        },
+        {
+          "name": "xQueueTakeMutexRecursive",
+          "address": "0x3200cb60",
+          "size": 62
+        },
+        {
+          "name": "xQueueSemaphoreTake",
+          "address": "0x3200d090",
+          "size": 389
+        },
+        {
+          "name": "xQueueGenericSendFromISR",
+          "address": "0x3200ce60",
+          "size": 211
+        },
+        {
+          "name": "xQueueReceive",
+          "address": "0x3200cf40",
+          "size": 321
+        },
+        {
+          "name": "xQueueReceiveFromISR",
+          "address": "0x3200d220",
+          "size": 218
+        },
+        {
+          "name": "vQueueDelete",
+          "address": "0x3200d300",
+          "size": 17
+        },
+        {
+          "name": "vQueueWaitForMessageRestricted",
+          "address": "0x3200d550",
+          "size": 432
+        }
+      ],
+      "sections": [
+        {
+          "name": ".literal.xQueueGenericReset",
+          "size": 24,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xQueueGenericCreateStatic",
+          "size": 4,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xQueueGenericCreate",
+          "size": 8,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xQueueCreateMutex",
+          "size": 8,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xQueueGiveMutexRecursive",
+          "size": 8,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xQueueTakeMutexRecursive",
+          "size": 8,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xQueueGenericSend",
+          "size": 120,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xQueueGenericSendFromISR",
+          "size": 12,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xQueueReceive",
+          "size": 96,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xQueueSemaphoreTake",
+          "size": 120,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xQueueReceiveFromISR",
+          "size": 8,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.vQueueDelete",
+          "size": 4,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.prvCopyDataToQueue",
+          "size": 12,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.prvUnlockQueue",
+          "size": 48,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.vQueueWaitForMessageRestricted",
+          "size": 60,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.prvNotifyQueueSetContainer",
+          "size": 16,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".text.xQueueGenericReset",
+          "size": 135,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200c9c0"
+        },
+        {
+          "name": ".text.xQueueGenericCreateStatic",
+          "size": 49,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200ca50"
+        },
+        {
+          "name": ".text.xQueueGenericCreate",
+          "size": 71,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200ca90"
+        },
+        {
+          "name": ".text.xQueueCreateMutex",
+          "size": 50,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200cae0"
+        },
+        {
+          "name": ".text.xQueueGiveMutexRecursive",
+          "size": 55,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200cb20"
+        },
+        {
+          "name": ".text.xQueueTakeMutexRecursive",
+          "size": 62,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200cb60"
+        },
+        {
+          "name": ".text.xQueueGenericSend",
+          "size": 716,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200cba0"
+        },
+        {
+          "name": ".text.xQueueGenericSendFromISR",
+          "size": 211,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200ce60"
+        },
+        {
+          "name": ".text.xQueueReceive",
+          "size": 356,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200cf40"
+        },
+        {
+          "name": ".text.xQueueSemaphoreTake",
+          "size": 421,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200d090"
+        },
+        {
+          "name": ".text.xQueueReceiveFromISR",
+          "size": 218,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200d220"
+        },
+        {
+          "name": ".text.vQueueDelete",
+          "size": 20,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200d300"
+        },
+        {
+          "name": ".text.prvCopyDataToQueue",
+          "size": 202,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200d320"
+        },
+        {
+          "name": ".text.prvUnlockQueue",
+          "size": 348,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200d3f0"
+        },
+        {
+          "name": ".text.vQueueWaitForMessageRestricted",
+          "size": 435,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200d550"
+        },
+        {
+          "name": ".text.prvNotifyQueueSetContainer",
+          "size": 225,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200d700"
+        }
+      ]
+    },
+    {
+      "source": "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/tasks.c",
+      "sha256": "1a62b873dbd63a127b05ff452d2eb0bd2aac1d0430f53e44c1deb3697d38fb7d",
+      "functions": [
+        {
+          "name": "prvInitialiseNewTask",
+          "address": "0x3200da30",
+          "size": 220
+        },
+        {
+          "name": "prvAddNewTaskToReadyList",
+          "address": "0x3200db10",
+          "size": 243
+        },
+        {
+          "name": "prvIdleTask",
+          "address": "0x3200e410",
+          "size": 259
+        },
+        {
+          "name": "prvListTasksWithinSingleList",
+          "address": "0x3200e5c0",
+          "size": 96
+        },
+        {
+          "name": "xTaskCreateStatic",
+          "address": "0x3200d7e0",
+          "size": 479
+        },
+        {
+          "name": "vTaskEnterCritical",
+          "address": "0x3200e800",
+          "size": 41
+        },
+        {
+          "name": "vTaskExitCritical",
+          "address": "0x3200e830",
+          "size": 56
+        },
+        {
+          "name": "xTaskCreate",
+          "address": "0x3200d9c0",
+          "size": 103
+        },
+        {
+          "name": "vTaskSuspendAll",
+          "address": "0x3200dd20",
+          "size": 20
+        },
+        {
+          "name": "xTaskResumeAll",
+          "address": "0x3200dd40",
+          "size": 293
+        },
+        {
+          "name": "eTaskGetState",
+          "address": "0x3200dc10",
+          "size": 111
+        },
+        {
+          "name": "vTaskSwitchContext",
+          "address": "0x3200e0f0",
+          "size": 155
+        },
+        {
+          "name": "vTaskStartScheduler",
+          "address": "0x3200dc80",
+          "size": 147
+        },
+        {
+          "name": "xTaskIncrementTick",
+          "address": "0x3200df40",
+          "size": 426
+        },
+        {
+          "name": "xTaskGetTickCount",
+          "address": "0x3200de70",
+          "size": 19
+        },
+        {
+          "name": "uxTaskGetSystemState",
+          "address": "0x3200de90",
+          "size": 173
+        },
+        {
+          "name": "vTaskPlaceOnEventList",
+          "address": "0x3200e190",
+          "size": 141
+        },
+        {
+          "name": "vTaskPlaceOnEventListRestricted",
+          "address": "0x3200e220",
+          "size": 149
+        },
+        {
+          "name": "xTaskRemoveFromEventList",
+          "address": "0x3200e2c0",
+          "size": 187
+        },
+        {
+          "name": "vTaskInternalSetTimeOutState",
+          "address": "0x3200e380",
+          "size": 25
+        },
+        {
+          "name": "xTaskCheckForTimeOut",
+          "address": "0x3200e3a0",
+          "size": 94
+        },
+        {
+          "name": "vTaskMissedYield",
+          "address": "0x3200e400",
+          "size": 16
+        },
+        {
+          "name": "vTaskGetInfo",
+          "address": "0x3200e520",
+          "size": 153
+        },
+        {
+          "name": "xTaskGetCurrentTaskHandle",
+          "address": "0x3200e620",
+          "size": 13
+        },
+        {
+          "name": "xTaskGetSchedulerState",
+          "address": "0x3200e630",
+          "size": 38
+        },
+        {
+          "name": "xTaskPriorityInherit",
+          "address": "0x3200e660",
+          "size": 165
+        },
+        {
+          "name": "xTaskPriorityDisinherit",
+          "address": "0x3200e710",
+          "size": 101
+        },
+        {
+          "name": "vTaskPriorityDisinheritAfterTimeout",
+          "address": "0x3200e780",
+          "size": 116
+        },
+        {
+          "name": "vTaskList",
+          "address": "0x3200e870",
+          "size": 223
+        },
+        {
+          "name": "pvTaskIncrementMutexHeldCount",
+          "address": "0x3200e950",
+          "size": 40
+        }
+      ],
+      "sections": [
+        {
+          "name": ".literal.xTaskCreateStatic",
+          "size": 124,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xTaskCreate",
+          "size": 20,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.prvInitialiseNewTask",
+          "size": 24,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.prvAddNewTaskToReadyList",
+          "size": 96,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.eTaskGetState",
+          "size": 28,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.vTaskStartScheduler",
+          "size": 48,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.vTaskSuspendAll",
+          "size": 4,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xTaskResumeAll",
+          "size": 68,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xTaskGetTickCount",
+          "size": 12,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.uxTaskGetSystemState",
+          "size": 56,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xTaskIncrementTick",
+          "size": 88,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.vTaskSwitchContext",
+          "size": 32,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.vTaskPlaceOnEventList",
+          "size": 44,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.vTaskPlaceOnEventListRestricted",
+          "size": 44,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xTaskRemoveFromEventList",
+          "size": 48,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.vTaskInternalSetTimeOutState",
+          "size": 8,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xTaskCheckForTimeOut",
+          "size": 20,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.vTaskMissedYield",
+          "size": 4,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.prvIdleTask",
+          "size": 84,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.vTaskGetInfo",
+          "size": 16,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.prvListTasksWithinSingleList",
+          "size": 4,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xTaskGetCurrentTaskHandle",
+          "size": 4,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xTaskGetSchedulerState",
+          "size": 8,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xTaskPriorityInherit",
+          "size": 20,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xTaskPriorityDisinherit",
+          "size": 16,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.vTaskPriorityDisinheritAfterTimeout",
+          "size": 16,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.vTaskEnterCritical",
+          "size": 8,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.vTaskExitCritical",
+          "size": 8,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.vTaskList",
+          "size": 40,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.pvTaskIncrementMutexHeldCount",
+          "size": 4,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".bss.uxCurrentNumberOfTasks",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32065050"
+        },
+        {
+          "name": ".bss.pxCurrentTCB",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32065054"
+        },
+        {
+          "name": ".bss.xSchedulerRunning",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32065058"
+        },
+        {
+          "name": ".bss.uxTaskNumber",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x3206505c"
+        },
+        {
+          "name": ".bss.uxTopReadyPriority",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32065060"
+        },
+        {
+          "name": ".bss.pxReadyTasksLists",
+          "size": 500,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32065070"
+        },
+        {
+          "name": ".bss.xTasksWaitingTermination",
+          "size": 20,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32065264"
+        },
+        {
+          "name": ".bss.uxDeletedTasksWaitingCleanUp",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32065278"
+        },
+        {
+          "name": ".bss.xTickCount",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x3206527c"
+        },
+        {
+          "name": ".bss.pxDelayedTaskList",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32065280"
+        },
+        {
+          "name": ".bss.pxOverflowDelayedTaskList",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32065284"
+        },
+        {
+          "name": ".bss.xSuspendedTaskList",
+          "size": 20,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32065288"
+        },
+        {
+          "name": ".bss.xPendingReadyList",
+          "size": 20,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x3206529c"
+        },
+        {
+          "name": ".bss.uxSchedulerSuspended",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x320652b0"
+        },
+        {
+          "name": ".bss.xIdleTaskHandle",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x320652b4"
+        },
+        {
+          "name": ".bss.xNextTaskUnblockTime",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x320652b8"
+        },
+        {
+          "name": ".bss.xYieldPending",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x320652bc"
+        },
+        {
+          "name": ".bss.uxPendedTicks",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x320652c0"
+        },
+        {
+          "name": ".bss.xNumOfOverflows",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x320652c4"
+        },
+        {
+          "name": ".bss.xDelayedTaskList1",
+          "size": 20,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x320652c8"
+        },
+        {
+          "name": ".bss.xDelayedTaskList2",
+          "size": 20,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x320652dc"
+        },
+        {
+          "name": ".text.xTaskCreateStatic",
+          "size": 511,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200d7e0"
+        },
+        {
+          "name": ".text.xTaskCreate",
+          "size": 109,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200d9c0"
+        },
+        {
+          "name": ".text.prvInitialiseNewTask",
+          "size": 220,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200da30"
+        },
+        {
+          "name": ".text.prvAddNewTaskToReadyList",
+          "size": 259,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200db10"
+        },
+        {
+          "name": ".text.eTaskGetState",
+          "size": 111,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200dc10"
+        },
+        {
+          "name": ".text.vTaskStartScheduler",
+          "size": 147,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200dc80"
+        },
+        {
+          "name": ".rodata.str1.4",
+          "size": 23,
+          "type": "SHT_PROGBITS",
+          "flags": 50,
+          "address": "0x32002314"
+        },
+        {
+          "name": ".text.vTaskSuspendAll",
+          "size": 20,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200dd20"
+        },
+        {
+          "name": ".text.xTaskResumeAll",
+          "size": 293,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200dd40"
+        },
+        {
+          "name": ".text.xTaskGetTickCount",
+          "size": 25,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200de70"
+        },
+        {
+          "name": ".text.uxTaskGetSystemState",
+          "size": 173,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200de90"
+        },
+        {
+          "name": ".text.xTaskIncrementTick",
+          "size": 426,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200df40"
+        },
+        {
+          "name": ".text.vTaskSwitchContext",
+          "size": 155,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e0f0"
+        },
+        {
+          "name": ".text.vTaskPlaceOnEventList",
+          "size": 141,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e190"
+        },
+        {
+          "name": ".text.vTaskPlaceOnEventListRestricted",
+          "size": 149,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e220"
+        },
+        {
+          "name": ".text.xTaskRemoveFromEventList",
+          "size": 187,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e2c0"
+        },
+        {
+          "name": ".text.vTaskInternalSetTimeOutState",
+          "size": 25,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e380"
+        },
+        {
+          "name": ".text.xTaskCheckForTimeOut",
+          "size": 94,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e3a0"
+        },
+        {
+          "name": ".text.vTaskMissedYield",
+          "size": 16,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e400"
+        },
+        {
+          "name": ".text.prvIdleTask",
+          "size": 262,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e410"
+        },
+        {
+          "name": ".text.vTaskGetInfo",
+          "size": 156,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e520"
+        },
+        {
+          "name": ".text.prvListTasksWithinSingleList",
+          "size": 96,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e5c0"
+        },
+        {
+          "name": ".text.xTaskGetCurrentTaskHandle",
+          "size": 13,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e620"
+        },
+        {
+          "name": ".text.xTaskGetSchedulerState",
+          "size": 38,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e630"
+        },
+        {
+          "name": ".text.xTaskPriorityInherit",
+          "size": 165,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e660"
+        },
+        {
+          "name": ".text.xTaskPriorityDisinherit",
+          "size": 104,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e710"
+        },
+        {
+          "name": ".text.vTaskPriorityDisinheritAfterTimeout",
+          "size": 119,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e780"
+        },
+        {
+          "name": ".text.vTaskEnterCritical",
+          "size": 41,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e800"
+        },
+        {
+          "name": ".text.vTaskExitCritical",
+          "size": 56,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e830"
+        },
+        {
+          "name": ".text.vTaskList",
+          "size": 226,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e870"
+        },
+        {
+          "name": ".rodata",
+          "size": 6,
+          "type": "SHT_PROGBITS",
+          "flags": 2,
+          "address": "0x32000b68"
+        },
+        {
+          "name": ".text.pvTaskIncrementMutexHeldCount",
+          "size": 40,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e950"
+        }
+      ]
+    },
+    {
+      "source": "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/timers.c",
+      "sha256": "44c6aae06a26ccfa7da4caaf8abf87c0fe03a56af5a1588540949194ad384d09",
+      "functions": [
+        {
+          "name": "prvTimerTask",
+          "address": "0x3200ea90",
+          "size": 540
+        },
+        {
+          "name": "prvSampleTimeNow",
+          "address": "0x3200ecb0",
+          "size": 217
+        },
+        {
+          "name": "prvInsertTimerInActiveList",
+          "address": "0x3200ed90",
+          "size": 74
+        },
+        {
+          "name": "xTimerCreateTimerTask",
+          "address": "0x3200e980",
+          "size": 159
+        },
+        {
+          "name": "xTimerGenericCommand",
+          "address": "0x3200ea20",
+          "size": 106
+        }
+      ],
+      "sections": [
+        {
+          "name": ".literal.xTimerCreateTimerTask",
+          "size": 68,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.xTimerGenericCommand",
+          "size": 20,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.prvTimerTask",
+          "size": 92,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.prvSampleTimeNow",
+          "size": 40,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.prvInsertTimerInActiveList",
+          "size": 16,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".bss.xTimerQueue",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x320652f0"
+        },
+        {
+          "name": ".bss.xTimerTaskHandle",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x320652f4"
+        },
+        {
+          "name": ".bss.pxCurrentTimerList",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x320652f8"
+        },
+        {
+          "name": ".bss.pxOverflowTimerList",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x320652fc"
+        },
+        {
+          "name": ".bss.xLastTime$8904",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32065300"
+        },
+        {
+          "name": ".bss.xActiveTimerList1",
+          "size": 20,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32065304"
+        },
+        {
+          "name": ".bss.xActiveTimerList2",
+          "size": 20,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32065318"
+        },
+        {
+          "name": ".bss.xStaticTimerQueue$9056",
+          "size": 84,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x3206532c"
+        },
+        {
+          "name": ".bss.ucStaticTimerQueueStorage$9057",
+          "size": 160,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32065380"
+        },
+        {
+          "name": ".text.xTimerCreateTimerTask",
+          "size": 165,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200e980"
+        },
+        {
+          "name": ".rodata.str1.4",
+          "size": 8,
+          "type": "SHT_PROGBITS",
+          "flags": 50,
+          "address": "0x3200232c"
+        },
+        {
+          "name": ".text.xTimerGenericCommand",
+          "size": 106,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200ea20"
+        },
+        {
+          "name": ".text.prvTimerTask",
+          "size": 559,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200ea90"
+        },
+        {
+          "name": ".text.prvSampleTimeNow",
+          "size": 217,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200ecb0"
+        },
+        {
+          "name": ".text.prvInsertTimerInActiveList",
+          "size": 77,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200ed90"
+        }
+      ]
+    },
+    {
+      "source": "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/portable/MemMang/heap_4.c",
+      "sha256": "aced48006f948364775b50383cde017e9f2efc748c9559ef4d452b018a3c5f42",
+      "functions": [
+        {
+          "name": "pvPortMalloc",
+          "address": "0x3200c7a0",
+          "size": 362
+        },
+        {
+          "name": "vPortFree",
+          "address": "0x3200c910",
+          "size": 167
+        }
+      ],
+      "sections": [
+        {
+          "name": ".literal.pvPortMalloc",
+          "size": 44,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".literal.vPortFree",
+          "size": 24,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": null
+        },
+        {
+          "name": ".bss.pxEnd",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32025030"
+        },
+        {
+          "name": ".bss.xBlockAllocatedBit",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32025034"
+        },
+        {
+          "name": ".bss.xFreeBytesRemaining",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32025038"
+        },
+        {
+          "name": ".bss.xStart",
+          "size": 8,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x3202503c"
+        },
+        {
+          "name": ".bss.xMinimumEverFreeBytesRemaining",
+          "size": 4,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32025044"
+        },
+        {
+          "name": ".bss.ucHeap",
+          "size": 262144,
+          "type": "SHT_NOBITS",
+          "flags": 3,
+          "address": "0x32025050"
+        },
+        {
+          "name": ".text.pvPortMalloc",
+          "size": 362,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200c7a0"
+        },
+        {
+          "name": ".text.vPortFree",
+          "size": 167,
+          "type": "SHT_PROGBITS",
+          "flags": 6,
+          "address": "0x3200c910"
+        }
+      ]
+    }
+  ],
+  "externals": {
+    "vPortYield": {
+      "address": "0x3200bcd8",
+      "type": "STT_FUNC"
+    },
+    "memcpy": {
+      "address": "0x32021430",
+      "type": "STT_FUNC"
+    },
+    "pxPortInitialiseStack": {
+      "address": "0x3200c590",
+      "type": "STT_FUNC"
+    },
+    "sprintf": {
+      "address": "0x32017a28",
+      "type": "STT_FUNC"
+    },
+    "vApplicationGetIdleTaskMemory": {
+      "address": "0x3200bb20",
+      "type": "STT_FUNC"
+    },
+    "memset": {
+      "address": "0x32021588",
+      "type": "STT_FUNC"
+    },
+    "_reent_ptr": {
+      "address": "0x32066434",
+      "type": "STT_OBJECT"
+    },
+    "_reclaim_reent": {
+      "address": "0x32020150",
+      "type": "STT_FUNC"
+    },
+    "_init_reent": {
+      "address": "0x3201a25c",
+      "type": "STT_FUNC"
+    },
+    "strcpy": {
+      "address": "0x3201a2a0",
+      "type": "STT_FUNC"
+    },
+    "xPortStartScheduler": {
+      "address": "0x3200c600",
+      "type": "STT_FUNC"
+    },
+    "vPortStoreTaskMPUSettings": {
+      "address": "0x32020120",
+      "type": "STT_FUNC"
+    },
+    "strlen": {
+      "address": "0x3201a340",
+      "type": "STT_FUNC"
+    },
+    "vApplicationGetTimerTaskMemory": {
+      "address": "0x3200bb40",
+      "type": "STT_FUNC"
+    }
+  },
+  "code_spans": [
+    {
+      "address": "0x3200c7a0",
+      "size": 9786
+    },
+    {
+      "address": "0x32020160",
+      "size": 297
+    }
+  ],
+  "source_inputs": {
+    "include/map_func.h": "c620125226096718df6a002f29dd7115b13123e8376d9784fa8f0288e2c57ca5",
+    "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/event_groups.c": "a49aee77923f713372ef29ba4d1a8872cea29034c664168b2f07420bc938c916",
+    "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/list.c": "efe2d7cfbd6012ce6802d6d653f0d1485c1f4447d0680af8781bb068670fe184",
+    "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/portable/MemMang/heap_4.c": "aced48006f948364775b50383cde017e9f2efc748c9559ef4d452b018a3c5f42",
+    "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/portable/XCC/Xtensa/portbenchmark.h": "69400a05d9c47211fc10781f5967c55e4d6476d6df940204b2fbbd455bceefee",
+    "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/portable/XCC/Xtensa/portmacro.h": "5af88989217326211dbb34f1564c6c2b4b8254bf4a518df3823a5e5e96a7f79b",
+    "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/portable/XCC/Xtensa/xtensa_config.h": "caa8552f8beac3ffd619e99d0d11cd3d9baa67356d18693dda2df95a15c62cf4",
+    "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/portable/XCC/Xtensa/xtensa_context.h": "4cb2cefe2eebe2dbd1a8f0bee00ee812869cecd148222a959a9f982a0f1b448b",
+    "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/queue.c": "642483ffa88d8594e7a927ac520a9a59f5e26f925e5319701d0b1c784374e30c",
+    "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/stream_buffer.c": "11658523e4d5a43d0c339133971639a00aabc619085293b0af6f0ab8693fcb65",
+    "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/tasks.c": "1a62b873dbd63a127b05ff452d2eb0bd2aac1d0430f53e44c1deb3697d38fb7d",
+    "kernel/FreeRTOS_xtensa_v1.7/FreeRTOS/timers.c": "44c6aae06a26ccfa7da4caaf8abf87c0fe03a56af5a1588540949194ad384d09",
+    "kernel/FreeRTOS_xtensa_v1.7/include/FreeRTOS.h": "1ff966e0cbb0cb9aac5f4ba7d37ea235db2ea9b75a9544b41126f8a8438e3d78",
+    "kernel/FreeRTOS_xtensa_v1.7/include/event_groups.h": "84e98399dd4ba93cc9245e01ca3d9bce1ff4f0254373f54d420f913f79afbabf",
+    "kernel/FreeRTOS_xtensa_v1.7/include/private/deprecated_definitions.h": "6048d7266b25380fb37de0ff7a8647aa7d0ebb37bed4715f39e9c36cfb850df8",
+    "kernel/FreeRTOS_xtensa_v1.7/include/private/list.h": "5f3027c7c550dc772f63e6b8910959e5a4bb8c846e96b746306932a32327736c",
+    "kernel/FreeRTOS_xtensa_v1.7/include/private/mpu_wrappers.h": "be860558ab5b18dbc6feeffb8e21294a774f78ae2d8d80656b3c9d06221d4455",
+    "kernel/FreeRTOS_xtensa_v1.7/include/private/portable.h": "c133e014e93fc9acd479e2840d966c6118acbdea519ce7633183c5debfec379d",
+    "kernel/FreeRTOS_xtensa_v1.7/include/private/projdefs.h": "383315d66e78736012441e0483b8195133238b47bb8deeea75c0db5385ffa760",
+    "kernel/FreeRTOS_xtensa_v1.7/include/private/stack_macros.h": "acedcef4a097480d6860f5a7049b9a5e5613e9dcefcea2fad372351b1a6cb3c5",
+    "kernel/FreeRTOS_xtensa_v1.7/include/queue.h": "a9ee001a540121b07c72cc0698c29786b9056809696eb2c8ab5e1d201dff9c8f",
+    "kernel/FreeRTOS_xtensa_v1.7/include/stream_buffer.h": "9e4e42e0396144ccdecb469285fcb4f60f0f891cecac6f2c30219be04b161b0a",
+    "kernel/FreeRTOS_xtensa_v1.7/include/task.h": "16acab855fde31c35bce27e946853b26d28ffc4f1e75eccec380eadb91ecd4ea",
+    "kernel/FreeRTOS_xtensa_v1.7/include/timers.h": "2545329c12b4f8d3cd680713e830a6ddfbec12efce3a78b82d924474c5addcef",
+    "projects/r528/dsp0/include/FreeRTOSConfig.h": "f70073ea0aa85840cc553d9dafe465f7f328931744d2f4a24188042ab681671d"
+  },
+  "rodata_spans": [
+    {
+      "address": "0x32000b68",
+      "size": 6
+    },
+    {
+      "address": "0x32002314",
+      "size": 32
+    }
+  ],
+  "bss_spans": [
+    {
+      "address": "0x32025030",
+      "size": 263152
+    }
+  ]
+}

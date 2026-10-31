@@ -74,8 +74,10 @@ disp_reserve=1536000,0x448ee000 androidboot.dramsize=128
   For **mainline** (Plan 5, kernel 6.x LTS): `CONFIG_RTW88_8821CU` (rtw88 family)
   since 6.2, solid by 6.12; BT via `btusb`+`btrtl`. No vendor module needed. rtw88
   is station-mode-solid (AP/monitor weaker than vendor, irrelevant for a printer).
-- The `dsp0@p5` partition holds DSP firmware; the partition map must be preserved
-  by genimage so the DSP and boot chain are not disturbed.
+- The `dsp0@p5` partition holds DSP firmware loaded by U-Boot. Its FreeRTOS
+  kernel C component now reproduces byte-identically; the complete firmware and
+  partition tail remain open. See the [recipe and proof](../../lab/dsp-rebrew/README.md).
+  Preserve the partition map and existing image during ordinary ReForge packaging.
 
 ---
 

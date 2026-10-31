@@ -26,6 +26,11 @@ not establish that this environment boots it. See the
 [stock bringup rebuild status](board-notes/stock-bringup-rebuild.md) and
 [artifact hashes](board-notes/stock-boot-artifacts.json).
 
+The DSP kernel C component now reproduces byte-identically through Rebrew/XCC;
+this does not replace the complete firmware loaded from p5. The port/runtime,
+remaining firmware and partition tail are still outside that match.
+[DSP recipe, scope and proof](../lab/dsp-rebrew/README.md).
+
 ```
 BROM (mask ROM in silicon; FEL USB recovery)
   → boot0 / SPL (eGON)            raw eMMC, sectors 0..73727 (~36 MB before p1)

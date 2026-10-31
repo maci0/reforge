@@ -115,7 +115,10 @@ Klipper/MCU stack) — **not** kernel changes; the kernel is stock Tina-Auto.
   Allwinner-proprietary / NDA.
 - **Full T113 user manual + register spec** — the public datasheet is a brief;
   the complete user manual (and any TF-A/secure-boot docs) is NDA.
-- **DSP/HiFi firmware**, if used by the platform, is an Allwinner blob.
+- **DSP/HiFi firmware** is shipped as an Allwinner prebuilt and loaded by U-Boot
+  from p5. The FreeRTOS kernel C component now reproduces byte-identically from
+  public source; the complete firmware still has unresolved source/layout gaps.
+  See the [DSP recipe and proof](../../lab/dsp-rebrew/README.md).
 
 ### Bottom line
 

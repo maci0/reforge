@@ -1,0 +1,123 @@
+{
+  "stock_sha256": "61ed4f199ca3b15f96c245a709282e1a4798b14d0f23a5e2930577487ebd20d1",
+  "candidate_source_commit": "91148809209fa0d5eb4591273fd08233cf9cc48f",
+  "candidate_kernel": "V10.2.0",
+  "candidate_xtensa_port_declared_version": "1.7",
+  "upstream_V10.2.0_commit": "233285746e7280e91239d64718ef52b32ee91f68",
+  "upstream_V10.2.1_commit": "5d78b82acbf69c25925a6df8e267fc71da755a79",
+  "candidate_source_comparison": [
+    {
+      "file": "tasks.c",
+      "candidate_sha256": "1a62b873dbd63a127b05ff452d2eb0bd2aac1d0430f53e44c1deb3697d38fb7d",
+      "V10.2.0": {
+        "equal_text": true,
+        "changed_lines": 0
+      },
+      "V10.2.1": {
+        "equal_text": false,
+        "changed_lines": 3
+      }
+    },
+    {
+      "file": "queue.c",
+      "candidate_sha256": "642483ffa88d8594e7a927ac520a9a59f5e26f925e5319701d0b1c784374e30c",
+      "V10.2.0": {
+        "equal_text": true,
+        "changed_lines": 0
+      },
+      "V10.2.1": {
+        "equal_text": false,
+        "changed_lines": 2
+      }
+    },
+    {
+      "file": "list.c",
+      "candidate_sha256": "efe2d7cfbd6012ce6802d6d653f0d1485c1f4447d0680af8781bb068670fe184",
+      "V10.2.0": {
+        "equal_text": true,
+        "changed_lines": 0
+      },
+      "V10.2.1": {
+        "equal_text": false,
+        "changed_lines": 2
+      }
+    },
+    {
+      "file": "timers.c",
+      "candidate_sha256": "44c6aae06a26ccfa7da4caaf8abf87c0fe03a56af5a1588540949194ad384d09",
+      "V10.2.0": {
+        "equal_text": true,
+        "changed_lines": 0
+      },
+      "V10.2.1": {
+        "equal_text": false,
+        "changed_lines": 2
+      }
+    },
+    {
+      "file": "event_groups.c",
+      "candidate_sha256": "a49aee77923f713372ef29ba4d1a8872cea29034c664168b2f07420bc938c916",
+      "V10.2.0": {
+        "equal_text": true,
+        "changed_lines": 0
+      },
+      "V10.2.1": {
+        "equal_text": false,
+        "changed_lines": 2
+      }
+    },
+    {
+      "file": "stream_buffer.c",
+      "candidate_sha256": "11658523e4d5a43d0c339133971639a00aabc619085293b0af6f0ab8693fcb65",
+      "V10.2.0": {
+        "equal_text": true,
+        "changed_lines": 0
+      },
+      "V10.2.1": {
+        "equal_text": false,
+        "changed_lines": 2
+      }
+    },
+    {
+      "file": "portable/MemMang/heap_4.c",
+      "candidate_sha256": "aced48006f948364775b50383cde017e9f2efc748c9559ef4d452b018a3c5f42",
+      "V10.2.0": {
+        "equal_text": true,
+        "changed_lines": 0
+      },
+      "V10.2.1": {
+        "equal_text": false,
+        "changed_lines": 2
+      }
+    },
+    {
+      "file": "include/task.h",
+      "candidate_sha256": "16acab855fde31c35bce27e946853b26d28ffc4f1e75eccec380eadb91ecd4ea",
+      "V10.2.0": {
+        "equal_text": true,
+        "changed_lines": 0
+      },
+      "V10.2.1": {
+        "equal_text": false,
+        "changed_lines": 4
+      }
+    }
+  ],
+  "scheduler_patch_comparison": {
+    "compiler": "XCC 14.04 RI-2020.4 aw_axi_cfg0",
+    "flags": "-O3 -g3 -ffunction-sections -fdata-sections -mlongcalls",
+    "source": "upstream tasks.c and matching upstream headers with candidate Xtensa port/config",
+    "tags": [
+      "V10.2.0",
+      "V10.2.1"
+    ],
+    "allocated_sections_equal": true,
+    "allocated_relocations_equal": true,
+    "sections": 126,
+    "relocations": 1524,
+    "limitation": "Candidate configuration; does not identify original stock source revision"
+  },
+  "stock_version_strings_found": false,
+  "stock_has_debug_or_symbol_table": false,
+  "conclusion": "Candidate core matches upstream V10.2.0 and reproduces the retained stock C component, but exact stock patch/vendor revision is not uniquely identified by that equality."
+}

@@ -1,0 +1,83 @@
+{
+  "component": "FreeRTOS kernel C core and heap_4, as retained in stock DSP0",
+  "scope": "Seven upstream kernel modules compiled; event_groups and stream_buffer have no retained allocation. Xtensa port and C runtime are external dependencies, not reconstructed payload.",
+  "equal": true,
+  "functions": 58,
+  "initialized_bytes": 10305,
+  "zero_fill_bytes": 263152,
+  "stock_sha256": "61ed4f199ca3b15f96c245a709282e1a4798b14d0f23a5e2930577487ebd20d1",
+  "built_elf_sha256": "20bc9a659231deb5f4e075c9ae3f9a34591d47e78bd36bdd5bf2ef534a667f51",
+  "component_sha256": "cca2466dabfe9baad47f8aa090eceeda017f5e0339041db86833f693a8572a50",
+  "reference_component_sha256": "cca2466dabfe9baad47f8aa090eceeda017f5e0339041db86833f693a8572a50",
+  "ranges": [
+    {
+      "name": "rodata span 0",
+      "zero_fill": false,
+      "address": "0x32000b68",
+      "size": 6,
+      "equal": true,
+      "sha256": "8f0f3156ed2dab42b7692348ba66fff2d202cb43236b807b9bb90ce0aeddf845"
+    },
+    {
+      "name": "rodata span 1",
+      "zero_fill": false,
+      "address": "0x32002314",
+      "size": 32,
+      "equal": true,
+      "sha256": "c200a09cff5d4e678c967983a5545bafe9aab060707274da8819afbb5c171964"
+    },
+    {
+      "name": "literal pool",
+      "address": "0x3200b07c",
+      "size": 184,
+      "equal": true,
+      "sha256": "c7df605179b5cab77ac52d918615d1763041e9b8d91ecb52d467d6bb6551d50c"
+    },
+    {
+      "name": "code span 0",
+      "zero_fill": false,
+      "address": "0x3200c7a0",
+      "size": 9786,
+      "equal": true,
+      "sha256": "f6964d256f254c88975b996dc8e968b7daa87c224ef7f1fc61a4b5848f9723d4"
+    },
+    {
+      "name": "code span 1",
+      "zero_fill": false,
+      "address": "0x32020160",
+      "size": 297,
+      "equal": true,
+      "sha256": "9d523c4bfaa0e493a398fe8c5f16c8d7679dbe5fd49a6ded1fc0261685b8c953"
+    },
+    {
+      "name": "bss span 0",
+      "zero_fill": true,
+      "address": "0x32025030",
+      "size": 263152,
+      "equal": true,
+      "sha256": "796a3c748c2eca5e2027294e7e5fce89286473b6ab8b6069c5a5c9e56d784bcb"
+    }
+  ],
+  "rebrew_version": "6.9.0",
+  "source_commit": "91148809209fa0d5eb4591273fd08233cf9cc48f",
+  "compiler_image_id": "sha256:c398e497143e99013d9dd5e677cbc2f06e1ad446d74ab37eb9961c0fb5222165",
+  "layout_sha256": "d855d8fb2fca2a68595d64a2f4f6065e9c443aacd2ba349eabf61fd1a0eed100",
+  "source_input_count": 25,
+  "independent_builds_byte_identical": true,
+  "second_build_had_no_reference_input": true,
+  "checks": {
+    "passed": true,
+    "checks": [
+      "two independent builds are byte-identical",
+      "reject changed byte: rodata span 0",
+      "reject changed byte: rodata span 1",
+      "reject changed byte: literal pool",
+      "reject changed byte: code span 0",
+      "reject changed byte: code span 1",
+      "reject wrong function length",
+      "reject modified component binary",
+      "reject recompiled component with sprintf address +4"
+    ]
+  },
+  "recipe_sha256": "c086eeb14f3e0c14cc644c77badf7ffd7d723a8beae440e8fc893866ce76b098"
+}

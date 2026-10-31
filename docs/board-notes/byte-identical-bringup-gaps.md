@@ -1,6 +1,6 @@
 # Byte-identical bring-up: remaining gaps
 
-Updated 2026-10-28; original baseline implementation was `2e5c7dd`.
+DSP status updated 2026-10-31; original baseline implementation was `2e5c7dd`.
 **The complete captured
 machine image and complete original boot chain are not yet reproducible byte
 for byte from source.** This is the current gap ledger; the longer
@@ -28,6 +28,7 @@ the explicitly patched delivery images.
 | Deployed flat RTL8821CU module | Complete 2,441,368-byte file matches stock, including naturally generated source-version/build-ID fields; SHA-256 `7c0a036726227752359556f8e109683d5ce836bb65ec64afd46bfb754d6afa69`. | This proves the selected flat module, not every module/firmware variant elsewhere in the rootfs. |
 | Kernel, primary TOC and U-Boot control DTBs | Recovered DTS builds match their respective reference files. | LCD PWM7 kernel tree and PWM6 primary TOC tree are deliberately distinct. |
 | Both environment partitions | Complete 1-MiB files match stock, including redundant-format flag, CRC, record order and padding. | Does not prove their placement inside a newly generated whole-disk image. |
+| DSP FreeRTOS kernel C core + `heap_4` | Complete stock-retained component: 58 functions, 10,305 initialized bytes and the placement/size of 263,152 BSS bytes match; two independent builds produce identical ELFs. | Xtensa port, application hooks, C runtime, complete DSP ELF and partition tail remain outside this component result. [Recipe and proof](../../lab/dsp-rebrew/README.md#complete-kernel-c-component). |
 | ReForge rootfs | Fresh source build and ARM QEMU integration pass, including live Moonraker API and source-built Mainsail. | Updated distribution, not stock rootfs equality; one full fresh build, not two-image reproducibility certification. |
 | Optional Klipper 13 firmware | Two clean newlib/MCU closures reproduce all 12 packaged files; matching host package also builds. | Intentional v13 upgrade, not the factory MCU firmware. Same source-built compiler binaries were reused across the repeat-build test. |
 
@@ -344,49 +345,62 @@ substitute for missing-code recovery.
 remaining authentic configuration/source changes; reproduce the carrier and
 compare every byte with no permitted exceptions. See [the OP-TEE recipe](../../vendor/optee/stock-patches/README.md).
 
-## G03 — DSP0 license, source cohort and complete partition
+## G03 — DSP0 remaining runtime, firmware layout and partition
 
-**Authorized compiler checkout and original source identity remain unresolved.** The active boot
-command loads this firmware; exclusion from the current build does not remove
-it from a complete original bring-up target.
+**The FreeRTOS C component is byte-identical; the complete DSP firmware and
+partition remain open.** U-Boot loads this firmware from p5, so the full image
+remains part of the original bring-up target.
 
 - Original ELF: 261,240 bytes, SHA-256
   `61ed4f199ca3b15f96c245a709282e1a4798b14d0f23a5e2930577487ebd20d1`.
-- Recorded source version: `sun8iw20_fpga_v0.5.0-37-gfb1fe0d`.
-- Matching tools: Cadence RI-2020.4 / XCC 14.04, Xtensa `aw_axi_cfg0` core.
-  A working compiler entitlement is unavailable. Docker host networking did not
-  resolve it: the server-file checkout still fails `-96`; the alternative file
-  fails `-5` for the requested feature. Neither probe produced an object.
-- The later public `pdscomp/oc-freertos-dsp-xt` import at
-  `38fa249bd9997f63b35aa4cdf95248b3bef5b685` is not established as the original
-  source. Mapping found 30 exact paths, 56 basename matches and two missing
-  filenames (`notifier.c`, `sunxi_dma_core.c`); filename correspondence is not
-  source equivalence. Original configuration, compile cohort and runtime-library
-  source-build closure remain unverified.
-- A user-supplied candidate is now available for static comparison: stripped
-  ELF 257,240 bytes, SHA-256
-  `9253a505c6499599fb4e65ec3f5fa8e073db996196118379c881ab4457e63ad6`.
-  Its reported build used a license-check bypass; that toolchain was not run
-  by this audit and does not close authorized source-build provenance.
-  Against the hash-verified golden ELF, the file is 4,000 bytes smaller:
-  `.text` is 3,092 bytes smaller, `.rodata` 1,700 smaller, `.data` 452 larger,
-  `.FSymTab` 80 larger and `.oemhead.text` 12 larger. The BSS runtime allocation
-  is 824 bytes larger (NOBITS, not file payload). `.clib.rodata` and
-  `.rtos.rodata` have different placement/order. Seven small vector text
-  sections and the window vectors match individually; literal tables and
-  reset code still differ. Section-size deltas are not instruction bindiffs.
-  [Static candidate comparison](stock-dsp-static-comparison-proof.json) records
-  all sections and program headers without executing target code or compiler.
+  Recorded source version: `sun8iw20_fpga_v0.5.0-37-gfb1fe0d`.
+- The supplied `reforge/xtensa-xcc:14.04-ri2020.4-aw_axi_cfg0` image now compiles
+  successfully through Rebrew 6.9.0. The earlier compiler probes failed; that
+  is historical evidence, not a current compilation blocker. The recipe pins
+  image ID `sha256:c398e497143e99013d9dd5e677cbc2f06e1ad446d74ab37eb9961c0fb5222165`.
+- **Verified component:** the stock-retained FreeRTOS C core and `heap_4`,
+  compiled from public source commit `91148809209fa0d5eb4591273fd08233cf9cc48f`.
+  All 58 functions, both full code spans including padding, the complete
+  184-byte literal pool and read-only data match: **10,305 initialized bytes**.
+  BSS placement and size match across **263,152 bytes**, including padding;
+  BSS has no file payload. Two independent pristine-source builds produce the
+  same ELF; nine controls reject changed bytes, function length and callee
+  bindings. Component binary SHA-256:
+  `cca2466dabfe9baad47f8aa090eceeda017f5e0339041db86833f693a8572a50`.
+  The build reads pinned source inputs through Rebrew and native XCC; reference
+  bytes are read only afterward for verification. See the
+  [sealed recipe](../../lab/dsp-rebrew/README.md#complete-kernel-c-component),
+  [layout/input pins](../../lab/dsp-rebrew/kernel-layout.json) and
+  [proof](../../lab/dsp-rebrew/kernel-proof.json).
+- **Scope boundary:** Xtensa port, application hooks and C runtime are external
+  address bindings, not reproduced implementations. The separate `fls` (95
+  bytes) and reconstructed `main` (28 bytes) also match, but their matches do not
+  close referenced-data or whole-firmware equality. The core source matches
+  upstream FreeRTOS V10.2.0; the exact stock patch/vendor revision remains
+  unproven. V10.2.0 and V10.2.1 scheduler sources produce identical allocated
+  sections/relocations with the tested port/config. See the
+  [version evidence](../../lab/dsp-rebrew/freertos-version-proof.json).
+- **Remaining source/configuration gaps:** the original complete source revision,
+  component selection and linker layout are not recovered. Stock compiler
+  records include `notifier.c` and `sunxi_dma_core.c`, absent from the candidate.
+  The source-built cohort candidate still differs: `.text` 87,232 versus 92,784
+  stock bytes, `.rodata` 23,912 versus 24,384, `.data` 16,680 versus 16,948,
+  and BSS 281,840 versus 281,832. Its experimental configuration is tracked in
+  the DSP lab; it is not claimed as the original whole-image configuration.
+- A separate, earlier externally produced 257,240-byte candidate remains a
+  historical [static comparison](stock-dsp-static-comparison-proof.json), not
+  the source-built component proof or the current cohort candidate.
 - The whole 1-MiB DSP partition has SHA-256
   `3ce7c4ff5b9953986c63193acde1ca8783fe6a0a1ef12df9f8983cbdc018efb1`.
   A 904-byte residual tail follows the ELF through the 256-KiB boundary, then
   zeroes. Its generation/history is not reproduced. An identical ELF alone
-  would not certify that partition.
+  would not certify that partition. No DSP firmware was flashed or tested on
+  hardware.
 
-**To close:** obtain a valid entitlement for the actual core, recover the
-original source/configuration and compile all target/runtime inputs; reproduce
-both ELF and partition writer/tail behavior. No license bypass is part of this
-work, and no license secrets are recorded here.
+**To close:** reconstruct the remaining port, drivers, services, application and
+runtime inputs; recover the complete original configuration/layout; reproduce
+all ELF bytes and the partition writer/tail behavior. The kernel component
+result closes that component only.
 
 ## G04 — different 2025 backup U-Boot and slot identity
 
@@ -600,7 +614,9 @@ Local retained proof records (research state; not portable build inputs):
 
 - `/tmp/reforge-boot0-source/closure-proof.json` and `build/stock-boot0-source-closure-check/manifest.json`.
 - `/tmp/reforge-stock-optee/header-reconstruction/final-clean-proof.json` and `/tmp/reforge-optee-core-config/report.json`.
-- `/tmp/reforge-stock-dsp/reproduction-status.json` and `docker-host-network-probe-results.json` in that directory.
+- Historical DSP compiler probes: `/tmp/reforge-stock-dsp/reproduction-status.json`
+  and `docker-host-network-probe-results.json`. Current portable DSP recipe and
+  proof are tracked under [`lab/dsp-rebrew/`](../../lab/dsp-rebrew/README.md).
 - `/tmp/reforge-factory-mcu-audit/report.json`.
 - `/tmp/reforge-rootfs-clean-proof/build-report.json`, `integration.log`, `full-stack-smoke.log` and `device-dtb-report.json`.
 

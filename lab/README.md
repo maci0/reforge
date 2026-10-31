@@ -12,6 +12,7 @@ ignored next to the experiment that produces it.
 | [toolchain-memory/](toolchain-memory/README.md) | Compiler config fragments for the memory experiments. | fragments and notes tracked |
 | [mem-experiment/](mem-experiment/) | Size and allocator build variants. | scripts tracked |
 | [ad5m-vs-pro/](ad5m-vs-pro/findings.md) | AD5M / Pro hardware and config comparison. | findings tracked |
+| [dsp-rebrew/](dsp-rebrew/README.md) | Byte-identical stock DSP kernel C component: pinned XCC/Rebrew recipe, recovered layout and complete-range proof; full firmware remains open. | source, configuration and proof tracked; generated binaries ignored |
 | [stock-image-repro/](stock-image-repro/findings.md) | Stock eMMC image reproduction investigation. | findings tracked |
 | [helixscreen-eval/](helixscreen-eval/README.md) | HelixScreen port and evaluation notes. | notes tracked |
 | [klipperscreen-eval/](klipperscreen-eval/README.md) | KlipperScreen evaluation plan. | notes tracked |

@@ -52,6 +52,16 @@
         "status": "EXACT",
         "wrong_callee_control": "NEAR_MATCHING"
       }
+    },
+    "kernel_component": {
+      "status": "EXACT",
+      "scope": "Seven upstream kernel modules compiled; event_groups and stream_buffer have no retained allocation. Xtensa port and C runtime are external dependencies, not reconstructed payload.",
+      "functions": 58,
+      "initialized_bytes": 10305,
+      "zero_fill_bytes": 263152,
+      "component_sha256": "cca2466dabfe9baad47f8aa090eceeda017f5e0339041db86833f693a8572a50",
+      "proof": "kernel-proof.json",
+      "recipe": "rebuild-kernel.py"
     }
   }
 }

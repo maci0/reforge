@@ -1,8 +1,13 @@
 # Reproducing the stock FlashForge AD5M Pro eMMC image with Allwinner Tina/T113 BSP
 
-**Scope:** READ-ONLY analysis of the stock golden eMMC image + the vendored Tina BSP kernel,
+**Original scope:** READ-ONLY analysis of the stock golden eMMC image + the vendored Tina BSP kernel,
 to determine whether a ~1:1 reproduction is feasible and to document how FlashForge most
 likely built the stock image.
+
+**DSP update, 2026-10-31:** the kernel C component is now source-reproduced
+byte-identically. Current [recipe/proof](../dsp-rebrew/README.md) and
+[gap ledger](../../docs/board-notes/byte-identical-bringup-gaps.md) supersede
+the original no-source/compiler-blocked assessment; whole-image closure remains open.
 
 **Target SoC:** Allwinner T113-S3 (`sun8iw20p1`, die-compatible with R528). Dual Cortex-A7
 + HiFi4 (Xtensa LX7) DSP + RISC-V (E907) — only the A7 + DSP are used by stock.
@@ -99,7 +104,15 @@ kernel `linux-5.4`, **Linaro arm-linux-gnueabi GCC 5.3**. Same tree vendored at
 `file`: *ELF 32-bit LSB, Tensilica Xtensa, statically linked, stripped*. Strings:
 `AW-SOUND-CORE version:...`, `HW_VERSION="LX7.1.4"`, `#Xtensa Compiler Version 14.04 :
 arch/sun8iw20/init-sun8iw20.c`, `RELEASE_VERSION="14.04"`. Allwinner HiFi4/LX7 DSP audio
-firmware — **proprietary prebuilt**, loaded by U-Boot (`boot_dsp0`). Not buildable from BSP.
+firmware, shipped as a prebuilt and loaded by U-Boot (`boot_dsp0`).
+
+**2026-10-31 update:** the supplied XCC 14.04 image works through Rebrew 6.9.0.
+The stock-retained FreeRTOS C core and `heap_4` reproduce exactly: 58 functions,
+10,305 initialized bytes and BSS placement/size across 263,152 bytes. Two
+independent pristine-source builds match, with nine verification controls.
+The Xtensa port, application hooks, C runtime, full ELF and partition tail
+remain outside that match. [Recipe and proof](../dsp-rebrew/README.md#complete-kernel-c-component);
+[remaining full-image gaps](../../docs/board-notes/byte-identical-bringup-gaps.md#g03--dsp0-remaining-runtime-firmware-layout-and-partition).
 
 ### p6 rootfs (ext4)
 
@@ -212,7 +225,9 @@ single source of the 7-partition layout (boot-resource 33.6M / env 1M / env-redu
 **Bit-identical: NO.** Blockers:
 - Vendor-signed **boot0 + U-Boot/TOC1** (two builds incl. Apr-2025 `-dirty`) — no exact
   brandy rev / signing keys / build host.
-- **HiFi4 DSP blob** (p5, AW-SOUND-CORE Xtensa) — proprietary, no source.
+- **Complete HiFi4 DSP firmware** (p5, AW-SOUND-CORE Xtensa) — the kernel C
+  component is now source-reproduced exactly; remaining port/runtime, drivers,
+  configuration/layout and partition tail are still unresolved.
 - **FF proprietary app** — `firmwareExe` (Qt 4.8.6), `ffstartup-arm`, signing keys, closed
   library/control MCU payloads.
 - Build timestamps/host paths baked into uImage/U-Boot (Aug 23 2023, `linux-virtual-machine`,
@@ -246,9 +261,11 @@ logos + battery-icon set; `postgresql` in init.
 7. **Graft** `dsp0.fex` (HiFi4 blob) from the dump.
 8. `pack` -> sys.img; verify GPT via `sfdisk -d` vs section 1; boot in qemu harness.
 
-Net: a **functional bootable stock-equivalent** is achievable; ~3 components
-(boot0/U-Boot, DSP blob, FF Qt app) must be grafted from the dump / pinned community
-artifacts rather than rebuilt from source.
+The grafting steps above describe the original stock-equivalent packaging
+proposal, not source-reproduction closure. Subsequent work reproduced primary
+U-Boot and the DSP kernel C component; complete boot0/DSP image and proprietary
+application closure still have separate gaps. Current results are maintained in
+the [bring-up ledger](../../docs/board-notes/byte-identical-bringup-gaps.md).
 
 ---
 

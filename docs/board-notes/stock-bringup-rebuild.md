@@ -1,7 +1,7 @@
 # Stock AD5M Pro bringup: source builds and byte-identity status
 
-Rechecked 2026-10-26. **The complete original boot chain has not been rebuilt
-byte-identically.** No bootloader, environment, MCU or flash device was written.
+DSP status updated 2026-10-31; other stage checks retain their recorded dates.
+**The complete original boot chain has not been rebuilt byte-identically.** No bootloader, environment, MCU or flash device was written.
 Reference bytes and source-build outputs are kept separately.
 
 The current [complete byte-identity gap ledger](byte-identical-bringup-gaps.md)
@@ -74,7 +74,7 @@ must not be described as an unchanged factory boot chain throughout.
 | Kernel delivery | p1 uImage decompresses to raw Image SHA-256 `902f44fe517aedd9424fa14adbf4f7c6212f372cfed10b19d479044a53111fa6`, 12,970,156 bytes. | **Whole-file identical after the user-authorized 20-byte metadata patch.** Untouched source output is preserved separately. Full ELF/debug identity is not claimed. |
 | zImage / uImage | zImage SHA-256 `dd7fbccace45bbea6862597b86db12644480024ff6e276b93b6014123b9c5a34`; uImage `13c17296c9ed34cff1c355dc717ab76803410bd872a495bdefaca07cdaf89c79`. | **Whole-file identical**, actual source-built decompressor and gzip stream, after patching the raw Image before compression. Legacy header and both CRCs regenerated from source-defined metadata. |
 | Board DTBs / environments | Kernel, primary TOC and U-Boot control DTBs; both 1-MiB environment partitions. | **Byte-identical configuration source builds verified.** Recovered DTS/text inputs and strict builder are committed; no firmware image is needed to build them. |
-| DSP0 | Active boot command loads the Xtensa ELF from p5; 261,240-byte ELF SHA-256 `61ed4f199ca3b15f96c245a709282e1a4798b14d0f23a5e2930577487ebd20d1`, matching the held SDK firmware exactly. | Source build not yet reproduced. Original source version `sun8iw20_fpga_v0.5.0-37-gfb1fe0d`; matching Cadence RI-2020.4/compiler 14.04 acquired, but a real compile fails without an `XTENSA_XCC_TIE` entitlement. Original source revision/config still unresolved. |
+| DSP0 | Active boot command loads the Xtensa ELF from p5; 261,240-byte ELF SHA-256 `61ed4f199ca3b15f96c245a709282e1a4798b14d0f23a5e2930577487ebd20d1`, matching the held SDK firmware exactly. | **Kernel C component byte-identical:** 58 functions, 10,305 initialized bytes and 263,152 BSS bytes of placement/size; two pristine builds match. Supplied XCC 14.04 works through Rebrew 6.9.0. [Recipe/proof](../../lab/dsp-rebrew/README.md#complete-kernel-c-component). Xtensa port/runtime, complete ELF, original whole-image source/configuration and partition tail remain unresolved; recorded source version `sun8iw20_fpga_v0.5.0-37-gfb1fe0d`. |
 | Wi-Fi module | Deployed flat RTL8821CU module, 2,441,368 bytes. | **Byte-identical source build verified**, SHA-256 `7c0a036726227752359556f8e109683d5ce836bb65ec64afd46bfb754d6afa69`; natural source-version and build-id, no metadata overrides. |
 | Optional zram / zsmalloc modules | Add-on modules for the stock 5.4.61 ABI. | Now compiled from the pinned vendor BSP in a package-private tree; the static `swapon_prio` helper is compiled too. GCC 15.3 build verified exact vermagic and all required kernel/peer exports. Hardware loading has not been tested for this rebuild. |
 | Rootfs / services | ReForge Buildroot source packages. | A fresh full source build completed in `build/output-source-clean`, separate from older installed-package stamps. Mainsail now builds from its source archive and locked npm dependencies with source-built Node.js. The fresh build completed successfully and passes ARM QEMU integration, including the live Moonraker API and Mainsail HTTP serving. Real printer boot remains untested. |
