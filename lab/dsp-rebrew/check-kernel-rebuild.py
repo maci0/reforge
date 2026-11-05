@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.15"
-# dependencies = ["rebrew @ https://github.com/maci0/rebrew/releases/download/v6.9.0/rebrew-6.9.0-py3-none-any.whl", "pyelftools==0.33"]
+# dependencies = ["rebrew @ https://github.com/maci0/rebrew/releases/download/v6.15.0/rebrew-6.15.0-py3-none-any.whl#sha256=a389c880f5cb9a64350f63feced2c1d861d37a7679364cadfc82133e61884c21", "pyelftools==0.33"]
 # ///
 """Check two independent builds and reject byte/length/binding regressions."""
 

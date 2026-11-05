@@ -30,7 +30,11 @@ jobs:
 
       - name: install deps
         run: sudo apt-get update && sudo apt-get install -y
-             build-essential qemu-user-static file xz-utils unzip zip bc cpio rsync
+             build-essential qemu-user-static file xz-utils unzip zip bc cpio rsync socat curl
+             shellcheck busybox python3-pyelftools
+
+      - name: host checks
+        run: make lint unit
 
       - name: fetch vendored sources
         run: ./vendor/fetch.sh
@@ -48,6 +52,11 @@ jobs:
 
       - name: build rootfs
         run: make rootfs
+
+      - name: validate rootfs and release packages
+        run: |
+          make smoke smoke-guppy integration
+          tests/release/build-release-test.sh
 
       - name: publish release
         env:
