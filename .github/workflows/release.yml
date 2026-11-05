@@ -36,9 +36,6 @@ jobs:
       - name: host checks
         run: make lint unit
 
-      - name: fetch vendored sources
-        run: ./vendor/fetch.sh
-
       # Cache the buildroot download dir + ccache to cut the ~30-60 min build.
       - name: cache buildroot dl + ccache
         uses: actions/cache@v4
