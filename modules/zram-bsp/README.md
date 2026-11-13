@@ -5,7 +5,7 @@ that `insmod` cleanly on the **stock FlashForge AD5M 5.4.61 kernel**, giving
 **compressed-RAM swap (zram + zstd)** without replacing the kernel.
 
 **Why it matters:** ReForge's early phases (P1–P3) ride the stock kernel, so these
-modules give compressed swap *there* too — not only in P4 (our own kernel). They are
+modules give compressed swap *there* too — not only in Plan 5 (our own kernel). They are
 also testable on the current **forge-x** install immediately. The stock kernel ships
 `CONFIG_CRYPTO_ZSTD=y` (compressor present) but `CONFIG_ZSMALLOC`/`ZRAM`/`ZPOOL`/`ZBUD`
 are all unset — so the drivers must come as out-of-tree modules.
@@ -43,11 +43,22 @@ is the low-CPU escape hatch (`ZRAM_ALGO=lzo-rle`).
   was tried first and **Oopsed** (see RESULT below), so the BSP is what `build.sh` uses.
 - Config: the **captured stock `.config`** (`../../docs/board-notes/stock-kernel-config-5.4.61.txt.gz`)
   with `CONFIG_ZSMALLOC=m`, `CONFIG_ZRAM=m`, `CONFIG_ZPOOL=m`, `CONFIG_ZBUD=m` added.
-- Toolchain: kernel.org crosstool `arm-linux-gnueabi` GCC 9.5 at
-  `vendor/toolchains/gcc-9.5.0-nolibc` (fetched + verified by `vendor/fetch.sh`; kernel
-  builds soft-float regardless of hf/non-hf prefix).
+- Toolchain for this standalone `build.sh`: kernel.org crosstool `arm-linux-gnueabi`
+  GCC 9.5 at `vendor/toolchains/gcc-9.5.0-nolibc`. `vendor/fetch.sh` downloads and
+  verifies that tarball, but only after `mkdir -p vendor/toolchains` (the script does
+  not create the directory). Kernel builds are soft-float regardless of the hf/non-hf
+  prefix. The shipping package does not use this toolchain; see the shipping note under
+  Build steps.
 
-## Build steps (see build.sh once written)
+## Build steps (`build.sh`)
+
+`build.sh` builds all four modules into `build/`; only `zsmalloc.ko`, `zram.ko` and the
+static `swapon_prio` helper are committed to `dist/`. The default image source-builds
+`zsmalloc.ko`, `zram.ko` and `swapon_prio` with Buildroot's internal compiler via
+`br-external/package/reforge-zram/reforge-zram.mk` (it does not build `zpool.ko` or
+`zbud.ko`) and stages them at `/opt/reforge/zram`. `br-external/board/reforge/post-build.sh`
+then copies each of `zram.ko`, `zsmalloc.ko` and `swapon_prio` into `/mod/modules`.
+If the source-built file is absent, that loop falls back to `modules/zram-bsp/dist/`.
 1. Extract source + toolchain.
 2. `zcat stock .config > .config`; enable the 4 module symbols; `make ARCH=arm CROSS_COMPILE=... olddefconfig`.
 3. `make ARCH=arm CROSS_COMPILE=... modules_prepare`.
@@ -75,16 +86,21 @@ is the low-CPU escape hatch (`ZRAM_ALGO=lzo-rle`).
 Modules built from the **Allwinner T113 vendor BSP** source (`iLotusK9/linux_kernel_aw_t113`,
 branch `5.4.61` — sun8iw20p1, same BSP base as FlashForge) load cleanly; on the live
 unit, real klippy/moonraker cold pages compress **4.02×** (orig 3.8MB → 0.9MB stored).
-Deployables in `dist/` (`zsmalloc.ko`, `zram.ko`); bring-up via `zram-setup.sh`, revert
-via `zram-teardown.sh`. Applies to **forge-x AND ReForge P1–P3** (both ride the stock kernel).
+The 2026-05-31 live trial used the copies in `dist/` (`zsmalloc.ko`, `zram.ko`),
+brought up with `zram-setup.sh` and reverted with `zram-teardown.sh`. See Build steps for the current packaging path.
 
 Two gotchas solved along the way:
 1. **Upstream `linux-5.4.61` source → Oops** (vendor `struct page` layout differs). Use vendor BSP source.
 2. **`5.4.61+` vermagic** (trailing `+` from a dirty git tree) → suppress with an empty `.scmversion`; final vermagic is exactly `5.4.61 SMP preempt mod_unload ARMv7 p2v8`.
 
-Deploy steps: `scp dist/*.ko` (or `cat`-over-ssh — device has no sftp-server) to the
-printer, run `zram-setup.sh`. Note busybox `insmod`/`mkswap`/`swapon` live at `/sbin/`
-and busybox `swapon` has **no `-p`** (priority handled by swapoff/re-add order instead).
+For a standalone trial, transfer `zram-setup.sh` and
+`dist/{zsmalloc.ko,zram.ko,swapon_prio}` to the printer, preserving that sibling
+`dist/` directory and executable permissions. Use `cat` over SSH if the device has
+no sftp-server, then run `sh zram-setup.sh`. Busybox
+`insmod`/`mkswap`/`swapon` live at `/sbin/`, and busybox `swapon` has no `-p`.
+`zram-setup.sh` calls `dist/swapon_prio` beside those modules (`swapon(2)` with
+`SWAP_FLAG_PREFER`, priority 100). Shipping `S35zram` calls `/mod/modules/swapon_prio`,
+the copy `post-build.sh` placed there.
 
 ### Upstream attempt (kept as the negative result)
 
@@ -101,14 +117,5 @@ normal out-of-tree `8821cu`).
 zsmalloc/zbud store metadata in `struct page` fields → memory corruption on load.
 **Must rebuild from the Tina SDK sun8iw20 5.4 BSP source** (layout-exact). The upstream
 attempt is kept here only as the documented negative result; do not deploy it.
-
-**Next step:** acquire the Tina sun8iw20 5.4 kernel source (`DongshanPI/100ASK_T113-Pro_TinaSDK`
-or Allwinner longan), configure with the stock `.config` + the 4 module symbols, build
-with a compatible toolchain, and re-test insmod. Expectation: layout-exact modules load.
-
-## Fallback if upstream source modules won't load (now the PRIMARY path — see RESULT)
-Vendor patches *could* alter a struct `zsmalloc` relies on (it stores metadata in
-`struct page` fields). If upstream-built modules fail to load or misbehave, rebuild
-from the **Tina SDK sun8iw20 5.4 BSP kernel source** (`DongshanPI/100ASK_T113-Pro_TinaSDK`),
-which is layout-exact to the stock kernel. See `../../docs/research/memory/2026-05-31-memory-and-testing.md` §4.
-</content>
+See Build steps for current packaging. Background:
+`../../docs/research/memory/2026-05-31-memory-and-testing.md` §4.

@@ -11,16 +11,14 @@
 # of a bind of /data/.mod/.reforge on eMMC.
 #
 # Write topology (F2FS USB mounted at /reforge):
-#   - Our OS writes to USB: klippy.log, moonraker DB, SAVE_CONFIG appends, /tmp.
+#   - Moonraker data and SAVE_CONFIG writes go to USB; /tmp and klippy.log use RAM.
 #   - User gcodes via Mainsail land on eMMC /data (the `[virtual_sdcard] path:
 #     /data/` from the factory config). They persist across stick pull/reboot
 #     and are visible to an install on the same unit — same path, same files.
-#   - The eMMC sees ONE OS-level write: the mkdir of /data/.mod/.reforge (a single
-#     directory inode) the first time live mode runs on a fresh unit. After
-#     that the dir exists; subsequent live boots reuse it; an install reuses
-#     the same dir for its own state (live mode mounts the F2FS over it, so
-#     the install's files are hidden but intact — pull stick, reboot, install
-#     comes back).
+#   - The launcher creates /reforge on stock p6 if absent, then mounts USB there.
+#     It creates host /data on p6 if absent; chroot mountpoints are on the USB.
+#     Live mode skips installation; it is not a whole-device zero-write mode.
+#     See docs/live-mode.md for the write topology and measured hardware trial.
 #
 # The stock FlashForge auto_run.sh runs any `flashforge_init.sh` found at the USB
 # root, directly from /mnt, on every boot:
@@ -57,10 +55,12 @@ F2FS_LABEL="${F2FS_LABEL:-reforge-live}"
 ROOT="${REFORGE_LIVE_ROOT:-/reforge}"
 DATA="${REFORGE_LIVE_DATA:-/data}"
 
+# Some executable diagnostic strings below still say eMMC is untouched. They are
+# legacy wording, not write-audit evidence; see docs/live-mode.md.
 # Logging goes to the console AND a persistent log file ON THE USB, so a pulled stick is
 # debuggable with no network. Writing to the USB is fine — it is the live medium, NOT the
-# eMMC, so the zero-eMMC-write invariant is unaffected. Prefer the framebuffer console
-# (the panel, /dev/tty1) so HEADLESS output is visible on screen, not just on the serial
+# eMMC; this describes log placement, not a whole-device zero-write guarantee.
+# Prefer the framebuffer console (the panel, /dev/tty1) so HEADLESS output is visible on screen, not just on the serial
 # /dev/console; fall back to /dev/console.
 # An env-provided LIVE_LOG wins (qemu test rigs set it to /dev/console so the
 # launcher output is captured in the serial log alongside the gate init's).
@@ -120,10 +120,8 @@ fi
 
 log "starting (screen=${SCREEN_MODE})"
 
-# Ensure mountpoints exist on the host. mkdir -p on ROOT (/reforge) is the ONE
-# eMMC-side OS write live mode makes (a single empty directory inode, on the
-# stock p6 rootfs); on a unit that previously ran live mode or has an install
-# the dir already exists and this no-ops.
+# Ensure host mountpoints exist. ROOT is /reforge on p6 by default; DATA is /data.
+# Existing directories are reused. This does not audit writes by launched services.
 mkdir -p "${ROOT}"
 [ -d "${DATA}" ] || mkdir -p "${DATA}"
 

@@ -81,7 +81,7 @@ tiles, no overlay (1475 distinct colours).
 > (and any non-Allwinner panel) it is absent, so init always bailed. Everything below ("fb
 > geometry correct, firmwareExe paints the same fb") was right — the abort was one step
 > earlier, at the `/dev/disp` open, not in the flush. Fix:
-> `br-external/package/guppyscreen/0004-fbdev-optional-disp-device.patch` makes that open
+> `br-external/package/guppyscreen/guppyscreen.mk` makes that open
 > non-fatal (we lose only HW backlight/brightness, whose ioctls already no-op on a bad fd).
 > Confirmed by a clean dirclean rebuild: `GUPPYFBDIAG mmap OK`, then it paints.
 

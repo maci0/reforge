@@ -1,5 +1,11 @@
 # Stock kernel-module packaging on the AD5M Pro
 
+> **Current status:** the deployed flat `8821cu.ko` now reproduces byte for byte
+> from pinned public source; see the [build audit](../board-notes/stock-bringup-rebuild.md).
+> This supersedes the later “not feasible without the proprietary SDK” conclusion.
+> The two-path packaging and captured ELF evidence below remain historical facts;
+> absence of vendor strings alone does not prove an unmodified source history.
+
 **Date:** 2026-06-04
 **Status:** reverse-engineering finding (host-only analysis of factory rootfs
 + OTA + golden eMMC dump). Informs how ReForge ships its own modules.
@@ -681,7 +687,11 @@ FF OTA packages and re-ships unchanged in pro-3.1.3.tgz / 5.0.3 / 5.1.2 / 5.1.4
   match between our rebuilt kernel and stock
 
 ### Analysis commands run for this finding
-```sh
+
+Illustrative command transcript; angle brackets and `...` stand for selected
+artifact paths. This is not a copy-and-run shell script.
+
+```text
 # extract every module + classify by debug-info presence
 tar -tJf Adventurer5M-factory.tar.xz | grep lib/modules
 tar -xJf Adventurer5M-factory.tar.xz -C /tmp/ff-modules \

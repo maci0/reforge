@@ -1,5 +1,14 @@
 # Plan: Immutable / atomic ReForge — versioned OverlayFS on the stock kernel
 
+> **Unimplemented proposal:** the current install/OTA path still uses `mod/` and
+> LKG copies; see [ota.md](../ota.md) and [live-mode.md](../live-mode.md).
+> Before implementation, resolve three assumptions below: rename atomicity alone
+> does not guarantee crash durability (staged data and parent directories need
+> durable writes); `ln -sfn` is not an atomic replacement; and the existing
+> `md5sum.list` uses MD5, not SHA-256, and provides no authenticity against a
+> maliciously replaced bundle. The 64 MB tmpfs example cannot hold the later
+> 100 MB upload acceptance test. These are design gaps, not verified guarantees.
+
 **Date:** 2026-06-05
 **Status:** plan ready for review. Spike + on-hardware sanity check both passed (cited below); this plan turns those results into an implementation.
 **Owner:** TBD (likely whoever picks up the next install/OTA-touching chunk).
@@ -355,3 +364,6 @@ Want me to start phase 1, or hold for a different design pass first?
 ## Update 2026-06-08
 
 The `/reforge` bind-mount seam this plan's overlay merged-view attaches to landed in `reforge-boot` (2026-06-07): the rootfs is bind-mounted at `/reforge` and chrooted there (shared `.shell/reforge-chroot.sh`). The overlay step should mount the merged view at `/reforge` — the established seam — not a fresh `/data/.mod/.reforge/merged` chroot. `sbin/reforge-init` + the pid1-pivot harness referenced here remain staged (not wired). A `dinit` 0.22.0 package + `etc/dinit.d/` services were also added as the switch_root-PID1 building block.
+
+**Package status (2026-11-13):** dinit is now pinned to 0.22.1. The 0.22.0
+version in the dated June update above is historical, not the current pin.

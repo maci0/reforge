@@ -1,5 +1,8 @@
 # ReForge Plan 3 — Installer + qemu Harness + Stock-UI Spike Implementation Plan
 
+> **Historical implementation plan:** use the [current guide](../../packaging/README.md) for current behavior.
+> The loopback validation commands below need [install-layout updates](../../tests/README.md#loopback-install-test).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the flashable `reforge-<ver>.tgz` userland installer and validate it **without flashing the printer** — via a qemu-system-arm harness whose `/dev/fb0` matches the real panel — plus a stock-UI feasibility spike.
@@ -315,4 +318,3 @@ git commit -m "P3: CI no-blob guard + packaging docs/caveats"
 - [ ] Docs state the MCU caveat + the deferred-flash gate.
 
 **Next plan:** Plan 4 — P3.5 MCU firmware (build matching upstream Klipper MCU fw for mainboard+eboard, the flasher, v11 fallback) — the piece that makes a flashed ReForge actually drive the printer.
-</content>

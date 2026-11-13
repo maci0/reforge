@@ -1,24 +1,25 @@
 # Live mode — run ReForge from USB (no install)
 
 Live mode boots the **entire ReForge stack from a USB stick** without going
-through the installer. Pull the stick, reboot, and the printer is back to
-pristine stock. It's how you trial ReForge on real AD5M / AD5M Pro hardware
-with **no brick risk**.
+through the installer. On the 2026-06-02 AD5M Pro trial, pulling the stick and
+rebooting returned to the previous system. Validation covers that unit and trial;
+the persistent writes below still apply.
 
-"Live" here means "booted from USB", not "zero eMMC writes". The OS writes
-essentially nothing to the eMMC; user-uploaded gcodes land on the eMMC `/data/`
-the same way they do in install mode (intentional persistence). See the
-[Write topology](#write-topology) section for the full picture.
+"Live" means booted from USB. The launcher does not install ReForge. It does
+write: the first boot creates `/reforge` on the stock rootfs (p6), and
+user-uploaded gcode lands on eMMC `/data` (p7), same as install mode. The
+[Write topology](#write-topology) section lists each write.
 
 | | Live mode | Install (`.tgz`) |
 |---|---|---|
 | Chroot ROOT (host-side) | `/reforge` (F2FS USB partition mounted here) | `/reforge` (rootfs bind-mounted here from `/data/.mod/.reforge`) |
 | `/data` inside chroot | eMMC mmcblk0p7 (bind from host) | eMMC mmcblk0p7 (bind from host) |
-| OS-level eMMC writes | one-time `mkdir /reforge` on the stock p6 rootfs (eMMC **p7 untouched**) | overlay + LKG bookkeeping on p7 |
+| OS-level eMMC writes | launcher mountpoints on p6; optional HELIX state on p7; see [write topology](#write-topology) | overlay + LKG bookkeeping on p7 |
 | User gcode persistence | eMMC `/data/` (visible to install too) | eMMC `/data/` |
-| Config / log persistence | F2FS USB partition (lost if stick is reformatted) | eMMC `/data/.mod/.reforge/` |
+| Config / Moonraker data | F2FS USB partition | eMMC `/data/.mod/.reforge/` |
+| Klippy log (`/var/log → /tmp`) | tmpfs; lost on reboot | host `/tmp` bind; lost on reboot |
 | Revert | pull USB + reboot | OTA rollback / recovery |
-| Stock UI | does **not** run (ReForge owns the machine) | does not run |
+| Stock UI | does **not** run after successful stack startup; early launcher failure returns to stock | `auto_run.sh` still launches it after `S01reforge` returns (from source; no install-mode hardware trial recorded) |
 
 ## How it works
 
@@ -39,16 +40,15 @@ ReForge's live launcher (`packaging/live/flashforge_init.sh`) uses that hook. It
    kernel has neither (verified on hardware): `crc32_generic.ko` (the `crc32` algo
    F2FS checks at mount — the kernel only has `crc32c`), and `f2fs.ko`. Each
    insmod is a no-op if the symbol is already present.
-2. **finds the sibling F2FS partition** on the same USB stick (by label
-   `reforge-live` via `blkid`, falling back to deriving p2 from p1's device path,
-   falling back to an F2FS-magic scan of `/dev/sd?[2-4]`) and **mounts it directly
-   as a real block device** at `/reforge` (the chroot root). No loop driver, no loop
-   file: the rootfs is just partition 2.
+2. **finds and mounts the F2FS rootfs** directly at `/reforge`. `F2FS_DEV` can
+   override discovery; otherwise the launcher tries the configured label, a blkid
+   F2FS-type search, the FAT partition's sibling, then a magic scan. See
+   [`find_f2fs_dev()`](../packaging/live/flashforge_init.sh) for the exact order.
+   There is no loop-mounted rootfs file.
 3. sets up the chroot mounts via the shared `reforge-chroot.sh` helper — binds
    `proc`/`sys`/`dev`/`run` + a **fresh tmpfs `/tmp`** into `/reforge`, and binds the
-   eMMC `/data` (mmcblk0p7) in so gcode uploads persist (same as install mode). The
-   only eMMC write is the one-time `mkdir /reforge` on the stock p6 rootfs; **p7 is
-   untouched**.
+   eMMC `/data` (mmcblk0p7) in so gcode uploads persist. See the
+   [write topology](#write-topology) for launcher, service and user writes.
 4. **boots the toolhead "eboard" MCU** (`chroot … /usr/bin/reforge-boot-eboard`) —
    right here, before banner/network/stack. The eboard (`/dev/ttyS1`) waits in a
    serial bootloader for an `A` (0x41) before starting its Klipper app; without this
@@ -87,12 +87,16 @@ make rootfs                       # the ReForge image (build/output/images/rootf
 make live-usb                     # -> packaging/dist/reforge-live-<ver>.img.gz
 ```
 
-Flash the disk image onto a USB stick (≥ ~600 MiB) and insert it:
+`reforge-live-<ver>.img.gz` is a compressed whole-disk image. Flash it onto a
+USB stick (≥ ~600 MiB). Replace `/dev/sdX` with the disk you identified
+(`lsblk` before and after inserting the stick). The write erases that entire
+disk. Unmount every mounted partition on that USB disk before writing. Do not point `dd` at an internal disk.
 
 ```sh
-# Linux:
-zcat packaging/dist/reforge-live-<ver>.img.gz | sudo dd of=/dev/sdX bs=4M status=progress && sync
-# Cross-platform: open the .img.gz in balenaEtcher / Rufus / GNOME Disks "Restore Disk Image".
+version=$(cat packaging/VERSION)
+zcat "packaging/dist/reforge-live-${version}.img.gz" | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync
+# Cross-platform: open the .img.gz in balenaEtcher / Rufus / GNOME Disks "Restore Disk Image"
+# and select the USB disk, not a partition.
 ```
 
 Then: power on the printer — ReForge boots from USB. To return to stock, **pull the
@@ -130,37 +134,41 @@ than an "extract a tarball onto an existing FAT stick" tarball.
 ## Write topology
 
 Live mode is **not** a zero-eMMC-write mode — it is "booted from USB with the
-installer skipped". Here's exactly what writes where:
+installer skipped". Known paths from the launcher and services are listed below;
+this is not a whole-device write audit:
 
 | What | Where | Storage | When |
 |---|---|---|---|
 | `mkdir -p /reforge` (one-time) | mountpoint inode on the stock **p6** rootfs (eMMC **p7 untouched**) | eMMC | First live boot on a fresh unit; no-op thereafter |
 | F2FS mount + chroot setup | kernel mount table | RAM | Boot only |
-| `klippy.log` | `/var/log/klippy.log` inside chroot | F2FS USB | Runtime |
+| `klippy.log` | `/var/log/klippy.log`; Buildroot’s `/var/log` links to `/tmp` | tmpfs; lost on reboot | Runtime |
 | moonraker SQLite DB + history | `/var/lib/moonraker/` inside chroot | F2FS USB | Runtime |
 | `SAVE_CONFIG` (PID/shaper/mesh) | `/etc/reforge/printer.cfg` inside chroot | F2FS USB | Tuning events |
 | Klippy UDS / lockfiles | `/tmp/klippy_uds` etc. | tmpfs | Runtime |
 | Live-mode log | `/mnt/reforge-live.log` (FAT p1) | FAT USB | Per boot |
 | Gcode uploads via Mainsail | `/data/` (factory `[virtual_sdcard] path: /data/`) | eMMC | Per upload |
 | Print job state (stop/pause) | moonraker DB | F2FS USB | Per event |
+| Optional HELIX cache/config/log directories | `/data/helixscreen/{cache,config,log}` | eMMC p7 | Startup when HELIX is built, selected and has a framebuffer |
 
-**OS-level writes to eMMC: one directory inode** (`/reforge`, the mountpoint on
-the stock p6 rootfs), and only the first time live mode runs on a fresh unit.
-The `/data` partition (p7) is **not written at all** — live mode now mounts its
-rootfs at `/reforge` rather than over `/data/.mod/.reforge`, so it neither
-creates a dir on p7 nor shadows an existing install there.
+The launcher creates `/reforge` on p6 and, if absent, the host `/data` mountpoint.
+Chroot mountpoints are created on the USB rootfs. It does not mount over an installed
+`/data/.mod/.reforge` tree. This does not guarantee p7 is unchanged: user uploads and
+the optional HELIX service use the bound `/data`, and other stock processes are outside
+this launcher’s write accounting. HELIX is not part of the default GuppyScreen image.
 
 **User-action writes to eMMC: gcode uploads**, intentional. You upload via
 Mainsail in live mode, pull the stick, and the gcodes are still in `/data/`.
-An install on the same unit sees the same files at the same path. If you'd
-rather have ephemeral gcodes in live mode, bind a tmpfs over `/data/gcodes` in
-your printer.cfg — the launcher doesn't enforce one way or the other.
+An install on the same unit sees the same files at the same path. The launcher
+has no switch for ephemeral gcodes; to keep uploads off the eMMC, point
+`[virtual_sdcard] path` (set in `printer.base.cfg`) at a USB or tmpfs path
+inside the chroot.
 
 ## The install-residue invariant
 
 What live mode **does NOT** write to eMMC: any install state. No
-`/data/.mod/.reforge/{mod,lkg,trial,.installed}` files are created from live
-mode. Pull the USB stick + reboot, and the unit boots stock unmodified —
+`/data/.mod/.reforge/{mod,lkg,state,config,.installed}` install files are created by live
+mode. Pull the USB stick and reboot to stock with no ReForge install state; the
+empty `/reforge` mountpoint on p6 can remain. In particular,
 stock's `/etc/init.d/` is unchanged, no `S01reforge` symlink, no
 `/data/.mod/.reforge/mod` overlay. If you previously had an install, it is
 left untouched at `/data/.mod/.reforge` — live mode mounts at `/reforge` and
@@ -168,18 +176,22 @@ no longer mounts over the install dir, so the install reappears as-is when the
 USB is removed.
 
 The qemu gate `tests/qemu-harness/live-mode-test.sh` (`make qemu-live`,
-rootless) enforces this: after a live boot, it checks the eMMC stand-in via
-`debugfs` for any `/data/.mod/.reforge/{mod,lkg,trial,.installed}` and fails
-if any of them appear. CI-gated.
+rootless) checks the eMMC stand-in via `debugfs`, but at the obsolete path
+`/data/.reforge/{mod,lkg,trial,.installed}`. It does not inspect the current install
+path `/data/.mod/.reforge` or its `state/` and `config/` directories, so it cannot
+establish the install-residue invariant above. `make qemu-live-ota` has the same gap. CI does not run
+the `qemu-*` targets (`.github/workflows/build.yml`).
 
 ## Hardware trial (2026-06-02, AD5M Pro `kunos`)
 
-First real-hardware run, verified with `tools/release/verify-live-trial.sh`
-(baseline → live → stock). **Result: the brick-safe model holds on real hardware.**
-ReForge booted live from the USB (GuppyScreen on the panel), and a clean before/after
-showed the eMMC was **untouched**: `/data/.mod/.reforge` ABSENT both before and after, the
+The first hardware run used `tools/release/verify-live-trial.sh` (baseline → live →
+stock), before the F2FS-p2 layout. That [legacy helper](../tools/README.md) is not a
+current write-audit gate; install-directory absence does not prove zero eMMC writes. ReForge booted from the USB (GuppyScreen on the
+panel). The before/after comparison showed no install residue on that unit:
+`/data/.mod/.reforge` ABSENT both before and after, the
 user's print files intact, no `/mod` or ReForge residue, the live modules unloaded on
-reboot, and forge-x came back pristine. Pulling the stick + rebooting returned to stock.
+reboot, and the previous forge-x system came back. Pulling the stick + rebooting
+returned to that system.
 
 Findings from the trial — **all three since resolved** (same day):
 
@@ -195,33 +207,35 @@ Findings from the trial — **all three since resolved** (same day):
   script) that `killall`s udhcpc — net-up uses busybox's default lease script instead.
   Plus `ensure_sshd` (start dropbear if stock hasn't) and a `net_only` debug mode (wifi
   + sshd, skip the stack). **Proven on hardware: the box joined WiFi (got a DHCP lease),
-  SSH reachable.** See `docs/reverse-engineering/ad5m-mcu-firmware-and-config.md`.
+  SSH reachable.** See `packaging/live/net-up.sh`.
 - **klippy "waiting to initialize" — was a CONFIG error, not a host↔MCU version wall.**
   The stall was klippy aborting config parse on FlashForge-fork sections vanilla Klipper
   lacks (`flashforge_loadcell`/`flashforge_tvoc`) + a missing `[extruder] rotation_distance`
   + a `[probe] z_offset`. After rebasing the config on the stock/ZMod form (standard
   `MAX31856`/`MAX31865` sensors), **klippy reaches `ready` and drives BOTH stock v11 MCUs**
   (`mcu` + `eboard`, real temps) — no MCU reflash / Plan 4 needed. The only version-locked
-  piece is `[adxl345]` input-shaper *calibration* (`query_adxl345` format changed v11→v13),
-  left gated. Full analysis: `docs/reverse-engineering/ad5m-mcu-firmware-and-config.md`.
+  piece was then believed to be `[adxl345]` calibration, which was left gated.
+  That version explanation was corrected on 2026-06-04; see the
+  [source analysis](reverse-engineering/ad5m-mcu-firmware-and-config.md) and current caveats below.
 
 ## Caveats
 
 - The USB must stay inserted — it *is* the rootfs; running from USB is slower than eMMC.
-- The stock UI (`firmwareExe`) does not run — live mode runs ReForge's GuppyScreen /
-  headless. That's the point.
+- After successful startup, the stock UI is not launched; early launcher failure
+  can return to `auto_run.sh` and the stock UI.
 - `/data` inside the chroot is the **real eMMC p7** (bound in), so gcode uploads
-  persist across reboots and are visible to an install on the same unit. Ephemeral
-  live state (logs, the Moonraker DB, `/tmp`) lives on the F2FS USB / tmpfs instead.
+  persist across reboots and are visible to an install on the same unit. Moonraker
+  data/logs live on F2FS USB; `klippy.log` and `/tmp` are ephemeral tmpfs. See the
+  [write topology](#write-topology).
 - **Network works** (`net-up.sh` joins WiFi before the launcher blocks; `ensure_sshd`
   brings up SSH) — Moonraker/Mainsail/SSH are reachable. See the trial findings.
-- **klippy reaches `ready` and drives the stock v11 MCUs** with the rebased config; the
-  `[adxl345]` / `[input_shaper]` sections stay enabled (matching stock 3.1.3 — see
-  [`reverse-engineering/ad5m-mcu-firmware-and-config.md`](reverse-engineering/ad5m-mcu-firmware-and-config.md)).
-  The only version-locked piece is the **`query_adxl345` calibration command** itself
-  (`oid=%c rest_ticks=%u` on v11 vs `oid=%c clock=%u rest_ticks=%u` on v13) — a v13 host
-  against a v11 MCU errors out on calibration. With ReForge's v0.11-matched host, calibration
-  works against the native MCU. No MCU reflash needed to run.
+- **klippy can reach `ready` with both stock MCUs**, but the first config-CRC
+  restart requires a manual relaunch: `S60klipper` has no respawn. See the
+  [startup issue](BACKLOG.md#live-klippy-respawn-after-crc-mismatch-auto-restart).
+- The trial's initial `query_adxl345` version explanation was corrected on
+  2026-06-04. The current v0.11 host pin and enabled accelerometer configuration
+  supersede the earlier disabled-calibration workaround; see
+  [MCU firmware & config](reverse-engineering/ad5m-mcu-firmware-and-config.md).
 
 ## See also
 

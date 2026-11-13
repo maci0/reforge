@@ -8,9 +8,11 @@ different in effort and risk.
 
 ## Hardware constraints — read first
 
-This unit (hostname `kunos`, T113-S3 SoC) has **no FEL boot mode and no UART
-header**. There is no way to recover a bad bootloader or kernel over USB or a
-serial cable. If the bootloader or kernel is corrupted, the only recovery path
+This unit (hostname `kunos`, T113-S3 SoC) has **no usable FEL port and no UART
+header as shipped** (both need solder mods; see
+[brick-safe kernel test paths](../../docs/research/kernel/2026-06-04-brick-safe-kernel-test-paths.md)).
+Without them there is no way to recover a bad bootloader, U-Boot environment or
+kernel over USB or a serial cable. If the bootloader or kernel is corrupted, the only recovery path
 is physically reading and writing the eMMC with an external reader (path B
 below). This is why the golden image **must exist and be verified before any
 kernel- or bootloader-touching flash is attempted**.
@@ -37,18 +39,21 @@ the normal FlashForge USB update path.
 7. Verify normal operation (touchscreen, connectivity, motion).
 
 **Why this works:** The bootloader and kernel are still intact, so the device
-boots normally and the stock update mechanism can overwrite userland partitions.
+boots far enough for `/opt/auto_run.sh` to find the `Adventurer5MPro-*.tgz` and run
+its `flashforge_init.sh`. If boot never reaches `auto_run.sh`, use Path B.
 
 ---
 
-## Path B — Hard-brick: bad bootloader or kernel (reachable in P4+)
+## Path B — Hard-brick: bad bootloader, U-Boot environment or kernel
 
 **Symptom:** The printer does not complete boot at all — black screen, immediate
 power-off, or no network. Path A is not possible because the device cannot boot
 far enough to run the update mechanism.
 
-**When this can happen:** Plans P4 and later flash the bootloader and/or kernel.
-This path should never be needed for P0–P3 work.
+**When this can happen:** Plan 5 flashes the bootloader and/or kernel. Before
+that, a bad `fw_setenv` value (`init=`, `bootargs`, `bootcmd`) already stops
+userspace ([boot.md §2](../../docs/boot.md#2-intervention-points--earliest--latest)).
+The shipped install and live modes write neither.
 
 **Recovery:** Physically remove the eMMC (or attach an eMMC reader to the board),
 connect it to a host machine, and write the golden image directly.
@@ -68,18 +73,18 @@ connect it to a host machine, and write the golden image directly.
    Confirm the device node (e.g., `/dev/sdX` or `/dev/mmcblkN`) belongs to the
    eMMC reader and not to any internal disk or important drive.
 
-5. Write the golden image. Use the **stock-clean** golden for a pure-stock
-   recovery baseline (preferred), or the original golden if you need to restore
-   the forge-x state exactly as it was captured:
+5. Write the golden image. Use the **offline-cleaned** golden as the curated recovery
+   baseline (preferred), or use the saved Forge-X recovery image to restore that
+   saved system state. Neither is a proven byte-for-byte factory/capture image:
 
    ```sh
    # DANGER: confirm <reader-dev> is the eMMC reader, NOT your system disk,
    # before running. This command will irrecoverably overwrite the target device.
 
-   # Preferred: pure stock (forge-x removed)
+   # Offline-cleaned baseline (see provenance limitations below)
    gzip -dc tools/recovery/golden.img.gz | sudo dd of=/dev/<reader-dev> bs=4M conv=fsync status=progress
 
-   # Alternative: exact capture state (forge-x installed)
+   # Alternative: saved Forge-X recovery image
    # gzip -dc tools/recovery/forge-x-20260531-152104.img.gz | sudo dd of=/dev/<reader-dev> bs=4M conv=fsync status=progress
    ```
 
@@ -98,21 +103,23 @@ There are two curated full-eMMC images on disk. They are **both gitignored** (la
 binaries) and live only on local disk / external backup.
 
 **Naming (2026-06-01 rename, to avoid confusion):**
-- `golden.img.gz` — the **pristine stock** reference (forge-x removed). This is *the* golden.
-- `forge-x-<ts>.img.gz` — the raw device dump **as captured** (forge-x was installed on it).
+- `golden.img.gz` — the **offline-cleaned recovery** reference (forge-x removal recipe).
+- `forge-x-<ts>.img.gz` — the device capture with forge-x installed; `dump_golden.sh` may repair filesystems before saving.
 - A fresh `dump_golden.sh` capture is named `dump-<host>-<ts>.img.gz` (neutral); curate it
-  into one of the above by content. "golden" now means *clean stock only*, never a raw dump.
+  into one of the above by content. "golden" identifies the curated recovery baseline, never an uncurated dump.
 
 | Image | State | Use for |
 |---|---|---|
-| `tools/recovery/forge-x-20260531-152104.img.gz` (~886 MB gz) | Captured live, **forge-x installed** | Exact snapshot of the printer as it was; forge-x reference only |
-| `tools/recovery/golden.img.gz` (~877 MB gz) | Derived offline, **pure stock — forge-x removed** | **Preferred recovery baseline and qemu rootfs source** |
+| `tools/recovery/forge-x-20260531-152104.img.gz` (~886 MB gz) | Captured live, **forge-x installed** | Forge-x reference; dump script may apply filesystem repairs |
+| `tools/recovery/golden.img.gz` (~877 MB gz) | Derived offline, **forge-x cleanup recipe applied** | **Preferred recovery baseline and qemu rootfs source** |
 
-The `golden.img.gz` is the preferred pristine recovery baseline.
-It was derived from the original dump using `tools/recovery/make-clean-golden.sh`
-(offline, loop-mounted, no live printer access). The forge-x removal was guided
-by forge-x's own `uninstall.sh` + `S00init` + `boot/boot.sh` install record;
-it removes exactly what those scripts add and nothing more.
+The `golden.img.gz` is an offline-cleaned recovery baseline, derived with
+`tools/recovery/make-clean-golden.sh` (loop-mounted, no live printer access).
+The removal recipe follows forge-x install/uninstall records, but factory origin
+of the removed `S00init` and `/opt` scaffold remains unverified; see the
+[rootfs provenance limits](../../docs/board-notes/stock-rootfs-provenance.md).
+The [bring-up audit](../../docs/board-notes/stock-bringup-rebuild.md) also records
+a different backup U-Boot in this image. It is not a proven byte-identical factory image.
 
 **To regenerate the stock-clean golden** (if it is lost or the original golden is
 refreshed):
@@ -145,12 +152,11 @@ userspace successfully.
 | forge-x device reference (as-dumped) | `tools/recovery/forge-x-20260531-152104.img.gz` | **NO** |
 | forge-x checksum | `tools/recovery/forge-x-20260531-152104.img.gz.sha256` | **NO** |
 | forge-x size sidecar | `tools/recovery/forge-x-20260531-152104.size` | **NO** |
-| forge-x partition map | `tools/recovery/forge-x-20260531-152104.partitions.txt` | **NO** |
+| forge-x partition map (`/proc/partitions`) | `tools/recovery/forge-x-20260531-152104.partitions.txt` | YES |
 | **Stock golden (preferred)** | `tools/recovery/golden.img.gz` | **NO** |
 | Golden checksum + size | `tools/recovery/golden.img.gz.sha256` · `golden.size` | **NO** |
 | Clean-golden derivation script | `tools/recovery/make-clean-golden.sh` | YES |
 | Cleaned p6 rootfs for qemu | `tests/qemu-harness/build/stock-clean-rootfs.ext4` | **NO** |
-| Partition map | `tools/recovery/partitions-20260531-152104.txt` | YES |
 | Dump script | `tools/recovery/dump_golden.sh` | YES |
 | Verify script | `tools/recovery/verify_dump.sh` | YES |
 | This runbook | `tools/recovery/RUNBOOK.md` | YES |
@@ -175,27 +181,36 @@ If you need to capture a new golden image (e.g., after verifying a clean state
 on a new device, or to refresh the baseline):
 
 ```sh
-# From the repo root:
-./tools/recovery/dump_golden.sh root@<printer-ip>
+# From the repo root. PRINTER is user@host, for example root@192.168.1.10
+./tools/recovery/dump_golden.sh "$PRINTER"
 ```
 
-This SSHes into the printer, reads `/dev/mmcblk0` via `dd`, gzip-compresses the
-stream locally, and writes:
-- `tools/recovery/golden-<hostname-or-ip>-<timestamp>.img.gz`
-- `tools/recovery/golden-<hostname-or-ip>-<timestamp>.size`
-- `tools/recovery/golden-<hostname-or-ip>-<timestamp>.img.gz.sha256`
+This reads `/dev/mmcblk0` over SSH into a local raw image. Before compression,
+`dump_golden.sh` runs `e2fsck -fy` on ext partition slices and splices successful
+repairs back into that image. The saved dump may therefore differ from the bytes
+captured from the device; it is not a forensic byte-for-byte capture. It then
+compresses the repaired image and names it from the host and time, not "golden":
 
-Then verify the dump:
+- `tools/recovery/dump-<host>-<timestamp>.img.gz`
+- `tools/recovery/dump-<host>-<timestamp>.size`
+- `tools/recovery/dump-<host>-<timestamp>.img.gz.sha256`
+
+`<host>` is the part of `$PRINTER` after `@`. A raw dump stays a dump until it
+is curated. The offline-cleaned recovery baseline produced by
+`make-clean-golden.sh` is `golden.img.gz`. A forge-x device dump kept as the forge-x reference is
+`forge-x-<timestamp>.img.gz`. See `recovery-sources.md`.
+
+Verify the file the script just wrote. `DUMP` is that `.img.gz` path:
 
 ```sh
-./tools/recovery/verify_dump.sh tools/recovery/golden-<hostname-or-ip>-<timestamp>.img.gz
+./tools/recovery/verify_dump.sh "$DUMP"
 ```
 
 Expected output ends with:
 ```
 expected=7818182656 actual=7818182656
 sha256:
-golden-...: OK
+dump-...: OK
 OK: dump is full-size and checksum-valid
 ```
 

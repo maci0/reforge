@@ -1,154 +1,37 @@
 # Backlog
 
-Ideas/tasks not yet scheduled into a plan.
+Open issues and unscheduled ideas. Closed entries keep a status line and links to the
+canonical record.
 
 ## microgit — a tiny git client (Zig) for Moonraker's update_manager
 
-**Why:** Moonraker's `git_repo` updater shells out to the full `git` CLI. Shipping real
-git costs ~5–10 MB rootfs (git + `git-remote-https` + libcurl) just to satisfy one consumer.
-A purpose-built client that implements *exactly* what Moonraker calls — and nothing else —
-could be a fraction of that.
+**Status: deferred.** Moonraker's `git_repo` updater shells out to the full `git` CLI
+(about 5–10 MB of rootfs with `git-remote-https` and libcurl). A purpose-built client
+would have to reproduce git's output byte for byte for the ~18 subcommands
+`moonraker/components/update_manager/git_deploy.py` parses (checked 2026-06-01),
+including smart-HTTP over TLS, `--filter=blob:none` partial clone and packfile deltas.
+ReForge OTA ships through `zip`/`web` updaters instead ([ota.md](ota.md)), so this only
+matters for upstream `git_repo` OTA, which would still lack `pip` and `gcc` on the device.
 
-**Exact surface Moonraker requires** (from `moonraker/components/update_manager/git_deploy.py`,
-verified 2026-06-01): the client is invoked as `git -C <path> <cmd>` and its **stdout/exit
-codes are parsed**, so output must be byte-compatible with real git for:
+## reforge OTA design: DONE (option 2)
 
-| subcommand | form used |
-|---|---|
-| clone | `clone --branch <b> --filter=blob:none <url> …` (**partial clone** — needs the GitHub partial-clone protocol) |
-| fetch | `fetch --all -p` / `fetch <remote> --prune --progress` |
-| pull | `pull --progress` |
-| checkout | `checkout -q <branch>` |
-| reset | `reset --hard <ref>` |
-| clean | `clean -d -f` |
-| branch | `branch --list --no-color` |
-| remote | `remote <get-url/set-url>` |
-| config | `config <args>` |
-| for-each-ref | `for-each-ref … --sort='-creatordate' --contains=HEAD` |
-| rev-parse | `rev-parse <args>` |
-| rev-list | `rev-list <args>` |
-| describe | `describe <args>` |
-| cat-file | `cat-file -e <commit>^{commit}` |
-| merge-base | `merge-base --is-ancestor <a> <b>` |
-| log | `log <current>..<ref>` |
-| status | `status --porcelain -b` |
-| fsck | `fsck --full` |
-
-**Hard parts (why it's non-trivial):**
-- **Smart-HTTP transport over TLS** to GitHub (the bulk of the work): pkt-line protocol,
-  `git-upload-pack`, ref advertisement, want/have negotiation.
-- **Partial clone** (`--filter=blob:none`) — blob-filtering + on-demand blob fetch.
-- **Pack/delta**: parse packfiles, apply ofs/ref deltas, zlib inflate, verify SHA-1.
-- **Output compatibility**: `status --porcelain`, `for-each-ref --format`-style output,
-  `describe`, `rev-list` counts must match git's text exactly (Moonraker parses them).
-- Loose+packed object store, refs, basic config.
-
-**Scope notes:** read-mostly (no push, no merge, no rebase, no working-tree staging beyond
-checkout/reset/clean). Could lean on libz (or Zig's deflate) + the system TLS already present.
-
-**Status:** idea only. Lower priority than the OTA design below — if reforge OTA ships via
-self-published `zip` releases (no git on device), this is unnecessary; it only matters if we
-want true upstream `git_repo` OTA.
-
-## reforge OTA design (decide before implementing)
-
-Shipping `git` does **not** enable host (klipper/moonraker) OTA on the buildroot image:
-`/opt/*` are not git checkouts, there's no `pip`, and no `gcc` (klipper's chelper recompiles
-on source change). Working options:
-
-1. **`web` updater for Mainsail** — git-free, works today (Mainsail ships GitHub release zips).
-2. **`zip` updater against our own prebuilt reforge releases** — publish bundles in CI with the
-   correct thumb2/NEON `c_helper.so` (timestamped so klippy won't recompile) + vendored deps;
-   no git/gcc/pip on device. This is the clean path to full host OTA.
-3. Status quo: USB `.tgz` reflash (no OTA).
+**Closed.** Shipped as `zip` updaters against ReForge's own prebuilt releases plus a `web`
+updater for Mainsail; see [ota.md](ota.md) and the
+[OTA design spec](specs/2026-06-01-reforge-ota-design.md).
 
 ## live USB: vfat + f2fs partitions (drop loopback) — DONE 2026-06-04
 
-~~Replace the current single-FAT + loop-mounted-f2fs-image live USB with a 2-partition
-stick.~~ Done: `tools/release/build-live-usb.sh` now emits a partitioned `.img.gz`
-(MBR + p1 vfat 64 MiB + p2 f2fs label=`reforge-live`); `packaging/live/flashforge_init.sh`
-finds p2 by label (`blkid -L reforge-live`) with fallbacks to p1-sibling derivation and
-an F2FS-magic scan, and mounts it directly. `loop.ko` (and its
-`MODULE_IMPORT_NS(VFS_internal_…)` patch on `loop.c`) is no longer built or shipped
-— `modules/f2fs-bsp/` now produces only `crc32_generic.ko` + `f2fs.ko`. UX cost as
-expected: the stick is now flashed (`dd` or balenaEtcher) instead of "extract a
-tarball onto FAT". See `docs/live-mode.md` for the updated flash procedure. The
-2-partition layout is gated by the existing qemu live-mode + live-OTA harnesses
-(both now pass `F2FS_DEV=/dev/vdb` to the launcher); real-hardware re-verification
-pending the next trial.
+**Closed.** `make live-usb` writes a partitioned image (FAT p1 + F2FS p2) and the launcher
+mounts p2 directly, so `loop.ko` is no longer built. Layout, flashing and the `kunos`
+hardware check: [live-mode.md](live-mode.md#the-two-modules).
 
 ## immutable / atomic ReForge — OverlayFS2 (or similar) for transactional updates and true Mode 1 live
 
-**Status (2026-06-05): SUPERSEDED — promoted to a plan.** The spike is complete
-([`docs/research/kernel/2026-06-05-overlayfs-on-bsp-spike.md`](research/kernel/2026-06-05-overlayfs-on-bsp-spike.md))
-and this parked idea is now a concrete plan,
-[`docs/plans/2026-06-05-immutable-reforge.md`](plans/2026-06-05-immutable-reforge.md) — the
-**canonical source** (its §7 explicitly supersedes this entry). OverlayFS builds clean as a
-**~108 KB** loadable module (~90 KB resident) from the vanilla BSP source, mounts with correct
-semantics, and costs ~192 KiB MemAvailable per mount. The `/reforge` mountpoint the merged view
-attaches to already landed in `reforge-boot` (2026-06-07). The notes below are retained as the
-original parked design context.
-
-**Two motivations, one substrate:**
-
-1. **Atomic updates for Mode 2 / Mode 3** (`docs/deployment-modes.md`). Today the
-   installer + OTA write directly into `/data/.mod/.reforge/` — a power loss
-   mid-update can leave a half-installed mod (we mitigate with LKG bookkeeping +
-   a trial-N-fails rollback, but that's bookkeeping over a non-atomic write).
-   An overlay-fs structure where each version is a distinct lower layer and
-   updates swap which one is the upper would make installs and rollbacks
-   atomic by construction (commit = pointer swap, rollback = drop the upper
-   and remount). Same model openSUSE MicroOS / Fedora Silverblue / NixOS use,
-   adapted to a `/data/.mod/.reforge/<version>/` layout instead of btrfs subvols.
-2. **True Mode 1 live** (`docs/deployment-modes.md` §"Mode 1 — Live"). An
-   overlay with `lowerdir=/data` + `upperdir=tmpfs` gives the live launcher a
-   `/data` that shows the user's existing gcodes but writes go to RAM — the
-   pull-stick-and-everything-is-as-it-was semantics we want for a true
-   trial mode, without depending on Mode 3's own-kernel work.
-
-**Open questions to investigate before scheduling:**
-
-- **OverlayFS in stock kernel:** `CONFIG_OVERLAY_FS` is **not** set in the
-  stock 5.4.61 BSP build (`docs/board-notes/stock-kernel-config-5.4.61.txt.gz`).
-  Can we build it as a loadable module against the BSP source (same recipe as
-  `modules/f2fs-bsp/`), or is it kernel-config-only? `fs/overlayfs/Kconfig`
-  marks it `tristate "Overlay filesystem support"` so module build is
-  reachable in theory; need to verify the BSP source compiles it as `=m` cleanly.
-- **OverlayFS2 vs the stock 5.4 overlayfs:** OverlayFS in 5.4 has known issues
-  with concurrent writes, redirect_dir, and metacopy that newer kernels fix.
-  How much of "OverlayFS2" (the term sometimes refers to specific OCI-friendly
-  improvements) is actually a separate filesystem vs. just newer overlayfs
-  semantics? Map exactly what we need (overlayed lower + writable upper +
-  workdir, no redirect_dir, no nested overlays for v1) to what 5.4 supports.
-- **Memory implications:**
-  - Per-mount overhead of one overlayfs instance (the in-kernel struct +
-    inode cache): expected small, but on a 128 MB box every MB matters.
-  - tmpfs `upperdir` size for Mode 1 live: needs to cap somewhere short of
-    eating RAM. A few hundred MB is plenty for SAVE_CONFIG appends + a
-    moonraker DB but blows the budget if the user uploads gcodes (which
-    can easily be 50–500 MB each). Probably want a separate Mode 1 policy:
-    `[virtual_sdcard] path` is **not** in the overlay; uploads go to a
-    distinct tmpfs path with its own size cap.
-  - Page cache implications of stacking: every read from a lower layer page
-    can mean two cache lookups; not free but small.
-- **Atomic-install layout choice:**
-  - `/data/.mod/.reforge/versions/<ver>/` lower layers, `/data/.mod/.reforge/current` pointer
-  - vs. side-by-side `mod` + `mod.new`, atomic rename swap (today's approach,
-    not actually overlay-fs at all)
-  - vs. real subvol-style (would need btrfs on `/data` — huge change)
-  - The pointer-swap-overlay option is the most ReForge-friendly: small,
-    no filesystem swap, works on ext4 `/data`.
-- **Mode 3 alignment:** when ReForge ships its own kernel (Plan 5),
-  CONFIG_OVERLAY_FS is trivially `=y` and we get OverlayFS "for free". Any
-  Mode 2 design that uses overlay would carry over to Mode 3 with minimal
-  changes — worth designing for that future even if we don't ship it on
-  the stock kernel.
-
-**Suggested next step:** a short research note (`docs/research/`) that
-benchmarks overlayfs-as-module on the stock 5.4.61 BSP (does it load, does it
-mount cleanly, what's the per-mount RSS overhead, what's the cold-read penalty
-on a klippy startup) before any architectural commitment. Probably a half-day
-spike.
+**Superseded (2026-06-05)** by the plan
+[`plans/2026-06-05-immutable-reforge.md`](plans/2026-06-05-immutable-reforge.md) (phase 1
+not implemented). Module build and per-mount cost:
+[OverlayFS spike](research/kernel/2026-06-05-overlayfs-on-bsp-spike.md). The `/reforge`
+mountpoint the merged view would attach to already exists in `reforge-boot`.
 
 ## Mode 3 net stack: switch to iwd, skip ConnMan
 
@@ -216,15 +99,14 @@ link itself works (both MCUs, real temps) once klippy is relaunched.
 
 ## AD5M MCU firmware vs host Klipper version skew (adxl345 / input shaping)
 
-The AD5M MCU firmware (build 2023-03-17) predates ReForge's host Klipper, and the
-`query_adxl345` command format changed in between (`oid rest_ticks` vs `oid clock
-rest_ticks`) → "MCU Protocol error: Command format mismatch" the moment klippy configures
-the accelerometer. `[adxl345]`/`[resonance_tester]` are currently disabled in
-printer.base.cfg to reach `ready`. To re-enable resonance testing / input-shaper
-auto-cal, rebuild + flash the AD5M MCU firmware from a Klipper matching the host version
-(careful: reflashing the mainboard MCU is higher-risk than host-side changes). Everything
-else in the MCU protocol (steppers, heaters, thermocouples, both MCUs' 105 commands)
-matches fine — this is the one version-locked feature.
+Historical bring-up issue, superseded by the [2026-06-04 protocol
+correction](reverse-engineering/ad5m-mcu-firmware-and-config.md): the observed
+`query_adxl345` mismatch was initially attributed to v0.11 versus v0.13 and
+accelerometer sections were disabled during that trial. Source review places
+the command change at v0.10 → v0.11; v0.11 and v0.13 use the same format.
+The current package pins a v0.11 host and `printer.base.cfg` enables
+`[adxl345]` and `[resonance_tester]`. That historical mismatch does not justify
+reflashing a stock MCU. A coordinated firmware upgrade remains separate work.
 
 ## live mode: decouple from the stock rootfs (run our userspace in the chroot)
 
@@ -246,7 +128,7 @@ NOT `switch_root` **for live / Mode 2**: we are not PID1 (stock init launches us
 `auto_run`, with the panel UI + many stock procs already running), `switch_root` is an
 initramfs-era tool that would tear down the running stock system, and it wouldn't change the
 (stock) kernel or the vermagic-locked driver anyway. Brick-safety comes precisely from being a
-non-invasive guest under stock init (pull USB → pristine stock). Raised 2026-06-02.
+non-invasive guest under stock init (pull USB → stock boot without install state; `/reforge` on p6 may remain). Raised 2026-06-02.
 
 > **Update 2026-06-08:** `switch_root` *is* on the table for the **Mode 3** (own-kernel/PID1)
 > path — distinct from the non-invasive live/Mode-2 guest above. Groundwork has started: the
@@ -261,20 +143,36 @@ Sharing libpython3.11 with moonraker saved only ~1 MB. The Forge-X contribution 
 its dedicated build helper have been removed from this repository. See the
 [memory review](research/memory/2026-06-03-forge-x-memory-review.md) for the findings.
 
+## Mode 2 install: stock UI still starts, cloud block misses it
+
+Found by source review (2026-11-13), not yet observed on hardware: `reforge-boot`
+`exec`s `/mod/start.sh`, which backgrounds every service and exits, so the stock `rcS`
+continues and `/opt/auto_run.sh` launches `ffstartup-arm`/`firmwareExe` beside the
+chroot. `S00cloudblock` runs inside the chroot and edits only the chroot's `/etc/hosts`.
+Effects: the stock LAN and cloud surfaces stay up in Mode 2a, and the stock UI may
+compete with ReForge for the MCU serial ports and framebuffer. Closure is Mode 2b
+(PID-1 swap) or another way to stop `auto_run.sh` before its UI launch. See
+[security-findings.md](security-findings.md).
+
 ## Cloud-block hardening: iptables for IP-literal stock endpoints
 
-The current cloud-block (`/etc/hosts`) handles hostname-based stock endpoints
-(VoxelShare, NetEase IM, sz3dp, etc.) but misses the **IP-literal** ones that
-`firmwareExe` hardcodes:
+The current cloud-block edits the chroot's `/etc/hosts`, so it does not cover the
+stock UI. Even a stock-side hosts block would miss these hard-coded IP literals:
 
-- `http://10.33.11.172:32112/api/updates/check` (FlashForge internal dev update server)
-- `http://10.33.23.222` (legacy update host)
-- `rtmp://115.231.29.49:2045/...` (test RTMP)
+- `http://10.33.11.172:32112/api/updates/check` (private dev update server)
+- `http://10.33.23.222` (private legacy update host)
+- `rtmp://115.231.29.49:2045/...` (public test-video endpoint)
 
-A LAN with one of these subnets present (e.g. corporate network, or attacker
-spoofing) would route the connection through. Closing the gap is one iptables
-rule per subnet, added to `reforge-boot` alongside the existing `/etc/hosts`
-edit:
+**Blocked on kernel support:** the captured stock kernel and current device config
+have `# CONFIG_NETFILTER is not set`. Netfilter's core is a boolean Kconfig option;
+an iptables package or add-on module alone cannot enable it. An on-device firewall
+needs a replacement kernel built with Netfilter, the required iptables matches and
+REJECT target, plus the iptables userspace package. This is not a quick stock-kernel
+script change and is not implemented. Such a kernel would be a separate, unplanned
+variant: Mode 2a retains stock, while planned Modes 2b and 3 remove the stock UI and
+close this particular surface. Mode 3's current board fragment also omits Netfilter.
+
+Illustrative rules for such a kernel, not commands supported by current stock:
 
 ```sh
 iptables -A OUTPUT -d 10.33.11.0/24 -j REJECT
@@ -282,16 +180,20 @@ iptables -A OUTPUT -d 10.33.23.0/24 -j REJECT
 iptables -A OUTPUT -d 115.231.29.49 -j REJECT
 ```
 
-Source of the IP literals: `docs/security-findings.md` finding #6,
-`docs/reverse-engineering/stock-ui/firmwareexe-ota-update.md` §1.
+With kernel support, these rules would cover the shared network namespace, including
+stock `firmwareExe` outside the chroot. On an unchanged stock kernel, use external
+network filtering on a router/firewall that actually carries the printer's traffic;
+it cannot filter a direct LAN path that bypasses it. The planned on-device alternative
+is Mode 2b, which stops the stock UI rather than filtering its connections.
 
-Estimated work: < 30 minutes. Worth doing as part of the next reforge-boot
-edit pass.
+Evidence: [stock kernel config](board-notes/stock-kernel-config-5.4.61.txt.gz),
+`br-external/board/reforge/linux.config`, BSP `net/Kconfig`, and
+[security finding #6](security-findings.md).
 
 ## Sigstore / cosign signatures on ReForge OTA artifacts
 
 Today's ReForge OTA fetches per-component zips from a GitHub Release. The
-integrity story is "you trust this GitHub repository" \u2014 there's no signature
+integrity story is "you trust this GitHub repository" — there's no signature
 verification on the downloaded zip beyond the implicit TLS-to-github.com trust.
 
 This is one notch better than stock (stock = MD5 with the manifest *inside*
@@ -319,17 +221,18 @@ gets revisited when this is scheduled. Not blocking; current OTA works.
 replacing the busybox-init + sequential `/mod/start.sh` S-loop with a real
 supervised init for the own-kernel (Mode 3) path. Already in-tree:
 
-- `dinit` 0.22.0 package (`br-external/package/dinit/`, `BR2_PACKAGE_DINIT=y`) —
-  binaries shipped, no service definitions wired.
+- `dinit` 0.22.1 package (`br-external/package/dinit/`, `BR2_PACKAGE_DINIT=y`) —
+  binaries shipped; the service definitions below are staged, not wired.
 - Staged service descriptions (`…/rootfs-overlay/etc/dinit.d/{boot,prepare,
-  cloudblock,zram,eboard,klipper,moonraker,httpd,camera,guppyscreen,ok}`) +
+  cloudblock,zram,eboard,klipper,moonraker,httpd,camera,guppyscreen,helixscreen,ok}`) +
   `tests/release/dinit-services-test.sh` (in `make unit`). Inert today.
 - The `/reforge` bind-mount seam in `reforge-boot` (the future pivot target).
 
-Remaining: a PID-1 entry (`sbin/reforge-init` is staged, not wired) that
-`switch_root`s into `/reforge` and `exec`s `dinit`; the chroot→pivot handoff;
-and moving the conditional camera/guppyscreen into the boot target under a
-`SCREEN_MODE` selector. Gated on the own-kernel work (Plan 5) — until ReForge
+Remaining for Mode 3: a PID-1 entry that `switch_root`s into `/reforge` and
+`exec`s `dinit`, plus a selector for the conditional camera, GuppyScreen and
+HelixScreen services. The staged Mode 2b `sbin/reforge-init` is separate: it
+uses `pivot_root` into `/data/.mod/.reforge` and executes BusyBox init, not dinit. The Mode 3 work is gated on Plan 5;
+until ReForge
 ships its own kernel, the non-invasive chroot guest stays the shipping model.
 Refs: [`docs/research/kernel/2026-06-05-replacing-pid1.md`](research/kernel/2026-06-05-replacing-pid1.md),
 `…/etc/dinit.d/README.md`.

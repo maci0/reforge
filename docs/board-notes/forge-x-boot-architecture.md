@@ -87,11 +87,14 @@ S80dnsmasq`. Mod (symlinks into `.shell/`): **`S00init` → `S55boot` → `S60dr
 
 forge-x is mostly an **overlay**: almost everything lives in its own `/opt/config/mod`,
 `/opt/*`, and the `/data/.mod` chroot, so it touches **few stock-rootfs files directly** — and
-the installer/uninstaller (`.shell/uninstall.sh`, `cfg_backup.py`) reverts them cleanly. No
+the installer/uninstaller (`.shell/uninstall.sh`, `cfg_backup.py`) includes restore
+steps. Verify removal before installing another mod; the modded capture does not
+establish every path's factory origin. No
 bootloader / kernel / partition writes (low brick risk). The stock-rootfs intrusions:
 
-**Replaced / modified (stock files):**
-- `/etc/init.d/S00init` — stock script replaced by a **symlink → `.shell/S00init`** (the boot hook).
+**Replaced / modified paths:**
+- `/etc/init.d/S00init` — **symlink → `.shell/S00init`** (the mod boot hook);
+  whether a factory script occupied this path is [unverified](stock-rootfs-provenance.md).
 - `/etc/init.d/S60dropbear` — replaced with the mod's version.
 - `/etc/hosts` — rewritten with the cloud/update **blackhole** (`*.sz3dp / voxelshare /
   flashforge / netease / polar → 127.0.0.1`); uninstall restores `localhost`+hostname.

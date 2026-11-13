@@ -27,9 +27,9 @@
 #     aborts at first config load on our Python 3.14. Backport of upstream
 #     Klipper PR #6388 (which landed on master at klippy/configfile.py:165-169).
 #   0003-py3-gcode-regex-raw-string.patch — klippy/gcode.py:396 uses a non-raw
-#     string for the m112 regex (`'^...\s...'`); Python 3.14 promoted the
-#     unknown-escape from SyntaxWarning to SyntaxError, so the module fails
-#     to import. Matches master's gcode.py:432 (raw-string prefix).
+#     string for the m112 regex (`'^...\s...'`). Python 3.12–3.14 emits a
+#     SyntaxWarning, not an unconditional import error; a raw string removes
+#     the warning and preserves the regex. See the dated fork-delta report.
 #   0004-toolhead-backport-lookahead-flush-time.patch — backport of upstream
 #     commit 16fc46fe5 by Kevin O'Connor (2025-09-30): LOOKAHEAD_FLUSH_TIME
 #     0.250 → 0.150. Reduces "print stall" corner cases (which is what

@@ -3,20 +3,18 @@
 # unpacks the .tgz.  POSIX sh / BusyBox compatible.
 #
 # Boot-hook injection point (see "HOOK POINT" comment below):
-#   The stock /etc/rcS iterates /etc/init.d/S??* and execs each one with
+#   The stock /etc/init.d/rcS iterates /etc/init.d/S??* and execs each one with
 #   "start".  forge-x uses the identical mechanism: its installer symlinks
 #   /opt/config/mod/.shell/S00init → /etc/init.d/S00init  (confirmed in
 #   fw-analysis/fx-build/flashforge_init.sh:243 and the stock rcS).
 #   ReForge mirrors this exactly: we install reforge-boot at
 #   /data/.mod/.reforge/.shell/reforge-boot and symlink it as
 #   /etc/init.d/S01reforge  (slot S01 — after any S00 stock scripts,
-#   before the rest of the stock stack).  Rationale for S01 vs S00:
-#   avoids colliding with an existing forge-x S00init if the user ever
-#   runs both; also gives the /data partition mount (done by auto_run.sh
-#   before rcS) time to settle.  Assumption to validate in qemu: confirm
-#   /data is already mounted when S01 runs.
+#   before the rest of the stock stack). Competing mods must be uninstalled.
+#   rcS reaches auto_run.sh after the S-script loop; see docs/boot.md.
+#   Availability of /data before S01 remains a stock-mount-order assumption.
 #
-# NEVER writes outside /data (or $DATA if REFORGE_DATA_ROOT is set).
+# Writes under $DATA plus the boot-hook entry in $INITD_DIR (default /etc/init.d).
 # Env overrides for loopback/CI tests on non-armv7 hosts:
 #   REFORGE_DATA_ROOT=<dir>    — redirect /data to a temp dir (loopback mount)
 #   REFORGE_SKIP_ARCH_CHECK=1  — skip armv7l uname check on x86 test hosts
@@ -255,7 +253,7 @@ info "  Symlinked ${INITD_LINK} -> ${BOOT_HOOK_DEST}"
 # ---------------------------------------------------------------------------
 # Persist default screen mode
 # ---------------------------------------------------------------------------
-# Modes: HEADLESS (no display daemon), GUPPY (GuppyScreen), STOCK (reserved)
+# Modes: HEADLESS, GUPPY (GuppyScreen), HELIX (optional HelixScreen), STOCK (skip).
 mkdir -p "${REFORGE_DIR}/config"
 printf 'SCREEN_MODE=HEADLESS\n' > "${REFORGE_DIR}/config/screen.conf"
 info "Default screen mode: HEADLESS"

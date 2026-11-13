@@ -1,5 +1,14 @@
 # forge-x memory review — what's left to optimize (live audit)
 
+> **Historical snapshot:** the recommendation to preload jemalloc into Klippy
+> is superseded: hardware tests found heap corruption. Use glibc for Klippy;
+> see [the allocator update](2026-06-01-jemalloc-test-plan.md#update-2026-06-08).
+> Later [mod-only trials](2026-10-28-forgex-buildroot-memory.md) found noisy
+> Moonraker savings and confirmed that deleting a history config section does
+> not unload that core component. CMA is included in `MemTotal`, so the reserved
+> RAM explanation in §3 is also superseded by the
+> [kernel memory accounting](../kernel/2026-10-27-mainline-board-kernel.md#memory-against-the-stock-kernel).
+
 Date: 2026-06-03. Live unit `root@192.168.0.158` (forge-x / `DrA1ex/ff5m`, stock
 T113-S3, Linux 5.4.61, `MemTotal 110404 kB`). Goal: enumerate memory optimizations
 **still available to forge-x** beyond what ReForge has already shipped or tested, grounded

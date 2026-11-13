@@ -1,5 +1,10 @@
 # ReForge OTA / release channel — design
 
+> **Historical design:** implementation and validation limits are documented in
+> [ota.md](../ota.md). Per-component updates are not a multi-component atomic
+> transaction; the LKG snapshot covers `mod/` only. Its directory-copy operations
+> are not power-loss-atomic, and rollback does not authenticate update contents.
+
 **Status:** Design (approved in brainstorming 2026-06-01)
 **Date:** 2026-06-01
 **Implementation plan:** [`docs/plans/2026-06-01-reforge-ota.md`](../plans/2026-06-01-reforge-ota.md)

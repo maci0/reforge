@@ -1,5 +1,13 @@
 # OverlayFS on stock 5.4.61 BSP — spike findings
 
+> **Scope correction:** this measured one small idle overlay under QEMU; it
+> does not establish a production memory budget, “zero risk” module loading,
+> unchanged hardware behavior or power-loss durability. A vendor-marker grep
+> is not a byte comparison with upstream. Copy-up writes the upper filesystem;
+> it does not journal an unchanged lower file a second time. For subsequent
+> hardware-load evidence and unresolved transaction design, see the
+> [immutable plan](../../plans/2026-06-05-immutable-reforge.md).
+
 **Date:** 2026-06-05
 **Status:** spike complete. Findings inline. Implementation plan deferred to a follow-up that uses these results.
 **Triggered by:** `docs/BACKLOG.md` §"immutable / atomic ReForge — OverlayFS2", which parked the design direction until a half-day spike answered five open questions.

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # =============================================================================
 # live-ota-test.sh — prove ReForge OTA works while running LIVE from USB, and
-# still writes NOTHING to the eMMC.
+# checks legacy /data/.reforge residue paths on eMMC p7. This misses the current
+# /data/.mod/.reforge install tree; it is not an install-residue or write audit.
 #
 # Combines the two proven harnesses:
 #   * live-mode-test.sh — boot the live launcher (chroot from a USB rootfs image,
-#     tmpfs /data), with a 3rd disk standing in for the eMMC /data partition.
+#     eMMC /data bound into the chroot), with a disk standing in for that partition.
 #   * ota-test.sh STEP 1 — bring Moonraker up and drive a real OTA update against
 #     the offline mock-github-release.sh over gvproxy (slirp's guestfwd stalls
 #     after the first connection; gvproxy's netstack does not).
@@ -13,14 +14,14 @@
 # Devices (production-shape):
 #   eMMC : single GPT-partitioned image via -device sdhci-pci + -device emmc.
 #          /dev/mmcblk0p6 = host stock-like rootfs (boots, runs the gate init),
-#          /dev/mmcblk0p7 = /data stand-in (must stay free of install state).
+#          /dev/mmcblk0p7 = /data stand-in (only legacy residue paths checked).
 #   USB  : bare ext4 with the live ReForge rootfs (=OTA target) via -device
 #          qemu-xhci + -device usb-storage. Appears as /dev/sda.
 #
 # ASSERTS: (1) Moonraker in the live chroot applies the OTA update — guppyscreen
 #          version bumps 0.0.1-old -> 0.3.0-dev (the bump lands in /opt/guppyscreen
-#          on the USB image vdb, NOT the eMMC); (2) vdc is BYTE-IDENTICAL before
-#          and after, i.e. the live OTA never touched the eMMC.
+#          on the USB image, not the eMMC); (2) the legacy residue paths listed
+#          above remain absent. A p7 hash change is informational, not a failure.
 #
 # Fully ROOTLESS (no sudo): mke2fs -d images, unprivileged qemu, gvproxy network.
 # Usage:   tests/qemu-harness/live-ota-test.sh        # NO sudo

@@ -5,15 +5,22 @@
           The residual is a **256-byte linker alignment artifact**, not a
           functional defect; all substantive remaining differences are
           **dead drivers** on this printer (see §"Dead-driver audit").
+**Superseded (2026-10-25/26):** the +128-byte build above still differed in
+5,915,891 bytes at shared offsets, so the alignment explanation does not hold. The
+current source build matches the stock raw `Image` (12,970,156 bytes) except its
+20-byte GNU build ID; with the authorized build-ID patch, the delivery `Image`,
+zImage and uImage match stock byte for byte. See the
+[bringup audit](../../board-notes/stock-bringup-rebuild.md#accepted-kernel-result-and-remaining-bring-up-target).
 **Plan:** [`../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md`](../../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md)
 **Earlier findings (functional equivalence):** [`2026-06-04-bsp-kernel-rebuild-findings.md`](2026-06-04-bsp-kernel-rebuild-findings.md)
 **Autoresearch loop:** 2026-06-04 (working files `autoresearch.*` not retained)
 **Build script:** `tools/build/build-bsp-kernel-stock.sh`
 **Companion functional-equivalence build:** `tools/build/build-bsp-kernel.sh`
 
-> **Canonical / maintained version:** [`../reverse-engineering/stock-kernel-byte-identical-build.md`](../../reverse-engineering/stock-kernel-byte-identical-build.md).
-> This file is the **frozen 2026-06-04 snapshot** (the patch was 5 logical groups at this date; it
-> later grew to 7). Use the RE doc for the current procedure and patch structure.
+> **Current recipe:** [stock bringup audit](../../board-notes/stock-bringup-rebuild.md#accepted-kernel-result-and-remaining-bring-up-target).
+> This is the **frozen 2026-06-04 snapshot**; its no-argument runner and patch
+> structure have since changed. The [RE companion](../../reverse-engineering/stock-kernel-byte-identical-build.md)
+> preserves the longer historical method.
 
 ---
 

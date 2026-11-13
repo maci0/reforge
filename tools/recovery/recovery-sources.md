@@ -6,7 +6,7 @@ is the tracked record. Background + provenance analysis:
 [`docs/research/kernel/2026-06-01-stock-recovery-images.md`](../../docs/research/kernel/2026-06-01-stock-recovery-images.md).
 
 > **Full firmware archive moved out of this repo.** Every downloadable AD5M / AD5M Pro OTA
-> release (2.3.x → 5.1.7, both models — 22 packages), its sha256 + component-fingerprint
+> release (Pro 2.3.1 → 5.1.9 and 5M 3.1.3 → 5.1.9, 27 packages), its sha256 + component-fingerprint
 > manifest, the fetch tooling, and the per-version changelog now live in the shared,
 > workspace-level **`fw-archive/`** repo (sibling of `reforge/`) — not here. This file pins only
 > the full-eMMC **recovery** images that the recovery/qemu tooling consumes directly (golden,
@@ -22,11 +22,13 @@ Large binaries — **gitignored**, kept on local disk / external backup. The nam
 
 | name | content | how produced | role |
 |---|---|---|---|
-| `golden.img.gz` | **pristine stock** (forge-x removed) | `make-clean-golden.sh` (offline) | **canonical golden** — recovery baseline + qemu stock-rootfs source |
-| `forge-x-<ts>.img.gz` | raw device dump **with forge-x installed** | `dump_golden.sh` of a forge-x device | forge-x reference snapshot only |
-| `dump-<host>-<ts>.img.gz` | raw device dump, **as-is** (any state) | `dump_golden.sh` | uncurated capture — classify into one of the above by content |
+| `golden.img.gz` | **offline-cleaned recovery baseline** (forge-x cleanup recipe) | `make-clean-golden.sh` (offline) | **canonical golden** — recovery baseline + qemu stock-rootfs source |
+| `forge-x-<ts>.img.gz` | device capture **with forge-x installed**, potentially fsck-repaired | `dump_golden.sh` of a forge-x device | forge-x reference snapshot only |
+| `dump-<host>-<ts>.img.gz` | device capture, **filesystem repairs may be applied** (any state) | `dump_golden.sh` | uncurated capture — classify into one of the above by content |
 
-Rule: **"golden" = clean stock only.** A raw device dump is never "golden" until cleaned.
+"Golden" names the curated recovery baseline, not a proven factory image.
+Removed-file provenance and backup-U-Boot limitations are described in the
+[runbook](RUNBOOK.md#the-two-curated-images--which-one-to-use).
 Each image carries `.sha256` + `.size` (uncompressed full-eMMC byte count) sidecars; the
 forge-x dump also keeps a `.partitions.txt` GPT map.
 

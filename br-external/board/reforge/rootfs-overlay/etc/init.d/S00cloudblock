@@ -103,7 +103,7 @@ case "$1" in
 		;;
 	stop)
 		# Nothing to undo at shutdown; entries persist in /etc/hosts
-		# (the file is in tmpfs or on eMMC root — both are fine to leave).
+		# (the file belongs to the chroot rootfs, on eMMC p7 or live USB).
 		;;
 	*)
 		echo "Usage: $0 {start|stop}"

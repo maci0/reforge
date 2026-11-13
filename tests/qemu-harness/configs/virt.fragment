@@ -79,7 +79,7 @@ CONFIG_MMC_SDHCI_PCI=y
 #   reachable on the stock 5.4.61 BSP. Built =y for the spike (avoids
 #   needing to ship a .ko + modprobe into the qemu guest); Kconfig is
 #   tristate so =m is reachable by changing this one symbol.
-#   See docs/research/2026-06-05-overlayfs-on-bsp-spike.md for results.
+#   See docs/research/kernel/2026-06-05-overlayfs-on-bsp-spike.md for results.
 CONFIG_OVERLAY_FS=y
 CONFIG_OVERLAY_FS_INDEX=y
 CONFIG_OVERLAY_FS_XINO_AUTO=y

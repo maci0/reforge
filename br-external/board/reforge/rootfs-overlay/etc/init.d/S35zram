@@ -3,8 +3,8 @@
 # S35zram — load zram kernel modules and activate compressed swap
 #
 # Targets P1-P3 devices running the stock 5.4.61 kernel.  The modules
-# (zsmalloc.ko, zram.ko) are prebuilt against that exact vermagic.
-# P4 has zram built into its own kernel and does not use this script.
+# (zsmalloc.ko, zram.ko) are source-built by reforge-zram for that vermagic.
+# A future replacement kernel with built-in zram would not need these modules.
 #
 # Configuration: /etc/reforge/zram.conf (sourced if present)
 #   ZRAM_ALGO  — compression algorithm: zstd (default) | lzo-rle | lzo
@@ -46,7 +46,7 @@ case "$1" in
 		"$MODULES_DIR/swapon_prio" /dev/zram0 100
 
 		# Apply the VM tuning for the zram-as-primary-swap profile (no fixed RAM
-		# cost; see docs/research/2026-06-02-stock-kernel-runtime-tuning.md).
+		# cost; see docs/research/memory/2026-06-02-stock-kernel-runtime-tuning.md).
 		# shellcheck source=/dev/null
 		[ -f /mod/.shell/reforge-vmtune.sh ] && . /mod/.shell/reforge-vmtune.sh && reforge_vmtune
 

@@ -18,7 +18,7 @@
 #
 # Cost: the user `dd`'s a partitioned disk image onto a stick, instead of
 # "extract a tarball onto any FAT USB" — the price for losing the loopback
-# fragility. balenaEtcher works cross-platform; on Linux `xzcat | sudo dd`.
+# fragility. balenaEtcher works cross-platform; on Linux `zcat | sudo dd`.
 #
 # Fully ROOTLESS (no sudo):
 #   * sfdisk writes the MBR partition table to a regular file (no losetup).

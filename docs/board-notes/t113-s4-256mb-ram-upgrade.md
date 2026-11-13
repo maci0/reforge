@@ -2,8 +2,8 @@
 
 A community hardware mod that replaces the AD5M's stock Allwinner **T113-S3**
 (128 MB in-package DDR) with the pin-compatible **T113-S4** (256 MB), doubling
-system RAM. It is the permanent fix for the 128 MB memory pressure that this
-project keeps hitting: the resonance / input-shaper calc OOM, the matplotlib
+system RAM. It provides more headroom for the memory pressure observed in this
+project: the resonance / input-shaper calc OOM, the matplotlib
 plot generation that OOM-killed klippy, and the general headroom problem (see
 [the software mitigations](#software-relevance) below).
 
@@ -66,8 +66,9 @@ xfel_t113_ds extra sdmmc um3 sm0 write 0x00002000 ad5m_bt0_t113m4_emmc.bin
 xfel_t113_ds extra sdmmc um3 sm0 write 0x00020000 ad5m_bt0_t113m4_emmc.bin
 ```
 
-Writing both `boot0` slots (0x2000 primary, 0x20000 backup) is the brick-safety
-measure; combined with the existing eMMC dump for recovery, risk is low.
+The kit writes both `boot0` slots (0x2000 primary, 0x20000 backup). That
+changes both fallback copies, so a bad image can prevent normal boot. A saved
+eMMC dump is useful only with a working, rehearsed restore path.
 
 ### Buzzer fix (optional)
 

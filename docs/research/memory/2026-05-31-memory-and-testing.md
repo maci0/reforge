@@ -217,4 +217,3 @@ Things we *could* retrofit to the current forge-x install, ranked by value/risk:
 
 These are opportunistic; the structural wins (zram by default, single python, squashfs,
 Thumb-2, MGLRU) belong to ReForge's clean build + own kernel.
-</content>

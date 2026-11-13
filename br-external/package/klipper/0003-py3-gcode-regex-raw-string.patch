@@ -1,28 +1,16 @@
 From 0000000000000000000000000000000000000003 Mon Sep 17 00:00:00 2001
 From: ReForge <reforge@flashforge>
 Date: Fri, 05 Jun 2026 00:00:00 +0000
-Subject: [PATCH] gcode: raw-string the m112 regex (Python 3.12+ DeprecationWarning, 3.14 SyntaxError)
+Subject: [PATCH] gcode: use a raw string for the m112 regex
 
-`re.compile('^(?:[nN][0-9]+)?\s*[mM]112(?:\s|$)')` contains a `\s`
-escape inside a NON-raw string.  Behaviour by Python version:
+The non-raw m112 regex contains an unrecognized Python string escape.
+Python 3.6–3.11 emits a usually hidden DeprecationWarning; 3.12–3.14 emits
+SyntaxWarning. A future SyntaxError transition has no release specified in
+Python 3.14's lexical reference. It is not a Python 3.14 import blocker.
 
-  3.6 - 3.11: silently accepted (a non-existent string escape, in a
-              bytes/str literal, decays to the literal backslash + 's'
-              — which the regex engine then re-interprets as \s, so
-              the regex still does what the author intended).
-  3.12 - 3.13: SyntaxWarning at module import (deprecated behaviour).
-  3.14+: SyntaxError — module fails to import at all.
-
-We ship Python 3.14 (BR 2026.02.2 LTS default).  Klippy v0.11.0 won't
-even load `klippy.gcode` without this fix, and klippy.py imports gcode
-unconditionally, so the whole stack fails before reaching the config
-parser.
-
-Matches upstream master's fix exactly (klippy/gcode.py:432 on master
-is `r'^(?:[nN][0-9]+)?\s*[mM]112(?:\s|$)'` — same raw-string prefix).
-The other two re.compile() literals in gcode.py
-(args_r line 174, extended_r line 241) are already escape-free /
-raw-stringed.
+A raw string removes the warning without changing the regex. See
+https://docs.python.org/3.14/reference/lexical_analysis.html#unrecognized-escape-sequences
+and docs/research/2026-06-04-klipper-v0.11-fork-deltas.md for the correction.
 
 Signed-off-by: ReForge <reforge@flashforge>
 ---

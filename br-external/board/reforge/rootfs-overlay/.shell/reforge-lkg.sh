@@ -37,8 +37,8 @@ MOD="${DATA}/.mod/.reforge/mod"
 N=3
 
 # Atomic write: stage to a temp file in the SAME dir, then rename over the
-# target.  rename(2) is atomic, so a power-cut never leaves a half-written
-# counter — readers see either the old value or the new one, never garbage.
+# target. Rename replaces it atomically for concurrent readers; without fsync,
+# this does not establish crash durability across power loss.
 _atomic_write() {
     _aw_tmp="$1.tmp.$$"
     printf '%s' "$2" > "$_aw_tmp" && mv "$_aw_tmp" "$1"
@@ -76,8 +76,8 @@ is_trial() {
 }
 
 # Promote the current mod to last-known-good (reached services-up).  Build the
-# new lkg out of place (lkg.new), then swap it in, so an interrupted promote
-# never leaves a partial lkg.  Reset the trial counter.
+# new lkg out of place (lkg.new), then remove the old directory and rename.
+# This sequence is not atomic or crash-durable. Reset the trial counter.
 lkg_promote() {
     rm -rf "$LKG.new"
     cp -a "$MOD" "$LKG.new" && rm -rf "$LKG" && mv "$LKG.new" "$LKG"

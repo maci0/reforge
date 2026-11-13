@@ -165,7 +165,7 @@ Stop/Complete`. virtual_sdcard via `M21`/`M23 /file`/`M24`/`M25`/`M26 S<off>`/`M
 issues `SAVE_CONFIG` → Klipper restart** (this is why forge-x's restart goes through `saveCfg()`).
 
 **Leveling/calibration** (`GuiderLevelPrint`, `MoreInfo`): `BED_MESH_CALIBRATE/CLEAR/MAP`,
-`PROBE_CALIBRATE`, `Z_OFFSET_APPLY_PROBE`, `SHAPER_CALIBRATE`, `PID_CALIBRATE`. Build vol ~125×125×230,
+`PROBE_CALIBRATE`, `Z_OFFSET_APPLY_PROBE`, `SHAPER_CALIBRATE`, `PID_CALIBRATE`. Captured X/Y limits −125 to +125 (250 mm coordinate spans, not a measured build volume),
 single 0.4 mm extruder, shaper default mzv/47.4. **Files** under `/data/` (`3mf/`, `queue`,
 `uploadThumbnail`); USB at `/media`. Filament load/unload = `M104`/`M109` + `G1 E…` feed/retract.
 
@@ -176,7 +176,7 @@ single 0.4 mm extruder, shaper default mzv/47.4. **Files** under `/data/` (`3mf/
 | AppClient | HTTPS+NIM+MQTT | api.voxelshare.com / cloud.sz3dp.com | register, status, log upload, remote commands |
 | FlashClient | HTTPS+RTMP | FlashForge + live*.flashforge.com | FlashCloud jobs + camera live |
 | PolarClient | socket.io/TLS | printer2.polar3d.com | PolarCloud (opt-in; serial+PIN auth, rsapub.pem) |
-| MqttManager | MQTT/WSS (Paho) | cloud-provided broker `:8083/mqtt` | realtime cmd/status; creds from `/api/v2/external/truck/device/mqtt/config` |
+| MqttManager | plaintext MQTT/WebSocket (Paho) | cloud-provided broker `:8083/mqtt` | realtime cmd/status; creds from `/api/v2/external/truck/device/mqtt/config` |
 | NimManager | NetEase IM SDK | NetEase (Yunxin) cloud | realtime IM/"team" push (token from cloud) |
 | OrcaServer | httplib HTTP | LAN **:8898** | OrcaSlicer/LAN API (`/uploadGcode`,`/printGcode`,`/printer/status`,…) |
 | ServerListener | TCP + UDP mcast `225.0.0.9` | LAN | discovery + legacy LAN protocol |
@@ -185,7 +185,7 @@ single 0.4 mm extruder, shaper default mzv/47.4. **Files** under `/data/` (`3mf/
 **Endpoints:** `cloud.sz3dp.com`, `api.voxelshare.com`, `api.fdmcloud.flashforge.com`,
 `hz.sz3dp.com:11002`, `update.sz3dp.com:10443`/`update.cn.sz3dp.com:10443`,
 `update.voxelshare.com/api/updates/...`, `printer2.polar3d.com`. Ports: MJPEG 8080, OrcaServer 8898,
-MQTT-WSS 8083, RTMP 1935/2045, multicast 225.0.0.9, AP gateway 192.168.0.240, misc :11177.
+MQTT-WebSocket (plaintext) 8083, RTMP 1935/2045, multicast 225.0.0.9, AP gateway 192.168.0.240, misc :11177.
 Connectivity probe pings `8.8.8.8`; NTP `pool.ntp.org`.
 
 **Telemetry leaving the device (cloud enabled):** device id/serial/MAC, continuous **status
@@ -240,7 +240,8 @@ Added by the deep-dives (see linked docs):
 15. **Cleartext + shell-injectable wifi**: STA/AP creds passed on `wpa_cli`/`echo` command lines and
     stored plaintext; touchscreen SSID/PSK interpolated unescaped into `system()`.
 
-(No secret values reproduced here — presence + location only.)
+The embedded private key is omitted; shared credentials and log-upload constants
+are recorded above as evidence.
 
 ## 9. Class inventory (by size)
 

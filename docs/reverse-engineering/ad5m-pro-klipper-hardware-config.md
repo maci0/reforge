@@ -27,7 +27,7 @@ Two MCUs, both **230400 baud**, `restart_method: command`:
 | `[mcu]` (main) | `/dev/ttyS5` | `ttyboard` | XYZ steppers, bed heater, fans, buttons, level/probe servo, weight/TVOC sensors, Z endstop |
 | `[mcu eboard]` (toolhead) | `/dev/ttyS1` | `ttyeboard` | extruder stepper, hotend heater+thermistor, X/Y endstops, ADXL345, part/heatbreak fans |
 
-Klipper started by `/opt/klipper/start.sh &`; API socket `/tmp/printer` (+ `/tmp/uds`).
+Klipper started by `/opt/klipper/start.sh &`; API socket `/tmp/uds`; `/tmp/printer` is the G-code pseudo-terminal.
 
 ## `eboard` toolhead pin map
 | Pin | Drives |
@@ -127,8 +127,9 @@ Canonical factory copies are committed at `reference/ad5m-factory-config/` (fact
 - A from-scratch config must instantiate **both** `[mcu]` (`/dev/ttyS5`) and `[mcu eboard]`
   (`/dev/ttyS1`) at 230400, and keep the **endstop/MCU split**: X/Y endstops on eboard, Z endstop
   (`PB15`) + probe (`!PB4`) on main — else homing fails.
-- Build volume per kinematics = **125×125×230** (the UI "220×220×220" string is marketing, not the
-  cfg limits). CoreXY, single 0.4 mm direct extruder.
+- Captured X/Y limits are **−125 to +125**, a 250 mm coordinate span on each axis;
+  `position_max: 125` is not a 125 mm travel size. These software limits do not
+  establish usable build volume or clearance. CoreXY, single 0.4 mm direct extruder.
 - `weightValue`/`tvocValue` are FlashForge repurposing SPI temp amps as generic data channels —
   drop/rename freely in a clean config.
 - PID + shaper + pressure-advance values above are usable stock defaults (re-tune per machine).

@@ -1,5 +1,10 @@
 # ReForge Plan 3 — `.tgz` Installer, qemu Test Harness & Stock-UI Spike
 
+> **Historical design:** current installer behavior is in [boot.md](../boot.md).
+> The June 2 note below correctly records stock-MCU connectivity, but its
+> v11→v13 `query_adxl345` explanation was later disproved: both upstream versions
+> use the same command format. See the [MCU analysis](../reverse-engineering/ad5m-mcu-firmware-and-config.md).
+
 **Status:** Implemented (branch plan3-installer) — installer + qemu harness + stock-UI spike (GO/Option-A)
 **Date:** 2026-06-01
 **Depends on:** Plan 1 (Buildroot foundation, merged), Plan 2 (core stack, merged — `output-guppy` full-stack rootfs).
@@ -190,7 +195,6 @@ So the harness proves: install flow, boot, web stack, GUI render, and GUI↔klip
 **External sibling working dirs** (one level *up*, beside `reforge/` — NOT in-repo; scripts must use the `../` base or an absolute path): `../fw-analysis/x-5.1.4/flashforge_init.sh` (stock installer-flow reference), `../fw-analysis/*/software-*.tar.xz` (firmwareExe source for the spike), `../forge-x/` (overlay/chroot/screen-mode/dual-boot/SKIP_MOD patterns). The proprietary `firmwareExe` lives only in `../fw-analysis/` and is **never** copied into the repo (§5 legal).
 
 Measured-from-device fact baked into §4a: panel `800×480×32`, virtual `800×960`, mode `800x480p-67`.
-</content>
 
 ## Update 2026-06-08
 

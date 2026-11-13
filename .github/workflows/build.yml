@@ -30,9 +30,8 @@ jobs:
     # blob.  Matches on FILE PATHS only (git ls-files output), not file content —
     # so REPORT.md / scripts that TEXT-mention "firmwareExe" are not caught.
     #
-    # Heavy qemu jobs (make qemu-*) are NOT run here — they require sudo + a real
-    # ARM kernel + ~10 GB stock rootfs dump and are run locally / in a dedicated
-    # lab environment.  See tests/qemu-harness/README.md.
+    # The qemu-system gates run locally with their target-specific build artifacts.
+    # Most are rootless; qemu-update needs sudo. See tests/qemu-harness/README.md.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -5,8 +5,8 @@
 # live mode the launcher blocks the stock auto_run, so the stock WiFi init (which runs
 # later in the stock boot) never happens and the box has no LAN. This reuses the
 # stock's driver + /etc/wpa_supplicant.conf credentials + wpa_supplicant/udhcpc to
-# join the user's network — read-only on eMMC, runtime state to tmpfs, so the
-# zero-eMMC-write invariant holds and nothing is re-configured.
+# join the user's network without rewriting its stored WiFi configuration.
+# This helper's runtime state goes to tmpfs; live mode as a whole can write eMMC.
 #
 # Best-effort + idempotent: no-op if already up / no interface / no creds; never blocks
 # the live boot (every wait is capped). It runs EARLY (at auto_run time), so the WiFi
@@ -29,9 +29,9 @@ _nlog() { [ -n "${REFORGE_LIVE_NET_LOG:-}" ] && echo "[net-up] $*" >> "${REFORGE
 # valid ssid+psk, the one thing blocking `wpa_supplicant -c <conf>` from joining is
 # that disable flag. Echo a tmpfs copy of the conf with every `disabled=1` line
 # stripped (network defaults to enabled) so a plain supplicant joins. The original
-# on eMMC is never rewritten — the copy lives in tmpfs — so the zero-write invariant
-# holds. If the conf has no disable flag (or can't be copied) the original path is
-# echoed unchanged, so this is a safe no-op for already-enabled configs.
+# on eMMC is never rewritten by this helper; the effective copy lives in tmpfs.
+# If the conf has no disable flag (or cannot be copied), the original path is
+# echoed unchanged, so this is a no-op for already-enabled configs.
 _wpa_effective_conf() {  # <src-conf> -> echoes path to a conf whose network is enabled
     _src="$1"
     _eff="${REFORGE_LIVE_WPA_EFF:-/tmp/reforge-wpa.conf}"

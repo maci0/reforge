@@ -4,6 +4,11 @@
 **Status:** documented, **not rehearsed**. Reference for future Plan 5 (mainline-kernel
 self-port) work. No hardware mod or reflash has been performed against the live unit
 (`kunos`) based on this document.
+**Correction (2026-10-25 boot-path recheck):** the stock environment boots `uImage` +
+`sunxi.dtb` from FAT p1 (`boot_uImage`), not the p4 `boot.img` this note assumes.
+Writing p4 as described below would not replace that active kernel. Testing
+a replacement through the configured path requires p1-specific packaging; see
+[`boot.md` §1](../../boot.md#1-the-boot-chain-verified). The rest is kept as written.
 **See also:** [`../boot.md`](../../boot.md) (intervention table + brick-safety boundary),
 [`../board-notes/device-overview.md`](../../board-notes/device-overview.md),
 [`2026-05-31-g992-research-findings.md`](2026-05-31-g992-research-findings.md) §3 + §6,
@@ -76,6 +81,9 @@ consumer (same cmdline, same DT, same modules ABI) but with the kexec syscall av
 kexec-tools userland is a Buildroot package (`BR2_PACKAGE_KEXEC`, ~200 KB stripped).
 
 ### 2.3 The hybrid plan: one-time `boot.img` reflash, then iterate freely via kexec
+
+**Historical proposal:** these steps target the non-selected p4 image and do not
+replace the active `boot_uImage` path; the boot-equivalence claim in §2.4 is unproven.
 
 If you accept one prior persistent change to the eMMC, the loop is:
 

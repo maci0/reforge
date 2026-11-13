@@ -839,6 +839,8 @@ rejects prebuilt object/archive/module members and records source/toolchain pins
 Source archives and reference artifacts are separate; target code is compiled
 from C/assembly, including the newly recovered CAN C implementation.
 
+### Current kernel and Wi-Fi reproduction command
+
 ```sh
 curl -fL https://codeload.github.com/guanglun/longan-t113-linux-5.4/tar.gz/d51ad00c047eccd5c88e807aedf56a5a25d9a155 -o /tmp/stock-kernel-source.tar.gz
 curl -fL https://codeload.github.com/rugameuser/8821cu-20210118/tar.gz/b6ad883ea547cbd5d144e6218cc122bb4de4ffc4 -o /tmp/stock-wifi-source.tar.gz
@@ -871,9 +873,10 @@ of the original RTL8821CU module. Kernel and Wi-Fi reconstruction checks above
 supersede that source-gap classification; full new artifact equality remains a
 separate check.
 
-Completing the remaining boot chain requires boot0's DRAM implementation and
-the secure-world OP-TEE source, including vendor changes. Those stages are not
-yet source-built. The primary U-Boot reproduction and kernel execution-payload
+The remaining boot-chain gaps are tracked in
+[byte-identical-bringup-gaps.md](byte-identical-bringup-gaps.md). Boot0 and OP-TEE
+now have source-built candidates, but their strict byte-equality and hardware
+validation gaps remain open. The primary U-Boot reproduction and kernel execution-payload
 reconstruction are verified above; historical lexical source identity remains
 unproved where explicitly noted.
 Source builds, strict byte comparisons, and recoverable hardware boot validation

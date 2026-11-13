@@ -1,5 +1,9 @@
 # venc-scratch — from-scratch T113 Cedar VE H.264 encoder (open, no closed blob)
 
+> **Resolved ([`../venc-vendor/FINDINGS.md`](../venc-vendor/FINDINGS.md)):** the T113-S3 has
+> **no H.264 encoder** (JPEG/MJPEG only), so the `0x80000260` stall below has no register-level
+> fix. The notes are kept as recorded.
+
 > ## Re-attempt 2026-06-04 — clock-rate lever ruled out with live `clk_summary`
 > Re-ran `t113_h264enc` on the live unit (VE ver `0x1667`): **same stall** — `status=0x80000260`,
 > `done=0`, `vle_len=240` bits (slice header only), `out.h264` = 0 bytes. New, decisive datum:

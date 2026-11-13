@@ -1,24 +1,24 @@
 #!/bin/sh
 # S99ok — services-up sentinel (the LAST script /mod/start.sh runs).
 #
-# Reaching this script means every prior S-script in the chain started without
-# wedging the boot, i.e. "services are up".  It runs UNCONDITIONALLY — it is NOT
+# Reaching this script means the init loop completed, not that daemons are healthy.
+# start.sh uses set +e and services start asynchronously. It runs unconditionally, not
 # tied to GuppyScreen (S75guppyscreen exits 0 whether or not it launches the GUI,
 # so S99ok always follows it).
 #
-# On services-up we promote the current mod -> lkg (last-known-good) and reset
+# At the end of the init loop we promote the current mod -> lkg (last-known-good) and reset
 # the trial counter, so the next boot of this same mod is no longer a trial and
 # a later bad update can roll back to THIS known-good mod.
 #
-# Runs INSIDE the chroot (root = /data/.reforge).  reforge-lkg.sh is reachable
-# both as /mod/.shell/reforge-lkg.sh and /data/.reforge/.shell/... ; we source
+# Runs INSIDE the chroot (root = /data/.mod/.reforge).  reforge-lkg.sh is reachable
+# both as /mod/.shell/reforge-lkg.sh and /data/.mod/.reforge/.shell/... ; we source
 # the /mod copy since /mod is this script's own self-contained tree.  It uses
-# absolute /data/.reforge/{mod,lkg,state} paths, which resolve to the same inodes
+# absolute /data/.mod/.reforge/{mod,lkg,state} paths, which resolve to the same inodes
 # inside the chroot (via the /data bind-mount) as on the stock side.
 [ "$1" = start ] || exit 0
 
-# Live mode (run-from-USB) has no persistent install + no eMMC /data, so the
-# trial/LKG bookkeeping is meaningless — just mark services up and return.
+# Live mode skips installation and LKG promotion, although /data still binds eMMC.
+# Mark the end of startup and return without changing the installed baseline.
 if [ "${REFORGE_LIVE:-0}" = "1" ]; then
     echo "[S99ok] live mode — services up (LKG bookkeeping skipped)"
     touch /tmp/reforge-ok

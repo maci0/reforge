@@ -9,7 +9,7 @@
 # (baseline vs -OO vs arena=1 vs Thumb2/-Os rebuild).
 #
 # Usage:
-#   sudo tests/qemu-harness/mem-probe.sh [ROOTFS_TAR] [LABEL]
+#   tests/qemu-harness/mem-probe.sh [ROOTFS_TAR] [LABEL]
 #     ROOTFS_TAR : rootfs.tar[.xz]  (default: build/output/images/rootfs.tar.xz)
 #     LABEL      : tag printed in the summary (default: basename of the tar)
 #   MEM=128 SETTLE=25  override RAM (MiB) / settle seconds.

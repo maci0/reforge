@@ -7,7 +7,7 @@
 # What it does:
 #   1. Sanity checks (arch + machine/PID, same logic as installer)
 #   2. Removes the /etc/init.d/S01reforge boot-hook symlink
-#   3. Removes $DATA/.reforge (the overlay rootfs)
+#   3. Removes $DATA/.mod/.reforge (the overlay rootfs)
 #   → printer boots pure stock after reboot
 #
 # REFORGE_DATA_ROOT env override (default /data) for Task 3 tests.

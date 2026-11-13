@@ -1,5 +1,11 @@
 # Cedar VE H.264 encode (re-attempt) + camera identity/firmware
 
+> **Final result:** JPEG hardware encode completes; H.264 does not. The
+> [resolved section](#resolved-the-t113-s3-has-no-h264-encoder--jpegmjpeg-only-and-that-works)
+> supersedes the intermediate “pipeline runs” interpretation below. The captured
+> UVC descriptors and OTA contents show no supported camera-update path; they
+> do not establish whether the module firmware is physically stored in ROM.
+
 Date: 2026-06-04. Live unit `root@192.168.0.158` (`kunos`). Two questions: (1) does the
 T113 Cedar VE do **hardware** H.264 encode — re-attempted after the earlier wall; (2) what
 does the webcam output **natively**, and is its firmware updatable. Short answers: **the

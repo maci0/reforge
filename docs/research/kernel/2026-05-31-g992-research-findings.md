@@ -107,4 +107,3 @@ Repos confirm only **`/data = /dev/mmcblk0p7`** (mod fsck+mounts it, chroot at `
 - Buzzer: https://github.com/consp/flashforge_ad5m_audio ; Backlight: https://github.com/loss-and-quick/flashforge_ad5m_backlight
 
 **Could NOT find (remain ReForge tasks, need stock eMMC dump + HW probing):** panel timings/model/DTS; full GPT/partition offsets (only p7=data); U-Boot/boot0/DDR params; FEL or console-UART pinout.
-</content>

@@ -1,17 +1,19 @@
 # ReForge Packaging
 
 This directory contains the installer for the ReForge firmware overlay for the
-FlashForge AD5M Pro (armv7, AllWinner H616).
+FlashForge AD5M Pro (ARMv7, Allwinner T113-S3).
 
 ---
 
-## WARNING: MCU Caveat — Printer Will NOT Print Until Plan 4
+## Stock MCU compatibility
 
-A flashed ReForge boots cleanly and serves **Mainsail + Moonraker** on the local
-network, but **klippy will not connect to the stock v11 MCU**.  Driving the
-printer (motion, heaters, fans, print jobs) requires **Plan 4**, which flashes a
-matching upstream Klipper MCU firmware onto the eboard.  Until then the web
-interface is live but print control is non-functional.
+The 2026-06-02 live-mode hardware trial reached klippy `ready` with both stock MCUs and
+real temperatures after a manual relaunch when the MCUs retained another
+configuration’s CRC (for example after Forge-X). `S60klipper` has no respawn; see the
+[open startup issue](../docs/BACKLOG.md#live-klippy-respawn-after-crc-mismatch-auto-restart).
+No install-mode hardware trial is recorded. Plan 4 is not required for that MCU link. The earlier `query_adxl345`
+version-mismatch explanation was corrected by source review on 2026-06-04;
+see [MCU firmware & config](../docs/reverse-engineering/ad5m-mcu-firmware-and-config.md).
 
 ---
 
@@ -19,8 +21,8 @@ interface is live but print control is non-functional.
 
 `make tgz` produces `packaging/dist/reforge-<ver>.tgz`, a **stock-format FlashForge
 OTA package** — a plain tar of xz-compressed subpackages plus a `flashforge_init.sh`
-script.  The stock USB-updater (and `auto_run.sh`) can unpack and run it exactly like
-any official FlashForge update.
+script.  Once named `Adventurer5MPro-*.tgz` on the stick, the stock `auto_run.sh`
+unpacks and runs it exactly like an official FlashForge update.
 
 ### Subpackage Layout
 
@@ -29,13 +31,19 @@ reforge-<ver>.tgz
 ├── flashforge_init.sh          ← entry point; stock updater runs this
 ├── software-<ver>.tar.xz       ← ReForge rootfs overlay (klipper, moonraker,
 │                                   mainsail, busybox httpd, guppyscreen, boot glue)
-├── library-<ver>.tar.xz        ← shared libs / Python wheels (reserved)
-├── control-<ver>.tar.xz        ← MCU firmware stub (EMPTY — Plan 4 placeholder)
-└── md5sum.list                 ← sha/md5 manifest; installer verifies before commit
+├── library-<ver>.tar.xz        ← stub (the rootfs is self-contained)
+├── control-<ver>.tar.xz        ← reserved stub (see below; not the klipper13 images)
+└── md5sum.list                 ← md5 of the three .tar.xz files
 ```
 
-The `control-` subpackage is an **empty reserved stub**.  Real MCU firmware is
-built and flashed in Plan 4.
+`software-<ver>.tar.xz` carries its own inner `md5sum.list` of every file; the
+installer verifies that inner list before moving the tree into place. The
+`library-` and `control-` subpackages are still reserved stubs:
+`packaging/build-tgz.sh` packs `control-stub/RESERVED-FOR-MCU-PLAN4` and does
+not read `klipper13` output. Optional `BR2_PACKAGE_KLIPPER13` source-builds
+mainboard and toolhead images into the rootfs at `/opt/klipper/firmware/`
+(see `br-external/package/klipper13/README.md`); the default defconfig does not
+select that package, and this `.tgz` does not flash those images.
 
 ---
 
@@ -66,22 +74,23 @@ forge-x slot) or `/data/.mod/.forge-x/` will:
 - Run *first* in `rcS` (lower S?? number wins) and bring up its own Klipper /
   Moonraker against `/data/`, racing ReForge's chroot stack for the printer
   serial port, the Moonraker HTTP port, and the GuppyScreen framebuffer.
-- Leave dropbear or other long-running daemons listening that will *also* be
-  alive inside ReForge's chroot once `/etc/init.d/` is bind-mounted, doubling
-  resident-set pressure on the 128 MB box.
-- Modify shared state (`/etc/hosts`, `/opt/klipper/klippy/extras/`, MCU
-  firmware staging at `/opt/PROGRAM/`) that ReForge's chroot then inherits in
-  an inconsistent shape.
+- Leave dropbear or other long-running daemons running beside ReForge's stack,
+  doubling resident-set pressure on the 128 MB box.
+- Leave stock state modified (`/etc/hosts`, `/opt/klipper/klippy/extras/`, MCU
+  firmware staging at `/opt/PROGRAM/`), so a `SKIP_MOD` stock boot or a later
+  uninstall finds it in an inconsistent shape.
 
 Specifically for forge-x: run **`/data/.mod/.forge-x/uninstall.sh`** (or the
 equivalent path in your install), reboot to stock, confirm `firmwareExe`
 starts normally and `ls /etc/init.d/` shows no `S00init` / `S55boot` /
-`S60dropbear` / `S98zssh` symlinks, then install ReForge.
+`S60dropbear` / `S98camera` / `S98zssh` / `S99root` symlinks, then install ReForge.
 
-If you don't have the original uninstaller handy, the safest reset is to
-reflash a stock factory `.tgz` over USB (see
-[`../tools/recovery/RUNBOOK.md`](../tools/recovery/RUNBOOK.md) Path A). That
-puts the device back to a known clean baseline.
+A stock USB `.tgz` update does not establish a clean mod-free baseline. The
+captured 5.1.4 updater replaces selected components but leaves mod paths such as
+`/etc/init.d/S00init`, `/opt/config/mod` and `/data/.mod/.forge-x` intact. If the
+uninstaller is unavailable, use the [recovery runbook](../tools/recovery/RUNBOOK.md)
+and verify mod removal before installing; do not bypass the conflict check merely
+because a stock update completed.
 
 ReForge's installer (`packaging/flashforge_init.sh`) runs a defensive
 pre-flight check and **refuses to proceed** if it detects a known competing
@@ -93,40 +102,52 @@ and will probably brick the install.
 
 ## Install Flow
 
-1. **USB updater** detects the `.tgz` on a FAT-formatted USB stick and unpacks it
-   to a temp dir on `/data`.
+1. **Copy to USB.** The stock `auto_run.sh` only scans for `Adventurer5MPro-*.tgz`
+   ([boot.md §4](../docs/boot.md#4-how-stock-fw-detects-a-usb-update-tgz--optauto_runsh)),
+   so copy `reforge-<ver>.tgz` to a FAT USB stick under a matching name, e.g.
+   `Adventurer5MPro-reforge-<ver>.tgz`. On boot `auto_run.sh` copies it to `/data/`
+   and extracts it into `/data/update/`.
 2. **`flashforge_init.sh`** is called by the stock `auto_run.sh` as
    `flashforge_init.sh Adventurer5MPro 0024`.  It:
+   - Refuses to run over a competing mod (see above).
    - Validates machine type + PID.
-   - Verifies the `md5sum.list` of the extracted archive.
-   - Atomically renames the temp dir to `/data/.mod/.reforge`.
-   - Writes the default screen mode (`SCREEN_MODE=HEADLESS`) to
-     `/data/.mod/.reforge/config/screen.conf`.
+   - Deletes any prior install before extracting `software-<ver>.tar.xz` to a temp
+     directory on `/data` and checking its inner `md5sum.list`. Extraction or
+     verification failure therefore leaves no prior install to recover.
+   - Renames the verified temp directory to `/data/.mod/.reforge`.
+   - Seeds the last-known-good copy (`mod` → `lkg`) used by [OTA rollback](../docs/ota.md).
    - Symlinks `/data/.mod/.reforge/.shell/reforge-boot` as `/etc/init.d/S01reforge`
      (the **boot hook**).
-3. **Boot hook** (`S01reforge` / `reforge-boot`): on next boot, the stock `/etc/rcS`
+   - Writes the default screen mode (`SCREEN_MODE=HEADLESS`) to
+     `/data/.mod/.reforge/config/screen.conf` and the `.installed` version stamp.
+3. **Boot hook** (`S01reforge` / `reforge-boot`): on next boot, the stock `/etc/init.d/rcS`
    calls this script which:
    - Checks the **SKIP_MOD** guard (see Dual-Boot below).
-   - Bind-mounts `/proc`, `/sys`, `/dev`, `/run`, `/tmp`, `/data`, `/opt/config`
-     into the chroot.
-   - `exec chroot /data/.mod/.reforge /etc/init.d/rcS start` — runs the ReForge init
-     chain (cloud-block → zram → Klipper → Moonraker → httpd → GuppyScreen if enabled).
+   - Bind-mounts `/data/.mod/.reforge` at `/reforge`, then mounts `proc`, `sys`,
+     `dev`, `run`, `tmp` and `/data` into it (`.shell/reforge-chroot.sh`).
+   - Boots the toolhead MCU and runs the trial/LKG check.
+   - Replaces itself with `chroot /reforge /mod/start.sh`, which starts the ReForge
+     services in the background. When that process exits, stock `rcS` continues. See [boot.md §7](../docs/boot.md#7-installed-reforge-boot-the-chroot-service-chain).
 
 **Stock kernel, partitions, and FlashForge binaries are never modified.**
-A bad install is recoverable by reflashing the stock `.tgz` from USB.
+A stock USB `.tgz` can recover an install only while boot still reaches `auto_run.sh`;
+otherwise use [RUNBOOK Path B](../tools/recovery/RUNBOOK.md).
 
 ---
 
 ## Uninstall
 
-```sh
-# On the printer (via SSH or serial):
-tar -xf reforge-uninstall-<ver>.tgz -C / && sh /tmp/reforge-uninstall.sh
-```
+`make tgz` also writes `packaging/dist/reforge-uninstall-<ver>.tgz`, a stock-format
+package whose `flashforge_init.sh` removes the `/etc/init.d/S01reforge` symlink and
+`/data/.mod/.reforge` (the empty `/reforge` mountpoint directory stays). Install it from
+USB like the installer (renamed to `Adventurer5MPro-*.tgz`), or run it over SSH:
 
-Or flash `packaging/uninstall/reforge-uninstall-<ver>.tgz` via the USB updater —
-it is also a stock-format package whose `flashforge_init.sh` removes `/data/.mod/.reforge`
-and the `/etc/init.d/S01reforge` symlink.
+```sh
+# On the printer:
+mkdir -p /tmp/reforge-uninstall
+tar -xf reforge-uninstall-<ver>.tgz -C /tmp/reforge-uninstall
+sh /tmp/reforge-uninstall/flashforge_init.sh
+```
 
 ---
 
@@ -135,13 +156,15 @@ and the `/etc/init.d/S01reforge` symlink.
 To boot stock firmware without uninstalling ReForge:
 
 ```sh
-# On the printer — boot stock once (cleared on next boot):
-touch /tmp/SKIP_MOD
-
-# Persistent skip (survives reboots until removed):
+# On the printer — persistent skip (survives reboots until removed):
 touch /data/.mod/.reforge/SKIP_MOD
 rm /data/.mod/.reforge/SKIP_MOD   # to re-enable ReForge
 ```
+
+`reforge-boot` also honours `/tmp/SKIP_MOD`, `/tmp/SKIP_MOD_SOFT` and
+`/tmp/SKIP_MOD_HARD`, but `/tmp` is tmpfs, so those only take effect when an earlier
+hook creates them in the same boot; touching one before a reboot does nothing.
+`SCREEN_MODE=STOCK` in `screen.conf` is a persistent alternative.
 
 When any SKIP_MOD marker is present, `reforge-boot` exits immediately and the stock
 firmware stack continues normally.  The stock `firmwareExe` UI runs as if ReForge were
@@ -151,17 +174,25 @@ not installed.
 
 ## Screen Modes
 
+Installed Mode 2a still launches the stock UI after ReForge starts, even in GUPPY
+mode; it can contend for the framebuffer and MCU ports. See the
+[open install-mode issue](../docs/BACKLOG.md#mode-2-install-stock-ui-still-starts-cloud-block-misses-it).
+
 Configured in `/data/.mod/.reforge/config/screen.conf` (`SCREEN_MODE=<mode>`).
 
 | Mode | Description | Status |
 |------|-------------|--------|
 | `HEADLESS` | No display daemon. Mainsail/Moonraker served over HTTP. **Default.** | Implemented |
-| `GUPPY` | GuppyScreen Qt5 touchscreen UI against upstream Klipper. | Implemented (Plan 2) |
-| `STOCK` | Stock FlashForge `firmwareExe` Qt4/QWS UI against upstream Klipper. | Feasibility confirmed (see below) — implementation deferred to a later plan |
+| `GUPPY` | GuppyScreen LVGL touchscreen UI on `/dev/fb0`. | Implemented (Plan 2) |
+| `HELIX` | HelixScreen lab/eval UI; no-op unless built with `BR2_PACKAGE_HELIXSCREEN=y`. | Lab |
+| `STOCK` | Skip ReForge for the boot (`reforge-boot` touches `/tmp/SKIP_MOD`), so stock `firmwareExe` runs against stock Klipper. | Implemented |
 
-### STOCK Mode — Feasibility (lab/spike-stockui, Plan 3)
+Running `firmwareExe` against **ReForge's** Klipper instead is feasibility-confirmed
+(below) but not implemented.
 
-The Plan 3 spike confirmed that STOCK mode is feasible (**GO — Option A**):
+### Stock UI on ReForge's Klipper — Feasibility (lab/spike-stockui, Plan 3)
+
+The Plan 3 spike confirmed it is feasible (**GO — Option A**):
 
 - `firmwareExe` renders to `/dev/fb0` via Qt4 LinuxFB — **confirmed** by qemu test.
 - `firmwareExe` connects to Klipper at `/tmp/uds` using **standard upstream JSON-RPC**
@@ -172,9 +203,9 @@ The Plan 3 spike confirmed that STOCK mode is feasible (**GO — Option A**):
 - Constraint: `firmwareExe` is **soft-float ABI** and must run in the stock soft-float
   environment, not inside the ReForge hard-float chroot.
 
-Full spike findings: `docs/research/ui-camera/stock-ui-spike.md` (spike scripts live in `lab/spike-stockui/`).
-
-Implementation of STOCK mode is **deferred** to a future plan.
+Full spike findings: `docs/research/ui-camera/2026-06-01-stock-ui-spike.md` (spike scripts live in `lab/spike-stockui/`).
+`make qemu-stockui-real` shows the stock home screen rendering against real upstream
+Klipper under qemu.
 
 ---
 
@@ -182,29 +213,34 @@ Implementation of STOCK mode is **deferred** to a future plan.
 
 ### Loopback Test
 
+This legacy test does not validate the current install layout; see the
+[test limitation](../tests/README.md#loopback-install-test).
+
 ```sh
 make validate-loopback
 ```
 
-Runs `flashforge_init.sh` with `REFORGE_SKIP_ARCH_CHECK=1` and `REFORGE_DATA_ROOT`
-pointing at a tmpfs scratch directory.  Verifies that the overlay installs cleanly
-and the boot hook is placed correctly — all on an x86 host, no printer needed.
+Runs `flashforge_init.sh` with `REFORGE_SKIP_ARCH_CHECK=1`, `REFORGE_DATA_ROOT`
+pointing at a loopback-mounted ext4 image and `REFORGE_INITD_DIR` at a scratch
+directory. Its assertions still use the old layout. It needs sudo for loop
+mounts and mkfs, but no printer.
 
 ### qemu Harness
 
 The `tests/qemu-harness/` directory contains a qemu-system-arm test harness
-that boots a virt-machine kernel + the stock rootfs + the ReForge overlay and runs
+that boots a virt-machine kernel with the built ReForge rootfs and runs
 install, boot, web-reachability, and GUI-render tests.
 
 ```sh
-make qemu-kernel    # build the virt ARM kernel (heavy, sudo, one-time)
-make qemu-update    # run the update-process test
-make qemu-render    # run the GuppyScreen / STOCK-UI render test
+make qemu-kernel    # build the virt ARM kernel (heavy, one-time)
+make qemu-update    # run the update-process test (sudo)
+make qemu-render    # run the GuppyScreen render test (rootless)
 ```
 
-These are **local-only** — they require sudo, ~10 GB of stock rootfs data, and
-significant build time.  They are not run in CI.  See
-`tests/qemu-harness/README.md` for full setup and expected results.
+These are local-only and need `make rootfs` plus `make qemu-kernel`; `qemu-update`
+needs sudo. The stock-UI gates additionally need the golden dump and
+`make qemu-stock-rootfs`. See the [harness guide](../tests/qemu-harness/README.md)
+for each target’s inputs and LIVE versus FLOOR results.
 
 ---
 
@@ -217,22 +253,26 @@ libraries, `/opt/PROGRAM/` contents).  The spike extracts them only to
 A CI job (`no-blobs` in `.github/workflows/build.yml`) fails if any tracked file path
 matches these patterns — providing an automated guard against accidental commits.
 
-## Known follow-ups (Plan 4)
+## Known follow-ups
 - **`reforge-boot` mount-unwind on failure:** the boot hook runs under `set -e`; a
-  failed chroot bind-mount aborts mid-sequence, leaving partial mounts. Harmless today
-  (mounts are read-through; uninstaller lazy-unmounts), but add a `trap` that unwinds
-  partial mounts on failure before Plan 4 puts real print services behind it.
+  failed chroot bind-mount aborts mid-sequence, leaving partial mounts until reboot
+  without an unwind `trap`. The uninstaller’s mount matcher still uses
+  `/data/.mod/.reforge`, so it does not reliably match today’s `/reforge/*` mounts.
+  Reboot clears residual runtime mounts; do not assume uninstall proves they are gone.
 - The canonical `reforge-boot` lives in the rootfs overlay
   (`br-external/board/reforge/rootfs-overlay/.shell/reforge-boot`) — it ships inside the
   rootfs; there is intentionally no copy under `packaging/`.
 
 ## Minimal stock footprint (design guarantee)
-ReForge installs as an overlay that makes **exactly one persistent change to the stock
-rootfs**: a single symlink `/etc/init.d/S01reforge → /data/.mod/.reforge/.shell/reforge-boot`.
-Everything else is **self-contained**:
+ReForge installs as an overlay whose persistent changes to the stock rootfs are the
+symlink `/etc/init.d/S01reforge → /data/.mod/.reforge/.shell/reforge-boot` (written by
+the installer) and the empty `/reforge` mountpoint directory (created by `reforge-boot`
+on first boot). Everything else is **self-contained**:
 - the entire ReForge stack lives in `/data/.mod/.reforge` (on `/data` = `mmcblk0p7`, not the stock rootfs);
 - klippy/moonraker use their **own** configs (`/etc/reforge/{printer.cfg,moonraker.conf}` inside the chroot) — ReForge does **not** read or write the stock `/opt/config`;
-- the cloud-block edits the **chroot's** `/etc/hosts`, never the stock one;
-- `reforge-boot` only sets up **transient** runtime bind-mounts (proc/sys/dev/run/tmp/data) into the chroot — these modify nothing on disk and are gone on reboot/uninstall.
+- the cloud-block edits the **chroot's** `/etc/hosts`, never the stock one (so it does not cover a stock `firmwareExe`; see [security findings](../docs/security-findings.md));
+- `reforge-boot` only sets up **transient** runtime mounts (`/reforge` plus proc/sys/dev/run/tmp/data inside it) — these modify nothing on disk and are gone on reboot; uninstall’s stale mount matcher is not a reliable cleanup gate.
 
-So **uninstall = delete that one symlink + `/data/.mod/.reforge`** and the stock rootfs is byte-identical to before. (Verified by `tests/loopback-install-test.sh`, which asserts the installer writes nothing outside `$DATA` except the single init symlink.)
+So **uninstall = delete that symlink + `/data/.mod/.reforge`**, leaving only the empty
+`/reforge` directory on the stock rootfs. See the validation section above for
+the limits of the legacy loopback test.

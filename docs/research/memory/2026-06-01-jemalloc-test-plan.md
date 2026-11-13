@@ -1,5 +1,11 @@
 # jemalloc evaluation — test plan
 
+> **Safety update:** the adoption verdict below is historical. Hardware tests
+> later found Klippy heap corruption with jemalloc; do not preload it into
+> Klippy. See the [June 8 update](#update-2026-06-08) and
+> [current tuning](../../optimizations.md). Idle results do not establish a
+> lower bound on savings under load.
+
 **Question:** does jemalloc (tuned for low RSS) beat the shipped **glibc + `MALLOC_ARENA_MAX=2`**
 on the 128 MB T113, for the long-running allocators — Moonraker (threadpool), klippy, and
 GuppyScreen? Adopt only if it's a clear, no-regression win.

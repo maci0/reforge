@@ -1,5 +1,8 @@
 # ReForge OTA / Release Channel — Implementation Plan
 
+> **Historical implementation plan:** use the [current guide](../ota.md) for current behavior.
+> The loopback validation commands below need [install-layout updates](../../tests/README.md#loopback-install-test).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Git-free in-place OTA of the ReForge app + overlay layer via Moonraker's `update_manager`, fed by self-published prebuilt release bundles, with a boot last-known-good safety net.

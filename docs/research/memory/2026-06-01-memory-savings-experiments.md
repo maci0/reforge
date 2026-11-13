@@ -1,5 +1,12 @@
 # Memory-savings experiments (128 MB T113)
 
+> **Historical baseline:** the current image keeps the git-free ZIP OTA updater;
+> see [ota.md](../../ota.md). Klippy later reverted to glibc after hardware heap
+> corruption with jemalloc (see the [June 8 update](#update-2026-06-08)).
+> The `oo`/`arena1` tweaks in these early runs were later found to target the
+> wrong script paths; see the [lab notebook](../../lab-notebook.md).
+> Idle runs do not establish a savings floor or prove performance under load.
+
 Levers to cut RAM on the AD5M Pro (128 MB), and how each is A/B-measured in qemu.
 The dominant consumer is the shared Python (klippy + moonraker); wins target its
 resident set or the code-page footprint shared across all processes.

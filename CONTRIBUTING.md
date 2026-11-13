@@ -10,18 +10,20 @@ printer configs in `reference/`, with their origin documented.
 
 ## Development checks
 
-On a Linux host with Bash, Make, Python 3, and ShellCheck installed:
+On a Linux host with Bash, Make, Python 3, ShellCheck, BusyBox and pyelftools
+(`shellcheck busybox python3-pyelftools` on Debian/Ubuntu), and the Buildroot
+submodule checked out (`make unit` configures packages against it):
 
 ```sh
+git submodule update --init vendor/buildroot
 make lint
 make unit
 git diff --check
 ```
 
-Run checks relevant to the change. Firmware builds require the dependencies listed
-in [build-process.md](docs/build-process.md) and `./vendor/fetch.sh` to populate the
-pinned source trees and toolchains. Hardware and QEMU checks have additional
-requirements documented in [tests/README.md](tests/README.md).
+Run the checks relevant to the change. Firmware builds need the
+[host requirements](docs/build-process.md#host-requirements) and both submodules;
+QEMU and hardware checks have further requirements in [tests/README.md](tests/README.md).
 
 Describe what changed, why, the checks run, and whether a result was observed in
 QEMU or on hardware. Keep historical findings intact and update current docs when

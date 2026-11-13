@@ -21,8 +21,9 @@ arenas for klippy as it does for Moonraker (`.root/S65moonraker:42`) and GuppySc
 only an extra `.git`). Run with forge-x defaults for the screen and swap off:
 
 ```sh
-FX_SET="display='FEATHER' use_swap='OFF'" [KLIPPY_ARENA=N] \
-    tests/qemu-harness/mem-probe-forgex.sh <label>
+# Omit KLIPPY_ARENA for the baseline; use a distinct label for each run.
+FX_SET="display='FEATHER' use_swap='OFF'" KLIPPY_ARENA=1 \
+    tests/qemu-harness/mem-probe-forgex.sh arena1
 ```
 
 In Feather mode forge-x's `boot.sh` starts klippy (`zstart_klipper.sh` → `/opt/klipper/start.sh`)

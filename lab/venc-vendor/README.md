@@ -1,5 +1,10 @@
 # venc-vendor — driving the device's stock cedarx H.264 encoder blobs
 
+> **Resolved later the same day ([FINDINGS.md](FINDINGS.md)):** with the correct T113
+> `VencBaseConfig` ABI the vendor library initialises and then stalls at `0x80000260`
+> because the T113-S3 has **no H.264 encoder** (JPEG/MJPEG only; HW JPEG encode works).
+> The "software blocker" reading below is the in-progress view, kept as recorded.
+
 Follow-up to `../venc-scratch/` (open reimplementation, which stalled at `0x80000260`).
 This drives the **device's own vendor cedarx encode stack** via the canonical VENC API
 (`VideoEncCreate → VideoEncInit → AddOneInputBuffer → VideoEncodeOneFrame`), prompted by

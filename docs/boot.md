@@ -49,7 +49,7 @@ BROM (mask ROM in silicon; FEL USB recovery)
        ... → /etc/init.d/rcS
               # 1. Set MAC + ifconfig eth0
               # 2. Loop /etc/init.d/S??*  (sorted)
-              S00init       (stock: empty no-op; FORGE-X replaces with symlink → /opt/config/mod/.shell/S00init)
+              S00init       (observed in modded capture; factory origin unverified)
               S01syslogd S02klogd S10udev S20urandom S30dbus S40network
               S50postgresql S50telnet S80dnsmasq
               # (forge-x adds: S55boot S60dropbear S98camera S98zssh S99root)
@@ -66,8 +66,7 @@ immediately and `inittab` proceeds to spawn `getty`. `auto_run.sh` continues to
 run in parallel: it does the USB-update scan, then the MCU-firmware-update check,
 then launches the stock UI (`ffstartup-arm`). See §4 for the full timeline.
 
-Partition map (GPT): `p1 boot-resource(33.6M) · p2 env(1M) · p3 env-redund(1M) ·
-p4 boot(34.4M) · p5 dsp0(1M) · p6 rootfs(1.3G) · p7 UDISK/data(5.9G)`.
+Partition geometry and sizes: [partition map](board-notes/partition-map.md).
 
 ---
 
@@ -79,11 +78,11 @@ p4 boot(34.4M) · p5 dsp0(1M) · p6 rootfs(1.3G) · p7 UDISK/data(5.9G)`.
 | 1 | boot0 / SPL (eGON) | reflash raw eMMC sectors 0..73727 | only via FEL | **BRICK** (FEL never rehearsed) |
 | 2 | U-Boot binary | reflash boot0/uboot area | only via FEL/SPL | **BRICK** |
 | 3 | **U-Boot env (p2/p3)** | **`fw_setenv`** — edit `bootargs`/`bootcmd`/`init=`, or add a `boot.scr` | **ONLY if it still boots to a shell** — see ⚠ below | **HIGH on this unit** — a bad `init=`/`bootargs`/`bootcmd` boots U-Boot+kernel but kills userspace; with **no UART + no FEL** there's no in-band fix → **eMMC-reader hard-brick** |
-| 4 | boot.img (p4) | repack the Android kernel+ramdisk+cmdline | reflash p4 | medium |
-| 5 | **`init=` override** | env `init=` → our PID1 script (which `pivot_root`s, then `exec /sbin/init`). See `research/kernel/2026-06-05-replacing-pid1.md` §A2. | YES (env) | low–med ⭐ earliest *userspace control* |
-| 5a | **`/init` symlink swap** — "Option A" | rewrite the `/init` symlink on p6 to point at our PID1 script (kernel `execve`s `/init` by default). Cleaner than #5 because we modify a file on p6 (SAFE tier) instead of U-Boot env (HARD-BRICK tier on this unit). See `research/kernel/2026-06-05-replacing-pid1.md` §A1 + `br-external/board/reforge/rootfs-overlay/sbin/reforge-init`. | YES (file on p6) | LOW ⭐ **recommended Mode-2 PID-1 hook** |
-| 6 | **/etc/preinit** — "Option C" | create the file (absent today) → runs before mounts/swap/net/rcS as a busybox-init sysinit child. **Cannot cleanly replace PID 1** (busybox-init is already running) but useful for *additive* early hooks. See `research/kernel/2026-06-05-replacing-pid1.md` §B + footnote on preinit. | YES (file on p6) | LOW ⭐ earliest *safe userspace* on the stock flow |
-| 7 | /etc/inittab, rcS, S00init | add a sysinit line / rc script (forge-x owns S00init) | YES (file) | low |
+| 4 | kernel/DTB (p1) | replace `uImage` / `sunxi.dtb` selected by `boot_uImage`; p4 Android image is not the configured path | reflash from a working system or external recovery | high if startup fails |
+| 5 | **`init=` override** | env `init=` → our PID1 script (which `pivot_root`s, then `exec /sbin/init`). See `research/kernel/2026-06-05-replacing-pid1.md` §A2. | only if it still boots to a shell | **HIGH on this unit**, same env/recovery boundary as row 3; earliest *userspace control* |
+| 5a | **`/init` symlink swap** — "Option A" | rewrite the `/init` symlink on p6 to point at our PID1 script (kernel `execve`s `/init` by default). Avoids editing the U-Boot env (#3); `reforge-init` falls back to `exec /bin/busybox init` on its own failures. See `research/kernel/2026-06-05-replacing-pid1.md` §A1 + `br-external/board/reforge/rootfs-overlay/sbin/reforge-init`. | only while userspace still boots | **MED**: a dangling `/init` or a script that dies before its fallback leaves no userspace → Path B. ⭐ **recommended Mode-2 PID-1 hook** |
+| 6 | **/etc/preinit** — "Option C" | create the file (absent today) → runs before mounts/swap/net/rcS as a busybox-init sysinit child; init waits for it to exit. **Cannot cleanly replace PID 1** (busybox-init is already running) but useful for *additive* early hooks. See `research/kernel/2026-06-05-replacing-pid1.md` §B + footnote on preinit. | YES (file on p6), if it exits | LOW if it cannot block: a missing file or non-zero exit is skipped, but a hang stops the boot before network/SSH ⭐ earliest userspace hook on the stock flow |
+| 7 | /etc/inittab, rcS, S00init | add a sysinit line / rc script (forge-x owns S00init) | YES (file), if boot still reaches SSH | low for a script that returns; a broken `inittab`/`rcS` can stop SSH and the USB update hook |
 | 8 | /opt/auto_run.sh (rcS tail, backgrounded) | the USB-launcher hook ReForge-live uses today | YES | trivial — but **latest** |
 
 ### Practical conclusions
@@ -95,10 +94,11 @@ p4 boot(34.4M) · p5 dsp0(1M) · p6 rootfs(1.3G) · p7 UDISK/data(5.9G)`.
   (`fw_setenv`; `/etc/fw_env.config` maps `mmcblk0p2 0x0 0x20000` + p3). BUT it is **NOT
   a safe hook on this unit** — see ⚠ below. Only the *value* is reversible, and only if
   the new value still boots to a shell.
-- **Earliest TRULY SAFE hook:** create **`/etc/preinit`** (inittab calls it first; it
-  doesn't exist today). A broken `/etc/preinit` is **non-fatal** — busybox init logs the
-  error and continues to the next sysinit line, so the box still boots to SSH and you
-  revert with `rm /etc/preinit`. This is the right place for early experiments.
+- **Earliest low-risk hook:** create **`/etc/preinit`** (inittab calls it first; it
+  doesn't exist today). busybox init runs it synchronously: a missing file or a non-zero
+  exit is skipped and boot continues to SSH, where `rm /etc/preinit` reverts it, but a
+  hook that hangs blocks every later sysinit line, rcS and SSH. Keep it short, bounded
+  and backgrounding anything slow. This is the right place for early experiments.
 
 > ⚠ **Brick reality (no FEL, no UART on this unit as shipped — `tools/recovery/RUNBOOK.md`).**
 > Both are *gated behind hardware mods*, not silicon-absent: the T113-S3 BROM exposes FEL
@@ -123,14 +123,17 @@ p4 boot(34.4M) · p5 dsp0(1M) · p6 rootfs(1.3G) · p7 UDISK/data(5.9G)`.
 ReForge-live hooks at `auto_run.sh` (#8) — deep under stock init, not PID1, so a real
 `switch_root` doesn't fit *there*. But via the **env `init=` override (#3→#5)** the
 kernel execs *us* as PID1 before mounts; from there `switch_root`/`pivot_root` into a
-ReForge rootfs is clean — and reversible by restoring the env (no bootloader/kernel
-reflash, so brick-safety holds). That is the architecturally-correct place for an early
-switch_root, not `auto_run`.
+ReForge rootfs is possible. Restoring the env is an in-band reversal only while
+userspace still boots; on this unit this is the HIGH-risk env tier described above.
+It is an early PID-1 control point, unlike `auto_run`, not a proven recovery-safe path.
 
-Today the install/live paths bind-mount the ReForge rootfs at `/reforge` and *chroot* into
-it (§7); the same mountpoint is the `switch_root` target once we pivot PID 1. As a building
-block for that, the **`dinit`** service supervisor is now shipped in the rootfs
-(`BR2_PACKAGE_DINIT`, binaries only — no service definitions or init wiring yet). It is the
+Today install mode bind-mounts the ReForge rootfs at `/reforge`, while live mode mounts
+USB F2FS p2 there; both chroot into it (§7). The staged `reforge-init` instead uses
+`pivot_root` with `/data/.mod/.reforge` as its target. As a building
+block for the future `switch_root` init, the **`dinit`** service supervisor is now shipped in the rootfs
+(`BR2_PACKAGE_DINIT`), with inert service definitions staged in
+[`etc/dinit.d/`](../br-external/board/reforge/rootfs-overlay/etc/dinit.d/README.md) and no
+init wiring yet. It is the
 intended PID-1 init for the switch_root rootfs, replacing the busybox-init + sequential
 `/mod/start.sh` S-loop with dependency-ordered, supervised services.
 
@@ -139,7 +142,7 @@ intended PID-1 init for the switch_root rootfs, replacing the busybox-init + seq
 ## 3. How forge-x hooks the boot
 
 `/etc/init.d/S00init` is a **symlink → `/opt/config/mod/.shell/S00init`** — forge-x
-**replaces** the stock S00init, so it runs **first** in the rcS sequence. Its S00init:
+**owns** the S00 slot, so it runs **first** in the rcS sequence. Its S00init:
 - sources `/opt/config/mod/.shell/common.sh`
 - `handle_special_boot_mode` → `boot/init_boot_flag.sh apply` (special boot modes)
 - `handle_boot_options` — the **dual-boot / failsafe** gate:
@@ -219,29 +222,36 @@ entirely. A non-zero return falls through to the MCU update check + UI.
 
 ## 5. Recipes (brick-safety boundary)
 
-**Brick-safety on this unit (no FEL, no UART) has only TWO tiers:**
-- **SAFE — revertible over SSH:** changes to **files on the rootfs (p6)** — `/etc/preinit`,
-  inittab, rc scripts, `/opt/auto_run.sh`. If they misbehave the box still boots to a
-  shell (or stock), so you `rm`/edit them back. Worst case, reflash a stock `.tgz` over
-  USB (RUNBOOK Path A — needs userspace to reach `auto_run.sh`).
+**Brick-safety on this unit (no FEL, no UART).** No rootfs change is unconditionally safe;
+recovery depends on whether boot still reaches SSH or the USB update hook:
+- **Revertible over SSH:** **files on the rootfs (p6)** that cannot stop boot before
+  network/SSH: an `/etc/preinit` or rc script that exits, the `/opt/auto_run.sh` USB
+  hook. Edit or `rm` them back; worst case reflash a stock `.tgz` over USB (RUNBOOK
+  Path A, which needs userspace to reach `auto_run.sh`).
+- **Path B if it goes wrong:** p6 files on the critical path (`/init`, `/etc/inittab`,
+  `rcS`, a hook that hangs). A broken one can stop userspace before SSH and
+  `auto_run.sh`, which leaves only the eMMC reader.
 - **NOT SAFE — eMMC-reader recovery only:** the **U-Boot env (p2/p3)** and anything below
-  it (U-Boot, boot0, boot.img). A bad value here can stop userspace, and with no UART/FEL
+  it (U-Boot, boot0, the `uImage`/`sunxi.dtb` on p1 that `boot_uImage` loads). A bad value here can stop userspace, and with no UART/FEL
   the only fix is RUNBOOK **Path B** (open case → eMMC reader → `dd` golden). Treat the
   env as boot-code, not as a config file — even though `fw_setenv` makes it *look* easy.
 
-### Pre-kernel env hook — U-Boot env (`fw_setenv`)  ⚠ hard-brick risk, see §4 ⚠
+### Pre-kernel env hook — U-Boot env (`fw_setenv`)  ⚠ hard-brick risk, see §2 ⚠
 ```sh
 # inspect
 fw_printenv                      # reads p2 (per /etc/fw_env.config)
 # append a kernel arg / redirect init (example: our PID1)
 fw_setenv init /sbin/reforge-init
 # revert
-fw_setenv init /init             # back to stock  (p3 redundant copy also protects you)
+fw_setenv init /init             # back to stock, only possible while userspace still boots
 ```
-`/etc/fw_env.config` → `mmcblk0p2 0x0 0x20000` (+ `mmcblk0p3` redundant). `fw_setenv`
-updates the CRC and the redundant copy, so a bad value is recoverable.
+`/etc/fw_env.config` → `mmcblk0p2 0x0 0x20000` (+ `mmcblk0p3` redundant).
+CRC-protected redundancy does not check whether an environment value can boot.
+A validly stored bad `init=` can therefore prevent userspace without triggering
+CRC-based fallback; in-band recovery needs a shell (§2 ⚠). The captured
+`fw_setenv` binary's exact redundant-copy write protocol has not been verified.
 
-### Earliest safe userspace hook — /etc/preinit (currently absent)
+### Earliest low-risk userspace hook — /etc/preinit (currently absent)
 ```sh
 # inittab already has:  ::sysinit:/etc/preinit   (no-op today, file missing)
 cat > /etc/preinit <<'EOF'
@@ -256,13 +266,13 @@ chmod +x /etc/preinit
 ### Become PID1 for an early switch_root — env init= override
 ```sh
 fw_setenv init /sbin/reforge-init     # /sbin/reforge-init does setup then:
-#   mount the ReForge rootfs, then  exec switch_root /newroot /sbin/init
+#   pivot_root into /data/.mod/.reforge, then exec /sbin/init
 # revert: fw_setenv init /init
 ```
 
 **UNSAFE side (reflash, brick risk, FEL recovery NOT rehearsed): boot0/SPL, U-Boot
-binary, boot.img.** Do not touch on the live printer until the eMMC-reader golden
-restore is drilled (see docs/specs Plan 3, recovery posture).
+binary, the p1 kernel/DTB.** Do not touch on the live printer until the eMMC-reader golden
+restore is drilled ([RUNBOOK Path B](../tools/recovery/RUNBOOK.md)).
 
 ---
 
@@ -272,8 +282,8 @@ restore is drilled (see docs/specs Plan 3, recovery posture).
 - Earliest *pre-kernel* hook: **U-Boot env (p2)** via `fw_setenv` → `init=` override →
   PID1 → clean early `switch_root`. **But NOT safe on this unit** — a bad value =
   eMMC-reader hard-brick (no UART/FEL). Gate behind a rehearsed golden-restore.
-- Earliest *truly safe* hook (revertible over SSH): **`/etc/preinit`** (free unused
-  hook; broken = non-fatal, box still boots).
+- Earliest *low-risk* hook (revertible over SSH): **`/etc/preinit`** (free unused hook;
+  a missing file or non-zero exit is skipped, a hang blocks boot before SSH).
 - forge-x hooks by **owning the `/etc/init.d/S00init` symlink** (+ `SKIP_MOD` escapes).
 - Stock update detection: `/opt/auto_run.sh` (last line of rcS, backgrounded) — `Adventurer5MPro-*.tgz` or a
   bare `flashforge_init.sh`, exit-0 ⇒ `sleep 100000`, **no signature check**; MCU
@@ -287,8 +297,9 @@ restore is drilled (see docs/specs Plan 3, recovery posture).
 
 This is the **installed** product (Plan 3), distinct from the stock chain above and from
 live-mode. ReForge installs as an **overlay on stock**: the stock SPL/U-Boot/kernel/init
-are untouched; the **only** persistent change is one symlink, `/etc/init.d/S01reforge` →
-the ReForge boot hook (`reforge-boot`). ReForge's rootfs is installed under the writable
+are untouched; the persistent changes to the stock rootfs are one symlink,
+`/etc/init.d/S01reforge` → the ReForge boot hook (`reforge-boot`), and the empty `/reforge`
+mountpoint directory. ReForge's rootfs is installed under the writable
 `/data/.mod/.reforge`; at boot it is bind-mounted onto a dedicated `/reforge` mountpoint
 and the service chain runs in a chroot there. (forge-x, by contrast, owns the `S00init`
 symlink — §3; the two escape hatches both use the `SKIP_MOD` pattern.)
@@ -303,27 +314,29 @@ USB launcher.
 ```mermaid
 flowchart TD
     A[rcS] --> D{"S01reforge<br/>(reforge-boot)"}
-    D --> E{"SKIP_MOD marker?<br/>/tmp/SKIP_MOD · $DATA/.reforge/SKIP_MOD"}
-    E -- yes --> Z[Boot stock firmware<br/>firmwareExe / stock klipper]
+    D --> E{"SKIP_MOD marker?<br/>/tmp/SKIP_MOD · _SOFT · _HARD<br/>/data/.mod/.reforge/SKIP_MOD"}
+    E -- yes --> Z[return to rcS<br/>stock boot continues]
     E -- no --> F{".reforge installed?<br/>(.installed stamp)"}
     F -- no --> Z
     F -- yes --> G[fire/ember banner]
-    G --> H[Mount /data · read SCREEN_MODE]
-    H --> T{"trial/LKG check (OTA era)"}
-    T --> I["mount rootfs at /reforge (bind)<br/>+ bind proc/sys/dev/run/tmp/data → /reforge<br/>(.shell/reforge-chroot.sh)"]
+    G --> H{"SCREEN_MODE<br/>(config/screen.conf, default HEADLESS)"}
+    H -- STOCK --> Z
+    H -- other --> I["mount /data if needed · bind rootfs at /reforge<br/>+ proc/sys/dev/run/tmp/data → /reforge<br/>(.shell/reforge-chroot.sh)"]
     I --> EB["boot eboard MCU (toolhead)<br/>reforge-boot-eboard · /dev/ttyS1"]
-    EB --> J["chroot /reforge · exec mod init chain"]
+    EB --> T{"trial/LKG check"}
+    T --> J["exec chroot /reforge /mod/start.sh"]
     J --> K[S00cloudblock] --> L[S35zram] --> M[S60klipper] --> N[S65moonraker]
-    N --> O[S70httpd] --> P{"SCREEN_MODE=GUPPY?"}
-    P -- yes --> Q[S75guppyscreen] --> R[S99ok]
-    P -- no --> R
-    R --> S([ReForge up])
+    N --> O[S70httpd] --> C[S72camera] --> P{"SCREEN_MODE?"}
+    P -- GUPPY --> Q[S75guppyscreen] --> R[S99ok]
+    P -- HELIX --> HX[S76helixscreen] --> R
+    P -- HEADLESS --> R
+    R --> S(["services backgrounded; start.sh exits<br/>rcS continues to auto_run.sh"])
 ```
 
 | step | what | source |
 |---|---|---|
 | `S01reforge` | boot hook — bind-mounts the rootfs at `/reforge` (via `.shell/reforge-chroot.sh`) + chroots there | `…/rootfs-overlay/.shell/reforge-boot` |
-| `SKIP_MOD` gate | USB/`/tmp` marker → pure stock boot (escape hatch) | `reforge-boot` |
+| `SKIP_MOD` gate | `/tmp/SKIP_MOD*` or `/data/.mod/.reforge/SKIP_MOD` marker, or `SCREEN_MODE=STOCK` → return to rcS without ReForge (escape hatch) | `reforge-boot` |
 | banner | fire/ember "ReForge" splash | `usr/bin/reforge-banner` |
 | **eboard boot** | **handshake the toolhead MCU into its app — before any klippy** (§8) | `usr/bin/reforge-boot-eboard` |
 | `S00cloudblock` | block FF cloud hosts in `/etc/hosts` | `etc/init.d/S00cloudblock` |
@@ -333,12 +346,20 @@ flowchart TD
 | `S70httpd` | busybox httpd serves Mainsail `:80` (browser → Moonraker direct, no proxy) | `etc/init.d/S70httpd` |
 | `S72camera` | ustreamer MJPEG `:8080` (USB-UVC cam; no-op if no `/dev/video0`) | `etc/init.d/S72camera` |
 | `S75guppyscreen` | LVGL UI on `/dev/fb0` — only when `SCREEN_MODE=GUPPY` (jemalloc) | `etc/init.d/S75guppyscreen` |
-| `S99ok` | services-up sentinel (OTA era: promote `mod`→LKG) | `etc/init.d/S99ok` |
+| `S76helixscreen` | HelixScreen lab/eval UI — only when `SCREEN_MODE=HELIX`, `/dev/fb0` exists, and the image was built with `BR2_PACKAGE_HELIXSCREEN=y` (not the default) | `etc/init.d/S76helixscreen` |
+| `S99ok` | end-of-chain sentinel: promotes `mod`→LKG (no service health check) | `etc/init.d/S99ok` |
+
+`etc/init.d/S99reforge` is outside this chain and launches `/mod/start.sh` on the
+staged PID-1 path (`/sbin/reforge-init`). It reads `/mod/etc/screen_mode`, defaulting
+to `HEADLESS`; it does not read the installer's `config/screen.conf`. That staged
+path therefore ignores screen selections made through the installed configuration.
+The chroot flow above does not invoke it.
 
 Memory tuning (jemalloc, zram, the VM sysctls) is detailed in
 [optimizations.md](optimizations.md). OTA adds a **trial/last-known-good** guard around
-the `mod` dir (trial counter; reaching `S99ok` promotes to LKG; N=3 failures restore the
-previous LKG) — see [ota.md](ota.md). Uninstall = remove the one `S01reforge` symlink.
+the `mod` dir (trial counter; reaching `S99ok` promotes to LKG; three trial boots that never
+reach `S99ok` restore the previous LKG); see [ota.md](ota.md). The uninstaller (`packaging/uninstall/flashforge_init.sh`)
+removes the `S01reforge` symlink and `/data/.mod/.reforge`; the empty `/reforge` directory stays.
 
 ## 8. Toolhead (eboard) MCU boot — the handshake every path must do
 
@@ -364,7 +385,7 @@ why live mode reached klippy-ready on the mainboard but never the eboard:
 forge-x is the key precedent: it does **not** rely on firmwareExe — `boot_mcu`
 (`/opt/config/mod/.bin/exec/boot_mcu`, source `…/.bin/src/boot_mcu/main.cpp`) runs from
 `boot.sh` regardless of STOCK vs GUPPY screen mode. ReForge's `reforge-boot-eboard`
-(`rootfs-overlay/usr/bin/`) is a byte-exact port of it.
+(`rootfs-overlay/usr/bin/`) reimplements its captured handshake protocol.
 
 **Protocol** (`reforge-boot-eboard`, mirrors `boot_mcu`):
 

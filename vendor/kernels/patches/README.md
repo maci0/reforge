@@ -1,18 +1,25 @@
 # `vendor/kernels/patches/`
 
-Out-of-band patches applied to the BSP kernel submodule
-(`vendor/kernels/tina-bsp-kernel`) **at build time only**. The patches
-are never committed into the submodule itself — the submodule is kept
-pristine at its pinned commit (`349a0b9`). Build scripts apply the
-relevant patch, build, then revert via an `EXIT` trap so the working
-tree stays clean.
+Historical out-of-band patch for an early stock-kernel attempt. It was
+applied to the BSP submodule (`vendor/kernels/tina-bsp-kernel`) at build
+time and reverted afterward so the submodule stayed at `349a0b9`. That
+apply-and-revert flow is not the current stock build.
 
-## `0001-byte-identical-reproduction.patch`
+## Current stock build
 
-Used by [`tools/build/build-bsp-kernel-stock.sh`](../../../tools/build/build-bsp-kernel-stock.sh)
-for the byte-identical-attempt reproduction of stock FlashForge's
-AD5M Pro kernel. Reaches **+128 B (+0.00099 %) of stock's `Image`**
-without the (NDA-only) Allwinner T113-Linux-Auto-v1.1 SDK overlay.
+[`tools/build/build-bsp-kernel-stock.sh`](../../../tools/build/build-bsp-kernel-stock.sh)
+does not patch or reset the submodule. The caller passes hash-pinned kernel
+and Wi-Fi source archives plus the original Image and Wi-Fi module. The
+script checks those hashes, extracts into a fresh output directory, applies
+[`../stock-patches/`](../stock-patches/), and builds inside `bwrap` so the
+historical SDK paths exist only in that namespace. Current recipe and
+result: [`stock bringup recipe`](../../../docs/board-notes/stock-bringup-rebuild.md#current-kernel-and-wi-fi-reproduction-command).
+
+## `0001-byte-identical-reproduction.patch` (historical)
+
+The June 2026 attempt that used this patch, against the submodule, reached
+**+128 B (+0.00099 %)** of stock's `Image`. That delta belongs to that
+attempt. It is not the result of the current builder.
 
 What the patch does (5 items, see in-patch commentary for details):
 
@@ -33,15 +40,11 @@ What the patch does (5 items, see in-patch commentary for details):
 Full analysis + reproduction steps:
 [`../../../docs/research/kernel/2026-06-04-byte-identical-kernel-reproduction.md`](../../../docs/research/kernel/2026-06-04-byte-identical-kernel-reproduction.md).
 
-## Convention
+## Convention for this historical patch
 
-- Patch files are unified `diff` format generated via
-  `git -C <submodule> diff` over the modified files plus
-  `git diff --no-index /dev/null <new-file>` for each new file.
-- Build scripts that apply a patch MUST install an `EXIT` trap that
-  reverts the submodule. The build script in this repo is the example.
-- Patches are **idempotent** — they `apply --check` cleanly against
-  the pinned submodule commit, and the trap reverts to that pristine
-  state.
-- The submodule itself stays at its pinned commit
-  (`349a0b9fe63a03ea21198d104e5e9e01e7c068a6`); no commits added to it.
+- The file is a unified diff generated via `git -C <submodule> diff` over
+  the modified files plus `git diff --no-index /dev/null <new-file>` for
+  each new file.
+- It applied with `git apply --check` against the pinned submodule commit
+  `349a0b9fe63a03ea21198d104e5e9e01e7c068a6`. The old workflow reverted
+  the submodule from an `EXIT` trap. The current builder does not do that.

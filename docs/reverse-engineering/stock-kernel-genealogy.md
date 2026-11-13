@@ -1,5 +1,11 @@
 # Stock kernel genealogy — from mainline Linux to the AD5M printer
 
+> **Scope:** this is an artifact-lineage analysis, not a current SDK availability
+> or licensing inventory. Later public-source reconstruction produced boot0 and
+> OP-TEE candidates, with strict equality gaps still open. Kernel delivery
+> equality uses an explicit 20-byte build-ID patch; it does not establish the
+> original ELF/debug inputs. See the [current gap ledger](../board-notes/byte-identical-bringup-gaps.md).
+
 Where the AD5M/Pro's stock kernel actually comes from: the Allwinner SoC vendor
 fork, the Tina-Linux distro, the **automotive** SDK variant it was cut from, the
 exact Wi-Fi driver, and which parts are public vs behind an Allwinner NDA.
@@ -80,13 +86,14 @@ Allwinner BSP additions that define the platform:
 |---|---|---|
 | Display Engine 2.0 | `CONFIG_DISP2_SUNXI=y` (+SMBL/ENHANCE) | the `/dev/disp` framebuffer/LCD pipeline (the device the GuppyScreen render fix had to make optional) |
 | 2D accelerator | `CONFIG_SUNXI_G2D[_MIXER/_ROTATE]=y` | hardware blit/rotate |
-| Video capture | `CONFIG_VIDEO_SUNXI_VIN=y` | camera/VIN (the AD5M camera path) |
+| Video capture | `CONFIG_VIDEO_SUNXI_VIN=y` | CSI/VIN input (unused by the AD5M USB-UVC camera) |
 | CAN | `CONFIG_CAN_SUN8I=y` | automotive CAN controller (unused on the printer) |
 | Cedar / VE | sunxi VE | Allwinner's video engine (decode) — **userspace lib is proprietary**, see NDA |
 | arisc / cpus, SPI-NAND, sunxi DMA/TWI/PWM | various `SUNXI_*` | the standard T113 BSP peripheral set |
 
-On top of *that*, FlashForge layered only the printer userland (firmwareExe, the
-Klipper/MCU stack) — **not** kernel changes; the kernel is stock Tina-Auto.
+These artifacts establish Tina-Auto lineage. They do not identify who authored
+each kernel delta; see the [source reconstruction](../board-notes/stock-bringup-rebuild.md)
+for the changes needed to reproduce the captured kernel.
 
 ## Public vs NDA — where the boundary is
 

@@ -3,7 +3,7 @@ BR2_cortex_a7=y
 BR2_ARM_FPU_VFPV4=y
 # Size-optimized userspace: Thumb-2 (~25-30% smaller code) + -Os + locale purge.
 # Measured -8% Pss (-4.9 MB) / -1 MB rootfs vs -O2/ARM, no runtime downside
-# (docs/research/2026-06-01-memory-savings-experiments.md). NEON chelper still
+# (docs/research/memory/2026-06-01-memory-savings-experiments.md). NEON chelper still
 # builds with -mcpu=cortex-a7; klippy/busybox/python verified running Thumb-2.
 BR2_ARM_INSTRUCTIONS_THUMB2=y
 BR2_OPTIMIZE_S=y

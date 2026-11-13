@@ -18,7 +18,7 @@
 # !! may or may not follow the namespace pivot; see kernel docs for
 # !! pivot_root(2)). For Option C, a different script is required — one that
 # !! uses the bind-mount-/etc-overlay approach or sticks with chain-loading
-# !! via /etc/init.d. See docs/research/2026-06-05-replacing-pid1.md.
+# !! via /etc/init.d. See docs/research/kernel/2026-06-05-replacing-pid1.md.
 #
 # When deployed, it's invoked as PID 1 via:
 #
@@ -46,11 +46,10 @@
 #   7. exec /sbin/init in the new root — busybox-init reads our /etc/inittab
 #      and brings up the ReForge service chain (S?? + /mod/start.sh).
 #
-# Any failure at steps 3–6 falls back to `exec /bin/busybox init` (stock
-# init), so a broken ReForge install can't brick the box: the user reboots
-# and gets stock back (slightly degraded — our /init was the one running, but
-# we hand off to stock init on error). That covers the "no FEL no UART"
-# brick-safety boundary on this unit.
+# Explicitly handled failures call fallback() to exec stock busybox init.
+# There is no general failure trap: an unchecked failure, missing script or signal
+# can still kill PID 1 before fallback. External recovery remains necessary if
+# userspace cannot start; this is not a blanket brick-safety guarantee.
 #
 # Why pivot_root and not switch_root:
 #   switch_root is meant for initramfs/initrd→real-rootfs transitions; it
@@ -186,7 +185,8 @@ log "pivot complete: / = ReForge ${VER}, /oldroot = stock Tina"
 # ---------------------------------------------------------------------------
 # 7. Hand off to ReForge's PID 1 (busybox-init), which reads /etc/inittab
 #    and runs /etc/init.d/rcS → /etc/init.d/S?? → /mod/start.sh.
-#    See br-external/board/reforge/rootfs-overlay/etc/inittab (custom).
+#    Buildroot supplies the default inittab; overlay etc/init.d/S99reforge
+#    invokes /mod/start.sh.
 # ---------------------------------------------------------------------------
 # shellcheck disable=SC2093 # PID 1 must be replaced; success never reaches fallback.
 exec /sbin/init

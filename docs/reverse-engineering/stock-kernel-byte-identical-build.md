@@ -5,9 +5,15 @@ complete raw Image is **not byte-identical**. The closest cached build is 128
 bytes longer, with 5,915,891 differing bytes at shared offsets and the first
 difference at `0xf968c` (1,021,580 matching leading bytes). Banner and embedded
 IKCONFIG match. The earlier alignment explanation below is diagnostic history,
-not proof of whole-image or functional equivalence. The historical runner also
-requires an isolated source tree before reuse; its cleanup resets tracked source
-files. See the [current bringup audit](../board-notes/stock-bringup-rebuild.md).
+not proof of whole-image or functional equivalence. A later build (2026-10-26)
+matches the stock raw `Image` except its 20-byte GNU build ID; with the authorized
+build-ID patch the delivery `Image`, zImage and uImage match stock byte for byte
+([accepted kernel result](../board-notes/stock-bringup-rebuild.md#accepted-kernel-result-and-remaining-bring-up-target)).
+The TL;DR and commands below describe the 2026-06-04 build and former runner.
+The current `build-bsp-kernel-stock.sh` takes source archives, reference artifacts
+and a fresh output directory; it does not use the historical cleanup/reset flow.
+Use the [current recipe](../board-notes/stock-bringup-rebuild.md#accepted-kernel-result-and-remaining-bring-up-target)
+for its arguments and validation boundaries.
 
 **See also:**
 [`stock-kernel-modules-packaging.md`](stock-kernel-modules-packaging.md)
@@ -60,24 +66,26 @@ for `CONFIG_KEXEC=y`).
 | GCC plugins | **disabled** via forced `CONFIG_PLUGIN_HOSTCC=""` | stock host had no g++ on PATH |
 | Pinning artifact | `pins.lock` rows `tina-bsp-kernel`, `gcc-linaro-5.3.1` | sha256-verified |
 
-The Linaro 5.3.1 toolchain is downloaded by
-`FETCH_LINARO=1 ./vendor/fetch.sh` (sha256
+Create `vendor/toolchains` with `mkdir -p vendor/toolchains` before running
+`FETCH_LINARO=1 ./vendor/fetch.sh` to download Linaro 5.3.1 (sha256
 `77cccd433d680251c8b9bfa01890cb6921548513a39fac35c1f4b9f0a47e5aa4`).
-Total size 176 MB; gitignored. ReForge's **shipping** kernel is not this build:
-it is built by Buildroot with its own **gcc-15.2** toolchain at `-Os` (`make
-kernel`). The standalone **GCC 9.5.0** crosstool build (`build-bsp-kernel.sh`)
-is a reference/comparison build, not the shipping path — see
+Total size 176 MB; gitignored. The installed and live ReForge userland runs on
+the existing **stock kernel**; neither the `.tgz` installer nor the live launcher
+installs a kernel. Buildroot separately produces a BSP kernel artifact with its
+own **GCC 15** toolchain at `-Os` (`make kernel`). The standalone **GCC 9.5.0**
+crosstool build (`build-bsp-kernel.sh`) is another reference/comparison artifact — see
 [`../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md`](../research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md)
 and [`../research/kernel/2026-06-06-kernel-compiler-and-size-options.md`](../research/kernel/2026-06-06-kernel-compiler-and-size-options.md).
 
 ---
 
-## 2. Reproducer (executable today)
+## 2. Reproducer (2026-06-04 runner, historical)
 
 ### 2.1 One-time setup
 
 ```sh
 # 1. Pin the Linaro toolchain + extract under vendor/toolchains/
+mkdir -p vendor/toolchains
 FETCH_LINARO=1 ./vendor/fetch.sh
 
 # 2. Make the stock build-path resolvable as a real directory.
@@ -92,7 +100,11 @@ sudo mount --bind $(pwd)/vendor/kernels/tina-bsp-kernel \
 The bind-mount survives across builds but does NOT survive a reboot. Add
 to `/etc/fstab` if you want it permanent.
 
-### 2.2 Each build
+### 2.2 Each build (historical)
+
+The no-argument commands below record the former runner. They do not run against
+today’s script. Use the [current source-archive recipe](../board-notes/stock-bringup-rebuild.md)
+with its required source archives, reference images and fresh output directory.
 
 ```sh
 make bsp-kernel-stock
@@ -261,10 +273,11 @@ against the stock device tree (`fw-analysis/k-3.1.3/sunxi.dtb`,
   behaviour because the device-tree nodes are `disabled` or have no
   userspace consumer.
 
-### Knock-on for ReForge's shipping image
+### Knock-on for a future replacement kernel
 
-The shipping kernel (Buildroot gcc-15.2 `-Os`, `make kernel`) has no obligation
-to match stock's IKCONFIG and can strip the dead code. The GCC 9.5.0 reference
+A Buildroot kernel artifact (GCC 15, `-Os`, `make kernel`) has no obligation
+to match stock's IKCONFIG and could strip the dead code. It is not installed
+by the current userland packaging. The GCC 9.5.0 reference
 build estimated **~60 KB** of `.text` removable from the table below; the later
 gcc-15 analysis went much further (`-Os` is already on, and a lean-config pass
 predicts **~1.5 MB** strippable) — see
@@ -280,8 +293,9 @@ The dead-driver candidates:
 | SPI slave + MII sysfs | ~4-6 KB | no userspace consumer |
 
 The byte-identical-attempt build keeps everything to preserve IKCONFIG
-byte-identity. ReForge ships with the drops — they're independent
-concerns.
+byte-identity. The installed stock kernel retains those features; the current
+Buildroot device config also keeps CAN, IR and Bluetooth enabled. The table
+above lists candidates, not deployed kernel changes.
 
 ---
 
@@ -394,6 +408,10 @@ handoff functions appear only in the closed `T113-Linux-Auto-v1.1`
 release or in a FlashForge-specific patch on top of it**.
 
 ### 9.4 Known SDK distribution channels (none verified working)
+
+**Availability check (2026-11-13):** anonymous access to the SharePoint mirror
+returned HTTP 403. The authenticated download described below is the 2026-06-04
+record; current authenticated access was not re-verified.
 
 | Channel | URL | Status |
 |---|---|---|

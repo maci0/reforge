@@ -30,7 +30,8 @@ apt-get install -y build-essential git wget xz-utils bc bison flex libssl-dev rs
 # config from the running printer (so it matches exactly)
 zcat /proc/config.gz > printer.config            # use as the kernel .config
 
-# prepare the tree
+# From the matching kernel source tree, apply the captured configuration first.
+cp /path/to/printer.config .config
 ./scripts/config --disable CONFIG_LOCALVERSION_AUTO
 ./scripts/config --set-str CONFIG_LOCALVERSION ""
 make ARCH=arm CROSS_COMPILE="$CROSS" olddefconfig
@@ -73,7 +74,8 @@ Swap the config symbol (all under `M=drivers/usb/serial`, except ACM):
 | PL2303 | `CONFIG_USB_SERIAL_PL2303` | `pl2303.ko` |
 | CDC-ACM devices | `CONFIG_USB_ACM` (already `=y`) | `M=drivers/usb/class` → `cdc-acm.ko` |
 
-`usbserial.ko` is the shared core for all of them — load it before any subdriver.
+`usbserial.ko` is the shared core for FTDI/CH341/PL2303; load it first.
+CDC-ACM is independent and already built into this stock kernel, so it needs no module.
 
 ## How this maps to this repo
 
@@ -83,8 +85,11 @@ Swap the config symbol (all under `M=drivers/usb/serial`, except ACM):
   string to `insmod`. See [`../reverse-engineering/`](../reverse-engineering/README.md) and `modules/*/build.sh`.
 - **BSP source:** the guide uses the cfelicio fork; our pinned BSP submodule is
   `vendor/kernels/tina-bsp-kernel` (the same 5.4.61 Tina tree). The Carlos toolchain is Linaro
-  **7.4.1**; our kmod/kernel work uses Linaro **7.5.0** (`gcc-linaro-7.5.0-2019.12`). Either
-  GCC-7 Linaro soft-float toolchain produces a loadable `.ko` as long as the vermagic matches.
+  **7.4.1**; standalone `modules/*/build.sh` scripts use **GCC 9.5.0**,
+  while the shipping zram package uses Buildroot’s GCC 15. Matching vermagic is necessary but not sufficient:
+  vendor source, configuration and ABI must also match (see the
+  [zram module findings](../../modules/zram-bsp/README.md)).
 - **Brick-safety:** loading a USB-serial `.ko` at runtime is non-persistent and reversible
   (`rmmod`); only the permanent `/lib/modules` + `S50usbserialmod` step survives reboot, and a
-  bad init script is removable over SSH. No bootloader/eMMC risk.
+  bad init script is removable over SSH. A kernel module can still crash or corrupt the running kernel; test on an idle
+  printer with a recovery path. These steps do not write boot partitions.

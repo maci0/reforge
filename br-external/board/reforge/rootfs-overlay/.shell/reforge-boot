@@ -1,6 +1,6 @@
 #!/bin/sh
 # ReForge boot hook — installed at /etc/init.d/S01reforge
-# Called by the stock /etc/rcS with argument "start".
+# Called by the stock /etc/init.d/rcS with argument "start".
 #
 # POSIX sh / BusyBox compatible.
 #
@@ -9,7 +9,7 @@
 #   - bind-mount the ReForge rootfs at /reforge (a real mountpoint)
 #   - bind-mount proc/sys/dev into /reforge
 #   - chroot into /reforge and exec the init chain
-#     (later this becomes a switch_root into /reforge; see sbin/reforge-init)
+#     (the staged sbin/reforge-init uses a separate pivot_root path)
 #
 # REFORGE_DATA_ROOT env override (default /data) lets Task 3 loopback
 # tests point DATA at a scratch directory without modifying this script.
@@ -24,7 +24,7 @@ CONF="${REFORGE_DIR}/config/screen.conf"
 # SKIP_MOD dual-boot guard (mirrors forge-x S99root:11-15)
 # Presence of any of these markers means: skip ReForge, boot stock.
 #   /tmp/SKIP_MOD              — set by forge-x or user tool (USB flag)
-#   $DATA/.reforge/SKIP_MOD    — persistent per-boot skip flag on /data
+#   $DATA/.mod/.reforge/SKIP_MOD    — persistent skip until removed
 # ---------------------------------------------------------------------------
 if [ -f /tmp/SKIP_MOD ] || \
    [ -f /tmp/SKIP_MOD_SOFT ] || \
@@ -87,8 +87,9 @@ fi
 
 # ---------------------------------------------------------------------------
 # Mount /data if not already mounted (mirrors forge-x common.sh:47-64)
-# The stock auto_run.sh mounts mmcblk0p7 → /data before calling rcS, but
-# we guard here in case we run in a test env without that.
+# This fallback runs after the install-directory and stamp checks above. It
+# cannot recover an unmounted /data if those checks have already skipped boot.
+# The stock fstab/mount ordering has not been verified from a captured fstab.
 # ---------------------------------------------------------------------------
 if [ "${DATA}" = "/data" ] && ! mount | grep -q '/dev/mmcblk0p7'; then
     echo "[reforge-boot] /data not mounted — attempting mount"
@@ -198,9 +199,7 @@ fi
 #
 # The reforge-authored init lives in the OTA-updatable /mod (chroot-internal):
 #   /mod/start.sh runs /mod/init.d/S* in sorted order — no /etc/init.d mirror.
-#   The S-scripts it calls:
-#     S00cloudblock  S35zram  S60klipper  S65moonraker  S70httpd
-#     S75guppyscreen (only when SCREEN_MODE=GUPPY)
+#   See /mod/init.d for the service list; start.sh gates GUI scripts on SCREEN_MODE.
 # A zip update of /mod is therefore live on the next boot with no copy step.
 # We exec /mod/start.sh and pass SCREEN_MODE so it can decide whether to
 # launch GuppyScreen.

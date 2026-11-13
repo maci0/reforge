@@ -11,9 +11,9 @@ are untouched; ReForge installs under the writable `/data/.mod/.reforge`, is bin
 
 ```mermaid
 flowchart TB
-    subgraph eMMC["eMMC (stock layout — untouched by ReForge)"]
-        P1[boot-resource]
-        P5[kernel]
+    subgraph eMMC["eMMC (stock partition layout)"]
+        P1["boot-resource p1<br/>uImage + sunxi.dtb"]
+        P5["dsp0 p5<br/>HiFi4 DSP firmware"]
         P6["rootfs p6<br/>busybox + glibc + firmwareExe (stock)"]
         P7["data p7  /data  (ext4, writable)"]
     end
@@ -28,14 +28,17 @@ flowchart TB
 ```
 
 The base rootfs (busybox/glibc) inside the chroot is built fresh by Buildroot (glibc, Thumb-2/
--Os). The stock `firmwareExe` on p6 stays available — `SKIP_MOD` boots it (dual-boot).
+-Os). The stock `firmwareExe` on p6 stays in place. `SKIP_MOD` or `SCREEN_MODE=STOCK`
+skips ReForge (`/tmp` markers for that boot; the `/data` marker and `STOCK` setting
+until removed). Otherwise `reforge-boot` returns after starting the services and the stock `auto_run.sh` still launches the stock UI (see
+[security findings](security-findings.md)).
 
 **Live mode** reuses this exact chroot model and the same `/reforge` mountpoint, but the
 rootfs comes from an **F2FS partition on the USB stick** instead of a bind of
 `/data/.mod/.reforge`. The printer's eMMC `/data` (p7) is still bind-mounted into the chroot,
-so gcode uploads persist; the only OS-level eMMC write is the one-time `mkdir /reforge` on the
-stock p6 rootfs (p7 untouched — no install residue). Pull the stick + reboot → pristine stock.
-See [live mode](live-mode.md).
+so gcode uploads persist. The launcher creates host mountpoints on p6 when absent;
+optional services such as HELIX also write to p7. On the 2026-06-02 trial, pulling
+the stick and rebooting left no install residue. See [live mode](live-mode.md).
 
 ## Runtime stack
 
@@ -58,18 +61,24 @@ flowchart TB
     MCU --> HW["steppers · heaters · sensors"]
 ```
 
-Single shared Python interpreter for klippy + moonraker (COW page sharing). **jemalloc**
-(`LD_PRELOAD` + tuned `MALLOC_CONF=narenas:1,dirty_decay_ms:0,muzzy_decay_ms:0`) is used for
-**moonraker and guppyscreen only** — klippy runs with the default allocator, because jemalloc's
+Klippy and Moonraker run as separate processes using the same Python interpreter binary. **jemalloc**
+(`LD_PRELOAD` + tuned `MALLOC_CONF=narenas:1,dirty_decay_ms:0,muzzy_decay_ms:0`, plus `tcache:false`
+for moonraker) is used for
+**Moonraker, GuppyScreen and optional HelixScreen** — klippy runs with the default allocator, because jemalloc's
 `LD_PRELOAD` corrupts klippy's `c_helper.so` heap on real hardware (it aborts with `free(): invalid
 size`). See [optimizations](optimizations.md). The camera is **ustreamer** serving MJPEG on `:8080`
 (`S72camera`), exposed to the UI via Moonraker's `[webcam]`. The on-screen UI is **runtime-selectable** via
-`SCREEN_MODE` (`GUPPY` = GuppyScreen, `HEADLESS` = web-only, `STOCK` = the stock `firmwareExe`,
-feasibility-confirmed). **The MCUs are Nationstech N32G455 running FlashForge's stock Klipper v11
-firmware — ReForge's host Klipper drives them as-is** (proven on hardware: both MCUs connect, real
-temps, klippy `ready`). Plan 4 (matching MCU firmware) is **not** required to move the printer; it
-only restores the version-locked adxl345/input-shaper *calibration* (the `query_adxl345` command
-format changed v11→v13). See [MCU firmware & config](reverse-engineering/ad5m-mcu-firmware-and-config.md).
+`SCREEN_MODE`: `GUPPY` = GuppyScreen, `HEADLESS` = web-only, `HELIX` = HelixScreen (only when
+built in), `STOCK` = skip ReForge and boot the stock firmware. Installs default to `HEADLESS`
+(`config/screen.conf`); live mode defaults to `GUPPY`. **The MCUs are Nationstech N32G455 running FlashForge's stock Klipper v11
+firmware — ReForge's host Klipper drives them as-is**. In the 2026-06-02 live trial,
+both MCUs connected, reported temperatures and reached klippy `ready`. When the
+MCUs retained another configuration's CRC (for example after Forge-X), klippy
+needed a manual relaunch after its first restart. `S60klipper` does not
+respawn klippy; see the [open startup issue](BACKLOG.md#live-klippy-respawn-after-crc-mismatch-auto-restart).
+Plan 4 is not required for that MCU link. The earlier claim that `query_adxl345`
+changed between v0.11 and v0.13 was corrected on 2026-06-04; see
+[MCU firmware & config](reverse-engineering/ad5m-mcu-firmware-and-config.md).
 
 ## Control / data flow (a print command)
 
@@ -98,8 +107,8 @@ the static SPA, so there's no reverse proxy (nginx removed, ~3 MB saved).
 | concern | path | doc |
 |---|---|---|
 | firmware (Buildroot external tree) | `br-external/` | [build process](build-process.md) |
-| kernel modules (zram · f2fs · overlay; later display) | `modules/` (zram-bsp, f2fs-bsp, overlay-bsp) | `modules/zram-bsp/README.md` |
-| packaging (USB `.tgz`) | `packaging/` | — |
+| kernel modules | zram: `br-external/package/reforge-zram/` (built from the BSP); f2fs, overlay: `modules/` | [`modules/zram-bsp/README.md`](../modules/zram-bsp/README.md) |
+| packaging (USB `.tgz`) | `packaging/` | [`packaging/README.md`](../packaging/README.md) |
 | boot hook + overlay | `br-external/board/reforge/rootfs-overlay/` | [boot](boot.md) |
 | updates | Moonraker zip/web updaters + CI release tooling (shipped) | [OTA](ota.md) |
 | camera | ustreamer MJPEG `:8080` | `etc/init.d/S72camera` |
@@ -112,7 +121,8 @@ ReForge has three deployment modes by increasing commitment: **Mode 1 live**
 (USB-booted, zero-touch — future, OverlayFS-gated), **Mode 2 install-on-stock**
 (the shipped `/data/.mod/.reforge` overlay described above), and **Mode 3 full
 replacement** (own kernel + rootfs — Plan 5). Full taxonomy + installer paths:
-[deployment-modes.md](deployment-modes.md).
+[deployment-modes.md](deployment-modes.md). Which stock attack surfaces each mode
+closes: [security-findings.md](security-findings.md).
 
 ## Phases
 
@@ -120,5 +130,5 @@ replacement** (own kernel + rootfs — Plan 5). Full taxonomy + installer paths:
 |---|---|---|
 | P1–P3 | core stack on stock kernel; builds/boots/serves in qemu; packaging; validation | **done** |
 | OTA | git-free in-place updates (Moonraker zip/web updaters, CI release bundles, N=3 trial/LKG) | **done** ([OTA](ota.md); [spec](specs/2026-06-01-reforge-ota-design.md)) |
-| Plan 4 | matching MCU firmware (mainboard + eboard) — **optional**: the stock v11 MCU already drives the printer; Plan 4 restores adxl345/input-shaper calibration (or moves to v13) | not started |
+| Plan 4 | matching MCU firmware (mainboard + eboard); **optional** for the demonstrated stock-MCU link | opt-in `klipper13` package builds both firmwares from source ([build](build-process.md#optional-klipper-v013-host)); flashing and hardware integration not implemented or validated |
 | Plan 5 | mainline U-Boot + mainline kernel + ported T113 display driver | researched ([notes](research/kernel/2026-06-01-t113-mainline-kernel-support.md)); board-scoped 7.3 config builds (`make kernel-mainline`, [size](research/kernel/2026-10-27-mainline-board-kernel.md)), no board DTS yet |

@@ -1,5 +1,12 @@
 # BSP kernel rebuild & diff — findings
 
+> **Validation boundary:** these were host-side static checks, not a hardware
+> boot or ABI-equivalence proof. Matching vermagic, export names and image size
+> does not guarantee safe module loading. The later
+> [reconstruction audit](../../board-notes/stock-bringup-rebuild.md) supersedes
+> the source-gap assessment and identifies the configured p1 boot path.
+> The original measurements and tier decisions below are preserved as history.
+
 **Date:** 2026-06-04
 **Plan executed:** [`../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md`](../../plans/2026-06-04-bsp-kernel-rebuild-and-diff.md)
 **Status:** ✅ Tier 1 + Tier 2 + Tier 3 PASS. Green light to layer

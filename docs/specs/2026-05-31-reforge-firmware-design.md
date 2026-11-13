@@ -1,5 +1,12 @@
 # ReForge — Full From-Scratch Firmware for FlashForge Adventurer 5M / 5M Pro
 
+> **Historical design:** use [architecture.md](../architecture.md) for current
+> behavior. Later source verification found `query_adxl345` has the same command
+> format in upstream v0.11 and v0.13; the June 2 version-skew explanation below
+> is superseded by the [MCU analysis](../reverse-engineering/ad5m-mcu-firmware-and-config.md).
+> Jemalloc was subsequently removed from Klippy after hardware heap corruption;
+> see [current tuning](../optimizations.md).
+
 **Status:** Design / brainstorming output
 **Date:** 2026-05-31
 **Target hardware:** FlashForge Adventurer 5M (Pro) — Allwinner T113-S3 (sun8iw20, Cortex-A7 dual, `armv7l`), 128 MB RAM, 7.28 GiB eMMC. Two satellite MCUs (mainboard `mcu` on `/dev/ttyS5` + toolhead `eboard` on `/dev/ttyS1`), each a **Nationstech N32G455** (STM32-F4-class, Cortex-M4 @144 MHz) running FlashForge's stock **Klipper v11** firmware.
@@ -343,5 +350,3 @@ Discipline throughout: **measure RSS on-device under load before optimizing** �
 - `zmod/` (ghzserg) — `UPDATE_MCU` reflash pattern.
 - Live unit probe (`192.168.0.158`, hostname `kunos`) — kernel `5.4.61 armv7l`, eMMC layout, current forge-x install.
 - **Vendor 5.4 BSP** (stock `sunxi.dtb`, Allwinner/linux-sunxi `sun8iw20` kernel source, stock boot0/SPL in the golden dump) — **parameter-extraction reference** for the mainline display-driver port and U-Boot DRAM/SPL bringup (§6). Reference only; not shipped.
-</content>
-</invoke>

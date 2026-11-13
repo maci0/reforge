@@ -60,9 +60,10 @@ display engine that drives the AD5M panel's HW backlight/brightness) and **early
 a buffer to paint and the screen stayed black. `/dev/disp` exists only on the real AD5M; under
 qemu's virtio-gpu (and any non-Allwinner panel) it is absent, so init always bailed. The geometry
 read was fine all along (`800×480×32`, `line_length=3200`, `smem_len=1536000`) — the abort
-happened one step earlier. Fixed in `br-external/package/guppyscreen/0004-fbdev-optional-disp-device.patch`:
-the `/dev/disp` open is now non-fatal (we lose only HW backlight control, whose ioctls already
-no-op on a bad fd) and guppyscreen renders to `/dev/fb0` everywhere.
+happened one step earlier. Fixed in `br-external/package/guppyscreen/guppyscreen.mk`,
+which edits `lv_drivers/display/fbdev.c` at build time: the `/dev/disp` open is now
+non-fatal (HW backlight control is the part that needs that device) and guppyscreen
+renders to `/dev/fb0` everywhere.
 
 ## Stock UI boot phases (`firmwareExe`) under simulated hardware
 

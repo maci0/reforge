@@ -10,8 +10,10 @@ never completes (see `../venc/README.md`).
 - `macc_shim.c` — LD_PRELOAD that patches IOCTL_GET_ENV_INFO's address_macc -> 0x40000000
   (did not fix it; the lib doesn't use it for buffer addresses — kept as a documented attempt).
 - `prep-kernel.sh` — preps the vendored BSP kernel (stock .config) for out-of-tree module builds.
-- `Makefile` — builds against `vendor/kernels/tina-bsp-kernel` with the kernel.org GCC-9.5 cross.
+- `Makefile` — builds against `vendor/kernels/tina-bsp-kernel` with the kernel.org GCC-9.5 cross
+  (`vendor/toolchains/gcc-9.5.0-nolibc`). That tree is not part of `make rootfs`; create it
+  with `mkdir -p vendor/toolchains` then `./vendor/fetch.sh`.
 
-Build: `./prep-kernel.sh` once, then `make`. The vermagic MUST be `5.4.61 SMP preempt
-mod_unload ARMv7 p2v8` (empty .scmversion + forced utsrelease "5.4.61", no `+`).
-Load: `insmod ve_diag.ko; cat /proc/ve_diag`. Read-only; safe.
+Build: `./prep-kernel.sh` once, then `make`. The vermagic must be `5.4.61 SMP preempt
+mod_unload ARMv7 p2v8` (empty `.scmversion` plus forced utsrelease `5.4.61`, no `+`).
+Load: `insmod ve_diag.ko; cat /proc/ve_diag`. The module only reads VE and GIC registers.

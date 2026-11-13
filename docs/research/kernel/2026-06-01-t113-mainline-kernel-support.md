@@ -1,5 +1,10 @@
 # Allwinner T113-S3 (sun8iw20) — mainline / LTS kernel support (Plan 5)
 
+> **Scope:** this is a dated driver-availability survey, not an AD5M boot result.
+> The [7.3 board build](2026-10-27-mainline-board-kernel.md) records remaining
+> DTS, display, secondary-CPU and runtime work; its PWM finding also qualifies
+> the broad availability table below. Kernel recommendations here are historical.
+
 Research for ReForge Plan 5: replace the stock 5.4.61 vendor BSP with a mainline-LTS
 kernel + a ported display driver, for the FlashForge Adventurer 5M Pro.
 
@@ -32,7 +37,7 @@ the D1/T113 TCON-LCD** — which is exactly what the AD5M Pro's 800×480 paralle
 | pinctrl / GPIO | ✅ mainline | `sun20i-d1-pinctrl` (has `lcd_rgb666_pins` PD0–PD21) |
 | MMC / eMMC | ✅ mainline | `sun20i-d1-mmc` / `-emmc` (`sunxi-mmc`) |
 | USB (musb/ehci/ohci) | ✅ mainline | `sun20i-d1-musb` (⚠️ gadget PIO-only, no DMA) |
-| EMAC | ✅ mainline | `sun20i-d1-emac` → `dwmac-sun8i` (a64 fallback). AD5M Pro has no ethernet. |
+| EMAC | ✅ mainline | `sun20i-d1-emac` → `dwmac-sun8i` (a64 fallback). AD5M Pro has on-SoC Ethernet wired through an RMII PHY; see [device overview](../../board-notes/device-overview.md). |
 | I2C / SPI / UART | ✅ mainline | `sun20i-d1-i2c`, `-spi`/`-spi-dbi`, `snps,dw-apb-uart` |
 | Watchdog / PWM / DMA | ✅ mainline | `sun20i-d1-wdt-reset`, `-pwm`, `-dma` |
 | Thermal (THS) | ✅ mainline | `sun20i-d1-ths` + zones/cooling maps |

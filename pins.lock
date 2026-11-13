@@ -30,8 +30,8 @@ mainsail   tag     v2.19.0  19908bcd07804328877cf1843c2436a5c66f66e7c417972a7cd2
 #     the FF fork's only meaningful change)
 #   0002-py3-configfile-read_file.patch              (Python 3.12+ readfp
 #     removal blocker; backport of upstream Klipper PR #6388)
-#   0003-py3-gcode-regex-raw-string.patch            (Python 3.14 SyntaxError
-#     blocker on gcode.py's m112 regex; matches upstream master)
+#   0003-py3-gcode-regex-raw-string.patch            (raw-string correction for
+#     the m112 regex's Python 3.12–3.14 SyntaxWarning; preserves regex behavior)
 #   0004-toolhead-backport-lookahead-flush-time.patch (backport of upstream
 #     commit 16fc46fe5: LOOKAHEAD_FLUSH_TIME 0.250 -> 0.150; same value
 #     forge-x ships as fix_enable_e17; reduces 'print stall' corner cases)

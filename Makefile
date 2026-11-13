@@ -12,10 +12,9 @@ rootfs:            ; $(BUILD) rootfs
 defconfig:         ; $(BUILD) defconfig
 clean:             ; $(BUILD) clean
 # clean-artifacts: reclaim regenerable disk WITHOUT a full buildroot rebuild.
-# Drops the qemu test images (.ext4/.img/.raw/.ppm — each re-baked by its harness
-# in seconds) but KEEPS screenshots (*.png) + serial logs, the stale helixscreen
-# package build tree (binary already installed in target/; buildroot re-extracts
-# on demand), and the host ccache. Prints reclaimed size.
+# Removes qemu test images and the stale helixscreen package build tree.
+# Keeps screenshots, serial logs and ccache. The printed size is an estimate
+# of the input trees, not a measured before/after deletion delta.
 clean-artifacts:
 	@before=$$(du -sb tests/qemu-harness/build build/output/build/helixscreen-* 2>/dev/null | awk '{s+=$$1} END{print s}'); \
 	rm -f tests/qemu-harness/build/*.ext4 tests/qemu-harness/build/*.img \
@@ -46,23 +45,15 @@ live-usb:          ; tools/release/build-live-usb.sh
 # captured /proc/config.gz + the pinned GCC 9.5.0 toolchain. Compare against
 # the kernel extracted from the golden eMMC dump. Output:
 #   build/bsp-kernel-rebuild/artifacts/{Image.ours,Image.stock,vmlinux.ours,...}
-# Findings: docs/research/2026-06-04-bsp-kernel-rebuild-findings.md
+# Findings: docs/research/kernel/2026-06-04-bsp-kernel-rebuild-findings.md
 # Plan:     docs/plans/2026-06-04-bsp-kernel-rebuild-and-diff.md
 bsp-kernel-rebuild: ; tools/build/build-bsp-kernel.sh
 
-# --- byte-identical-attempt build (Linaro 5.3.1 + stock build path + patches) -
-# Same kernel but compiled with the EXACT toolchain stock FF used and from the
-# EXACT source path stock baked into __FILE__ strings. Applies the
-# byte-identical-reproduction patches on top of the pinned BSP submodule and
-# reverts them on exit (submodule stays clean).
-# Output:  build/bsp-kernel-rebuild-stock/artifacts/Image.ours-linaro
-# Findings: docs/research/2026-06-04-byte-identical-kernel-reproduction.md
-# Prerequisite (run once):
-#   FETCH_LINARO=1 ./vendor/fetch.sh
-#   sudo mkdir -p /home/linux/work/hard_t113_s3/t113/T113/T113-Linux-Auto-v1.1/kernel
-#   sudo chown -R $$USER /home/linux
-#   sudo mount --bind $$(pwd)/vendor/kernels/tina-bsp-kernel \
-#       /home/linux/work/hard_t113_s3/t113/T113/T113-Linux-Auto-v1.1/kernel/linux-5.4
+# Historical convenience target: the current stock builder requires caller-supplied
+# source archives, reference images, STOCK_UIMAGE and a fresh output directory.
+# This no-argument target does not forward those inputs; use the script directly.
+# Current recipe: docs/board-notes/stock-bringup-rebuild.md
+# Historical attempt: docs/research/kernel/2026-06-04-byte-identical-kernel-reproduction.md
 bsp-kernel-stock:   ; tools/build/build-bsp-kernel-stock.sh
 validate-loopback: ; sudo tests/loopback-install-test.sh
 # run-from-mod: structural test of the self-contained mod/ + run-in-place model
@@ -108,7 +99,7 @@ qemu-stockui-real: ; tests/qemu-harness/stockui-realklippy-test.sh
 qemu-live:         ; tests/qemu-harness/live-mode-test.sh
 qemu-live-ota:     ; tests/qemu-harness/live-ota-test.sh
 # qemu-pid1-pivot: validate the reforge-init PID-1 + pivot_root flow
-# (docs/boot.md §2 Option A, docs/research/2026-06-05-replacing-pid1.md §A1).
+# (docs/boot.md §2 Option A, docs/research/kernel/2026-06-05-replacing-pid1.md §A1).
 # Runs three sub-cases: happy / skip-cmdline / no-install.
 qemu-pid1-pivot:   ; tests/qemu-harness/pid1-pivot-test.sh happy && \
                      tests/qemu-harness/pid1-pivot-test.sh skip-cmdline && \

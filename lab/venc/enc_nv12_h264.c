@@ -8,7 +8,7 @@
  * Struct field offsets/sizes were extracted from the on-device libs' DWARF
  * (gdb ptype / sizeof / offsetof) so this matches the installed ABI exactly,
  * without rebuilding the nested cedarc structs by hand. See
- * docs/research/2026-06-03-camera-streaming-options.md (Stage 2).
+ * docs/research/ui-camera/2026-06-03-camera-streaming-options.md (Stage 2).
  *
  * STATUS (2026-06-03): the ENTIRE software init layer is SOLVED (a from-scratch result not
  * documented anywhere) — but the VE encode HARDWARE does not complete on this BSP, the same
@@ -42,7 +42,7 @@
  *  CONCLUSION: standalone HW H264/H265 encode is blocked on this firmware at the VE-completion
  *  level. Getting it working requires the libsdk_camera HAL path (full ISP+VE camera pipeline),
  *  not this standalone app. MJPEG (mjpg_streamer) remains the working camera path. See
- *  docs/research/2026-06-03-camera-streaming-options.md (Stage 2).
+ *  docs/research/ui-camera/2026-06-03-camera-streaming-options.md (Stage 2).
  */
 #include <stdio.h>
 #include <stdlib.h>

@@ -2,18 +2,11 @@
 # =============================================================================
 # verify-live-trial.sh — verify a ReForge LIVE-USB trial on real hardware.
 #
-# Two phases, run against the printer's IP:
-#
-#   baseline   (BEFORE the trial, while the unit is on stock/forge-x over SSH)
-#              — record that the eMMC has NO ReForge install (/data/.mod/.reforge absent).
-#
-#   live       (WHILE the live USB is booted) — over HTTP (always) + SSH (if keys
-#              work): the ReForge stack is up, it's running from the USB loop-mounted
-#              F2FS with a tmpfs /data, the 3 modules are loaded, and — the headline —
-#              the eMMC's /data carries NO /data/.mod/.reforge install (live wrote nothing).
-#
-#   stock      (AFTER pulling the USB + rebooting, back on stock over SSH) — confirm
-#              /data/.mod/.reforge is STILL absent: the whole trial left the eMMC untouched.
+# Historical trial helper with baseline/live/stock phases (see usage below).
+# Its executable probes still expect loop-on-FAT and tmpfs /data; current live
+# images use F2FS p2 and bind eMMC /data. Install-directory absence does not prove
+# zero eMMC writes, despite the legacy verdict this script prints. Do not use it
+# as a write-audit gate. See docs/live-mode.md for the actual write topology.
 #
 # HTTP needs nothing; SSH checks are best-effort (skip cleanly if the key is rejected).
 # Usage:  tools/release/verify-live-trial.sh <baseline|live|stock> [IP]
@@ -76,11 +69,11 @@ live)
     echo "== SSH (best-effort) =="
     if ssh_try; then
         info "os-release: $(${SSH} 'grep ^NAME= /etc/os-release 2>/dev/null' 2>/dev/null)"
-        # running from USB? loop device backing the F2FS rootfs + the 3 modules.
+        # Legacy probes below expect loop-on-FAT; current live images mount F2FS p2.
         ${SSH} 'lsmod 2>/dev/null | grep -qE "^f2fs"'  && ok "f2fs module loaded"  || info "f2fs not seen in lsmod"
         ${SSH} 'lsmod 2>/dev/null | grep -qE "^loop"'  && ok "loop module loaded"  || info "loop not seen"
         ${SSH} 'losetup -a 2>/dev/null | grep -qi reforge-live' && ok "USB F2FS loop-mounted (losetup)" || info "loop backing not confirmed"
-        # chroot /data must be tmpfs (zero eMMC writes for runtime state)
+        # Legacy expectation: current live mode binds eMMC /data, not tmpfs.
         ${SSH} 'cat /proc/mounts 2>/dev/null | grep -qE "/data .*tmpfs|tmpfs .*/data"' && ok "/data is tmpfs (runtime writes -> RAM, not eMMC)" || info "tmpfs /data not confirmed in mounts"
         emmc_install_check
     else

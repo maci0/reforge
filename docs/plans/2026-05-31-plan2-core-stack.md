@@ -390,4 +390,3 @@ git commit -m "P2: build wrapper + smoke + CI for the full-stack variant"
 - [ ] Full-stack smoke PASSES; Plan-1 minimal variant still PASSES; CI green; Buildroot submodule still unmodified; no large artifacts tracked.
 
 **Next plan:** Plan 3 — P3 `.tgz` installer (stock-format package, first on-device flash, gated on the verified golden dump).
-</content>

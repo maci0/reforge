@@ -49,31 +49,32 @@ disp_reserve=1536000,0x448ee000 androidboot.dramsize=128
 | DRAM | **128 MB** | U-Boot DRAM init, RAM budget |
 | Display reserve | `1536000 @ 0x448ee000` | framebuffer / DRM |
 | SoC id | `sun8iw20p1` | DT compatible, U-Boot board |
-| Vendor U-Boot | **2018.05** (vendor fork) | we replace with mainline ≥2024.01 |
+| Vendor U-Boot | **2018.05** (vendor fork) | mainline replacement remains planned; see the [rebuild audit](stock-bringup-rebuild.md) for the stock reproduction |
 | Loaded modules | only `8821cu` (RTL8821CU wifi/BT) | mainline `CONFIG_RTW88_8821CU` replaces it (see notes) |
 
 ## Notes
 
-- Stock kernel is essentially monolithic (one out-of-tree module). When building
+- Stock kernel is essentially monolithic (one loaded vendor Wi-Fi module). When building
   `reforge_t113_defconfig` from mainline-LTS, the captured stock `.config` is the
   authoritative list of which subsystems/drivers this board actually uses — start
   from a board-minimal config and cross-check against it, rather than shipping a
   generic sunxi defconfig.
-- `8821cu` (RTL8821CU) is **Realtek's proprietary vendor driver** (origin: never
-  upstreamed to mainline Linux). The Allwinner T113-Linux-Auto SDK imports the
+- `8821cu` (RTL8821CU) is **Realtek's GPL vendor driver** (distinct from
+  mainline `rtw88`). The Allwinner T113-Linux-Auto SDK imports the
   Realtek source into the kernel tree at `drivers/staging/rtl8821cu/` and wires it
   via `CONFIG_RTL8821CU=m`, so the kernel build produces `8821cu.ko` as an in-tree
   module (`modinfo` says `intree:Y`). FF installs it twice: a stripped copy at the
   standard kbuild path `/lib/modules/5.4.61/8821cu.ko`, and a debug-info-retaining
   flat copy at `/lib/modules/8821cu.ko` that `auto_run.sh` `insmod`s explicitly
-  (the OTA only refreshes the flat copy). Our public iLotusK9 BSP snapshot **lacks**
-  the `drivers/staging/rtl8821cu/` source, so our rebuild does not produce a `.ko`
-  — but the **stock `.ko` loads unchanged on our rebuilt kernel** (`vermagic`
-  matches: `5.4.61 SMP preempt mod_unload ARMv7 p2v8`). Full analysis:
+  (the OTA only refreshes the flat copy). The public iLotusK9 BSP snapshot lacks
+  `drivers/staging/rtl8821cu/`, but the separate pinned reconstruction now builds
+  the deployed flat module byte for byte. See the [current build audit](stock-bringup-rebuild.md)
+  for source pins, exact comparison and validation limits. Packaging analysis:
   [`../reverse-engineering/stock-kernel-modules-packaging.md`](../reverse-engineering/stock-kernel-modules-packaging.md).
-  For **mainline** (Plan 5, kernel 6.x LTS): `CONFIG_RTW88_8821CU` (rtw88 family)
-  since 6.2, solid by 6.12; BT via `btusb`+`btrtl`. No vendor module needed. rtw88
-  is station-mode-solid (AP/monitor weaker than vendor, irrelevant for a printer).
+  For **mainline** (Plan 5; the current size proxy is 7.3): `CONFIG_RTW88_8821CU` (rtw88 family)
+  replaces the vendor module; BT uses `btusb`+`btrtl`. Driver availability
+  does not establish AD5M board or access-point validation; see the
+  [mainline build study](../research/kernel/2026-10-27-mainline-board-kernel.md).
 - The `dsp0@p5` partition holds DSP firmware loaded by U-Boot. Its FreeRTOS
   kernel C component now reproduces byte-identically; the complete firmware and
   partition tail remain open. See the [recipe and proof](../../lab/dsp-rebrew/README.md).

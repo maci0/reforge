@@ -20,9 +20,13 @@ matches the stock 5.4 userland (important for the firmwareExe spike).
 ## Building the test kernel — `make qemu-kernel`
 
 Source: the in-repo vendor tree `vendor/kernels/tina-bsp-kernel` (Allwinner sun8iw20,
-**Linux 5.4.61** — same version as stock). Toolchain: the kernel.org crosstool
+**Linux 5.4.61**, same version as stock). Toolchain: the kernel.org crosstool
 **GCC 9.5** at `vendor/toolchains/gcc-9.5.0-nolibc/arm-linux-gnueabi/bin/arm-linux-gnueabi-`.
-Built **out-of-tree** (`O=tests/qemu-harness/build/kbuild`) so the source stays clean.
+`build-test-kernel.sh` requires that `gcc` to be executable. A normal `make rootfs`
+does not fetch it: Buildroot builds its own toolchain. Populate this one with
+`mkdir -p vendor/toolchains` then `./vendor/fetch.sh` (the script writes the tarball
+into that directory and does not create it). Built **out-of-tree**
+(`O=tests/qemu-harness/build/kbuild`) so the source stays clean.
 
 Config = `multi_v7_defconfig` + the fragment in `configs/virt.fragment`:
 
@@ -44,9 +48,11 @@ Config = `multi_v7_defconfig` + the fragment in `configs/virt.fragment`:
 
 Output: `tests/qemu-harness/build/zImage` (gitignored). Build ≈ 25 min.
 
-If the vendor source is ever truly unbuildable for virt, the script falls back to
-**mainline `linux-5.4.61`** (`vendor/kernels/linux-5.4.61`) — same version, clean.
-**Never** mainline 6.x (wrong ABI for the spike).
+If the vendor source fails to build for virt, the script falls back to
+mainline `linux-5.4.61`. That tree is not in the repo. Fetch
+`vendor/kernels/linux-5.4.61.tar.xz` from kernel.org first
+(`build-test-kernel.sh`). Do not substitute a 6.x tree: the spike userland
+expects the 5.4 ABI.
 
 ## Framebuffer — pinned to the real panel (800×480×32)
 
@@ -107,8 +113,11 @@ default NIC causes routing conflicts where TCP connects but HTTP hangs.)
 |---|---|
 | `make qemu-kernel` | build the virt test kernel (`build/zImage`) |
 | `make qemu-smoke` | boot a tiny initramfs, assert fb0 = 800×480×32 |
-| `sudo make qemu-stock-rootfs` | extract stock rootfs (`mmcblk0p6`) from the golden dump → `build/stock-rootfs.ext4` (loop-mounts → sudo) |
-| `sudo make qemu-update` | install ReForge into an ext4 + boot it under the test kernel → assert Moonraker live (LIVE) or services-started (FLOOR) |
+| `make qemu-stock-rootfs` | extract stock rootfs (`mmcblk0p6`) from the golden dump → `build/stock-rootfs.ext4` (rootless: `sfdisk` + `dd` + `debugfs`) |
+| `make qemu-update` | install ReForge into an ext4 + boot it under the test kernel → assert Moonraker live (LIVE) or services-started (FLOOR); the target runs the script under sudo |
+
+The remaining `qemu-*` gates (render, stock UI, live, OTA, PID-1, dinit, memory) are
+listed with one-line comments in the [Makefile](../../Makefile).
 
 ## Files
 - `build-test-kernel.sh` — builds the kernel (+ a static `init.c` initramfs for the smoke).
@@ -147,14 +156,13 @@ boot). Every `mke2fs` in the suite still routes through the `orphan_file`-disabl
   out of scope.
 - Stock-firmware *full* boot under qemu is out of scope (needs the T113 machine model);
   the update test installs via filesystem ops + boots the ReForge stack instead.
-</content>
 
 ## Screenshots
 Captured GUI renders (GuppyScreen; firmwareExe result) are in [`docs/screenshots/`](../../docs/screenshots/README.md) — all at the pinned 800x480, pixel-identical to the real panel.
 
 ## Forge-X memory probe
 
-`tests/qemu-harness/mem-probe-forgex.sh <label>` boots working copies of the same
+`tests/qemu-harness/mem-probe-forgex.sh <label>` boots working copies of
 `build/forgex-*.ext4` fixtures, skips the stock UI, and snapshots per-process Pss/Rss to
 `build/mem-probe-forgex-<label>.log`. Environment knobs:
 

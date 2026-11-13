@@ -63,7 +63,7 @@ IP, filament/cumulative, job id/status/error, gcode path/name, progress/duration
 - **Hardcoded HMAC secrets in the binary** for log-upload signing: `A7dK9xP2LmQ4sT8Z` and
   `s9Kf3Lx2Pq8Vn4TzA1mR6YwB` (const `model_log_upload`) → anyone with the firmware can forge
   `/api/v3/model/log/upload` signatures.
-- STS creds returned in a URL keyed only by `deviceID`+`authToken` (lands in intermediary logs).
+- The STS request URL contains `deviceID` and the bearer `authToken`, which can enter URL logs. STS credentials are returned in the response body, not the URL; logging those keys would require separate response-body evidence.
 - **Everything leaves the device** when cloud is on: identity (SN/MAC/IP), every gcode file +
   thumbnails + camera snapshots + timelapse to OSS, continuous telemetry, live RTMP/HLS camera, and
   **full log bundles** (may contain network/config). Three clouds: FlashForge (voxelshare/sz3dp),

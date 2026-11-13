@@ -1,5 +1,12 @@
 # Research: Why Buildroot? Why not Alpine userspace + our own kernel/U-Boot?
 
+> **Decision history:** Buildroot remains the selected builder. “Immutable”
+> below describes the original goal; the current writable install and OTA path
+> is documented in [deployment-modes.md](../../deployment-modes.md). Later
+> [musl experiments](../memory/2026-10-27-clang-oz-musl-memory.md) built and ran
+> the stack under QEMU, so the original libc-risk discussion is not a current
+> compatibility verdict or a hardware validation result.
+
 **Date:** 2026-05-31
 **Question:** Do we need Buildroot at all? Couldn't we take an Alpine armhf userspace, build a kernel + U-Boot ourselves, and have it work?
 
@@ -74,4 +81,3 @@ Every working AD5M Klipper firmware — **xblax** (klipper_mod), **zmod**, **for
 - numpy on musl/Alpine issues: numpy/numpy#7128, numpy/numpy#27932, astral-sh/uv#16349.
 - Klipper on Alpine: github.com/knoopx/alpine-klipper.
 - Buildroot Klipper precedent + the `ip`/Moonraker caveat: stefanocottafavi.com/buildroot_klipper3d ; xblax/flashforge_ad5m_klipper_mod.
-</content>

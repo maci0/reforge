@@ -1,5 +1,9 @@
 # Cedar HW H.264 encoder probe (Stage 2)
 
+> **Resolved ([`../venc-vendor/FINDINGS.md`](../venc-vendor/FINDINGS.md)):** the T113-S3 has
+> **no H.264 encoder** (JPEG/MJPEG only; HW JPEG encode completes). The completion wall below
+> is that missing block, not a BSP bug. The rest is kept as recorded.
+
 A from-scratch userspace app that drives the AD5M's **Allwinner Cedar VE hardware H.264
 encoder** via the vendor `libvenc` stack — to prototype a low-bandwidth camera stream
 (H.264 → browser WebCodecs) instead of MJPEG. Background + the full options analysis:

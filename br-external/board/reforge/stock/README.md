@@ -1,8 +1,14 @@
 # Recovered stock AD5M Pro board configuration
 
 These are non-executable configuration sources recovered from the original
-board artifacts, not a replacement for ReForge's normal board configuration.
-No target binary code is stored here.
+board artifacts. No target binary code is stored here.
+
+`kernel.dts` is the default device-build source: `br-external/board/reforge/board.dts`
+is a symlink to it, and `local.mk` selects that path unless `REFORGE_KERNEL=virt`.
+The kernel package builds `board.dtb` from it as a build artifact. The rootfs
+package does not install that DTB on the printer. `toc.dts`, `u-boot-control.dts`
+and `environment.txt` are reconstruction inputs for the stock-board research
+builder, not the shipping rootfs.
 
 - `kernel.dts`: stock FAT p1 `sunxi.dtb`, corroborated by the independent
   AceOfBase dump. Compiles to SHA-256

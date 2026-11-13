@@ -39,7 +39,9 @@ config. All findings were verified against the on-device binary (`arm-linux-gnue
   DWARF is a build-pipeline artifact, not a runtime gdb capability.
 - [stock-kernel-byte-identical-build.md](stock-kernel-byte-identical-build.md) — **reference
   method** for reproducing the stock `Image` host-only from public source (Linaro GCC 5.3.1 +
-  exact build path), reaching +128 bytes (a 256-byte linker-alignment artifact). The dated
+  exact build path). The 2026-06-04 build was +128 bytes and still differed in 5.9 MB;
+  the current build (2026-10-26) matches the stock raw `Image` except its 20-byte build ID
+  ([bringup audit](../board-notes/stock-bringup-rebuild.md)). The dated
   experiment + dead-driver audit is in
   [`../research/kernel/2026-06-04-byte-identical-kernel-reproduction.md`](../research/kernel/2026-06-04-byte-identical-kernel-reproduction.md);
   for the mainline alternative see [`../research/kernel/2026-06-01-t113-mainline-kernel-support.md`](../research/kernel/2026-06-01-t113-mainline-kernel-support.md).
@@ -48,9 +50,9 @@ config. All findings were verified against the on-device binary (`arm-linux-gnue
 ## Stock firmware releases & MCU
 - **Per-version firmware changelog + the archive itself** live in the shared, workspace-level
   **`fw-archive/`** repo (sibling of `reforge/`) — `fw-archive/analysis/stock-fw-changelog.md`
-  (artifact-grounded changelog of every downloadable AD5M/Pro release, 2.3.x → 5.1.7, with the
-  per-version software/kernel/library/control fingerprint) and `stock-fw-5.1.7-diff.md` (the deep
-  5.1.4 → 5.1.7 diff), backed by `fw-archive/firmware-manifest.tsv` (sha256 + fingerprints) and
+  (artifact-grounded changelog of every downloadable release, Pro 2.3.1 → 5.1.9 and 5M 3.1.3 →
+  5.1.9, with the per-version software/kernel/library/control fingerprint) and the deep diffs
+  `stock-fw-5.1.7-diff.md`, `stock-fw-5.1.8-diff.md` and `stock-fw-5.1.9-diff.md`, backed by `fw-archive/firmware-manifest.tsv` (sha256 + fingerprints) and
   `fetch-all-firmware.sh`. The blobs are archived there, not in this repo.
 - [ad5m-mcu-firmware-and-config.md](ad5m-mcu-firmware-and-config.md) — the N32G455 MCU firmware
   (Klipper v11/v13) + config baselines.
@@ -68,4 +70,4 @@ Stock-firmware analysis spans several layers; this folder is the *binary/RE* lay
 - [`../board-notes/device-overview.md`](../board-notes/device-overview.md) — hardware/stack inventory + consolidated security findings.
 - [`../board-notes/forge-x-boot-architecture.md`](../board-notes/forge-x-boot-architecture.md) — the forge-x **mod** boot/chroot stack.
 - [`ad5m-mcu-firmware-and-config.md`](ad5m-mcu-firmware-and-config.md) — MCU firmware (v11/v13, N32G455) + config diff vs mods.
-- `../../lab/venc-scratch/` — Cedar VE H.264 encode investigation (HW encode non-functional; stock uses x264 software).
+- `../../lab/venc-scratch/`, `../../lab/venc-vendor/` — Cedar VE encode investigation: the T113-S3 has no H.264 encoder (HW JPEG/MJPEG works); stock uses x264 software. Final finding: [`../research/ui-camera/2026-06-04-cedar-ve-encode-and-camera-fw.md`](../research/ui-camera/2026-06-04-cedar-ve-encode-and-camera-fw.md).

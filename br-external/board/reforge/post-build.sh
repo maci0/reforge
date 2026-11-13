@@ -8,14 +8,14 @@
 # configs, zram .ko, banner, service-control wrappers, start/stop).  It carries
 # no busybox/glibc/opt, so a future zip update's rmtree(/mod)+extract is safe.
 #
-# `reforge-boot` execs `chroot ${REFORGE_DIR} /mod/start.sh`, which runs
+# `reforge-boot` execs `chroot /reforge /mod/start.sh` (the install bind), which runs
 # `/mod/init.d/S*` in place — no `/etc/init.d` mirror.
 #
 # Layout assembled here (chroot-internal /mod):
 #   mod/
 #     release_info.json
 #     start.sh stop.sh
-#     init.d/{S00cloudblock,S35zram,S60klipper,S65moonraker,S70httpd,S72camera,S75guppyscreen,S99ok}
+#     init.d/{S00cloudblock,S35zram,S60klipper,S65moonraker,S70httpd,S72camera,S75guppyscreen,S76helixscreen,S99ok}
 #     etc/reforge/{printer.cfg,printer.base.cfg,moonraker.conf,zram.conf}
 #     modules/{zram.ko,zsmalloc.ko,swapon_prio}
 #     usr/bin/reforge-banner
@@ -106,16 +106,17 @@ fi
 chmod 0755 "${MOD}/usr/bin/reforge-banner" 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
-# .shell — reforge-boot copy (for self-update) + reforge-lkg.sh (trial/LKG
-# helpers, sourced by both reforge-boot on the stock side and S99ok inside the
-# chroot).  Both are authored in the rootfs overlay; copy them into mod/.
+# .shell — OTA copies of boot helpers plus the trial/LKG library. Installed
+# boot uses rootfs-level /.shell/reforge-boot and reforge-chroot.sh, not these
+# /mod copies; changing the active hook/helper requires a USB .tgz reinstall.
+# S99ok sources the /mod copy of reforge-lkg.sh.
 # ---------------------------------------------------------------------------
 if [ -f "${OVERLAY}/.shell/reforge-boot" ]; then
     cp -a "${OVERLAY}/.shell/reforge-boot" "${MOD}/.shell/reforge-boot"
     chmod 0755 "${MOD}/.shell/reforge-boot"
 fi
 # reforge-chroot.sh — shared chroot-mounts helper sourced by reforge-boot (and
-# the live launcher). Mirror the self-update copy so the /mod set is complete.
+# the live launcher). Keep an OTA copy; it does not replace the installed helper.
 if [ -f "${OVERLAY}/.shell/reforge-chroot.sh" ]; then
     cp -a "${OVERLAY}/.shell/reforge-chroot.sh" "${MOD}/.shell/reforge-chroot.sh"
     chmod 0755 "${MOD}/.shell/reforge-chroot.sh"

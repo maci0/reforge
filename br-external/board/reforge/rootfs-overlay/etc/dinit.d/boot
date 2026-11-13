@@ -13,9 +13,9 @@
 #   moonraker -> httpd          (Mainsail served after the API is up)
 #   {klipper,moonraker,httpd} -> ok   (LKG promote once everything is up)
 #
-# camera and guppyscreen are defined but intentionally NOT pulled in here: they
-# are conditional (camera = /dev/video0 present; guppyscreen = SCREEN_MODE=GUPPY
-# + /dev/fb0). A later SCREEN_MODE/camera selector starts them on demand.
+# camera, guppyscreen and helixscreen are defined but not pulled in here.
+# They need /dev/video0 or the selected screen mode plus /dev/fb0.
+# A later SCREEN_MODE/camera selector starts them on demand.
 
 type = internal
 depends-on = cloudblock

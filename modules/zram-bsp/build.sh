@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build zram/zsmalloc/zpool/zbud as loadable modules for the stock 5.4.61 BSP kernel.
-# UPSTREAM source FAILED (ABI mismatch, see README RESULT) — adapt KSRC to the Tina
-# sun8iw20 BSP source for the layout-exact build.
+# Uses the pinned Tina BSP by default; upstream mainline 5.4.61 failed the stock ABI
+# test (see README). Do not substitute it merely because the version matches.
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO_ROOT=$(cd "$HERE/../.." && pwd)

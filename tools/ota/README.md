@@ -41,13 +41,16 @@ package), `platform=29`, `hardware_version=2.0.0`; `entity_id` = the printer **s
 `--model ad5m-pro` applies them:
 
 ```sh
-python3 check-ff-update.py --model ad5m-pro --version 5.1.2 --entity-id <your-serial>
+python3 check-ff-update.py --model ad5m-pro --version 5.1.2 --entity-id "$SERIAL"
 #  -> UPDATE AVAILABLE: 5.1.2 -> v5.1.4   (exit 10)
-python3 check-ff-update.py --model ad5m-pro --version 5.1.4 --entity-id <your-serial>
+python3 check-ff-update.py --model ad5m-pro --version 5.1.4 --entity-id "$SERIAL"
 #  -> up to date                          (exit 0)
 ```
 
-The **latest AD5M Pro firmware is `v5.1.4`**. The stock UI checks four component packages
+`$SERIAL` is the printer serial captured on the unit.
+
+On 2026-06-04 the server offered **`v5.1.4`** as the latest AD5M Pro firmware; later
+releases are recorded in the sibling `fw-archive/analysis/stock-fw-changelog.md`. The stock UI checks four component packages
 (`app_id` 35/36/37/38 = firmware/control/library/software); only `35` carries the `5.1.x`
 firmware release. The server nests it in `data.list[].version` (with a `v` prefix). Note: a
 real printer on the forge-x mod can't reach the server — the mod blackholes
@@ -58,7 +61,8 @@ teardown: `../../docs/reverse-engineering/stock-ui/firmwareexe-ota-update.md`.
 
 The stock update path it talks to verifies firmware with **MD5 only — no signature** — and
 runs an in-package `run.sh` as root. This tool just reports availability; do **not** wire its
-output into an auto-flasher. ReForge's own OTA (signed) is the intended update path.
+output into an auto-flasher. ReForge's own OTA ([`docs/ota.md`](../../docs/ota.md)) is the
+intended update path; its release assets are not signed either.
 
 ## Tests
 

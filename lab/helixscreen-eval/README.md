@@ -11,7 +11,8 @@
 > patching works, host-contamination guards for spdlog/libusb, libhv forced
 > static, env flag-passing). Still TODO before any ship decision: RAM probe vs
 > GuppyScreen, the splash/watchdog helper binaries (separate link issue), strip/
-> size review, and a real `SCREEN_MODE=HELIX` boot path.
+> size review, and a hardware boot. The `SCREEN_MODE=HELIX` dispatch now exists
+> (`/mod/start.sh` runs `S76helixscreen`; no-op unless the package is built in).
 
 
 Chosen over KlipperScreen for the on-screen-UI eval: **HelixScreen is GuppyScreen-class**
@@ -24,9 +25,10 @@ unblocked. Upstream: <https://github.com/prestonbrown/helixscreen> (GPL-3.0). Re
 ## What's here
 
 - `br-external/package/helixscreen/` — the Buildroot package (default **n**; only the eval enables
-  it). `helixscreen.mk`: git pin `846a6e35`, `make PLATFORM_TARGET=ad5m-br`, deps
-  `libevdev openssl tslib`, installs `/opt/helixscreen/{bin,ui_xml,assets}`.
-  `0001-libhv-override-cppflags.patch`: the libhv `override CPPFLAGS` fix (below).
+  it). The git pin is `HELIXSCREEN_VERSION` in `helixscreen.mk` (currently
+  `11230009fa09b4509d0d05f482feaeef2e94c854`, the commit behind upstream v1.0.6; an earlier
+  note said `846a6e35`). Make opts include `PLATFORM_TARGET=ad5m-br`. Deps are
+  `libevdev openssl tslib`. It installs `/opt/helixscreen/{bin,ui_xml,assets}`.
 - `tests/qemu-harness/helix-render.sh` — render rig: boot HEADLESS (moonraker + fake-klippy),
   launch `helix-screen` directly (stderr→console), dump `/dev/fb0` → PNG. Mirrors `guppy-render.sh`.
 
@@ -52,6 +54,10 @@ relative ordering (Helix a few MB heavier) should hold. So **HelixScreen is a
 viable GuppyScreen alternative on RAM** — the choice is about features/UX, not a
 128 MB blocker.
 
+The sections below are the 2026-06 bring-up record. The status note at the top is the
+current result: the package builds, renders in qemu, and the fixes landed in
+`br-external/package/helixscreen/`. The prebuilt-binary shortcut was not the path taken.
+
 ## Reality check: this is a package PORT, not a quick eval
 
 HelixScreen vendors + cross-builds ~7 libs and 3 binaries (main / watchdog / splash), each with
@@ -74,7 +80,7 @@ reveals 2-3 more component issues.
    source: drop the xblax `variant-helixscreen` image's prebuilt `/opt/helixscreen/bin/helix-screen`
    + assets into the rig and run it. Fast path to the actual comparison vs GuppyScreen.
 
-## Build bring-up status (multi-submodule — in progress)
+## Build bring-up record (2026-06; later completed, see the status note)
 
 HelixScreen vendors + cross-builds several libs (libhv, wpa_supplicant, libnl, lvgl, spdlog, fmt,
 sdl2). Each can trip on Buildroot cross flags. Progress:

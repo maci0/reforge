@@ -1,5 +1,12 @@
 # ReForge — lab notebook
 
+Dated experiment log; paths, recommendations and “production” labels describe
+the recorded run. Current tuning is in [optimizations.md](optimizations.md).
+Klippy later reverted to glibc after hardware heap corruption with jemalloc;
+see [the allocator update](research/memory/2026-06-01-jemalloc-test-plan.md#update-2026-06-08).
+The kernel reconstruction progressed beyond the June +128-byte attempt; see the
+[current gap ledger](board-notes/byte-identical-bringup-gaps.md).
+
 ## 2026-06-04 — autoresearch: BR stack memory under qemu virt (-m 128, NOSWAP)
 
 Started a memory-optimization loop after the BR LTS / toolchain / klipper-v0.11

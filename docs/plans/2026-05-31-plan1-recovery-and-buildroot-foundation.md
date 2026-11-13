@@ -140,7 +140,7 @@ Expected: a list ending in the newest quarterly stable (e.g. `2026.02`, `2026.02
 ```bash
 cd reforge
 git submodule add https://gitlab.com/buildroot.org/buildroot.git buildroot
-cd buildroot && git checkout <TAG_FROM_STEP_1> && cd ..
+cd buildroot && git checkout "<TAG_FROM_STEP_1>" && cd ..
 git -C buildroot rev-parse HEAD
 ```
 Expected: prints the commit SHA the tag points to.
@@ -524,4 +524,3 @@ git commit -m "P1: CI — build rootfs + qemu smoke on push/PR"
 - [ ] Buildroot submodule is unmodified (no patches to the upstream tree) — confirm `git -C buildroot status` is clean.
 
 **Next plan:** Plan 2 — P2 Core stack (Klipper host + Moonraker + Mainsail + GuppyScreen as `BR2_EXTERNAL` packages, started in chroot).
-</content>

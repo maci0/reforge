@@ -15,8 +15,9 @@ how the mod restarts Klipper, dismisses dialogs, etc., "like the original QT fac
 ## The pattern
 ```sh
 pid=$(ps | grep "[f]irmwareExe -1" | awk '{print $1}')   # -1: avoid matching helpers
+# Fast attach: do not load all shared-library symbols.
 gdb -q -batch \
-  -ex "set auto-solib-add off" \      # fast attach: don't pull in all .so symbols
+  -ex "set auto-solib-add off" \
   -ex "attach $pid" \
   -ex "call (RET) MANGLED(INSTANCE_PTR, args...)" \
   -ex "detach" -ex "quit"

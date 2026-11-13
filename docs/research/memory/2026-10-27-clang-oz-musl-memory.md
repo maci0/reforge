@@ -4,7 +4,7 @@
 **Status:** snapshot, measured under qemu `-M virt` only; nothing adopted.
 **TL;DR:** `-Oz` alone saves nothing measurable (−165 kB). clang adds −0.5 MB total. Switching
 glibc to musl is the only real lever: **−3.1 MB sum(Pss), −5.6%**, about 2.1 MB of it in klippy.
-Getting clang to produce a working rootfs took four compatibility fixes, two of which failed only
+Getting clang to produce a working rootfs took six compatibility fixes, two discovered only
 at run time.
 
 ## Variants

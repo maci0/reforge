@@ -13,19 +13,19 @@
 # The host rootfs (p6) boots straight into a tiny init (/sbin/reforge-live-init)
 # that mounts /data from p7, then invokes packaging/live/flashforge_init.sh
 # with F2FS_DEV=/dev/sda — same env contract the real auto_run.sh uses.
-# The launcher mounts /dev/sda at /data/.mod/.reforge and runs the ReForge
+# The launcher mounts /dev/sda at /reforge and runs the ReForge
 # stack from there. Same as install mode wrt user data: gcodes land on the
 # eMMC /data via Klipper's virtual_sdcard.
 #
 # Live mode here means "booted from USB". It is NOT a zero-eMMC-write mode:
-# the launcher creates /data/.mod/.reforge (one directory inode, ~4 KB) the
-# first time it runs, and user gcodes land on eMMC /data (the factory
+# host mountpoints can be created on p6, and user gcodes land on eMMC /data (the factory
 # `[virtual_sdcard] path: /data/`). That's desired persistence.
 #
 # ASSERTS:
 #   (1) the ReForge stack comes up from the USB image;
-#   (2) the eMMC stand-in (p7) acquires no install state — no
-#       /data/.mod/.reforge/{mod,lkg,trial,.installed} files.
+#   (2) the legacy /data/.reforge/{mod,lkg,trial,.installed} paths are absent.
+#       This misses the current /data/.mod/.reforge install tree and cannot
+#       establish absence of install state; see docs/live-mode.md.
 #
 # Fully ROOTLESS (no sudo): images via mke2fs -d, GPT via sgdisk,
 # unprivileged qemu.

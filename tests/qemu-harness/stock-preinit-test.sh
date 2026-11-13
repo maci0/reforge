@@ -5,7 +5,7 @@
 # docs/boot.md §2 row #6 claims the stock /etc/inittab has
 #   ::sysinit:/etc/preinit
 # as the FIRST sysinit entry (file absent today = no-op), and the doc
-# advertises it as the earliest safe userspace hook. We've also been treating
+# describes it as synchronous; a hanging hook can block SSH. We've also been treating
 # /etc/preinit as a possible "Option C" hook in the PID-1 research note. This
 # test proves it actually runs on the stock rootfs under qemu, by:
 #
