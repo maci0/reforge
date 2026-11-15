@@ -21,8 +21,11 @@ rebrew toolchain status xtensa-xcc-14.04-aw_axi_cfg0 --json
 rebrew doctor --json
 ```
 
-Rebrew 6.15.0 is installed from the verified upstream CI wheel:
-https://github.com/maci0/rebrew/releases/tag/v6.15.0
+Rebrew 6.38.0 is installed from the verified upstream CI wheel:
+https://github.com/maci0/rebrew/releases/tag/v6.38.0
+The proofs below were produced with Rebrew 6.15.0 (see the recipe) and have not
+been re-run under 6.38.0: the supplied XCC image and the `../../build/` artifacts
+are not on the current host.
 The contribution was merged through https://github.com/maci0/rebrew/pull/56.
 Release artifacts are distributed through GitHub only.
 
