@@ -71,7 +71,7 @@ disp_reserve=1536000,0x448ee000 androidboot.dramsize=128
   the deployed flat module byte for byte. See the [current build audit](stock-bringup-rebuild.md)
   for source pins, exact comparison and validation limits. Packaging analysis:
   [`../reverse-engineering/stock-kernel-modules-packaging.md`](../reverse-engineering/stock-kernel-modules-packaging.md).
-  For **mainline** (Plan 5; the current size proxy is 7.3): `CONFIG_RTW88_8821CU` (rtw88 family)
+  For **mainline** (Plan 5; the current size proxy is 7.3.5): `CONFIG_RTW88_8821CU` (rtw88 family)
   replaces the vendor module; BT uses `btusb`+`btrtl`. Driver availability
   does not establish AD5M board or access-point validation; see the
   [mainline build study](../research/kernel/2026-10-27-mainline-board-kernel.md).

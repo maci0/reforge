@@ -1,6 +1,7 @@
 # ReForge component pins — authoritative source of truth for reproducible builds.
 # Format: <component> <kind> <ref> <sha>
-buildroot   tag    2026.08.1            7fdeadb3b9f12f78e5fccca914d7fef47090ab9a
+buildroot   tag    2026.08.2            cd8011d7c9965e1bcfc9c18d4272943f9c333b68
+openssl     tarball 3.5.9  603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a
 # Stock-kernel BSP (Allwinner T113 sun8iw20, 5.4.61) — git submodule at vendor/kernels/tina-bsp-kernel.
 # This is the layout-exact source for the zram modules + the qemu virt test kernel.
 tina-bsp-kernel  submodule  5.4.61   349a0b9fe63a03ea21198d104e5e9e01e7c068a6  https://github.com/iLotusK9/linux_kernel_aw_t113.git
@@ -18,7 +19,7 @@ stock-uboot  zip  fc662c13f3fde9d8bda1a2ad3fc53ff827f92576  d4233e9c0f3695b5adf2
 stock-kernel tarball d51ad00c047eccd5c88e807aedf56a5a25d9a155 2b85f5e3832c3ca2b6a00f179f7bccedeebdb6c6daf8ec087ac1dfeb22781b22 https://codeload.github.com/guanglun/longan-t113-linux-5.4/tar.gz/d51ad00c047eccd5c88e807aedf56a5a25d9a155
 stock-rtl8821cu tarball b6ad883ea547cbd5d144e6218cc122bb4de4ffc4 583ff0e2436d221a76a43680d5fcec03e2d3316cc3019d070f62af7cacd948d3 https://codeload.github.com/rugameuser/8821cu-20210118/tar.gz/b6ad883ea547cbd5d144e6218cc122bb4de4ffc4
 # Mainline board kernel (size proxy, never flashed); fetched by tools/build/build-mainline-kernel.sh.
-linux-mainline tarball 7.3 87363c24f10e06321eb362765521094e94471f6bff8bce2d6b3e40f39f004953 https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.tar.xz
+linux-mainline tarball 7.3.5 8f293f83d54f0b7b9be56863ebc5e4ea79d73e530b4ae55c572be97ef39f0990 https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-7.3.5.tar.xz
 mainsail   tag     v2.19.0  19908bcd07804328877cf1843c2436a5c66f66e7c417972a7cd262304057cbd6
 # klipper: pinned to upstream v0.11.0 (release tag, 2022-11-29) to match the
 # AD5M / AD5M Pro stock MCU firmware (Klipper v0.11 build, 2023-03-17). Switched
@@ -53,7 +54,7 @@ guppyscreen  commit  flashforge_ad5m  fdca5728001f7a6f6ce774dcfa3998f8b96e6878
 # Opt-in host; requires matching MCU firmware, does not replace the default above.
 # xblax AD5M source port; host + mainboard/eboard firmware are built together.
 klipper13  tag     v0.13.0-285-gfc2aaae69-ffadm5  fc2aaae692b5f703420915390a3dcb8cd514c384  https://github.com/xblax/klipper.git
-helixscreen tag    v1.0.6   11230009fa09b4509d0d05f482feaeef2e94c854
+helixscreen tag    v1.0.11  9e251a7bad126bfbe4f7e1e03294b8d91b67e471
 dinit  tarball  0.22.1  959b35c171452ecfbc09379b516517dadd675350eebc57ca54aebedda05d9adf
 python-importlib-metadata  tarball  9.0.0  a4f57ab599e6a2e3016d7595cfd72eb4661a5106e787a95bcc90c7105b831efc
 python-inotify-simple  tarball  2.0.1  f010bbbd8283bd71a9f4eb2de94765804ede24bd47320b0e6ef4136e541cdc2c

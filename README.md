@@ -32,8 +32,8 @@ More captures: [`docs/screenshots/`](docs/screenshots/README.md).
 - **MCU firmware (Plan 4):** the opt-in `klipper13` package builds mainboard and eboard
   firmware from source; flashing and hardware integration are not implemented or
   validated. The default build drives the stock v0.11 MCU firmware.
-- **Own kernel (Plan 5):** `make kernel-mainline` builds a T113-scoped Linux 7.3 kernel
-  (7.41 MB) as a size proxy. It has no board DTS and has not been booted; it needs
+- **Own kernel (Plan 5):** `make kernel-mainline` builds a T113-scoped Linux 7.3.5 kernel
+  as a size proxy. It has no board DTS and has not been booted; it needs
   the toolchain from `make rootfs` or an explicit `CROSS_COMPILE`.
 
 ## Quick start

@@ -1,6 +1,8 @@
 config BR2_PACKAGE_HELIXSCREEN
 	bool "helixscreen"
+	depends on BR2_TOOLCHAIN_HAS_THREADS # libnl
 	select BR2_PACKAGE_LIBEVDEV
+	select BR2_PACKAGE_LIBNL
 	select BR2_PACKAGE_OPENSSL
 	select BR2_PACKAGE_TSLIB
 	help

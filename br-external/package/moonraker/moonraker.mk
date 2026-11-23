@@ -8,7 +8,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # Source: scripts/moonraker-requirements.txt
 #
-# BUCKET A — available in upstream Buildroot (2026.08.1)
+# BUCKET A — available in upstream Buildroot (2026.08.2)
 #   tornado>=6.2.0     BR2_PACKAGE_PYTHON_TORNADO    (CORE: application.py server)
 #   pyserial==3.4      BR2_PACKAGE_PYTHON_SERIAL     (klippy_connection; already in klipper)
 #   pillow>=9.5.0      BR2_PACKAGE_PYTHON_PILLOW     (CORE: metadata.py thumbnail extraction)

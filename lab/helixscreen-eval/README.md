@@ -1,5 +1,8 @@
 # HelixScreen qemu eval (lab — NOT shipped yet)
 
+The v1.0.11 ARM build started through `S76helixscreen` in QEMU and rendered
+the language picker at 800×480. The test used a simulated Klipper connection.
+
 > **STATUS (2026-06-09): builds + renders in qemu.** `make rootfs` with
 > `BR2_PACKAGE_HELIXSCREEN=y` produces a 9.4 MB stripped `helix-screen` + assets;
 > `tests/qemu-harness/helix-render.sh` boots it and it paints its first-run
@@ -26,9 +29,10 @@ unblocked. Upstream: <https://github.com/prestonbrown/helixscreen> (GPL-3.0). Re
 
 - `br-external/package/helixscreen/` — the Buildroot package (default **n**; only the eval enables
   it). The git pin is `HELIXSCREEN_VERSION` in `helixscreen.mk` (currently
-  `11230009fa09b4509d0d05f482feaeef2e94c854`, the commit behind upstream v1.0.6; an earlier
-  note said `846a6e35`). Make opts include `PLATFORM_TARGET=ad5m-br`. Deps are
-  `libevdev openssl tslib`. It installs `/opt/helixscreen/{bin,ui_xml,assets}`.
+  `9e251a7bad126bfbe4f7e1e03294b8d91b67e471`, the commit behind upstream v1.0.11).
+  The recipe selects `PLATFORM_TARGET=ad5m-br` and passes the Buildroot cross
+  compiler prefix. Dependencies are `libevdev`, `libnl`, `openssl` and `tslib`.
+  It installs `/opt/helixscreen/{bin,ui_xml,assets}`.
 - `tests/qemu-harness/helix-render.sh` — render rig: boot HEADLESS (moonraker + fake-klippy),
   launch `helix-screen` directly (stderr→console), dump `/dev/fb0` → PNG. Mirrors `guppy-render.sh`.
 
@@ -54,9 +58,8 @@ relative ordering (Helix a few MB heavier) should hold. So **HelixScreen is a
 viable GuppyScreen alternative on RAM** — the choice is about features/UX, not a
 128 MB blocker.
 
-The sections below are the 2026-06 bring-up record. The status note at the top is the
-current result: the package builds, renders in qemu, and the fixes landed in
-`br-external/package/helixscreen/`. The prebuilt-binary shortcut was not the path taken.
+The 2026-06 bring-up results and memory figures apply to the earlier package pin.
+The source build fixes live in `br-external/package/helixscreen/`.
 
 ## Reality check: this is a package PORT, not a quick eval
 

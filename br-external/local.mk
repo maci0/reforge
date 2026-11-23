@@ -1,3 +1,7 @@
+# Buildroot 2026.08 ships the unsupported OpenSSL 3.6 series. Use 3.5 LTS
+# for the target and host packages until the Buildroot pin supplies a supported series.
+override LIBOPENSSL_VERSION = 3.5.9
+
 # Kernel-variant selector. REFORGE_KERNEL picks which Linux .config the Buildroot
 # `linux` package uses (both build the SAME vendor Tina source via OVERRIDE_SRCDIR):
 #   device (default) — the captured stock config (board/reforge/linux.config),

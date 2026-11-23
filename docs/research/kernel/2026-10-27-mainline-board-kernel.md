@@ -8,7 +8,11 @@ under the 5.4 stock device kernel (10.59 MB).
 
 ## Method
 
-`make kernel-mainline` (`tools/build/build-mainline-kernel.sh`): `linux-7.3` from `pins.lock`,
+The later Linux 7.3.5 pin passed the same config-fragment check and built a
+`vmlinux` with Buildroot GCC 15.3.0. `size` reported 7,420,288 bytes for text,
+data and BSS. The table below records the original Linux 7.3 measurements.
+The October 2026 run used `make kernel-mainline` (`tools/build/build-mainline-kernel.sh`)
+with the then-pinned `linux-7.3`,
 `allnoconfig` with `KCONFIG_ALLCONFIG=br-external/board/reforge/linux-mainline-t113.config`,
 Buildroot gcc 15.3.0 + binutils 2.45.1 (same toolchain as the stocklike rerun in
 [2026-06-06-kernel-compiler-and-size-options.md](2026-06-06-kernel-compiler-and-size-options.md)).

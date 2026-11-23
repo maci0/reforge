@@ -4,6 +4,10 @@ How sources become the firmware image. Versions are pinned in `pins.lock` and th
 submodule commits; `make rootfs` builds the image through Buildroot and `make tgz`
 packages the USB installer.
 
+The Buildroot pin supplies the base packages. ReForge selects OpenSSL 3.5 LTS
+through `br-external/local.mk`; the package source hash is in the external
+Buildroot patch directory. Updating a base library requires rebuilding the rootfs.
+
 ## Host requirements
 
 A Linux x86-64 host with Buildroot's
@@ -27,7 +31,7 @@ flowchart TB
     PINS["pins.lock + .gitmodules<br/>(pinned versions)"] --> SUB
 
     subgraph vendor["vendor/ (third-party, pinned)"]
-        BR["buildroot<br/>(submodule, 2026.08.1)"]
+        BR["buildroot<br/>(submodule, 2026.08.2)"]
         BSP["kernels/tina-bsp-kernel<br/>(submodule, T113 5.4.61)"]
     end
     SUB["git submodule update --init --recursive"] --> vendor
@@ -72,7 +76,7 @@ Packaging consumes the tar; `make repro` compares the compressed archive's conte
 | `make rootfs` | full Buildroot build: toolchain, device kernel, all packages | `build/output/images/rootfs.tar(.xz)` |
 | `make kernel` | build only the Tina BSP 5.4.61 kernel (device config, `-Os`) with Buildroot's gcc 15 | `build/output/images/zImage` |
 | `make kernel-virt` | Buildroot virt-config image; the harness instead uses `make qemu-kernel` | `build/output/images/zImage` |
-| `make kernel-mainline` | Linux 7.3 (`pins.lock`) with `allnoconfig` + `br-external/board/reforge/linux-mainline-t113.config`, failing if any fragment line does not apply. Size proxy: no board DTS, not booted; requires `make rootfs` toolchain or `CROSS_COMPILE` | `build/kernel-mainline/vmlinux` |
+| `make kernel-mainline` | Linux 7.3.5 (`pins.lock`) with `allnoconfig` + `br-external/board/reforge/linux-mainline-t113.config`, failing if any fragment line does not apply. Size proxy: no board DTS, not booted; requires `make rootfs` toolchain or `CROSS_COMPILE` | `build/kernel-mainline/vmlinux` |
 | `make tgz` | wrap the rootfs as a stock-format USB installer | `packaging/dist/reforge-<ver>.tgz` |
 | `make live-usb` | partitioned live USB image ([live mode](live-mode.md)) | `packaging/dist/reforge-live-<ver>.img.gz` |
 
