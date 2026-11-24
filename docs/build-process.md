@@ -14,7 +14,7 @@ a clean output directory so dependent packages also rebuild.
 
 A Linux x86-64 host with Buildroot's
 [system requirements](https://buildroot.org/downloads/manual/manual.html#requirement).
-CI (`ubuntu-latest`) installs, in `.github/workflows/release.yml`:
+The release workflow uses Ubuntu 24.04 and installs:
 
 ```sh
 sudo apt-get install -y build-essential qemu-user-static file xz-utils unzip zip bc \

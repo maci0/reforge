@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # qemu-user-static is available on 24.04.
     env:
       # tag push -> github.ref_name; manual dispatch -> the typed input. Bound to
       # an env var (never interpolated into a run: line) to avoid script injection.

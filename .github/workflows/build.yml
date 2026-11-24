@@ -52,7 +52,7 @@ jobs:
     # Single full ReForge image: python3+SSL+SQLite, Klipper, Moonraker,
     # Mainsail (busybox httpd), GuppyScreen, zram. Build is heavy
     # (numpy/python/guppyscreen from source); that is expected and intentional.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # qemu-user-static is available on 24.04.
     steps:
       - uses: actions/checkout@v4
         with: { submodules: recursive }
@@ -80,7 +80,7 @@ jobs:
     # twin-build reproducibility check — heavy (2 full builds), so only on
     # the weekly schedule or manual dispatch, not every push.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with: { submodules: recursive }
