@@ -8,10 +8,8 @@ tina-bsp-kernel  submodule  5.4.61   349a0b9fe63a03ea21198d104e5e9e01e7c068a6  h
 # Cross toolchain (kernel.org crosstool GCC 9.5.0 arm-linux-gnueabi, nolibc) — tarball, fetched by vendor/fetch.sh.
 # Pinned by content hash of the exact artifact we build with (not a mutable mirror).
 gcc-crosstool    tarball    9.5.0    81669db4e5adc1ff1c35e7d939ebcb6a5793c9b39202a7251d9210396ea533ce  https://mirrors.edge.kernel.org/pub/tools/crosstool/files/bin/x86_64/9.5.0/x86_64-gcc-9.5.0-nolibc-arm-linux-gnueabi.tar.xz
-# Linaro GCC 5.3-2016.05 (arm-linux-gnueabi) — tarball, OPTIONAL, fetched only by
-# tools/build/build-bsp-kernel-stock.sh (the byte-identical-reproduction build).
-# Exact toolchain stock FlashForge used to build the AD5M Pro kernel.
-# Not required for the ReForge shipping image (which uses GCC 9.5.0 above).
+# Optional Linaro GCC 5.3-2016.05 (arm-linux-gnueabi) for stock-kernel and OP-TEE
+# reproduction. See vendor/README.md for fetching. The rootfs uses Buildroot's GCC.
 gcc-linaro-5.3.1  tarball   5.3.1    77cccd433d680251c8b9bfa01890cb6921548513a39fac35c1f4b9f0a47e5aa4  https://releases.linaro.org/components/toolchain/binaries/5.3-2016.05/arm-linux-gnueabi/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi.tar.xz
 # Original 2023 U-Boot reconstruction base; local builder verifies this source ZIP.
 stock-uboot  zip  fc662c13f3fde9d8bda1a2ad3fc53ff827f92576  d4233e9c0f3695b5adf2ec8bb385b9f0f8e4b2e87748704a22367511ecd8b0ec  https://codeload.github.com/CamelShoko/longan-t113-u-boot-2018/zip/fc662c13f3fde9d8bda1a2ad3fc53ff827f92576
@@ -46,9 +44,7 @@ mainsail   tag     v2.19.0  19908bcd07804328877cf1843c2436a5c66f66e7c417972a7cd2
 #   0007-defer-multiprocessing-imports.patch (on-demand process helpers).
 klipper    tag     v0.11.0  e02b725602067a2cd098a62be9a4bb10fc74a9bd
 moonraker  commit  master  b559b9a81161f958a43c2f527b6ad96f73310d5d
-# consp/guppyscreen fork (FF5M-specific): flashforge_ad5m branch HEAD 2025-07
-# NOTE: task spec says ballaswag/guppyscreen; using consp fork because xblax's
-# proven patches target this fork's flashforge_ad5m branch directly.
+# consp/guppyscreen fork: xblax's AD5M patches target its flashforge_ad5m branch.
 guppyscreen  commit  flashforge_ad5m  fdca5728001f7a6f6ce774dcfa3998f8b96e6878
 
 # Opt-in host; requires matching MCU firmware, does not replace the default above.

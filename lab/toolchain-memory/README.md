@@ -1,7 +1,8 @@
 # Toolchain memory experiments
 
-Buildroot config fragments from the 2026-06-04 compiler and memory measurements.
-Each fragment is combined with the current ReForge defconfig by the variant builder:
+The variant builder layers these fragments over the current ReForge defconfig.
+The June 2026 GCC 14.3 versus 15.2 comparison used Buildroot 2026.02.2. These
+commands use the checkout's current Buildroot pin and do not recreate that baseline.
 
 ```sh
 tools/build/build-variant.sh gcc15-base lab/toolchain-memory/gcc15-base.fragment
@@ -23,7 +24,7 @@ lab/toolchain-memory/build-oz.sh gcc           # build/output-gcc-oz
 lab/toolchain-memory/build-oz.sh clang         # build/output-clang-oz
 lab/toolchain-memory/build-oz.sh clang musl    # build/output-clang-oz-musl
 lab/toolchain-memory/build-oz.sh gcc musl      # build/output-gcc-oz-musl
-NOSWAP=1 tests/qemu-harness/mem-probe.sh build/output-<variant>/images/rootfs.tar.xz
+NOSWAP=1 tests/qemu-harness/mem-probe.sh build/output-gcc-oz/images/rootfs.tar.xz
 ```
 
 `build-oz.sh` builds the toolchain with reforge_defconfig flags, then every other package with

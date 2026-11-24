@@ -356,119 +356,16 @@ complete those platform implementations. The vendor dispatcher and full
 standby service integration also remain unfinished. No physical CPU release,
 power, reset or suspend/resume action was executed.
 
-## PSCI version and advertised feature responses
+## PSCI overrides and later patches
 
-`psci-identification.c` supplies strong platform overrides for `psci_version`
-and `psci_features`. The original reports PSCI 1.0 and advertises only VERSION,
-SYSTEM_RESET, FEATURES and SYSTEM_SUSPEND. A C switch naturally compiles to
-all 42 original instruction bytes with the pinned compiler and production
-`-Os` flags. No relocation fields, metadata normalization, padding or post-link
-substitution is needed. The unwind descriptors also match.
+Patches 0012–0016 link the PSCI identification, CPU-on/affinity, watchdog
+reset, CPU-off and CPU-suspend overrides. The function comparisons, test
+commands and current link status are in the
+[standby host notes](../standby-host-src/README.md#psci-version-and-advertised-feature-responses).
 
-Patch 0012 and the builder compile these into the carrier. Two clean builds
-repeat the deployable binaries. QEMU checks 262,148 IDs across normal, wrong-owner
-and 64-bit namespaces plus boundary values, and verifies the version response.
-These are query operations; no power or hardware action runs.
-
-```sh
-python3 tests/release/test_stock_optee_psci_identification.py
-```
-
-[Proof](../../../docs/board-notes/stock-optee-psci-identification-proof.json)
-records exact function hashes, strong linked symbols and whole-carrier failure.
-Six PSCI overrides remain unfinished: CPU suspend/off/on, affinity, system reset
-and system suspend. Advertised support is preserved exactly and does not imply
-those original implementations have been completed. Whole-image stock identity,
-full dispatcher/configuration integration and physical resume remain open.
-
-## CPU-on and affinity overrides
-
-Patch 0013 compiles the retained `cpu-control.S` into the carrier. Original
-platform-initializer data flow verifies both reused pointer bindings:
-`cpucfg_base` maps physical `0x09010000`, and `rtc_base` maps `0x07000400`.
-The resulting strong `psci_cpu_on` and `psci_affinity_info` replace upstream
-defaults. Their outlined core query is retained too: all 172 bytes outside
-twenty relocations in the 252-byte text/literal total match stock. Unwind
-metadata matches, and the upstream 24-byte context setter matches outside its
-sole pointer relocation without source changes.
-
-QEMU checks 7,312 normal and one assertion case against private register banks,
-including original low-byte ID aliases, ARM shift edges and affinity-query side
-effects. Two clean builds repeat deployable binaries; the full unit suite passes.
-[Proof](../../../docs/board-notes/stock-optee-cpu-control-proof.json) records
-the original producer instructions and current linked symbols. CPU suspend,
-CPU off, system reset and complete standby/dispatcher wiring remain open.
-No physical CPU release, power or status-register action ran.
-
-## Watchdog system reset
-
-Patch 0014 compiles `system-reset.S` as the strong `psci_system_reset` override.
-Its 32-byte text/literal unit matches all 28 bytes outside the single genuine
-`phys_to_virt_io` call relocation. The twelve-byte unwind payload matches too.
-The existing source IO map includes the original `0x07020800` region. The
-routine writes `0x203` at offset `0x10`, then `0x0d140001` at `0x14`, and enters
-the original non-returning WFI/branch loop.
-
-Four QEMU cases substitute a private register bank and terminate the emulated
-wait loop by signal. They verify the mapping argument, writes, unchanged
-unrelated words and failure on unexpected return. No hardware watchdog, host
-or printer reset operation runs.
-
-```sh
-python3 tests/release/test_stock_optee_system_reset.py
-```
-
-[Proof](../../../docs/board-notes/stock-optee-system-reset-proof.json) records
-actual linked bytes and two clean deployable repeats. Whole-carrier comparison
-still fails. CPU suspend/off source and full system-suspend/dispatcher wiring
-remain unfinished; no physical reset or resume was tested.
-
-## CPU-off wrapper and reused cache shutdown
-
-Patch 0015 compiles `cpu-off.S` as the strong `psci_cpu_off`. Its 60-byte unit
-matches all 36 bytes outside six genuine relocations; unwind descriptor
-`0x80028400` matches too. The accepted CPU is exactly core 1; other cores return
--2. The original diagnostic, ARM cache-shutdown call, exception mask 7 and
-non-returning WFI/branch loop retain their original order.
-
-The pinned upstream `psci_armv7_cpu_off` supplies 52 bytes matching outside
-three actual call relocations. Its `psci_disable_smp` dependency matches all
-20 bytes directly. Neither upstream function was rewritten. QEMU checks five
-invalid cores and four accepted terminal paths using cache/mask providers and
-signal-based wait-loop termination. No physical shutdown or privileged cache
-operation runs in these tests.
-
-```sh
-python3 tests/release/test_stock_optee_cpu_off.py
-```
-
-[Proof](../../../docs/board-notes/stock-optee-cpu-off-proof.json) records
-actual linked symbols, helper comparisons and two clean deployable repeats.
-CPU-suspend source and full system-suspend/configuration/dispatcher wiring
-remain unfinished; strict whole-carrier comparison still fails.
-
-## CPU-suspend handshake
-
-Patch 0016 compiles `cpu-suspend.S` as the strong `psci_cpu_suspend`. Its
-204-byte text/literal unit matches all 152 bytes outside thirteen genuine
-relocations; unwind descriptor `0x8003acb0` matches too. The 14-byte retained
-GIC CPU-interface disable helper matches all instructions directly. RTC/GIC
-bindings reuse the existing verified platform IO mappings.
-
-Ten invalid-state and eight terminal QEMU cases cover both cores and four
-affinity levels. They check original diagnostics, state-ID rejection, RTC
-magic/vector/power fields, context publication, GIC control, call order,
-unchanged words/context and ARM shift behavior. Register banks and privileged
-services are explicit models; signals stop the emulated wait loop. No physical
-CPU suspend, GIC/RTC write or cache/interrupt transition runs.
-
-```sh
-python3 tests/release/test_stock_optee_cpu_suspend.py
-```
-
-[Proof](../../../docs/board-notes/stock-optee-cpu-suspend-proof.json) records
-exact linked comparisons and two clean deployable repeats. All eight original
-platform PSCI override bodies now have retained source. Seven are linked into
-the carrier; system suspend remains staged until full configuration and
-standby/dispatcher wiring is recovered. Whole-image equality, the SRAM BSS gap
-and physical resume validation remain unfinished.
+- [0017](0017-source-arisc-wakeup.patch) links the ARISC wake configuration
+  handlers and typed standby state. See the
+  [ARISC wake configuration](../standby-host-src/README.md#arisc-wake-configuration).
+- [0018](0018-runtime-memory-bounds.patch) restores the core, TA and shared
+  memory bounds used by `core_pbuf_is`. See the
+  [memory-bounds proof](../../../docs/board-notes/stock-optee-memory-bounds-proof.json).

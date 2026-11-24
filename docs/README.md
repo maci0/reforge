@@ -11,7 +11,7 @@ Current **reference docs** sit at this level and track the tree. Dated **snapsho
 | [`deployment-modes.md`](deployment-modes.md) | live USB vs `.tgz` install vs full replacement, and the installer paths |
 | [`build-process.md`](build-process.md) | host requirements, pins, Buildroot build, kernels, `.tgz` and live image |
 | [`boot.md`](boot.md) | stock boot chain (BROM → U-Boot → init), intervention points and brick safety, forge-x hook, stock USB-update detection, installed-ReForge service chain, eboard MCU handshake |
-| [`live-mode.md`](live-mode.md) | run the stack from USB without the installer; first boot writes `/reforge` on the stock rootfs |
+| [`live-mode.md`](live-mode.md) | USB setup, boot sequence, and writes to the printer and stick |
 | [`ota.md`](ota.md) | git-free updates and last-known-good rollback (qemu gate `make qemu-ota`) |
 | [`optimizations.md`](optimizations.md) | tuning levers with measured memory and size impact (canonical numbers) |
 | [`security-findings.md`](security-findings.md) | 15 stock-firmware security findings and their closure status per mode |
@@ -29,7 +29,7 @@ Current **reference docs** sit at this level and track the tree. Dated **snapsho
 | [`specs/`](specs/README.md) | design specs: firmware design, OTA, installer |
 | [`plans/`](plans/README.md) | implementation plans 1 to 3, OTA, BSP kernel rebuild, immutable ReForge (OverlayFS pointer swap, not yet implemented) |
 | [`screenshots/`](screenshots/README.md) | qemu renders, boot console, bootsplash |
-| [`releases/`](releases/v0.6.0.md) | per-release notes (only v0.6.0 has one) |
+| [`releases/`](releases/) | [v0.8.0 notes](releases/v0.8.0.md) and [v0.6.0 local release record](releases/v0.6.0.md). Firmware downloads are on [GitHub releases](https://github.com/maci0/reforge/releases). |
 
 `specs/`, `plans/` and `research/` record decisions as written and are not rewritten
 after later refactors; a dated `## Update` or status note is appended when an entry is

@@ -6,13 +6,12 @@
 # libhv + spdlog), so it uses the same virtio-gpu fb path that needed the
 # /dev/disp fix for guppy.
 #
-# Lab/eval only — HelixScreen is built by the lab/klipperscreen-eval (now
-# helixscreen) path, NOT shipped in the default image. This rig boots the stack
-# HEADLESS (moonraker + fake klippy), then launches /opt/helixscreen/bin/helix-screen
-# directly (stderr -> console) and captures /dev/fb0.
+# HelixScreen is an opt-in Buildroot package. See lab/helixscreen-eval/README.md.
+# The rig boots with SCREEN_MODE=HELIX and a simulated Klipper connection.
 #
 # Usage:   tests/qemu-harness/helix-render.sh        # NO sudo
-# Output:  build/helix-home.png (real framebuffer) + build/helix-home-serial.log
+# Output:  build/helix-home.ppm, build/helix-home-serial.log, and helix-home.png
+#          when magick is available and the guest dumps its framebuffer.
 # Needs:   qemu-system-arm, socat, mke2fs, build/zImage, a rootfs.tar built with
 #          BR2_PACKAGE_HELIXSCREEN=y.
 # =============================================================================
@@ -61,8 +60,7 @@ cat > "${MNT}/mod/init.d/S60klipper" <<'EOF'
 EOF
 chmod +x "${MNT}/mod/init.d/S60klipper"
 
-# Boot hook: stack HEADLESS (moonraker + fake klippy, no guppy), then launch
-# helix-screen directly with stderr -> console for its fbdev diagnostics.
+# Boot through the HELIX service chain and send diagnostics to the console.
 cat > "${MNT}/etc/init.d/S98helix" <<'EOF'
 #!/bin/sh
 [ "$1" = start ] || exit 0

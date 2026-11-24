@@ -166,7 +166,7 @@ already provides. The 256 MB SoC upgrade remains the real fix.
 
 The kit shipped with a full stock eMMC dump (`emmc_backup_AceOfBase_dump.bin`,
 zip password `123`), useful as a recovery reference. Its teardown lives in
-[`fw-archive/analysis/stock-emmc-dump-2.7.2-aceofbase.md`](../../../fw-archive/analysis/stock-emmc-dump-2.7.2-aceofbase.md):
+`analysis/stock-emmc-dump-2.7.2-aceofbase.md` in the separate `fw-archive` repository:
 stock FW 2.7.2, kernel 5.4.61, partition layout matching
 [`partition-map.md`](partition-map.md).
 

@@ -27,14 +27,13 @@ More captures: [`docs/screenshots/`](docs/screenshots/README.md).
   Forge-X), Klippy needed a manual relaunch after its first restart; automatic respawn is
   [open](docs/BACKLOG.md#live-klippy-respawn-after-crc-mismatch-auto-restart).
 - **`.tgz` install:** validated under qemu only; the loopback test still checks the
-  obsolete install layout ([test limits](tests/README.md#loopback-install-test)). It does not stop the stock
-  UI yet ([why](#why)).
+  obsolete install layout ([test limits](tests/README.md#loopback-install-test)). The
+  stock UI still starts ([security findings](docs/security-findings.md)).
 - **MCU firmware (Plan 4):** the opt-in `klipper13` package builds mainboard and eboard
   firmware from source; flashing and hardware integration are not implemented or
   validated. The default build drives the stock v0.11 MCU firmware.
-- **Own kernel (Plan 5):** `make kernel-mainline` builds a T113-scoped Linux 7.3.5 kernel
-  as a size proxy. It has no board DTS and has not been booted; it needs
-  the toolchain from `make rootfs` or an explicit `CROSS_COMPILE`.
+- **Own kernel (Plan 5):** `make kernel-mainline` builds a T113 size proxy without a
+  board DTS. See [build inputs and output](docs/build-process.md#steps).
 
 ## Quick start
 
@@ -47,11 +46,8 @@ make rootfs        # reforge_defconfig -> build/output/images/rootfs.tar
 make tgz           # -> packaging/dist/reforge-<ver>.tgz
 ```
 
-`make rootfs` builds the whole stack (Klipper, Moonraker, Mainsail, GuppyScreen, zram);
-`SCREEN_MODE` picks headless or on-screen at runtime. `pins.lock` is the version
-manifest. [`vendor/fetch.sh`](vendor/README.md) additionally fetches the standalone
-GCC 9.5 crosstool used by the qemu test kernel, `modules/*/build.sh` and
-`make bsp-kernel-rebuild`. The [Makefile](Makefile) lists every build and test target.
+See [`pins.lock`](pins.lock) for versions and the [Makefile](Makefile) for build and
+test targets.
 
 ## Test without a printer
 
@@ -69,10 +65,10 @@ make qemu-live     # boot live mode from USB, check a legacy install-residue pat
 
 ## Try it on hardware
 
-[Live mode](docs/live-mode.md) boots the stack from a partitioned USB stick without
-running the installer. It is not a zero-write mode: the first boot creates an empty
-`/reforge` directory on the stock rootfs (eMMC p6), and gcode uploads go to eMMC
-`/data` (p7) on purpose. Remove the stick and reboot to leave it.
+[Live mode](docs/live-mode.md) boots the stack from USB without running the installer.
+It creates `/reforge` on the stock rootfs if needed and stores gcode uploads on the
+printer. See the [write topology](docs/live-mode.md#write-topology) for other writes.
+Remove the stick and reboot to leave live mode.
 
 `make live-usb` writes `packaging/dist/reforge-live-<ver>.img.gz`, a whole-disk image
 (MBR, FAT p1, F2FS p2). **Writing it erases the target disk.** Identify the USB disk
@@ -85,39 +81,23 @@ version=$(cat packaging/VERSION)
 zcat "packaging/dist/reforge-live-${version}.img.gz" | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync
 ```
 
-## Installing: start from clean stock firmware
+## Install on the printer
 
-The `.tgz` installer expects clean stock firmware. Run the uninstaller of any other mod
-(forge-x, Helper Script, zmod, kAIO, or anything that drops files into `/etc/init.d/`,
-`/opt/config/`, `/data/.mod/`, `/root/` or `/opt/klipper/klippy/extras/`), reboot, and
-confirm `firmwareExe` starts and `/etc/init.d/` has no third-party `S??` symlinks.
-A stock USB update can leave mod files behind; it is not a substitute for verified
-mod removal. If the uninstaller is unavailable, follow the
-[recovery runbook](tools/recovery/RUNBOOK.md) and verify the remaining files before
-installing. The installer refuses to run over a known
-competing mod; the list and the `REFORGE_FORCE_OVER_OTHER_MOD` override are in
-[`packaging/README.md`](packaging/README.md#before-you-install--other-mods-must-be-cleanly-uninstalled).
-Live mode needs none of this: it never runs the installer, and it boots on a forge-x
-unit.
+Verify [clean stock firmware](packaging/README.md#before-you-install--other-mods-must-be-cleanly-uninstalled)
+before using the `.tgz` installer. Get the installer from the
+[ReForge releases](https://github.com/maci0/reforge/releases) or build it above.
+Follow the [USB install flow](packaging/README.md#install-flow) for the required
+filename and what happens on reboot.
 
-To restore stock, dump and restore the eMMC with
-[`tools/recovery/`](tools/recovery/RUNBOOK.md). Golden images are gitignored and never
-committed.
+To remove ReForge from a printer that still boots, follow the
+[uninstall procedure](packaging/README.md#uninstall). For a failed boot or
+disk-image restore, see the [recovery runbook](tools/recovery/RUNBOOK.md).
 
-## Why
+## Stock firmware security
 
-Reverse-engineering turned up **15 security findings** in the stock Qt UI and supporting userland:
-a fleet-wide hardcoded RSA-2048 private key, unauthenticated LAN control on TCP 8899, a
-cleartext MQTT cloud control plane, MD5-only OTA verification, hardcoded HMAC secrets,
-default `admin/ff123456` credentials, and more. Severity and per-mode closure status:
-[`docs/security-findings.md`](docs/security-findings.md).
-
-After successful live startup, the launcher keeps the stock UI from starting, so
-those surfaces are absent. Early launcher failure can fall back to the stock UI. The
-`.tgz` install does not close them yet: the stock `auto_run.sh` still launches the UI,
-and the cloud block edits only the chroot's `/etc/hosts`. The planned
-[PID-1 swap](docs/research/kernel/2026-06-05-replacing-pid1.md) keeps the stock UI from
-starting without waiting for an own kernel.
+Successful live startup keeps the stock UI from starting. Early launcher failure can
+fall back to it, and the `.tgz` install still starts it. See the
+[security findings](docs/security-findings.md) for the remaining exposure in each mode.
 
 ## Documentation
 

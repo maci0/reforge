@@ -10,7 +10,7 @@ set -euo pipefail
 #   software-<ver>.tar.xz  — ReForge rootfs tree + inner md5sum.list
 #   library-<ver>.tar.xz   — stub (rootfs is self-contained)
 #   control-<ver>.tar.xz   — stub (reserved for Plan 4 MCU work)
-#   flashforge_init.sh     — installer script (stub; real logic in Task 2)
+#   flashforge_init.sh     — installer launched by the stock USB update hook
 #   md5sum.list            — md5 of the three .tar.xz files (outer manifest)
 # ---------------------------------------------------------------------------
 

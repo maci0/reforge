@@ -4,9 +4,11 @@ How sources become the firmware image. Versions are pinned in `pins.lock` and th
 submodule commits; `make rootfs` builds the image through Buildroot and `make tgz`
 packages the USB installer.
 
-The Buildroot pin supplies the base packages. ReForge selects OpenSSL 3.5 LTS
-through `br-external/local.mk`; the package source hash is in the external
-Buildroot patch directory. Updating a base library requires rebuilding the rootfs.
+Buildroot supplies the base packages. To update the OpenSSL 3.5 LTS override,
+update [`local.mk`](../br-external/local.mk), the version and source hash in
+[`pins.lock`](../pins.lock), and `libopenssl.hash` under the matching version in
+[`br-external/patches/libopenssl/`](../br-external/patches/libopenssl/). Build from
+a clean output directory so dependent packages also rebuild.
 
 ## Host requirements
 
@@ -31,14 +33,14 @@ flowchart TB
     PINS["pins.lock + .gitmodules<br/>(pinned versions)"] --> SUB
 
     subgraph vendor["vendor/ (third-party, pinned)"]
-        BR["buildroot<br/>(submodule, 2026.08.2)"]
+        BR["buildroot submodule"]
         BSP["kernels/tina-bsp-kernel<br/>(submodule, T113 5.4.61)"]
     end
     SUB["git submodule update --init --recursive"] --> vendor
 
     subgraph src["source we author"]
         EXT["br-external/<br/>configs · packages · rootfs-overlay · board"]
-        PATCH["package patches<br/>(klipper ×7, klipper13 ×5, moonraker ×3, guppyscreen ×3)"]
+        PATCH["package patches"]
     end
 
     BR --> MK["make rootfs<br/>(tools/build/build.sh)"]
@@ -76,7 +78,7 @@ Packaging consumes the tar; `make repro` compares the compressed archive's conte
 | `make rootfs` | full Buildroot build: toolchain, device kernel, all packages | `build/output/images/rootfs.tar(.xz)` |
 | `make kernel` | build only the Tina BSP 5.4.61 kernel (device config, `-Os`) with Buildroot's gcc 15 | `build/output/images/zImage` |
 | `make kernel-virt` | Buildroot virt-config image; the harness instead uses `make qemu-kernel` | `build/output/images/zImage` |
-| `make kernel-mainline` | Linux 7.3.5 (`pins.lock`) with `allnoconfig` + `br-external/board/reforge/linux-mainline-t113.config`, failing if any fragment line does not apply. Size proxy: no board DTS, not booted; requires `make rootfs` toolchain or `CROSS_COMPILE` | `build/kernel-mainline/vmlinux` |
+| `make kernel-mainline` | Pinned mainline Linux with `allnoconfig` plus the [T113 fragment](../br-external/board/reforge/linux-mainline-t113.config). The build fails if any fragment setting does not apply. Size proxy with no board DTS or boot test. Requires the `make rootfs` toolchain or `CROSS_COMPILE`. | `build/kernel-mainline/vmlinux` |
 | `make tgz` | wrap the rootfs as a stock-format USB installer | `packaging/dist/reforge-<ver>.tgz` |
 | `make live-usb` | partitioned live USB image ([live mode](live-mode.md)) | `packaging/dist/reforge-live-<ver>.img.gz` |
 
@@ -114,7 +116,7 @@ flowchart LR
 
 `BR2_REPRODUCIBLE=y`, `pins.lock` and the submodule commits fix the inputs. `make repro`
 (weekly CI schedule or manual dispatch) builds twice from clean on the same host and compares the mode, size and
-SHA-256 of every file in `rootfs.tar.xz`; it does not compare builds across hosts.
+SHA-256 of every regular file in `rootfs.tar.xz`; it does not compare builds across hosts.
 Kernel headers are pinned to the stock 5.4.61 ABI so glibc's minimum-kernel note
 matches the device (otherwise the loader aborts with `FATAL: kernel too old`).
 

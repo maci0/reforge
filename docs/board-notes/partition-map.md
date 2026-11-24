@@ -78,18 +78,27 @@ See the [write topology](../live-mode.md#write-topology).
 ReForge in **install mode** (`.tgz` over USB, per Plan 3) writes overlays
 under `/data/.mod/.reforge/` on **p7** and adds the boot-hook symlink on p6; first boot also creates
 the empty `/reforge` mountpoint there.
-It does not replace bootloader, environment, kernel or DSP partitions:
+The installer leaves the bootloader, environment, kernel and DSP partitions in
+place. The tree below includes files from the rootfs, installer and OTA:
 
 ```
 /data/.mod/.reforge/
-├── mod/                     ReForge overlay (klippy, moonraker, mainsail, init scripts)
-├── lkg/                     last-known-good copy (LKG rollback)
-└── trial/                   trial-install bookkeeping
+├── .shell/                 active boot hook and chroot helpers
+├── config/screen.conf      created by the installer
+├── mod/                    service scripts, runtime config and modules
+├── lkg/                    last-known-good copy of mod/
+├── opt/                    Klipper, Moonraker and GuppyScreen
+├── state/trial.count       boot trial counter
+└── var/www/mainsail/       Mainsail web assets
 ```
 
 The installer uses `/etc/init.d/S01reforge`, pointing to its own boot hook;
 forge-x uses the separate S00 slot. See [boot.md](../boot.md) and
 [`packaging/flashforge_init.sh`](../../packaging/flashforge_init.sh).
+
+The rootfs ships the initial `lkg/` copy. The installer creates it if absent.
+At the end of the installed init loop, `S99ok` calls the helper that refreshes
+the copy and resets the counter. See [OTA rollback](../ota.md#safety--boot-trial--last-known-good-lkg).
 
 ## Capturing / verifying the layout yourself
 
@@ -126,5 +135,5 @@ table on this device fits in the first ~50 KB after the protective MBR.)
   inventory (SoC, DRAM, peripherals)
 - [`tools/recovery/forge-x-20260531-152104.partitions.txt`](../../tools/recovery/forge-x-20260531-152104.partitions.txt)
   — raw `/proc/partitions` from a running forge-x install on the same unit
-- [`tools/recovery/golden.img.gz`](../../tools/recovery/golden.img.gz) — the
-  authoritative eMMC dump these numbers come from
+- `tools/recovery/golden.img.gz` — local eMMC image used to check these numbers.
+  See the [recovery source notes](../../tools/recovery/recovery-sources.md).

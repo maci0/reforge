@@ -65,10 +65,9 @@ qemu rig doesn't model; the bench's measurable wins are the reclaim-ahead knobs
 
 ## Plan-5 kernel-build levers (not on stock 5.4.61)
 
-These are **not** runtime-tunable on the stock BSP kernel (the configs/drivers aren't built),
-so they're out of reach for P1–P3. They become available when ReForge ships its **own** kernel
-(Plan 5, mainline kernel; the current size proxy is 7.3, see `make kernel-mainline` above). Listed here so the memory work carries forward. Full analysis:
-[`docs/research/memory/2026-06-02-stock-kernel-runtime-tuning.md`](research/memory/2026-06-02-stock-kernel-runtime-tuning.md) §7 / §7.1.
+The stock BSP lacks these drivers or config options. They are candidates for a
+replacement kernel (Plan 5). See the [current size-proxy build](build-process.md#steps)
+and the [runtime-tuning audit](research/memory/2026-06-02-stock-kernel-runtime-tuning.md) §7.
 
 | lever | why enable | cost / caveat |
 |---|---|---|

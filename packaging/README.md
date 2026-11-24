@@ -115,7 +115,8 @@ and will probably brick the install.
      directory on `/data` and checking its inner `md5sum.list`. Extraction or
      verification failure therefore leaves no prior install to recover.
    - Renames the verified temp directory to `/data/.mod/.reforge`.
-   - Seeds the last-known-good copy (`mod` → `lkg`) used by [OTA rollback](../docs/ota.md).
+   - Keeps the packaged last-known-good copy, or copies `mod` to `lkg` if the image
+     omitted it. See [OTA rollback](../docs/ota.md).
    - Symlinks `/data/.mod/.reforge/.shell/reforge-boot` as `/etc/init.d/S01reforge`
      (the **boot hook**).
    - Writes the default screen mode (`SCREEN_MODE=HEADLESS`) to
@@ -232,13 +233,15 @@ that boots a virt-machine kernel with the built ReForge rootfs and runs
 install, boot, web-reachability, and GUI-render tests.
 
 ```sh
+make rootfs         # build the ReForge rootfs
+make tgz            # package the installer the next two tests consume
 make qemu-kernel    # build the virt ARM kernel (heavy, one-time)
 make qemu-update    # run the update-process test (sudo)
 make qemu-render    # run the GuppyScreen render test (rootless)
 ```
 
-These are local-only and need `make rootfs` plus `make qemu-kernel`; `qemu-update`
-needs sudo. The stock-UI gates additionally need the golden dump and
+See the [GCC 9.5 setup](../tests/qemu-harness/README.md#building-the-test-kernel--make-qemu-kernel)
+before building the test kernel. The stock-UI gates also need the golden dump and
 `make qemu-stock-rootfs`. See the [harness guide](../tests/qemu-harness/README.md)
 for each target’s inputs and LIVE versus FLOOR results.
 

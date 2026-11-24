@@ -60,10 +60,9 @@
 #   useful for us because the stock rootfs has the 8821cu WiFi module, the
 #   MCU update binaries, etc. that we may want to reach later.
 #
-# Reverting this hook is one line:
-#     ln -sf /bin/busybox /init     # back to stock busybox-init as PID 1
-#   or simply
-#     rm /init                      # kernel falls back to /sbin/init = busybox
+# To revert this hook, restore the stock symlink on the stock rootfs:
+#     ln -sf /bin/busybox /init
+# The captured stock cmdline explicitly passes init=/init, so /init must exist.
 #
 # Tracked: docs/deployment-modes.md (Mode 2 evolution), docs/boot.md §2.
 # =============================================================================

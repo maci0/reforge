@@ -6,11 +6,15 @@
 ReForge rootfs uses is **7.41 MB**, 2.82 MB under the stocklike 7.3 proxy (10.23 MB) and 3.18 MB
 under the 5.4 stock device kernel (10.59 MB).
 
+## Linux 7.3.5 follow-up
+
+The later `make kernel-mainline` run with Linux 7.3.5 passed the same
+config-fragment check and built `vmlinux` with Buildroot GCC 15.3.0.
+`size build/kernel-mainline/vmlinux` reported 5,609,732 bytes of text,
+1,630,056 bytes of data and 180,500 bytes of BSS (7,420,288 bytes total).
+
 ## Method
 
-The later Linux 7.3.5 pin passed the same config-fragment check and built a
-`vmlinux` with Buildroot GCC 15.3.0. `size` reported 7,420,288 bytes for text,
-data and BSS. The table below records the original Linux 7.3 measurements.
 The October 2026 run used `make kernel-mainline` (`tools/build/build-mainline-kernel.sh`)
 with the then-pinned `linux-7.3`,
 `allnoconfig` with `KCONFIG_ALLCONFIG=br-external/board/reforge/linux-mainline-t113.config`,

@@ -211,10 +211,7 @@ python3 tests/release/test_stock_optee_psci_identification.py
 
 [Proof](../../../docs/board-notes/stock-optee-psci-identification-proof.json)
 records exact function hashes, strong linked symbols and whole-carrier failure.
-Six PSCI overrides remain unfinished: CPU suspend/off/on, affinity, system reset
-and system suspend. Advertised support is preserved exactly and does not imply
-those original implementations have been completed. Whole-image stock identity,
-full dispatcher/configuration integration and physical resume remain open.
+See the [current PSCI link status](#cpu-suspend-handshake) below.
 
 ## PSCI system-suspend wrapper
 
@@ -238,9 +235,7 @@ python3 tests/release/test_stock_optee_system_suspend.py
 [Proof](../../../docs/board-notes/stock-optee-system-suspend-proof.json)
 records production-ABI compilation and the composed runtime boundary. This
 unit remains outside the carrier until the runtime configuration and dispatcher
-are reconstructed. Five other platform PSCI bodies remain unrecovered; the
-carrier still needs six overrides including this wrapper's wiring. No physical
-power, CPU release, reset or suspend/resume test ran.
+are reconstructed. No physical power, CPU release, reset or suspend/resume test ran.
 
 ## CPU-on and affinity control
 
@@ -268,9 +263,8 @@ pointer object `0x41b49d00` to physical `0x09010000`, and `0x41b49d0c` to
 Patch 0013 and the builder now link the two strong PSCI overrides into the
 carrier. The existing upstream context setter is reused; its 24 bytes match
 outside one real pointer relocation. Two clean builds repeat deployable bytes,
-and the full unit suite passes. Three PSCI bodies remain unrecovered: CPU
-suspend, CPU off and system reset. System-suspend and full dispatcher wiring
-remain unfinished. No hardware CPU release, power or status query ran.
+and the full unit suite passed for this build. No hardware CPU release, power
+or status query ran.
 
 ## Watchdog system reset
 
@@ -292,8 +286,7 @@ python3 tests/release/test_stock_optee_system_reset.py
 
 [Proof](../../../docs/board-notes/stock-optee-system-reset-proof.json) records
 actual linked bytes and two clean deployable repeats. Whole-carrier comparison
-still fails. CPU suspend/off source and full system-suspend/dispatcher wiring
-remain unfinished; no physical reset or resume was tested.
+failed. The reset and resume paths were only tested in the model.
 
 ## CPU-off wrapper and reused cache shutdown
 
@@ -316,8 +309,7 @@ python3 tests/release/test_stock_optee_cpu_off.py
 
 [Proof](../../../docs/board-notes/stock-optee-cpu-off-proof.json) records
 actual linked symbols, helper comparisons and two clean deployable repeats.
-CPU-suspend source and full system-suspend/configuration/dispatcher wiring
-remain unfinished; strict whole-carrier comparison still fails.
+Strict whole-carrier comparison failed.
 
 ## CPU-suspend handshake
 
@@ -345,7 +337,7 @@ the carrier; system suspend remains staged until full configuration and
 standby/dispatcher wiring is recovered. Whole-image equality, the SRAM BSS gap
 and physical resume validation remain unfinished.
 
-### ARISC wake configuration
+## ARISC wake configuration
 
 Patch 0017 links `arisc-wakeup.S` and typed `standby-state.c` through the
 OEM fast-call route and restores the observed four-thread configuration.

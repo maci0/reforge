@@ -23,10 +23,8 @@ clean-artifacts:
 	rm -rf build/output/build/helixscreen-*/ 2>/dev/null; \
 	echo "clean-artifacts: reclaimed ~$$(( before/1024/1024 )) MB (qemu images + stale helixscreen build); kept *.png + *serial.log"
 # kernel / kernel-virt: build ONLY the Linux kernel via Buildroot (same vendor
-# Tina source). `kernel` = the device stock config; `kernel-virt` = the qemu
-# `-M virt` test config (ARCH_SUNXI off + virtio/drm/fb). Output: build/output/
-# images/zImage. The standalone tools/build/build-bsp-kernel*.sh + build-test-
-# kernel.sh stay the canonical references.
+# Tina source). The device and virt configs both write build/output/images/zImage.
+# The QEMU harness uses its own image from make qemu-kernel.
 kernel:            ; $(BUILD) kernel
 kernel-virt:       ; $(BUILD) kernel-virt
 # Mainline 7.x board kernel for the T113 (allnoconfig + board fragment); size proxy, never
@@ -75,7 +73,7 @@ qemu-stock-rootfs: ; tests/qemu-harness/extract-stock-rootfs.sh
 
 # Generic qemu run helper: pass ROOT=<image-or-cpio> and optionally QEMU_ARGS=...
 # Example: make qemu-run ROOT=tests/qemu-harness/build/stock-rootfs.ext4
-# Example: make qemu-run ROOT=tests/qemu-harness/build/initramfs.cpio.gz --vnc
+# Example: make qemu-run QEMU_ARGS=--vnc
 ROOT ?= tests/qemu-harness/build/initramfs.cpio.gz
 qemu-run:          ; tests/qemu-harness/run-qemu.sh $(ROOT) $(QEMU_ARGS)
 

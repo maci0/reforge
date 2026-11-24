@@ -219,10 +219,8 @@ mv "${TEMP_DIR}" "${REFORGE_DIR}"
 sync
 
 # ---------------------------------------------------------------------------
-# Seed the last-known-good (LKG) baseline for the trial/rollback safety net.
-# The shipped rootfs carries the OTA-updatable /mod; a fresh install has no
-# lkg yet, so copy mod -> lkg once.  (The trial/LKG logic itself lands in a
-# later task; this just guarantees a baseline exists from first boot.)
+# Keep the packaged last-known-good baseline. If the rootfs omitted it,
+# seed it from mod so the trial can roll back after the first boot.
 # ---------------------------------------------------------------------------
 if [ -d "${REFORGE_DIR}/mod" ] && [ ! -d "${REFORGE_DIR}/lkg" ]; then
     info "Seeding last-known-good baseline (mod -> lkg) ..."

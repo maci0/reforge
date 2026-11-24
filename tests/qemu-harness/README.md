@@ -56,9 +56,9 @@ expects the 5.4 ABI.
 
 ## Framebuffer — pinned to the real panel (800×480×32)
 
-The AD5M Pro panel (measured on the live unit): **800×480 visible, 32 bpp (xRGB8888),
-virtual 800×960**. The harness reproduces exactly that so GuppyScreen/firmwareExe render
-pixel-identical.
+The AD5M Pro panel was measured at **800×480 visible, 32 bpp (xRGB8888), virtual
+800×960**. The harness matches the visible resolution and bit depth with a single
+800×480 virtual framebuffer. It checks UI rendering without emulating the panel driver.
 
 **Method that works:** virtio-gpu + DRM fbdev emulation:
 ```
@@ -89,8 +89,9 @@ bus fails → no virtio-gpu → **no fb0**. `highmem=off` relocates ECAM to a 32
 tests/qemu-harness/run-qemu.sh <root-image-or-initramfs> [OPTIONS] [-- EXTRA_QEMU_ARGS...]
 ```
 - `<root>`: an `.ext4` (booted as a virtio-blk root, `/dev/vda`) or a `.cpio[.gz]` initramfs (auto-detected).
-- `--usb <file>`: attach a 2nd virtio-blk drive (`/dev/vdb`) carrying a file (e.g. a `.tgz` "USB stick" for the update test).
+- `--usb <file>`: use the file as a read-only raw virtio disk (`/dev/vdb` with an ext4 root disk).
 - `--vnc`: `-display vnc=:0` + a QEMU monitor unix socket (`build/qemu-monitor-<pid>.sock`) so you can `screendump` the framebuffer (for GUI render checks).
+- `--append <quoted-string>` adds arguments to the guest kernel command line.
 - `--timeout N` (default 120s; `0` = no timeout), `--log <file>`, `--dry-run`.
 - `-- ...`: pass extra args straight to qemu (e.g. a user-net port-forward).
 
@@ -99,10 +100,16 @@ It always uses the proven args: `-M virt,highmem=off -cpu cortex-a7 -m 256
 
 **Grab a screenshot of the fb** (with `--vnc`): send `screendump out.ppm` to the monitor socket.
 
-**Live web stack** (reach Moonraker from the host): add a port-forward —
+To reach Moonraker from the host, add a loopback port forward:
+```sh
+tests/qemu-harness/run-qemu.sh root.ext4 -- \
+  -netdev user,id=n1,net=10.0.3.0/24,hostfwd=tcp:127.0.0.1:17125-:7125 \
+  -device virtio-net-pci,netdev=n1
 ```
-run-qemu.sh root.ext4 -- -netdev user,id=n1,net=10.0.3.0/24,hostfwd=tcp::17125-:7125 \
-                          -device virtio-net-pci,netdev=n1
+
+From a second terminal, once Moonraker is up:
+
+```sh
 curl http://127.0.0.1:17125/server/info
 ```
 (Use a **separate slirp subnet** for the forwarded NIC — sharing `10.0.2.0/24` with the
@@ -115,6 +122,7 @@ default NIC causes routing conflicts where TCP connects but HTTP hangs.)
 | `make qemu-smoke` | boot a tiny initramfs, assert fb0 = 800×480×32 |
 | `make qemu-stock-rootfs` | extract stock rootfs (`mmcblk0p6`) from the golden dump → `build/stock-rootfs.ext4` (rootless: `sfdisk` + `dd` + `debugfs`) |
 | `make qemu-update` | install ReForge into an ext4 + boot it under the test kernel → assert Moonraker live (LIVE) or services-started (FLOOR); the target runs the script under sudo |
+| `make qemu-helix` | start the [optional HelixScreen build](../../lab/helixscreen-eval/README.md) and capture the framebuffer |
 
 The remaining `qemu-*` gates (render, stock UI, live, OTA, PID-1, dinit, memory) are
 listed with one-line comments in the [Makefile](../../Makefile).

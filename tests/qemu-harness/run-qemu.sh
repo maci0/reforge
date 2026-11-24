@@ -11,9 +11,8 @@
 #             Path to a *.cpio* or *.gz (cpio.gz)  → passed as -initrd
 #
 # Options:
-#   --usb <file>        Attach a second virtio-blk drive (/dev/vdb) carrying
-#                       the given file (e.g. update .tgz; simulates a USB stick).
-#                       Task 6 uses this to drive the update-process test.
+#   --usb <file>        Use the file as a read-only raw virtio disk. With an ext4
+#                       root disk attached, the guest sees the second disk as /dev/vdb.
 #
 #   --vnc               Enable VNC display (port 5900) instead of -nographic.
 #                       Adds a QEMU monitor unix socket at

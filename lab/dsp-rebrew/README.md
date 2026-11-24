@@ -21,11 +21,9 @@ rebrew toolchain status xtensa-xcc-14.04-aw_axi_cfg0 --json
 rebrew doctor --json
 ```
 
-Rebrew 6.38.0 is installed from the verified upstream CI wheel:
-https://github.com/maci0/rebrew/releases/tag/v6.38.0
-The proofs below were produced with Rebrew 6.15.0 (see the recipe) and have not
-been re-run under 6.38.0: the supplied XCC image and the `../../build/` artifacts
-are not on the current host.
+The interactive toolchain checks can use the installed `rebrew` CLI. The DSP
+recipe runs with its own wheel pin; see [the kernel component](#complete-kernel-c-component)
+for the recipe and proof versions.
 The contribution was merged through https://github.com/maci0/rebrew/pull/56.
 Release artifacts are distributed through GitHub only.
 
@@ -89,7 +87,10 @@ Their implementations and the full DSP firmware are not part of this match.
 
 `kernel-layout.json` preserves recovered placement and external bindings, and
 pins all 25 source inputs plus the compiler image and candidate configuration.
-The recipe uses Rebrew 6.15.0's image runner with source mounted read-only. It
+The recipe pins Rebrew 6.15.0. The tracked [kernel proof](kernel-proof.json)
+and [comparison](comparison.json) record Rebrew 6.9.0. No replacement proof is
+recorded for the 6.15.0 recipe or the 6.38.0 CLI checked on this host.
+The image runner mounts source read-only. It
 never reads the reference during compilation/linking and never copies reference
 bytes into the build. Literal sharing follows the original native input order.
 External function anchors are link context and are excluded from component bytes.

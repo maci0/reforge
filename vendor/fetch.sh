@@ -57,11 +57,11 @@ else
 fi
 
 # --- 3. Linaro 5.3.1 toolchain (OPTIONAL, byte-identical-reproduction build) -
-# Fetched only when explicitly requested via FETCH_LINARO=1; the ReForge
-# shipping image uses GCC 9.5.0 above. The Linaro toolchain is the EXACT
+# Fetched only when explicitly requested via FETCH_LINARO=1. The ReForge
+# rootfs uses Buildroot's internal GCC. The Linaro toolchain is the exact
 # compiler stock FlashForge used (`(Linaro GCC 5.3-2016.05) 5.3.1 20160412`)
-# per the embedded Linux version banner; the byte-identical-attempt build
-# at tools/build/build-bsp-kernel-stock.sh needs it.
+# per the embedded Linux version banner. The stock-kernel and OP-TEE
+# reproduction builders use it.
 LINARO_DIR="$REPO_ROOT/vendor/toolchains/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi"
 if [ "${FETCH_LINARO:-0}" = "1" ]; then
     if [ -x "$LINARO_DIR/bin/arm-linux-gnueabi-gcc" ]; then

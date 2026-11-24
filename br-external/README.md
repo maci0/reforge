@@ -9,6 +9,8 @@ rootfs. Built via `make rootfs` (→ `build/output/`).
 | `package/` | ReForge's own Buildroot packages: `klipper` (v0.11, default), `klipper13` (optional v0.13 host + MCU firmware), `moonraker`, `mainsail`, `guppyscreen`, `helixscreen` (lab), `dinit`, `reforge-zram`, python deps. |
 | `board/reforge/` | `rootfs-overlay/` (init scripts `S00cloudblock`…`S99ok`, staged `etc/dinit.d/`, `/etc/reforge/*.conf`, the fire/ember boot banner), `post-build.sh` (assembles `/mod`), kernel configs (`linux.config` device, `linux-virt.config` qemu, `linux-mainline-t113.config`), `board.dts`, and `stock/` + `virt/` board data. |
 | `external.desc`, `external.mk`, `Config.in` | Buildroot external-tree glue. |
+| [`local.mk`](local.mk) | BSP source override, device/virt kernel selection and OpenSSL version override. |
+| [`patches/`](patches/) | Buildroot global patch directory, including versioned OpenSSL source hashes. |
 
 The printer keeps the stock 5.4.61 kernel and bootloader. The rootfs image does
 not install a kernel or bootloader. Default `make rootfs` still builds the BSP

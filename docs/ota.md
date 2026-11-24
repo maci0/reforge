@@ -124,7 +124,8 @@ flowchart TD
   promoted.
 - **Copies are not atomic:** promote builds `lkg.new`, then `rm -rf lkg` and `mv`; restore is
   `mv mod mod.bad` then `cp -a lkg mod`. An interruption in either step can leave a missing
-  or partial directory.
+  or partial directory. The promote helper attempts to reset the counter even if the copy
+  or rename fails.
 - **Integrity:** the updater checks only the HTTP status (no content hash, as in the rest of the
   Klipper ecosystem). A corrupt update is caught only if it stops boot before `S99ok`; nothing
   detects one that boots.

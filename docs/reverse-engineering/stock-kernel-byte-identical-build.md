@@ -528,8 +528,8 @@ closed (Path C in §8).
   `ayueying/linux-5.4` @ 2022-09-08; Copyright (C) 2019 AllWinner)
 - [`../board-notes/stock-kernel-config-5.4.61.txt.gz`](../board-notes/stock-kernel-config-5.4.61.txt.gz)
   — captured stock `.config` (byte-identical to embedded IKCONFIG)
-- [`../../vendor/toolchains/gcc-linaro-5.3.1-2016.05-x86_64_arm-linux-gnueabi/`](../../vendor/toolchains/)
-  — Linaro 5.3.1 toolchain (downloaded via `FETCH_LINARO=1 ./vendor/fetch.sh`)
+- Linaro 5.3.1 toolchain under `vendor/toolchains/`. See the
+  [vendor setup](../../vendor/README.md) for `FETCH_LINARO=1`.
 - the 2026-06-04 autoresearch optimization loop, iters 0–4 (baseline →
   substitutions → alignment diagnosis) — progression summarized in Appendix A
   below (the loop's own `autoresearch.*` working files were not retained)

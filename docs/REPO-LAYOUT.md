@@ -22,7 +22,7 @@ tools/         dev/ops tooling (not shipped in firmware)
   ota/           FlashForge firmware update checker + host tests
   lint/          ShellCheck runner for tracked scripts
 vendor/        third-party we DON'T author — submodules + pinned tarballs (see vendor/README.md)
-  buildroot/             git submodule (Buildroot 2026.08.2)
+  buildroot/             pinned Buildroot submodule
   kernels/tina-bsp-kernel/   git submodule (Allwinner T113 BSP, 5.4.61)
   toolchains/            pinned tarballs: gcc 9.5.0 crosstool, optional Linaro 5.3.1 (not used by make rootfs)
   fetch.sh               submodules + gcc 9.5.0 (Linaro with FETCH_LINARO=1)
@@ -50,24 +50,10 @@ Makefile  pins.lock  .gitmodules  .github/   build glue, pins, submodule registr
 
 ## Vendor (third-party — pinned, not authored here)
 
-`pins.lock` is the source of truth; `vendor/fetch.sh` reconstructs the table below.
-
-| path | upstream | mechanism |
-|---|---|---|
-| `vendor/buildroot/` | Buildroot `2026.08.2` | git submodule |
-| `vendor/kernels/tina-bsp-kernel/` | `iLotusK9/linux_kernel_aw_t113@5.4.61` | git submodule |
-| `vendor/toolchains/gcc-9.5.0-nolibc/` | kernel.org crosstool GCC 9.5.0 | pinned tarball (sha256), `vendor/fetch.sh` |
-
-`make rootfs` uses only the two submodules; Buildroot builds its own GCC 15 toolchain.
-The GCC 9.5.0 crosstool serves the qemu test kernel (`make qemu-kernel`), the standalone
-`modules/*/build.sh` scripts and `make bsp-kernel-rebuild`. `vendor/fetch.sh` fetches
-only the submodules and toolchains (Linaro 5.3.1 with `FETCH_LINARO=1`).
-[`vendor/README.md`](../vendor/README.md) also lists the stock-reproduction inputs:
-stock-kernel patches and OP-TEE and boot0 runtime sources are tracked, while the pinned
-stock U-Boot, kernel and Wi-Fi source archives are supplied by the caller and checked against
-`pins.lock`. `make kernel-mainline` downloads its own Linux 7.3.5 tarball. Mainline
-`linux-5.4.61` is **not** vendored (the BSP is the build source); fetch it manually only
-for fallback or porting diffs.
+`vendor/` holds the Buildroot and BSP submodules, local patches and source excerpts.
+Generated downloads and compiler extracts are ignored. For the source archives,
+optional toolchains and fetch commands, see the [vendor guide](../vendor/README.md).
+Versions and hashes are recorded in [`pins.lock`](../pins.lock).
 
 ## Lab (experiments / scratch — does NOT ship)
 

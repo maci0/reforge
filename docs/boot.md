@@ -237,6 +237,11 @@ recovery depends on whether boot still reaches SSH or the USB update hook:
   env as boot-code, not as a config file — even though `fw_setenv` makes it *look* easy.
 
 ### Pre-kernel env hook — U-Boot env (`fw_setenv`)  ⚠ hard-brick risk, see §2 ⚠
+
+The example assumes the staged [`reforge-init`](../br-external/board/reforge/rootfs-overlay/sbin/reforge-init)
+has been installed as `/sbin/reforge-init` on stock p6. The `.tgz` installer leaves
+that path alone.
+
 ```sh
 # inspect
 fw_printenv                      # reads p2 (per /etc/fw_env.config)
@@ -245,6 +250,10 @@ fw_setenv init /sbin/reforge-init
 # revert
 fw_setenv init /init             # back to stock, only possible while userspace still boots
 ```
+
+When used as PID 1, the staged hook uses `pivot_root` into `/data/.mod/.reforge`
+and then executes `/sbin/init`. See the risk assessment in §2 before attempting it.
+
 `/etc/fw_env.config` → `mmcblk0p2 0x0 0x20000` (+ `mmcblk0p3` redundant).
 CRC-protected redundancy does not check whether an environment value can boot.
 A validly stored bad `init=` can therefore prevent userspace without triggering
@@ -261,13 +270,6 @@ cat > /etc/preinit <<'EOF'
 EOF
 chmod +x /etc/preinit
 # revert: rm /etc/preinit
-```
-
-### Become PID1 for an early switch_root — env init= override
-```sh
-fw_setenv init /sbin/reforge-init     # /sbin/reforge-init does setup then:
-#   pivot_root into /data/.mod/.reforge, then exec /sbin/init
-# revert: fw_setenv init /init
 ```
 
 **UNSAFE side (reflash, brick risk, FEL recovery NOT rehearsed): boot0/SPL, U-Boot
